@@ -1,0 +1,28 @@
+# LeadVox - robots.txt
+# https://leadvox.com.br
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://leadvox.com.br/sitemap.xml
+
+# Bloquear acesso a pastas desnecessárias (ajuste conforme seu servidor)
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /cgi-bin/
+Disallow: /*.php$
+Disallow: /tmp/
+
+# Permitir crawlers de redes sociais
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
