@@ -527,12 +527,13 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <li>
       <span>Segmentos <span class="nav-arrow">▾</span></span>
       <div class="dropdown" style="min-width:360px">
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">🏥</div><div><strong>Saúde</strong><small>Clínicas e consultórios</small></div></a>
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">🛒</div><div><strong>Varejo</strong><small>Lojas físicas e e-commerce</small></div></a>
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">🚗</div><div><strong>Automotivo</strong><small>Concessionárias e oficinas</small></div></a>
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">⚖️</div><div><strong>Advocacia</strong><small>Escritórios jurídicos</small></div></a>
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">✈️</div><div><strong>Agências de Viagem</strong><small>Reservas e suporte ao viajante</small></div></a>
-        <a class="drop-item" href="#segmentos"><div class="drop-ic">🎓</div><div><strong>Educação</strong><small>Instituições de ensino</small></div></a>
+        <a class="drop-item" href="/saude"><div class="drop-ic">🏥</div><div><strong>Saúde</strong><small>Clínicas e consultórios</small></div></a>
+        <a class="drop-item" href="/varejo"><div class="drop-ic">🛒</div><div><strong>Varejo</strong><small>Lojas físicas e e-commerce</small></div></a>
+        <a class="drop-item" href="/automotivo"><div class="drop-ic">🚗</div><div><strong>Automotivo</strong><small>Concessionárias e oficinas</small></div></a>
+        <a class="drop-item" href="/advocacia"><div class="drop-ic">⚖️</div><div><strong>Advocacia</strong><small>Escritórios jurídicos</small></div></a>
+        <a class="drop-item" href="/viagens"><div class="drop-ic">✈️</div><div><strong>Agências de Viagem</strong><small>Reservas e suporte ao viajante</small></div></a>
+        <a class="drop-item" href="/educacao"><div class="drop-ic">🎓</div><div><strong>Educação</strong><small>Instituições de ensino</small></div></a>
+        <a class="drop-item" href="/imoveis"><div class="drop-ic">🏠</div><div><strong>Imobiliárias</strong><small>Corretores e imobiliárias</small></div></a>
       </div>
     </li>
     <li><a href="#canais">Canais</a></li>
@@ -686,12 +687,13 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <button class="seg-tab" onclick="showSeg(3)">⚖️ Advocacia</button>
       <button class="seg-tab" onclick="showSeg(4)">🚗 Automotivo</button>
       <button class="seg-tab" onclick="showSeg(5)">🎓 Educação</button>
+      <button class="seg-tab" onclick="showSeg(6)">🏠 Imobiliárias</button>
     </div>
     <div id="seg0" class="seg-panel active segs-body rv">
       <div class="seg-text">
         <h3>Atendimento automatizado para clínicas e consultórios</h3>
         <p>Otimize agendamento de consultas, envio de lembretes e acompanhamento de pacientes com fluxos automáticos via WhatsApp.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/saude" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Clínica</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! 👋 Sou a assistente da clínica. Como posso ajudar?</div><div class="sp-msg sp-usr">Quero agendar uma consulta</div><div class="sp-msg sp-bot">Claro! Qual especialidade você precisa?</div><div class="sp-btn">🦷 Odontologia</div><div class="sp-btn">❤️ Cardiologia</div><div class="sp-btn">🧠 Neurologia</div></div></div>
     </div>
@@ -699,7 +701,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="seg-text">
         <h3>Automação de WhatsApp para vendas e pós-venda</h3>
         <p>Aumente suas vendas automatizando o atendimento e qualificando leads da vitrine virtual ao pós-venda, tudo centralizado.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/varejo" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Loja</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! 🛒 Bem-vindo à nossa loja. Posso ajudar?</div><div class="sp-msg sp-usr">Quero ver promoções</div><div class="sp-msg sp-bot">Temos ofertas incríveis hoje! 🔥 Qual categoria te interessa?</div><div class="sp-btn">👗 Roupas</div><div class="sp-btn">📱 Eletrônicos</div><div class="sp-btn">🏠 Casa</div></div></div>
     </div>
@@ -707,7 +709,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="seg-text">
         <h3>Plataforma inteligente para vendas e suporte ao viajante</h3>
         <p>Gerencie reservas, cotações e suporte de clientes com respostas automáticas e métricas de desempenho em tempo real.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/viagens" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Viagens</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! ✈️ Planejando sua viagem? Posso ajudar!</div><div class="sp-msg sp-usr">Quero ir para Cancún em julho</div><div class="sp-msg sp-bot">Ótima escolha! 🌴 Quantas pessoas e qual data exata?</div><div class="sp-msg sp-usr">2 pessoas, 15 a 22 de julho</div><div class="sp-msg sp-bot">Perfeito! Vou buscar as melhores opções para você 🔍</div></div></div>
     </div>
@@ -715,7 +717,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="seg-text">
         <h3>Automação segura e eficiente para escritórios jurídicos</h3>
         <p>Agende atendimentos, organize prazos e mantenha o relacionamento com clientes de forma segura via WhatsApp.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/advocacia" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Jurídico</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! ⚖️ Bem-vindo ao escritório. Como posso ajudar?</div><div class="sp-msg sp-usr">Preciso de consultoria trabalhista</div><div class="sp-msg sp-bot">Entendido. Vou agendar uma consulta com nosso especialista em direito trabalhista 📅</div><div class="sp-btn">📅 Agendar agora</div></div></div>
     </div>
@@ -723,7 +725,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="seg-text">
         <h3>CRM de WhatsApp para concessionárias e oficinas</h3>
         <p>Gerencie leads de vendas e agendamentos de serviços com rapidez e integração total com seus canais digitais.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/automotivo" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Auto</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! 🚗 Procurando seu próximo veículo?</div><div class="sp-msg sp-usr">Sim, quero ver SUVs disponíveis</div><div class="sp-msg sp-bot">Temos ótimas opções! Qual sua faixa de orçamento?</div><div class="sp-btn">💰 Até R$80k</div><div class="sp-btn">💰 R$80k–R$120k</div><div class="sp-btn">💰 Acima de R$120k</div></div></div>
     </div>
@@ -731,9 +733,17 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="seg-text">
         <h3>Comunicação automatizada com alunos e responsáveis</h3>
         <p>Acompanhe matrículas, dúvidas e comunicados em um só lugar, otimizando o atendimento e reduzindo a evasão.</p>
-        <button class="btn-primary" onclick="openModal()">Falar com especialista</button>
+        <a href="/educacao" class="btn-primary">Ver solução completa →</a>
       </div>
       <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Escola</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! 🎓 Bem-vindo à nossa instituição. Como ajudo?</div><div class="sp-msg sp-usr">Quero informações sobre matrícula</div><div class="sp-msg sp-bot">Claro! Para qual curso e período?</div><div class="sp-btn">🌅 Manhã</div><div class="sp-btn">🌆 Tarde</div><div class="sp-btn">🌙 Noite</div></div></div>
+      <div id="seg6" class="seg-panel segs-body rv">
+      <div class="seg-text">
+        <h3>CRM de WhatsApp para imobiliárias e corretores</h3>
+        <p>Qualifique leads automaticamente, apresente imóveis por perfil e agende visitas direto pelo WhatsApp — sem perder nenhuma oportunidade.</p>
+        <a href="/imoveis" class="btn-primary">Saiba mais</a>
+      </div>
+      <div class="seg-phone"><div class="sp-hd"><div class="sp-av">LV</div><div><div class="sp-nm">LeadVox IA · Imóveis</div><div class="sp-st">● online</div></div></div><div class="sp-body"><div class="sp-msg sp-bot">Olá! 🏠 Procurando o imóvel ideal?</div><div class="sp-msg sp-usr">Quero alugar um apartamento</div><div class="sp-msg sp-bot">Em qual região e qual o valor máximo? 📍</div><div class="sp-msg sp-usr">Zona Sul do Rio, até R$ 3.000</div><div class="sp-msg sp-bot">Encontrei 8 opções! Quantos quartos você precisa? 🎯</div></div></div>
+    </div>
     </div>
   </div>
 </section>
@@ -957,7 +967,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
   <p class="cta-sub">Junte-se a +1.000 empresas que já usam a LeadVox para atender mais, vender mais e escalar sem contratar mais.</p>
   <div class="cta-row">
     <button class="btn-primary" onclick="openModal()">Agendar demonstração</button>
-    <a href="https://wa.me/5521973195102?text=Ol%C3%A1!%20Estava%20no%20site%20e%20quero%20saber%20mais%20sobre%20a%20LeadVox." class="btn-outline" target="_blank">Falar no WhatsApp</a>
+    <a href="https://wa.me/552126621271?text=Ol%C3%A1!%20Estava%20no%20site%20e%20quero%20saber%20mais%20sobre%20a%20LeadVox." class="btn-outline" target="_blank">Falar no WhatsApp</a>
   </div>
   <div class="cta-guarantee">Teste grátis por 7 dias, sem cartão de crédito</div>
 </div>
@@ -991,7 +1001,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
         <p>Plataforma de atendimento omnichannel com IA + CRM integrado. Automatize processos e transforme conversas em vendas.</p>
         <div class="ft-contact-info">
           <a href="tel:+552126621271">📞 (21) 2662-1271</a><br>
-          <a href="https://wa.me/5521973195102">💬 (21) 97319-5102</a><br>
+          <a href="https://wa.me/552126621271">💬 (21) 97319-5102</a><br>
           <a href="mailto:contato@leadvox.com.br">✉️ contato@leadvox.com.br</a>
         </div>
         <div class="ft-socials" style="margin-top:16px">
@@ -1012,12 +1022,13 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       </div>
       <div class="ft-col">
         <h4>Segmentos</h4>
-        <a href="#segmentos">Saúde</a>
-        <a href="#segmentos">Varejo</a>
-        <a href="#segmentos">Automotivo</a>
-        <a href="#segmentos">Advocacia</a>
-        <a href="#segmentos">Educação</a>
-        <a href="#segmentos">Viagens</a>
+        <a href="/saude">Saúde</a>
+        <a href="/varejo">Varejo</a>
+        <a href="/automotivo">Automotivo</a>
+        <a href="/advocacia">Advocacia</a>
+        <a href="/educacao">Educação</a>
+        <a href="/viagens">Viagens</a>
+        <a href="/imoveis">Imobiliárias</a>
       </div>
       <div class="ft-col">
         <h4>Empresa</h4>
@@ -1025,7 +1036,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
         <a href="#integracoes">Integrações</a>
         <a href="#planos">Planos</a>
         <a href="https://chat.leadvox.com.br" target="_blank">Acesso do Cliente</a>
-        <a href="https://wa.me/5521973195102" target="_blank">Fale Conosco</a>
+        <a href="https://wa.me/552126621271" target="_blank">Fale Conosco</a>
         <a href="#faq">FAQ</a>
       </div>
     </div>
@@ -1038,7 +1049,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 </footer>
 
 <!-- WA FLOAT -->
-<a class="wa-float" aria-label="Fale com a LeadVox no WhatsApp" href="https://wa.me/5521973195102?text=Ol%C3%A1!%20Estava%20no%20site%20da%20LeadVox%20e%20quero%20saber%20mais." target="_blank" title="Fale conosco">
+<a class="wa-float" aria-label="Fale com a LeadVox no WhatsApp" href="https://wa.me/552126621271?text=Ol%C3%A1!%20Estava%20no%20site%20da%20LeadVox%20e%20quero%20saber%20mais." target="_blank" title="Fale conosco">
   <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C8.28 2 2 8.28 2 16c0 2.48.67 4.8 1.84 6.79L2 30l7.39-1.82A13.94 13.94 0 0016 30c7.72 0 14-6.28 14-14S23.72 2 16 2z" fill="white"/><path d="M22.5 19.3c-.36-.18-2.1-1.03-2.43-1.15-.32-.12-.56-.18-.8.18-.23.36-.9 1.15-1.1 1.38-.2.23-.4.26-.76.09a9.56 9.56 0 01-2.82-1.74 10.6 10.6 0 01-1.95-2.43c-.2-.35-.02-.54.15-.72.16-.16.36-.4.54-.6.18-.2.24-.35.36-.58.12-.23.06-.44-.03-.62-.09-.18-.8-1.92-1.09-2.63-.28-.69-.57-.6-.8-.61-.2-.01-.44-.01-.68-.01-.23 0-.6.09-.92.44-.32.35-1.2 1.17-1.2 2.86s1.23 3.31 1.4 3.54c.18.23 2.4 3.67 5.82 5.15.81.35 1.45.56 1.94.71.82.26 1.56.22 2.15.13.65-.1 2.01-.82 2.29-1.62.28-.8.28-1.48.2-1.62-.09-.14-.32-.23-.68-.4z" fill="#25d366"/></svg>
 </a>
 
@@ -1054,8 +1065,8 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="m-chip">Demo ao vivo</div>
       <div class="m-chip">Resposta rápida</div>
     </div>
-    <a href="https://wa.me/5521973195102?text=Ol%C3%A1!%20Quero%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20da%20LeadVox." class="btn-primary" style="display:block;text-align:center;margin-bottom:11px" target="_blank">FALAR NO WHATSAPP</a>
-    <p style="color:var(--muted);font-size:.78rem">📞 (21) 2662-1271 · (21) 97319-5102</p>
+    <a href="https://wa.me/552126621271?text=Ol%C3%A1!%20Quero%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20da%20LeadVox." class="btn-primary" style="display:block;text-align:center;margin-bottom:11px" target="_blank">FALAR NO WHATSAPP</a>
+    <p style="color:var(--muted);font-size:.78rem">📞 (21) 2662-1271</p>
   </div>
 </div>
 
@@ -1102,13 +1113,20 @@ function updateSummary(){
   document.getElementById("prItems").innerHTML=items.map(i=>'<div class="pr-item">'+i+"</div>").join("");
 }
 function enviarOrcamento(){
-  const modulosTxt=mods.length>0?"Módulos desejados: "+mods.join(", ")+"\n":"";
-  const msg="Olá! Tenho interesse em um orçamento da LeadVox.\n\n"
-    +"📱 Linhas de WhatsApp: "+wa+"\n"
-    +"👥 Usuários: "+usr+"\n"
-    +modulosTxt
-    +"\nPoderia me passar mais informações?";
-  window.open("https://wa.me/5521973195102?text="+encodeURIComponent(msg),"_blank");
+  const modsIcon={
+    "Campanhas":"📣","Dashboard":"📊","Chatbot":"💬","IA":"🤖",
+    "Funil":"🔁","Pipeline":"📋","Facebook":"👍","Instagram":"📸",
+    "Webchat":"🌐","API/Webhook":"🔗"
+  };
+  const modsLista = mods.length>0
+    ? "\n\n📦 *Módulos desejados:*\n" + mods.map(m=>"  "+(modsIcon[m]||"•")+" "+m).join("\n")
+    : "";
+  const msg="Olá! Gostaria de um orçamento da *LeadVox*."
+    +"\n\n📱 *Linhas de WhatsApp:* "+wa
+    +"\n👥 *Usuários:* "+usr
+    +modsLista
+    +"\n\nPoderia me passar mais informações?";
+  window.open("https://wa.me/552126621271?text="+encodeURIComponent(msg),"_blank");
 }
 
 // ── MODAL
