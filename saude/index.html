@@ -28,6 +28,22 @@
   "isPartOf": {"@id": "https://leadvox.com.br/#website"},
   "provider": {"@id": "https://leadvox.com.br/#organization"}
 }
+
+// MOBILE MENU
+function toggleMobile(){
+  const menu=document.getElementById("mobileMenu");
+  const btn=document.getElementById("hamburger");
+  const isOpen=menu.classList.contains("open");
+  if(isOpen){menu.classList.remove("open");btn.classList.remove("open");document.body.style.overflow="";}
+  else{menu.classList.add("open");btn.classList.add("open");document.body.style.overflow="hidden";}
+}
+function closeMobile(){
+  document.getElementById("mobileMenu").classList.remove("open");
+  document.getElementById("hamburger").classList.remove("open");
+  document.body.style.overflow="";
+}
+window.addEventListener("resize",()=>{if(window.innerWidth>900)closeMobile();});
+
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -148,6 +164,31 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
   .feats{grid-template-columns:1fr}
   .diff-grid{grid-template-columns:1fr}
 }
+
+/* ═══════ MOBILE MENU ═══════ */
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px;z-index:250}
+.hamburger span{display:block;width:24px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.nav-desktop{display:inline-flex}
+.mobile-menu{display:none;position:fixed;top:66px;left:0;right:0;bottom:0;background:rgba(7,13,28,.98);backdrop-filter:blur(20px);z-index:199;overflow-y:auto;padding:24px 6% 40px;flex-direction:column;gap:0;border-top:1px solid var(--border)}
+.mobile-menu.open{display:flex}
+.mm-section{margin-bottom:28px}
+.mm-section-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.mm-link{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none;font-size:.95rem;font-weight:500;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);transition:color .2s}
+.mm-link:hover{color:var(--green)}
+.mm-link-ic{width:34px;height:34px;background:rgba(43,232,123,.08);border:1px solid rgba(43,232,123,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.mm-link strong{display:block;font-size:.9rem;font-weight:600}
+.mm-link small{color:var(--muted);font-size:.76rem}
+.mm-btns{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.mm-btns .btn-primary{text-align:center;padding:14px;display:block}
+.mm-btns .btn-ghost{text-align:center;padding:14px;border-radius:9px;display:block}
+@media(max-width:900px){
+  .nav-desktop{display:none !important}
+  .hamburger{display:flex !important}
+  .nav-links{display:none}
+}
 </style>
 </head>
 <body>
@@ -161,10 +202,38 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <li><a href="/#planos">Planos</a></li>
   </ul>
   <div class="nav-right">
-    <a href="https://chat.leadvox.com.br" class="btn-ghost" target="_blank">Entrar</a>
-    <a href="https://wa.me/552126621271?text=Ol%C3%A1%21%20Tenho%20uma%20cl%C3%ADnica%20e%20quero%20saber%20como%20a%20LeadVox%20pode%20ajudar%20no%20atendimento%20e%20agendamento." class="btn-cta" target="_blank">Fale Conosco</a>
+    <a href="https://chat.leadvox.com.br" class="btn-ghost nav-desktop" target="_blank">Entrar</a>
+    <a href="https://wa.me/552126621271?text=Ol%C3%A1%21%20Tenho%20uma%20cl%C3%ADnica%20e%20quero%20saber%20como%20a%20LeadVox%20pode%20ajudar%20no%20atendimento%20e%20agendamento." class="btn-cta nav-desktop" target="_blank">Fale Conosco</a>
+    <button class="hamburger" id="hamburger" onclick="toggleMobile()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mm-section">
+    <div class="mm-section-title">Segmentos</div>
+    <a class="mm-link" href="/saude" onclick="closeMobile()"><div class="mm-link-ic">🏥</div><div><strong>Saúde</strong><small>Clínicas e consultórios</small></div></a>
+    <a class="mm-link" href="/varejo" onclick="closeMobile()"><div class="mm-link-ic">🛒</div><div><strong>Varejo</strong><small>Lojas e e-commerce</small></div></a>
+    <a class="mm-link" href="/automotivo" onclick="closeMobile()"><div class="mm-link-ic">🚗</div><div><strong>Automotivo</strong><small>Concessionárias e oficinas</small></div></a>
+    <a class="mm-link" href="/advocacia" onclick="closeMobile()"><div class="mm-link-ic">⚖️</div><div><strong>Advocacia</strong><small>Escritórios jurídicos</small></div></a>
+    <a class="mm-link" href="/educacao" onclick="closeMobile()"><div class="mm-link-ic">🎓</div><div><strong>Educação</strong><small>Escolas e cursos</small></div></a>
+    <a class="mm-link" href="/viagens" onclick="closeMobile()"><div class="mm-link-ic">✈️</div><div><strong>Viagens</strong><small>Agências de turismo</small></div></a>
+    <a class="mm-link" href="/imoveis" onclick="closeMobile()"><div class="mm-link-ic">🏠</div><div><strong>Imobiliárias</strong><small>Corretores e imobiliárias</small></div></a>
+  </div>
+  <div class="mm-section">
+    <div class="mm-section-title">Navegação</div>
+    <a class="mm-link" href="/#funcionalidades" onclick="closeMobile()"><div class="mm-link-ic">🤖</div><div><strong>Funcionalidades</strong><small>Tudo da plataforma</small></div></a>
+    <a class="mm-link" href="/#integracoes" onclick="closeMobile()"><div class="mm-link-ic">🔗</div><div><strong>Integrações</strong><small>+50 integrações</small></div></a>
+    <a class="mm-link" href="/#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>Monte seu plano</small></div></a>
+    <a class="mm-link" href="/#faq" onclick="closeMobile()"><div class="mm-link-ic">❓</div><div><strong>FAQ</strong><small>Dúvidas frequentes</small></div></a>
+  </div>
+  <div class="mm-btns">
+    <a href="https://chat.leadvox.com.br" class="btn-ghost" target="_blank">Acesso do Cliente</a>
+    <a href="https://wa.me/552126621271?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20a%20LeadVox." class="btn-primary" target="_blank">Fale Conosco pelo WhatsApp</a>
+  </div>
+</div>
+
 
 <!-- HERO -->
 <div class="hero-outer">
