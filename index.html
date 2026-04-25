@@ -497,6 +497,10 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 .mm-btns .btn-ghost{text-align:center;padding:14px;border-radius:9px}
 
 @media(max-width:1024px){
+  .nav-desktop{display:none !important}
+  .hamburger{display:flex !important}
+  nav{padding:0 4%}
+  .nav-logo img{height:44px}
   .hero-inner{grid-template-columns:1fr;text-align:center;padding-top:100px}
   .hero-sub{margin:0 auto 32px}
   .hero-btns{justify-content:center}
@@ -562,8 +566,8 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <li><a href="#planos">Planos</a></li>
   </ul>
   <div class="nav-right">
-    <a href="https://chat.leadvox.com.br" class="btn-ghost" target="_blank">Entrar</a>
-    <button class="btn-cta" onclick="openModal()">Fale Conosco</button>
+    <a href="https://chat.leadvox.com.br" class="btn-ghost nav-desktop" target="_blank">Entrar</a>
+    <button class="btn-cta nav-desktop" onclick="openModal()">Fale Conosco</button>
     <button class="hamburger" id="hamburger" onclick="toggleMobile()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
