@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comunidades Estratégicas no WhatsApp | Grupo LeadVox</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0f;
+    --deep: #0f1018;
+    --card: #15171f;
+    --card2: #1a1d28;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --gold-pale: #f5e6b8;
+    --white: #f8f5ef;
+    --white-dim: #ccc8be;
+    --accent: #4a9eff;
+    --green: #3ecf8e;
+    --red: #ff6b6b;
+    --border: rgba(201,168,76,0.2);
+    --border-subtle: rgba(255,255,255,0.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ─── COVER ─────────────────────────────────── */
+  .cover {
+    min-height: 100vh;
+    background: var(--deep);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 70px;
+    overflow: hidden;
+    page-break-after: always;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -150px; left: -150px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(74,158,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cover-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .logo-badge {
+    background: rgba(201,168,76,0.1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .edition-tag {
+    font-size: 12px;
+    color: var(--white-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding-top: 12px;
+  }
+
+  .cover-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 0 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover-tag {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cover-tag::before {
+    content: '';
+    display: block;
+    width: 40px; height: 1px;
+    background: var(--gold);
+  }
+
+  .cover-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 1.0;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .cover-title em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .cover-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--gold-pale);
+    margin-top: 16px;
+    margin-bottom: 40px;
+    max-width: 600px;
+    line-height: 1.5;
+  }
+
+  .cover-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 50px;
+  }
+
+  .pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 13px;
+    color: var(--white-dim);
+    font-weight: 300;
+  }
+
+  .cover-divider {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin-bottom: 30px;
+  }
+
+  .cover-desc {
+    font-size: 15px;
+    color: var(--white-dim);
+    max-width: 520px;
+    line-height: 1.8;
+    font-weight: 300;
+  }
+
+  .cover-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    z-index: 1;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .author-block {}
+  .author-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-dim);
+    margin-bottom: 4px;
+  }
+  .author-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .cover-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 100px;
+    color: rgba(255,255,255,0.03);
+    line-height: 1;
+    font-weight: 500;
+    position: absolute;
+    right: 0; bottom: -10px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ─── PAGE LAYOUT ────────────────────────────── */
+  .page {
+    padding: 80px 70px;
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* ─── SECTION HEADER ─────────────────────────── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 24px; height: 1px;
+    background: var(--gold);
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+  h2 em {
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 16px;
+    margin-top: 40px;
+  }
+
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+
+  p {
+    color: var(--white-dim);
+    margin-bottom: 18px;
+    font-weight: 300;
+    font-size: 15.5px;
+  }
+
+  strong { color: var(--white); font-weight: 600; }
+
+  /* ─── INTRO BOX ──────────────────────────────── */
+  .intro-box {
+    background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.03));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 40px;
+    margin: 32px 0;
+  }
+  .intro-box p {
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--gold-pale);
+    margin: 0;
+    font-weight: 300;
+    font-style: italic;
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* ─── STAT GRID ──────────────────────────────── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--white-dim);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── CHAPTER BREAK ──────────────────────────── */
+  .chapter-break {
+    background: var(--card);
+    border-left: 4px solid var(--gold);
+    padding: 50px 60px;
+    margin: 0 -70px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    page-break-before: always;
+  }
+  .chapter-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 80px;
+    font-weight: 900;
+    color: rgba(201,168,76,0.15);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 100px;
+  }
+  .chapter-info {}
+  .chapter-tag {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .chapter-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.2;
+  }
+
+  /* ─── GROUP CARD ─────────────────────────────── */
+  .group-card {
+    background: var(--card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .group-header {
+    padding: 24px 28px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .group-icon {
+    width: 50px; height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .group-icon.gold { background: rgba(201,168,76,0.15); }
+  .group-icon.blue { background: rgba(74,158,255,0.15); }
+  .group-icon.green { background: rgba(62,207,142,0.15); }
+  .group-icon.red { background: rgba(255,107,107,0.15); }
+  .group-icon.purple { background: rgba(160,90,255,0.15); }
+
+  .group-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .group-role {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .group-body {
+    padding: 20px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .group-col-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-dim);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .group-items {
+    list-style: none;
+  }
+  .group-items li {
+    font-size: 13.5px;
+    color: var(--white-dim);
+    padding: 4px 0;
+    padding-left: 14px;
+    position: relative;
+    font-weight: 300;
+  }
+  .group-items li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-size: 11px;
+  }
+
+  /* ─── CALENDAR ───────────────────────────────── */
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin: 28px 0;
+  }
+
+  .cal-day {
+    background: var(--card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .cal-day-name {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .cal-emoji {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .cal-content {
+    font-size: 11px;
+    color: var(--white-dim);
+    line-height: 1.4;
+    font-weight: 300;
+  }
+
+  /* ─── FUNNEL ─────────────────────────────────── */
+  .funnel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 36px 0;
+  }
+
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+  }
+
+  .funnel-block {
+    flex: 1;
+    border-radius: 8px;
+    padding: 18px 24px;
+    position: relative;
+  }
+
+  .funnel-block-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .funnel-icon { font-size: 20px; flex-shrink: 0; }
+  .funnel-text {}
+  .funnel-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .funnel-sub {
+    font-size: 12px;
+    color: var(--white-dim);
+    font-weight: 300;
+  }
+
+  .funnel-arrow {
+    text-align: center;
+    font-size: 18px;
+    color: var(--gold);
+    padding: 4px 0;
+    width: 100%;
+  }
+
+  .funnel-1 { background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.3); }
+  .funnel-2 { background: rgba(74,158,255,0.08); border: 1px solid rgba(74,158,255,0.2); }
+  .funnel-3 { background: rgba(62,207,142,0.08); border: 1px solid rgba(62,207,142,0.2); }
+  .funnel-4 { background: rgba(160,90,255,0.08); border: 1px solid rgba(160,90,255,0.2); }
+  .funnel-5 { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); }
+  .funnel-6 { background: rgba(201,168,76,0.18); border: 1px solid rgba(201,168,76,0.4); }
+
+  /* ─── RULE CARDS ─────────────────────────────── */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 28px 0;
+  }
+
+  .rule-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 24px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .rule-card.danger { border-color: rgba(255,107,107,0.2); }
+  .rule-card.success { border-color: rgba(62,207,142,0.2); }
+
+  .rule-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .danger .rule-badge { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+  .success .rule-badge { background: rgba(62,207,142,0.15); color: var(--green); }
+
+  .rule-list {
+    list-style: none;
+  }
+  .rule-list li {
+    font-size: 13.5px;
+    color: var(--white-dim);
+    padding: 6px 0;
+    padding-left: 18px;
+    position: relative;
+    font-weight: 300;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .rule-list li:last-child { border-bottom: none; }
+  .danger .rule-list li::before { content: '✗'; position: absolute; left: 0; color: #ff6b6b; font-size: 12px; }
+  .success .rule-list li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-size: 12px; }
+
+  /* ─── CONTENT IDEAS ──────────────────────────── */
+  .ideas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 28px 0;
+  }
+
+  .idea-item {
+    background: var(--card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 13.5px;
+    color: var(--white-dim);
+    font-weight: 300;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .idea-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    opacity: 0.6;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  /* ─── QUOTE ──────────────────────────────────── */
+  .quote-block {
+    border-left: 3px solid var(--gold);
+    padding: 24px 32px;
+    margin: 32px 0;
+    background: rgba(201,168,76,0.04);
+    border-radius: 0 8px 8px 0;
+  }
+  .quote-block p {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-style: italic;
+    color: var(--gold-pale);
+    margin: 0;
+    line-height: 1.7;
+  }
+
+  /* ─── HIGHLIGHT BOX ──────────────────────────── */
+  .highlight {
+    background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(62,207,142,0.03));
+    border: 1px solid rgba(62,207,142,0.2);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin: 24px 0;
+  }
+  .highlight-title {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .highlight p { color: var(--white-dim); margin: 0; font-size: 14.5px; }
+
+  /* ─── POSITIONING CARDS ──────────────────────── */
+  .pos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 28px 0;
+  }
+
+  .pos-card {
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .pos-card.bad { background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.15); }
+  .pos-card.good { background: rgba(62,207,142,0.06); border: 1px solid rgba(62,207,142,0.15); }
+
+  .pos-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .bad .pos-label { color: #ff6b6b; }
+  .good .pos-label { color: var(--green); }
+
+  .pos-list { list-style: none; }
+  .pos-list li {
+    font-size: 13.5px;
+    color: var(--white-dim);
+    padding: 5px 0;
+    padding-left: 16px;
+    position: relative;
+    font-weight: 300;
+  }
+  .bad .pos-list li::before { content: '—'; position: absolute; left: 0; color: #ff6b6b; }
+  .good .pos-list li::before { content: '+'; position: absolute; left: 0; color: var(--green); }
+
+  /* ─── WELCOME TEMPLATE ───────────────────────── */
+  .template-box {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 28px 0;
+    position: relative;
+  }
+  .template-tag {
+    position: absolute;
+    top: -11px; left: 24px;
+    background: var(--gold);
+    color: var(--black);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 100px;
+  }
+  .template-content {
+    font-size: 14px;
+    color: var(--white-dim);
+    line-height: 2;
+    white-space: pre-line;
+    font-weight: 300;
+  }
+
+  /* ─── FOOTER ─────────────────────────────────── */
+  .footer-page {
+    background: var(--card);
+    padding: 70px 70px 60px;
+    text-align: center;
+    page-break-before: always;
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  .footer-tagline {
+    font-size: 13px;
+    color: var(--white-dim);
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+
+  .footer-divider {
+    width: 60px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto 40px;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 50px;
+  }
+  .footer-link {
+    text-align: center;
+  }
+  .footer-link-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .footer-link-val {
+    font-size: 14px;
+    color: var(--white-dim);
+    font-weight: 300;
+  }
+
+  .copyright {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── TABLE OF CONTENTS ──────────────────────── */
+  .toc {
+    page-break-before: always;
+    padding: 80px 70px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 16px;
+  }
+  .toc-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--gold);
+    opacity: 0.6;
+    flex-shrink: 0;
+    width: 28px;
+  }
+  .toc-title {
+    font-size: 15px;
+    color: var(--white-dim);
+    font-weight: 400;
+    flex: 1;
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(255,255,255,0.1);
+    margin: 0 8px;
+    margin-bottom: 4px;
+  }
+
+  /* ─── PRINT ──────────────────────────────────── */
+  @media print {
+    body { max-width: 100%; }
+    .page { padding: 60px 60px; }
+    .cover { padding: 50px 60px; }
+    .chapter-break { margin: 0 -60px; padding: 40px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- COVER                                          -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="logo-badge">GRUPO LEADVOX</div>
+    <div class="edition-tag">Edição 2024 — Guia Completo</div>
+  </div>
+
+  <div class="cover-main">
+    <div class="cover-tag">Estratégia Digital &amp; Mercado Imobiliário</div>
+    <div class="cover-title">
+      Comunidades<br>
+      <em>Estratégicas</em><br>
+      no WhatsApp
+    </div>
+    <div class="cover-subtitle">
+      O guia definitivo para construtores de patrimônio:<br>
+      como transformar grupos em máquinas de vendas
+    </div>
+
+    <div class="cover-pills">
+      <div class="pill">🏢 Consórcios Imobiliários</div>
+      <div class="pill">📱 WhatsApp Business</div>
+      <div class="pill">💰 Renda Passiva</div>
+      <div class="pill">🚀 Funil de Vendas</div>
+    </div>
+
+    <div class="cover-divider"></div>
+
+    <p class="cover-desc">
+      Um sistema completo e replicável para qualquer consultora ou empresa do segmento imobiliário que quer gerar autoridade, relacionamento e vendas recorrentes através de comunidades no WhatsApp — sem parecer vendedora de plantão.
+    </p>
+  </div>
+
+  <div class="cover-bottom">
+    <div class="author-block">
+      <div class="author-label">Criado por</div>
+      <div class="author-name">GRUPO LEADVOX</div>
+    </div>
+    <div class="cover-number">01</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                              -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="toc page-break">
+  <div class="section-label">Sumário</div>
+  <h2>O que você vai <em>aprender</em></h2>
+
+  <div class="toc-item">
+    <span class="toc-num">01</span>
+    <span class="toc-title">Por que o WhatsApp é o canal mais poderoso para o setor imobiliário</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">02</span>
+    <span class="toc-title">O posicionamento que muda tudo: saia do papel de vendedora</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">03</span>
+    <span class="toc-title">Estrutura ideal: os 5 grupos estratégicos</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">04</span>
+    <span class="toc-title">Nomes, descrições e apresentações que atraem</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">05</span>
+    <span class="toc-title">Calendário de conteúdo semanal: rotina que converte</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">06</span>
+    <span class="toc-title">Formatos de conteúdo que mais engajam no WhatsApp</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">07</span>
+    <span class="toc-title">Regras e gestão: como manter a comunidade profissional</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">08</span>
+    <span class="toc-title">Como crescer sua comunidade: fontes de entrada</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">09</span>
+    <span class="toc-title">O funil de vendas completo dentro da comunidade</span>
+    <span class="toc-dots"></span>
+  </div>
+  <div class="toc-item">
+    <span class="toc-num">10</span>
+    <span class="toc-title">Templates prontos: boas-vindas, regras e primeiros posts</span>
+    <span class="toc-dots"></span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 01: WHY WHATSAPP                       -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break">
+  <div class="chapter-num">01</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Um</div>
+    <div class="chapter-title">Por que o WhatsApp é o canal mais poderoso para o setor imobiliário</div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">97%</div>
+      <div class="stat-label">dos brasileiros com smartphone usam WhatsApp diariamente</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">78%</div>
+      <div class="stat-label">preferem negociar por WhatsApp a ligar ou enviar e-mail</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3x</div>
+      <div class="stat-label">mais conversão em vendas consultivas iniciadas por WhatsApp</div>
+    </div>
+  </div>
+
+  <p>O mercado imobiliário e de consórcios é, fundamentalmente, um negócio de <strong>relacionamento e confiança</strong>. E o WhatsApp é a plataforma onde relacionamentos reais acontecem no Brasil hoje.</p>
+
+  <p>Enquanto o Instagram e o YouTube são excelentes para atrair atenção, o WhatsApp é onde a decisão de compra é concluída. O lead que entra na sua comunidade já está em um estado de consideração muito mais avançado do que aquele que simplesmente curtiu um post.</p>
+
+  <div class="intro-box">
+    <p>"A comunidade no WhatsApp não é um grupo de vendas. É o ambiente onde você constrói autoridade, educa o mercado e posiciona o consórcio como a ferramenta mais inteligente de aquisição patrimonial."</p>
+  </div>
+
+  <h3>O problema com a abordagem tradicional</h3>
+
+  <p>A maioria dos profissionais do segmento imobiliário e de consórcios comete o mesmo erro: cria grupos no WhatsApp para <em>bombardear</em> contatos com tabelas de preço, chamadas para "fechar hoje" e stickers motivacionais. O resultado? Os membros silenciam ou saem.</p>
+
+  <div class="rules-grid">
+    <div class="rule-card danger">
+      <div class="rule-badge">O que NÃO funciona</div>
+      <ul class="rule-list">
+        <li>Grupos de "tabela de preço diária"</li>
+        <li>Mensagens genéricas em massa</li>
+        <li>Conteúdo sem valor educativo</li>
+        <li>Tom agressivo de vendas</li>
+        <li>Spam de planilhas e PDFs</li>
+        <li>Grupos sem identidade clara</li>
+      </ul>
+    </div>
+    <div class="rule-card success">
+      <div class="rule-badge">O que funciona</div>
+      <ul class="rule-list">
+        <li>Comunidade com identidade forte</li>
+        <li>Conteúdo de valor consistente</li>
+        <li>Educação financeira aplicada</li>
+        <li>Prova social de resultados reais</li>
+        <li>Rotina semanal previsível</li>
+        <li>Posicionamento de especialista</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 02: POSITIONING                        -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">02</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Dois</div>
+    <div class="chapter-title">O posicionamento que muda tudo: saia do papel de vendedora</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>Existe uma diferença fundamental entre ser percebida como <strong>"vendedora de consórcio"</strong> e ser reconhecida como <strong>"estrategista patrimonial"</strong>. Essa percepção determina quanto a pessoa está disposta a pagar, com que velocidade ela fecha e se ela te indica para outras pessoas.</p>
+
+  <div class="pos-grid">
+    <div class="pos-card bad">
+      <div class="pos-label">❌ Posicionamento fraco</div>
+      <ul class="pos-list">
+        <li>Vendedora de consórcio</li>
+        <li>Oferece um produto</li>
+        <li>Fala de parcelas e taxas</li>
+        <li>Pressiona para fechar</li>
+        <li>Compete por preço</li>
+        <li>Depende do produto</li>
+      </ul>
+    </div>
+    <div class="pos-card good">
+      <div class="pos-label">✅ Posicionamento forte</div>
+      <ul class="pos-list">
+        <li>Consultora patrimonial</li>
+        <li>Resolve um problema de vida</li>
+        <li>Fala de patrimônio e liberdade</li>
+        <li>Educa para a decisão</li>
+        <li>Compete por valor entregue</li>
+        <li>Independe do produto</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>O que você vende de verdade</h3>
+
+  <p>Você não vende consórcio. Você vende o que o consórcio entrega. E essa diferença precisa estar em tudo: no nome da comunidade, na bio dos grupos, no seu perfil e na forma como você fala sobre o produto.</p>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">🏠</div>
+      <div class="stat-label">Patrimônio construído de forma planejada e inteligente</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">💰</div>
+      <div class="stat-label">Renda passiva e independência financeira real</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">🎯</div>
+      <div class="stat-label">Aposentadoria tranquila com ativos imobiliários</div>
+    </div>
+  </div>
+
+  <div class="quote-block">
+    <p>"O consórcio é a ferramenta. O patrimônio é o destino. Posicione-se como a pessoa que conhece o melhor caminho — não como quem vende o veículo."</p>
+  </div>
+
+  <h3>Sugestões de nomes para sua comunidade</h3>
+  <p>O nome é a primeira impressão. Evite usar apenas o nome da sua empresa ou produto. Prefira nomes que comuniquem o resultado que o membro vai obter:</p>
+
+  <div class="ideas-grid">
+    <div class="idea-item">
+      <span class="idea-num">01</span>
+      Clube de Investidores Imobiliários
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">02</span>
+      Patrimônio Inteligente
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">03</span>
+      Comunidade Renda Imobiliária
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">04</span>
+      Elite Patrimonial
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">05</span>
+      Clube da Aposentadoria Imobiliária
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">06</span>
+      Patrimônio &amp; Aquisição Inteligente
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">07</span>
+      Investimento Imobiliário Brasil
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">08</span>
+      Construtores de Patrimônio
+    </div>
+  </div>
+
+  <div class="highlight">
+    <div class="highlight-title">💡 Dica estratégica</div>
+    <p>Coloque o nome da sua empresa ou bandeira como apoio, não como destaque. Ex: <strong>"Comunidade Patrimônio Inteligente — conduzida por consultoras especializadas [Nome da Empresa]".</strong></p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 03: THE 5 GROUPS                       -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">03</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Três</div>
+    <div class="chapter-title">Estrutura ideal: os 5 grupos estratégicos</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>Uma comunidade profissional no WhatsApp não é um único grupo. É uma estrutura em camadas, onde cada grupo tem uma função específica no processo de relacionamento e conversão. Veja a arquitetura completa:</p>
+
+  <!-- GROUP 1 -->
+  <div class="group-card">
+    <div class="group-header">
+      <div class="group-icon gold">📢</div>
+      <div>
+        <div class="group-name">Avisos &amp; Oportunidades</div>
+        <div class="group-role">Grupo 01 — Canal de Avisos (Somente Admins)</div>
+      </div>
+    </div>
+    <div class="group-body">
+      <div>
+        <div class="group-col-label">Objetivo</div>
+        <ul class="group-items">
+          <li>Organizar a comunidade</li>
+          <li>Transmitir autoridade</li>
+          <li>Evitar bagunça e spam</li>
+          <li>Ser porta de entrada</li>
+        </ul>
+      </div>
+      <div>
+        <div class="group-col-label">O que publicar</div>
+        <ul class="group-items">
+          <li>Abertura de novos grupos</li>
+          <li>Agendas e lives</li>
+          <li>Oportunidades do dia</li>
+          <li>Novidades do mercado</li>
+          <li>Conteúdos importantes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 2 -->
+  <div class="group-card">
+    <div class="group-header">
+      <div class="group-icon blue">🏢</div>
+      <div>
+        <div class="group-name">Investidores Imobiliários</div>
+        <div class="group-role">Grupo 02 — Coração da Comunidade</div>
+      </div>
+    </div>
+    <div class="group-body">
+      <div>
+        <div class="group-col-label">Objetivo</div>
+        <ul class="group-items">
+          <li>Gerar autoridade máxima</li>
+          <li>Estimular conversas</li>
+          <li>Criar networking real</li>
+          <li>Educar o mercado</li>
+        </ul>
+      </div>
+      <div>
+        <div class="group-col-label">O que publicar</div>
+        <ul class="group-items">
+          <li>Imóveis para renda passiva</li>
+          <li>Análises de valorização</li>
+          <li>Estratégias de consórcio</li>
+          <li>Cases de sucesso</li>
+          <li>Notícias do setor</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 3 -->
+  <div class="group-card">
+    <div class="group-header">
+      <div class="group-icon green">🚀</div>
+      <div>
+        <div class="group-name">Oportunidades Imobiliárias</div>
+        <div class="group-role">Grupo 03 — Vitrine de Negócios</div>
+      </div>
+    </div>
+    <div class="group-body">
+      <div>
+        <div class="group-col-label">Objetivo</div>
+        <ul class="group-items">
+          <li>Compartilhar oportunidades</li>
+          <li>Gerar urgência e escassez</li>
+          <li>Formato objetivo e direto</li>
+        </ul>
+      </div>
+      <div>
+        <div class="group-col-label">O que publicar</div>
+        <ul class="group-items">
+          <li>Imóveis abaixo do mercado</li>
+          <li>Pré-lançamentos exclusivos</li>
+          <li>Contemplações disponíveis</li>
+          <li>Leilões e terrenos</li>
+          <li>Cartas de crédito liberadas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 4 -->
+  <div class="group-card">
+    <div class="group-header">
+      <div class="group-icon purple">💰</div>
+      <div>
+        <div class="group-name">Patrimônio &amp; Educação Financeira</div>
+        <div class="group-role">Grupo 04 — Quebrador de Objeções</div>
+      </div>
+    </div>
+    <div class="group-body">
+      <div>
+        <div class="group-col-label">Objetivo</div>
+        <ul class="group-items">
+          <li>Quebrar objeções sem vender</li>
+          <li>Educar para a decisão</li>
+          <li>Aumentar o valor percebido</li>
+        </ul>
+      </div>
+      <div>
+        <div class="group-col-label">O que publicar</div>
+        <ul class="group-items">
+          <li>Juros × consórcio na prática</li>
+          <li>Financiamento × patrimônio</li>
+          <li>Aposentadoria imobiliária</li>
+          <li>Inteligência financeira</li>
+          <li>Uso estratégico do FGTS</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 5 -->
+  <div class="group-card">
+    <div class="group-header">
+      <div class="group-icon red">🔥</div>
+      <div>
+        <div class="group-name">VIP Investidores</div>
+        <div class="group-role">Grupo 05 — Funil Premium (Leads Quentes)</div>
+      </div>
+    </div>
+    <div class="group-body">
+      <div>
+        <div class="group-col-label">Objetivo</div>
+        <ul class="group-items">
+          <li>Funil de vendas premium</li>
+          <li>Acesso somente a convite</li>
+          <li>Relacionamento próximo</li>
+        </ul>
+      </div>
+      <div>
+        <div class="group-col-label">O que publicar</div>
+        <ul class="group-items">
+          <li>Oportunidades antecipadas</li>
+          <li>Condições diferenciadas</li>
+          <li>Bastidores e cases reais</li>
+          <li>Contemplações em primeira mão</li>
+          <li>Acesso direto à consultora</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 04: TEMPLATES                          -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">04</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Quatro</div>
+    <div class="chapter-title">Nomes, descrições e mensagens de boas-vindas prontas</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>A primeira impressão do seu grupo é decisiva. A mensagem de boas-vindas, a descrição e o tom inicial definem se o novo membro vai participar ativamente ou ficar apenas como espectador. Use os templates abaixo como base e personalize com o nome da sua empresa.</p>
+
+  <h3>Mensagem de Boas-Vindas</h3>
+
+  <div class="template-box">
+    <div class="template-tag">Template Pronto</div>
+    <div class="template-content">🏢 Bem-vindo(a) à Comunidade Patrimônio Inteligente!
+
+Esse espaço foi criado para pessoas que desejam aprender sobre:
+
+✔️ Investimentos imobiliários estratégicos
+✔️ Construção de patrimônio planejada
+✔️ Renda passiva e liberdade financeira
+✔️ Estratégias inteligentes de aquisição
+✔️ Oportunidades exclusivas do mercado
+
+Aqui você terá acesso a:
+
+📈 Análises de mercado
+🏠 Oportunidades selecionadas
+🎥 Conteúdos educativos práticos
+💡 Estratégias patrimoniais aplicadas
+🔥 Networking com investidores reais
+
+Nosso objetivo é simples: ajudar você a construir patrimônio de forma planejada e inteligente.
+
+👇 Se apresente nos comentários! Nos conta:
+• Seu nome
+• Qual seu objetivo com imóveis hoje?
+
+Seja muito bem-vindo(a) 🙌</div>
+  </div>
+
+  <h3>Descrição do Grupo</h3>
+
+  <div class="template-box">
+    <div class="template-tag">Template Pronto</div>
+    <div class="template-content">🏢 Comunidade focada em investimentos imobiliários, patrimônio e renda passiva.
+
+Conteúdos exclusivos sobre:
+✔️ Imóveis e valorização
+✔️ Estratégias patrimoniais inteligentes
+✔️ Aquisição sem juros abusivos
+✔️ Aposentadoria imobiliária
+✔️ Oportunidades selecionadas do mercado
+
+🚀 Ambiente de networking, aprendizado e oportunidades reais.
+
+👑 Conduzido por consultoras especializadas [Nome da Empresa]</div>
+  </div>
+
+  <h3>Regras do Grupo</h3>
+
+  <div class="template-box">
+    <div class="template-tag">Template Pronto</div>
+    <div class="template-content">📋 REGRAS DA COMUNIDADE
+
+1️⃣ Respeito é obrigatório — com todos os membros e admins
+2️⃣ Zero spam ou divulgação sem autorização
+3️⃣ Foco total em investimentos, patrimônio e imóveis
+4️⃣ Sem política, religião ou assuntos polêmicos
+5️⃣ Sem correntes, mensagens motivacionais ou memes
+6️⃣ Somente conteúdos relevantes para o grupo
+7️⃣ Oportunidades pessoais: somente com autorização dos admins
+
+Quem descumprir será removido sem aviso prévio.
+
+✅ Vamos construir juntos! 🏢</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 05: CONTENT CALENDAR                   -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">05</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Cinco</div>
+    <div class="chapter-title">Calendário de conteúdo semanal: rotina que converte</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>A previsibilidade é uma das maiores fontes de engajamento em grupos de WhatsApp. Quando os membros sabem o que esperar em cada dia, eles <strong>esperam pela sua mensagem</strong> — em vez de ignorar. Crie um calendário e siga-o com disciplina.</p>
+
+  <div class="calendar-grid">
+    <div class="cal-day">
+      <div class="cal-day-name">Segunda</div>
+      <span class="cal-emoji">📊</span>
+      <div class="cal-content">Mercado da Semana: análise e tendências</div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-day-name">Terça</div>
+      <span class="cal-emoji">🏠</span>
+      <div class="cal-content">Oportunidade do Dia: imóvel ou carta selecionada</div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-day-name">Quarta</div>
+      <span class="cal-emoji">🎥</span>
+      <div class="cal-content">Mini aula em áudio ou vídeo curto</div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-day-name">Quinta</div>
+      <span class="cal-emoji">💡</span>
+      <div class="cal-content">Estratégia patrimonial aplicada</div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-day-name">Sexta</div>
+      <span class="cal-emoji">🔥</span>
+      <div class="cal-content">Caso real: contemplação ou resultado de cliente</div>
+    </div>
+    <div class="cal-day">
+      <div class="cal-day-name">Sábado</div>
+      <span class="cal-emoji">☕</span>
+      <div class="cal-content">Bate-papo, pergunta aberta ou networking</div>
+    </div>
+  </div>
+
+  <h3>Formatos que mais engajam no WhatsApp</h3>
+
+  <p>O WhatsApp não é Instagram. Os formatos que funcionam em redes sociais visuais têm performance diferente aqui. Use os formatos certos para cada momento:</p>
+
+  <div class="rules-grid">
+    <div class="rule-card success">
+      <div class="rule-badge">✅ Alta Performance</div>
+      <ul class="rule-list">
+        <li>Áudio de 1 a 2 minutos (voz humana converte mais)</li>
+        <li>Texto curto com insight direto</li>
+        <li>Imagem simples com dado ou frase</li>
+        <li>Vídeo curto (até 60 segundos)</li>
+        <li>Pergunta aberta para resposta</li>
+        <li>Comparativo simples (A vs B)</li>
+      </ul>
+    </div>
+    <div class="rule-card danger">
+      <div class="rule-badge">❌ Baixa Performance</div>
+      <ul class="rule-list">
+        <li>Textos longos e cansativos</li>
+        <li>PDFs com muitas páginas</li>
+        <li>Planilhas sem contexto</li>
+        <li>Vídeos acima de 3 minutos</li>
+        <li>Conteúdo copiado de outros grupos</li>
+        <li>Promoção direta e sem valor</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Ideias de conteúdo que geram conversa</h3>
+
+  <div class="ideas-grid">
+    <div class="idea-item">
+      <span class="idea-num">01</span>
+      "Quanto um imóvel de R$300 mil pode gerar de renda passiva?"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">02</span>
+      "Financiamento ou consórcio: qual faz mais sentido pra você?"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">03</span>
+      "Como construir patrimônio imobiliário sem entrada"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">04</span>
+      "Os 3 erros que fazem pessoas perderem dinheiro em imóveis"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">05</span>
+      "Como usar o FGTS de forma estratégica no consórcio"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">06</span>
+      "Aposentadoria com imóveis: como planejar em 10 anos"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">07</span>
+      "O que ninguém explica sobre os juros do financiamento"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">08</span>
+      "Por que investidores inteligentes preferem consórcio"
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 06: GROWTH STRATEGY                    -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">06</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Seis</div>
+    <div class="chapter-title">Como crescer sua comunidade: fontes de entrada</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>Uma comunidade vazia não tem poder. O crescimento orgânico e qualificado é o que garante que os membros certos entrem — e que convertam com mais velocidade. Veja as principais fontes de entrada:</p>
+
+  <h4>📱 Instagram e Reels</h4>
+  <p>O conteúdo de vídeo curto no Instagram é sua principal vitrine de atração. Produza Reels com insights do mercado imobiliário e finalize sempre com um CTA direto:</p>
+  <div class="template-box">
+    <div class="template-tag">CTA Sugerido</div>
+    <div class="template-content">👇 Entre na nossa comunidade exclusiva de investidores imobiliários — link na bio. É gratuito e tem conteúdo novo todo dia.</div>
+  </div>
+
+  <h4>📣 Anúncios Pagos</h4>
+  <p>Para escalar, invista em tráfego pago direcionado para o grupo ou para uma landing page de captação. Exemplos de copies que convertem:</p>
+  <div class="ideas-grid">
+    <div class="idea-item">
+      <span class="idea-num">A</span>
+      "Aprenda como investidores compram imóveis sem pagar juros abusivos"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">B</span>
+      "Grupo gratuito: como construir patrimônio imobiliário em 2024"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">C</span>
+      "Comunidade de investidores imobiliários — acesso gratuito hoje"
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">D</span>
+      "Como ter renda passiva com imóveis sem precisar de muito dinheiro"
+    </div>
+  </div>
+
+  <h4>🤝 Parcerias Estratégicas</h4>
+  <p>Forme alianças com profissionais que já atendem seu público ideal. Indique a comunidade como recurso de valor — não como venda:</p>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">🏗️</div>
+      <div class="stat-label">Corretores de imóveis e construtoras parceiras</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">📐</div>
+      <div class="stat-label">Arquitetos e engenheiros com carteira de clientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">⚖️</div>
+      <div class="stat-label">Advogados e contadores do setor imobiliário</div>
+    </div>
+  </div>
+
+  <h4>🎯 Eventos Online</h4>
+  <p>Lives, webinários e aulas rápidas no Google Meet ou Instagram são a forma mais eficaz de atrair pessoas qualificadas de uma vez. O fluxo ideal:</p>
+
+  <div class="highlight">
+    <div class="highlight-title">📋 Fluxo de Evento para Comunidade</div>
+    <p><strong>1.</strong> Crie uma live gratuita sobre tema de alto interesse ("Comprar imóvel sem financiamento: como funciona") → <strong>2.</strong> No fim da live, apresente a comunidade como extensão do conteúdo → <strong>3.</strong> Envie o link do grupo nos comentários → <strong>4.</strong> Envie boas-vindas personalizadas para quem entrar pela live.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 07: SALES FUNNEL                       -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">07</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Sete</div>
+    <div class="chapter-title">O funil de vendas completo dentro da comunidade</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>A comunidade não é apenas relacionamento — é um funil de vendas estruturado. Cada grupo funciona como uma etapa diferente do processo de decisão do cliente. Entenda o fluxo completo:</p>
+
+  <div class="funnel">
+    <div class="funnel-step">
+      <div class="funnel-block funnel-1">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">📱</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Instagram / Reels / Anúncios</div>
+            <div class="funnel-sub">Atração de atenção e primeiro contato com sua autoridade</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="funnel-arrow">↓</div>
+    <div class="funnel-step">
+      <div class="funnel-block funnel-2">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">💬</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Entrada na Comunidade WhatsApp</div>
+            <div class="funnel-sub">Lead entra no grupo principal — primeiro nível de engajamento</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="funnel-arrow">↓</div>
+    <div class="funnel-step">
+      <div class="funnel-block funnel-3">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">🎓</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Conteúdo + Relacionamento</div>
+            <div class="funnel-sub">Educação financeira, análises e prova social que constroem confiança</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="funnel-arrow">↓</div>
+    <div class="funnel-step">
+      <div class="funnel-block funnel-4">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">🔥</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Convite para o Grupo VIP</div>
+            <div class="funnel-sub">Identificação de leads quentes e convite exclusivo para o grupo premium</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="funnel-arrow">↓</div>
+    <div class="funnel-step">
+      <div class="funnel-block funnel-5">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">🤝</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Reunião Consultiva Individual</div>
+            <div class="funnel-sub">Conversa personalizada para entender o objetivo e apresentar a solução ideal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="funnel-arrow">↓</div>
+    <div class="funnel-step">
+      <div class="funnel-block funnel-6">
+        <div class="funnel-block-inner">
+          <div class="funnel-icon">🏆</div>
+          <div class="funnel-text">
+            <div class="funnel-title">Fechamento &amp; Cliente Fidelizado</div>
+            <div class="funnel-sub">Conversão com alta taxa — cliente que chega aqui já está convencido</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Como identificar leads prontos para o VIP</h3>
+
+  <div class="highlight">
+    <div class="highlight-title">🎯 Sinais de Lead Quente</div>
+    <p>Faz perguntas específicas sobre valores e condições • Responde ou reage a conteúdos de oportunidade • Comenta em posts sobre contemplação • Manda mensagem direta com dúvidas • Tem participação ativa e recorrente no grupo • Menciona planos específicos (comprar, investir, aposentar)</p>
+  </div>
+
+  <h3>A prova social que acelera o funil</h3>
+
+  <p>Pessoas entram por curiosidade, mas <strong>decidem pela prova social</strong>. Documente e compartilhe resultados reais com autorização dos clientes:</p>
+
+  <div class="ideas-grid">
+    <div class="idea-item">
+      <span class="idea-num">📸</span>
+      Foto do cliente na escritura ou na entrega das chaves
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">🎤</span>
+      Depoimento em áudio de 1 minuto no grupo
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">📊</span>
+      Print do extrato de carta contemplada (com dados omitidos)
+    </div>
+    <div class="idea-item">
+      <span class="idea-num">🏠</span>
+      Foto do imóvel adquirido com história breve da conquista
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- CHAPTER 08: RULES & MANAGEMENT                 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="chapter-break page-break">
+  <div class="chapter-num">08</div>
+  <div class="chapter-info">
+    <div class="chapter-tag">Capítulo Oito</div>
+    <div class="chapter-title">Regras e gestão profissional da comunidade</div>
+  </div>
+</div>
+
+<div class="page">
+  <p>Uma comunidade sem gestão vira caos em semanas. Com gestão, ela vira ativo. A diferença está nas regras claras, na moderação consistente e no papel que você assume como líder do espaço.</p>
+
+  <div class="rules-grid">
+    <div class="rule-card danger">
+      <div class="rule-badge">❌ O que nunca tolerar</div>
+      <ul class="rule-list">
+        <li>Spam e divulgação não autorizada</li>
+        <li>Discussões políticas ou religiosas</li>
+        <li>Correntes e fake news</li>
+        <li>Vendas de terceiros sem permissão</li>
+        <li>Desrespeito entre membros</li>
+        <li>Excesso de mensagens irrelevantes</li>
+        <li>Conteúdo adulto ou ofensivo</li>
+      </ul>
+    </div>
+    <div class="rule-card success">
+      <div class="rule-badge">✅ O que estimular</div>
+      <ul class="rule-list">
+        <li>Dúvidas sobre imóveis e consórcio</li>
+        <li>Compartilhamento de metas pessoais</li>
+        <li>Histórias de conquistas patrimoniais</li>
+        <li>Indicações entre membros (networking)</li>
+        <li>Engajamento com o conteúdo dos admins</li>
+        <li>Perguntas que geram debate saudável</li>
+        <li>Celebração de contemplações e conquistas</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Seu papel como gestora da comunidade</h3>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">🎓</div>
+      <div class="stat-label">Mentora — aquela que educa e ilumina o caminho</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">🔭</div>
+      <div class="stat-label">Estrategista — que identifica as melhores oportunidades</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">🤝</div>
+      <div class="stat-label">Conectora — que facilita o networking entre membros</div>
+    </div>
+  </div>
+
+  <div class="quote-block">
+    <p>"Você não é a vendedora do grupo. Você é a líder da comunidade. Essa percepção muda completamente como as pessoas se relacionam com você — e com o produto que você representa."</p>
+  </div>
+
+  <h3>Cadência de gestão semanal</h3>
+
+  <div class="highlight">
+    <div class="highlight-title">📅 Rotina Recomendada</div>
+    <p>
+      <strong>Diariamente:</strong> Publicar o conteúdo do dia (5 minutos) e responder dúvidas importantes.<br><br>
+      <strong>Semanalmente:</strong> Revisar membros ativos × inativos, identificar leads quentes, planejar conteúdo da próxima semana.<br><br>
+      <strong>Mensalmente:</strong> Avaliar crescimento do grupo, métricas de engajamento, resultados de conversão e ajustar a estratégia.
+    </p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- FINAL PAGE                                     -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="footer-page">
+  <div class="footer-logo">GRUPO LEADVOX</div>
+  <div class="footer-tagline">Estratégia, Tecnologia e Conversão para o Mercado Imobiliário</div>
+
+  <div class="footer-divider"></div>
+
+  <p style="max-width: 560px; margin: 0 auto 40px; color: var(--white-dim); font-size: 15px; line-height: 1.9; font-weight: 300; text-align: center;">
+    Este ebook foi desenvolvido pelo <strong style="color: var(--gold)">Grupo LeadVox</strong> com o objetivo de capacitar consultoras e empresas do segmento imobiliário e de consórcios a construírem comunidades estratégicas e sistemas de conversão no WhatsApp — replicáveis em qualquer empresa do setor.
+  </p>
+
+  <div class="footer-links">
+    <div class="footer-link">
+      <div class="footer-link-label">WhatsApp</div>
+      <div class="footer-link-val">(21) 97319-5102</div>
+    </div>
+    <div class="footer-link">
+      <div class="footer-link-label">E-mail</div>
+      <div class="footer-link-val">contato@leadvox.com.br</div>
+    </div>
+    <div class="footer-link">
+      <div class="footer-link-label">Website</div>
+      <div class="footer-link-val">leadvox.com.br</div>
+    </div>
+    <div class="footer-link">
+      <div class="footer-link-label">Telefone</div>
+      <div class="footer-link-val">(21) 2662-1271</div>
+    </div>
+  </div>
+
+  <div class="copyright">© 2024 Grupo LeadVox — Todos os direitos reservados. CNPJ 50.978.542/0001-01</div>
+</div>
+
+</body>
+</html>
