@@ -473,8 +473,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 .m-chip::before{content:"✓";color:var(--green);font-weight:700}
 
 /* ═══════════════════════ REVEAL ═══════════════════════ */
-.rv{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s ease}
-.rv.show{opacity:1;transform:translateY(0)}
+
 
 /* ═══════════════════════ RESPONSIVE ═══════════════════════ */
 /* ═══════ MOBILE MENU ═══════ */
@@ -528,6 +527,70 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
   .modal{padding:32px 20px}
   .pricing-result{flex-direction:column;text-align:center}
 }
+
+/* LEADVOX ANIMATIONS ENHANCEMENT v1.0 */
+.rv{opacity:0;transition:opacity .65s ease,transform .65s ease;transform:translateY(28px)}
+.rv[data-anim="left"]{transform:translateX(-40px)}
+.rv[data-anim="right"]{transform:translateX(40px)}
+.rv[data-anim="scale"]{transform:scale(.88);opacity:0}
+.rv.show{opacity:1!important;transform:none!important}
+.stagger>*{opacity:0;transform:translateY(22px);transition:opacity .5s ease,transform .5s ease}
+.stagger.show>*:nth-child(1){transition-delay:.00s}.stagger.show>*:nth-child(2){transition-delay:.09s}
+.stagger.show>*:nth-child(3){transition-delay:.18s}.stagger.show>*:nth-child(4){transition-delay:.27s}
+.stagger.show>*:nth-child(5){transition-delay:.36s}.stagger.show>*:nth-child(6){transition-delay:.45s}
+.stagger.show>*:nth-child(7){transition-delay:.54s}.stagger.show>*:nth-child(8){transition-delay:.63s}
+.stagger.show>*:nth-child(9){transition-delay:.72s}.stagger.show>*:nth-child(10){transition-delay:.81s}
+.stagger.show>*{opacity:1;transform:translateY(0)}
+.hero-bg{animation:heroBgShift 8s ease infinite alternate}
+@keyframes heroBgShift{
+  0%{background:radial-gradient(ellipse 70% 60% at 20% 50%,rgba(43,232,123,.06) 0%,transparent 55%),radial-gradient(ellipse 50% 70% at 85% 20%,rgba(17,45,100,.5) 0%,transparent 55%)}
+  100%{background:radial-gradient(ellipse 80% 70% at 30% 60%,rgba(43,232,123,.09) 0%,transparent 60%),radial-gradient(ellipse 60% 60% at 75% 30%,rgba(17,45,100,.4) 0%,transparent 55%)}
+}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 22px rgba(43,232,123,.28),0 4px 14px rgba(43,232,123,.15)}50%{box-shadow:0 0 44px rgba(43,232,123,.52),0 4px 24px rgba(43,232,123,.28)}}
+.btn-primary,.btn-cta{animation:ctaPulse 3s ease infinite;position:relative;overflow:hidden}
+.btn-primary::after,.btn-cta::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.25) 0%,transparent 70%);opacity:0;transform:scale(0);transition:transform .4s ease,opacity .4s ease;pointer-events:none}
+.btn-primary:active::after,.btn-cta:active::after{transform:scale(2.5);opacity:1;transition:none}
+.feat-card{transition:border-color .25s,transform .3s cubic-bezier(.25,.8,.25,1),box-shadow .3s ease!important}
+.feat-card:hover{transform:translateY(-6px) scale(1.012)!important;box-shadow:0 20px 50px rgba(0,0,0,.4),0 0 0 1px rgba(43,232,123,.2)!important}
+.pillar{position:relative;overflow:hidden;transition:background .2s,transform .3s cubic-bezier(.25,.8,.25,1)!important}
+.pillar::after{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);transform:scaleX(0);transition:transform .35s ease}
+.pillar:hover{transform:translateY(-3px)!important}.pillar:hover::after{transform:scaleX(1)}
+.integ-logo{opacity:0;transform:translateY(16px) scale(.95);transition:border-color .22s,background .22s}
+.integ-logos.show .integ-logo:nth-child(1){animation:intPop .5s .00s forwards}
+.integ-logos.show .integ-logo:nth-child(2){animation:intPop .5s .06s forwards}
+.integ-logos.show .integ-logo:nth-child(3){animation:intPop .5s .12s forwards}
+.integ-logos.show .integ-logo:nth-child(4){animation:intPop .5s .18s forwards}
+.integ-logos.show .integ-logo:nth-child(5){animation:intPop .5s .24s forwards}
+.integ-logos.show .integ-logo:nth-child(6){animation:intPop .5s .30s forwards}
+.integ-logos.show .integ-logo:nth-child(7){animation:intPop .5s .36s forwards}
+.integ-logos.show .integ-logo:nth-child(8){animation:intPop .5s .42s forwards}
+.integ-logos.show .integ-logo:nth-child(9){animation:intPop .5s .48s forwards}
+.integ-logos.show .integ-logo:nth-child(10){animation:intPop .5s .54s forwards}
+.integ-logos.show .integ-logo:nth-child(11){animation:intPop .5s .60s forwards}
+.integ-logos.show .integ-logo:nth-child(12){animation:intPop .5s .66s forwards}
+.integ-logos.show .integ-logo:nth-child(13){animation:intPop .5s .72s forwards}
+.integ-logos.show .integ-logo:nth-child(14){animation:intPop .5s .78s forwards}
+.integ-logos.show .integ-logo:nth-child(15){animation:intPop .5s .84s forwards}
+@keyframes intPop{to{opacity:1;transform:translateY(0) scale(1)}}
+.testi-grid .testi:nth-child(odd){transform:translateX(-30px);opacity:0;transition:opacity .6s ease,transform .6s ease}
+.testi-grid .testi:nth-child(even){transform:translateX(30px);opacity:0;transition:opacity .6s ease,transform .6s ease;transition-delay:.15s}
+.testi-grid.show .testi{opacity:1!important;transform:none!important}
+.phone{animation:phoneFloat 5s ease-in-out infinite}
+@keyframes phoneFloat{0%,100%{transform:translateY(0px) rotate(-.5deg)}50%{transform:translateY(-10px) rotate(.5deg)}}
+.hero-badge{position:relative;overflow:hidden}
+.hero-badge::after{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:badgeShimmer 3.5s ease infinite}
+@keyframes badgeShimmer{0%{left:-100%}40%,100%{left:150%}}
+.sup-icon{transition:transform .4s cubic-bezier(.34,1.56,.64,1),background .2s}
+.sup-item:hover .sup-icon{transform:scale(1.18) rotate(8deg);background:rgba(43,232,123,.16)!important}
+.ch{transition:border-color .25s,background .25s,transform .3s cubic-bezier(.25,.8,.25,1),padding-left .3s!important}
+.ch:hover{transform:translateX(6px)!important;padding-left:22px!important}
+.cta-band{position:relative;overflow:hidden}
+.cta-band::after{content:"";position:absolute;top:0;left:-50%;width:30%;height:100%;background:linear-gradient(90deg,transparent,rgba(43,232,123,.035),transparent);animation:ctaSweep 6s ease infinite;pointer-events:none}
+@keyframes ctaSweep{0%{left:-50%}100%{left:130%}}
+nav{transition:background .3s ease,border-color .3s ease,box-shadow .3s ease}
+nav.scrolled{background:rgba(7,13,28,.98)!important;box-shadow:0 1px 30px rgba(0,0,0,.4);border-bottom-color:rgba(43,232,123,.12)!important}
+.count-up{display:inline-block;min-width:2ch;text-align:center}
+
 </style>
 </head>
 <body>
@@ -679,7 +742,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <div class="tag rv">Atendimento com IA</div>
     <h2 class="rv">Tenha um atendente 24h e<br>multiplique seus resultados</h2>
     <p class="ssub rv">Do primeiro contato ao pós-venda, a LeadVox organiza, automatiza e mede tudo da sua operação.</p>
-    <div class="pillars rv">
+    <div class="pillars stagger rv">
       <div class="pillar"><div class="p-icon">⚡</div><h3>Automação</h3><p>Atenda e venda no WhatsApp com chatbots e IA que qualificam leads, direcionam conversas e aumentam sua taxa de conversão.</p></div>
       <div class="pillar"><div class="p-icon">📊</div><h3>Métricas</h3><p>Acompanhe indicadores de atendimento e vendas com relatórios em tempo real, tudo integrado em um CRM para WhatsApp.</p></div>
       <div class="pillar"><div class="p-icon">🔗</div><h3>Processos organizados</h3><p>Centralize conversas de todas as redes sociais em uma única plataforma, com histórico completo e rastreável.</p></div>
@@ -695,7 +758,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="tag rv">Chatbot para Redes Sociais</div>
       <h2 class="rv">Seus principais apps<br>conectados em<br>uma única plataforma</h2>
       <p style="color:var(--muted);font-size:.95rem;line-height:1.75;margin-top:12px" class="rv">A LeadVox é uma plataforma omnichannel que centraliza conversas de WhatsApp, Instagram e Messenger em um único painel.</p>
-      <div class="channel-list rv">
+      <div class="channel-list stagger rv">
         <div class="ch"><div class="ch-ico" style="background:rgba(37,211,102,.12)">💬</div><div><strong>WhatsApp Business</strong><span>Multi-atendente em um número. IA + humano integrado.</span></div></div>
         <div class="ch"><div class="ch-ico" style="background:rgba(195,42,163,.12)">📸</div><div><strong>Instagram Direct</strong><span>Responda DMs e comentários direto no painel.</span></div></div>
         <div class="ch"><div class="ch-ico" style="background:rgba(24,119,242,.12)">👍</div><div><strong>Facebook Messenger</strong><span>Integração completa com todas as mensagens.</span></div></div>
@@ -716,8 +779,8 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
           <div class="pd-main">
             <div class="pd-ttl">Dashboard · Hoje</div>
             <div class="pd-stats">
-              <div class="pd-s"><div class="pd-sn">284</div><div class="pd-sl">Conversas</div></div>
-              <div class="pd-s"><div class="pd-sn">96%</div><div class="pd-sl">Resolvidas</div></div>
+              <div class="pd-s"><div class="pd-sn count-up" data-target="284">0</div><div class="pd-sl">Conversas</div></div>
+              <div class="pd-s"><div class="pd-sn count-up" data-target="96" data-suffix="%">0%</div><div class="pd-sl">Resolvidas</div></div>
               <div class="pd-s"><div class="pd-sn">1m38</div><div class="pd-sl">TMA</div></div>
             </div>
             <div class="pd-bar-row"><div class="pd-bl"><span>WhatsApp</span><span>76%</span></div><div class="pd-bt"><div class="pd-bf" id="bar1" style="width:0%;background:linear-gradient(90deg,var(--green),#7dffc0)"></div></div></div>
@@ -873,7 +936,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
         <div class="feat-info"><h3>Dashboards & Relatórios</h3><p>Visão clara das vendas, atendimentos e da performance da sua equipe em um painel simples, visual e em tempo real.</p></div>
       </div>
     </div>
-    <div class="feats-small rv">
+    <div class="feats-small stagger rv">
       <div class="feat-card"><div class="feat-preview feat-preview-sm" style="background:var(--navy3)"><div style="text-align:center"><div style="font-size:2.5rem">🔁</div><div style="font-size:.72rem;color:var(--muted);margin-top:6px">Recuperação automática</div></div></div><div class="feat-info-sm"><span class="feat-em">🔁</span><h3>Funil de Mensagens</h3><p>Visualize etapas e recupere clientes com cadência estratégica.</p></div></div>
       <div class="feat-card"><div class="feat-preview feat-preview-sm" style="background:var(--navy3)"><div style="text-align:center"><div style="font-size:2.5rem">🔔</div><div style="font-size:.72rem;color:var(--muted);margin-top:6px">Alertas automáticos</div></div></div><div class="feat-info-sm"><span class="feat-em">🔔</span><h3>Push Notifications</h3><p>Alertas sobre pedidos, promoções e lembretes direto no WhatsApp.</p></div></div>
       <div class="feat-card"><div class="feat-preview feat-preview-sm" style="background:var(--navy3)"><div style="text-align:center"><div style="font-size:2.5rem">💬</div><div style="font-size:.72rem;color:var(--muted);margin-top:6px">Chatbot 24/7</div></div></div><div class="feat-info-sm"><span class="feat-em">💬</span><h3>Chatbot</h3><p>Crie respostas automáticas, colete dados e direcione clientes.</p></div></div>
@@ -969,7 +1032,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       </div>
     </div>
     <div class="rv">
-      <div class="integ-logos">
+      <div class="integ-logos rv">
         <div class="integ-logo"><span>🔗</span><small>Zapier</small></div>
         <div class="integ-logo"><span>📊</span><small>RD Station</small></div>
         <div class="integ-logo"><span>💼</span><small>Pipedrive</small></div>
@@ -1012,7 +1075,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <h2 class="rv">Você nunca fica sozinho</h2>
       <p class="ssub rv" style="margin:12px auto 0;text-align:center">Nossa equipe garante que você tire o máximo da plataforma desde o primeiro dia.</p>
     </div>
-    <div class="support-grid rv">
+    <div class="support-grid stagger rv">
       <div class="sup-item"><div class="sup-icon">🚀</div><h3>Onboarding guiado</h3><p>Acompanhamento passo a passo na implantação da plataforma para garantir a melhor configuração inicial.</p></div>
       <div class="sup-item"><div class="sup-icon">🎓</div><h3>Treinamentos semanais</h3><p>Participe de treinamentos ao vivo e tire dúvidas diretamente com nosso time de especialistas.</p></div>
       <div class="sup-item"><div class="sup-icon">💬</div><h3>Suporte via WhatsApp</h3><p>Fale com a gente de forma prática e rápida pelo WhatsApp. Nada de filas, robôs confusos ou respostas automáticas.</p></div>
@@ -1103,7 +1166,11 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     </div>
     <div class="ft-bottom">
       <p>© 2026 LeadVox. Todos os direitos reservados.</p>
-      <div class="cnpj">CNPJ: 50.978.542/0001-01</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="cnpj">CNPJ: 50.978.542/0001-01</div>
+        <a href="https://leadvox.com.br/termos" style="color:var(--muted);font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">Termos de Uso</a>
+        <a href="https://leadvox.com.br/privacidade" style="color:var(--muted);font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">Privacidade</a>
+      </div>
       <p style="font-size:.75rem">Rio de Janeiro — RJ</p>
     </div>
   </div>
@@ -1154,8 +1221,7 @@ setTimeout(next,1000);
 setTimeout(()=>{document.getElementById("bar1").style.width="76%";document.getElementById("bar2").style.width="14%";document.getElementById("bar3").style.width="10%";},1400);
 
 // ── SCROLL REVEAL
-const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("show");obs.unobserve(e.target);}});},{threshold:.08});
-document.querySelectorAll(".rv").forEach(el=>obs.observe(el));
+
 
 // ── SEGMENTS
 function showSeg(i){document.querySelectorAll(".seg-panel").forEach((p,idx)=>p.classList.toggle("active",idx===i));document.querySelectorAll(".seg-tab").forEach((t,idx)=>t.classList.toggle("active",idx===i));}
@@ -1196,7 +1262,7 @@ function closeModal(){document.getElementById("modal").classList.remove("open");
 document.getElementById("modal").addEventListener("click",function(e){if(e.target===this)closeModal();});
 
 // ── FEAT STAGGER
-document.querySelectorAll(".feat-card").forEach((el,i)=>{el.style.transitionDelay=(i*.05)+"s";});
+
 
 // MOBILE MENU
 function toggleMobile(){
@@ -1212,6 +1278,29 @@ function closeMobile(){
   document.body.style.overflow="";
 }
 window.addEventListener("resize",()=>{if(window.innerWidth>1024)closeMobile();});
+
+// LEADVOX ENHANCEMENTS v1.0
+const _obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    e.target.classList.add('show');
+    e.target.querySelectorAll('.count-up').forEach(el=>_animCount(el));
+    _obs.unobserve(e.target);
+  });
+},{threshold:.08});
+document.querySelectorAll('.rv,.integ-logos,.testi-grid,.stagger').forEach(el=>_obs.observe(el));
+function _animCount(el){
+  const target=+el.dataset.target||0,suffix=el.dataset.suffix||'',label=el.dataset.label;
+  const dur=1400,start=performance.now();
+  (function tick(now){
+    const p=Math.min((now-start)/dur,1),eased=1-(1-p)*(1-p);
+    el.textContent=(label&&p===1)?label:Math.round(eased*target)+suffix;
+    if(p<1)requestAnimationFrame(tick);
+  })(start);
+}
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav')?.classList.toggle('scrolled',scrollY>40);
+},{passive:true});
+
 </script>
 </body>
-</html>
