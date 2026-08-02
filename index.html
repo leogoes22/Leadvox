@@ -65,7 +65,7 @@
       ],
       "contactPoint": {
         "@type": "ContactPoint",
-        "telephone": "+5521981081044",
+        "telephone": "+5521987696628",
         "contactType": "customer service",
         "availableLanguage": "Portuguese",
         "contactOption": "TollFree"
@@ -130,7 +130,7 @@
         {
           "@type": "Question",
           "name": "Posso testar antes de contratar?",
-          "acceptedAnswer": {"@type": "Answer", "text": "Sim! Oferecemos demonstração gratuita e 7 dias para experimentar todas as funcionalidades sem compromisso. Entre em contato pelo WhatsApp (21) 98108-1044."}
+          "acceptedAnswer": {"@type": "Answer", "text": "Sim! Oferecemos demonstração gratuita e 7 dias para experimentar todas as funcionalidades sem compromisso. Entre em contato pelo WhatsApp (21) 98769-6628."}
         }
       ]
     }
@@ -455,7 +455,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 .ft-social:hover{border-color:rgba(43,232,123,.3);background:var(--gdim)}
 
 /* ═══════════════════════ WA FLOAT ═══════════════════════ */
-.wa-float{position:fixed;bottom:28px;right:28px;z-index:300;width:56px;height:56px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(37,211,102,.55);text-decoration:none;transition:all .2s}
+.wa-float{position:fixed;bottom:106px;right:30px;z-index:299;width:52px;height:52px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(37,211,102,.55);text-decoration:none;transition:all .2s}
 .wa-float:hover{transform:scale(1.1);box-shadow:0 6px 32px rgba(37,211,102,.7)}
 .wa-float svg{width:28px;height:28px}
 
@@ -524,6 +524,101 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
   .modal{padding:32px 20px}
   .pricing-result{flex-direction:column;text-align:center}
 }
+/* ═══════════════════════ PLANOS FIXOS ═══════════════════════ */
+.plans-sec{background:var(--navy2)}
+.plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:920px;margin:0 auto;align-items:start}
+.plan{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:34px 30px;position:relative;transition:transform .25s,border-color .25s}
+.plan:hover{transform:translateY(-4px);border-color:rgba(43,232,123,.3)}
+.plan.featured{border-color:rgba(43,232,123,.35);background:linear-gradient(180deg,rgba(43,232,123,.05),rgba(255,255,255,.02));box-shadow:0 24px 70px rgba(0,0,0,.4)}
+.plan.featured::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),#7dffc0);border-radius:18px 18px 0 0}
+.plan-flag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--green);color:#041020;font-size:.68rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:5px 15px;border-radius:999px;white-space:nowrap}
+.plan-name{font-family:"Syne",sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.4px;margin-bottom:5px}
+.plan-desc{color:var(--muted);font-size:.83rem;line-height:1.55;margin-bottom:22px;min-height:38px}
+.plan-price{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+.plan-price .cur{font-size:1rem;color:var(--light);font-weight:600}
+.plan-price .val{font-family:"Syne",sans-serif;font-weight:800;font-size:2.4rem;letter-spacing:-1.5px;line-height:1}
+.plan-price .per{font-size:.85rem;color:var(--muted)}
+.plan.featured .plan-price .val{color:var(--green)}
+.plan-bonus{font-size:.78rem;color:var(--green);font-weight:600;margin-bottom:22px;min-height:19px}
+.plan ul{list-style:none;margin-bottom:26px}
+.plan li{font-size:.87rem;line-height:1.5;padding:8px 0 8px 26px;position:relative;color:var(--light);border-bottom:1px solid rgba(255,255,255,.04)}
+.plan li:last-child{border-bottom:none}
+.plan li::before{content:"✓";position:absolute;left:0;top:8px;color:var(--green);font-weight:800;font-size:.9rem}
+.plan li.no{color:var(--muted);opacity:.6}
+.plan li.no::before{content:"✕";color:var(--muted);font-weight:600}
+.plan .btn-primary,.plan .btn-outline{display:block;width:100%;text-align:center}
+.plan-note{text-align:center;font-size:.74rem;color:var(--muted);margin-top:11px}
+.plans-guarantee{max-width:920px;margin:34px auto 0;display:flex;align-items:center;gap:18px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 26px}
+.pg-ic{width:52px;height:52px;flex-shrink:0;border-radius:12px;background:rgba(43,232,123,.1);border:1px solid rgba(43,232,123,.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+.plans-guarantee strong{display:block;font-size:.95rem;margin-bottom:3px}
+.plans-guarantee p{color:var(--muted);font-size:.85rem;line-height:1.6}
+.plans-bridge{text-align:center;max-width:560px;margin:40px auto 0;color:var(--muted);font-size:.9rem;line-height:1.7}
+.plans-bridge a{color:var(--green);text-decoration:none;font-weight:600;border-bottom:1px solid rgba(43,232,123,.3)}
+
+/* ═══════════════════════ POPUP DE LEAD ═══════════════════════ */
+.lead-modal{background:var(--navy2);border:1px solid rgba(43,232,123,.25);border-radius:20px;padding:38px 34px;max-width:440px;width:100%;position:relative;text-align:left;max-height:92vh;overflow-y:auto}
+.lead-modal .mx{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1;transition:color .2s}
+.lead-modal .mx:hover{color:var(--text)}
+.lead-head{text-align:center;margin-bottom:24px}
+.lead-head .lem{font-size:2.4rem;margin-bottom:10px}
+.lead-head h3{font-family:"Syne",sans-serif;font-weight:800;font-size:1.35rem;letter-spacing:-.6px;margin-bottom:8px}
+.lead-head p{color:var(--muted);font-size:.88rem;line-height:1.6}
+.lf-field{margin-bottom:14px}
+.lf-field label{display:block;font-size:.78rem;font-weight:600;color:var(--light);margin-bottom:6px}
+.lf-field input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:"DM Sans",sans-serif;font-size:.92rem;transition:border-color .2s,background .2s}
+.lf-field input::placeholder{color:#4a5c7e}
+.lf-field input:focus{outline:none;border-color:rgba(43,232,123,.45);background:rgba(43,232,123,.04)}
+.lf-field input.err{border-color:#ff6b6b;background:rgba(255,107,107,.05)}
+.lf-msg{font-size:.73rem;color:#ff8a8a;margin-top:5px;display:none}
+.lf-field.invalid .lf-msg{display:block}
+.lf-consent{display:flex;gap:10px;align-items:flex-start;margin:18px 0 20px;font-size:.76rem;color:var(--muted);line-height:1.55}
+.lf-consent input{width:17px;height:17px;flex-shrink:0;margin-top:1px;accent-color:var(--green);cursor:pointer}
+.lf-consent a{color:var(--green);text-decoration:underline}
+.lf-submit{width:100%;text-align:center}
+.lf-submit:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.lf-foot{text-align:center;font-size:.72rem;color:var(--muted);margin-top:12px}
+.lead-success{display:none;text-align:center;padding:14px 0}
+.lead-success .lem{font-size:3rem;margin-bottom:14px}
+.lead-success h3{font-family:"Syne",sans-serif;font-weight:800;font-size:1.3rem;margin-bottom:10px}
+.lead-success p{color:var(--muted);font-size:.9rem;line-height:1.65;margin-bottom:22px}
+.overlay.open .lead-modal{animation:fadeUp .35s ease both}
+
+/* ═══════════════════════ BANNER LGPD ═══════════════════════ */
+.ck-bar{position:fixed;left:16px;right:16px;bottom:16px;z-index:600;background:var(--navy2);border:1px solid rgba(43,232,123,.22);border-radius:16px;padding:22px 26px;max-width:960px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,.6);display:none;gap:22px;align-items:center;flex-wrap:wrap}
+.ck-bar.show{display:flex;animation:fadeUp .4s ease both}
+.ck-txt{flex:1;min-width:250px}
+.ck-txt strong{display:block;font-family:"Syne",sans-serif;font-weight:800;font-size:.98rem;margin-bottom:5px}
+.ck-txt p{color:var(--muted);font-size:.82rem;line-height:1.6}
+.ck-txt a{color:var(--green);text-decoration:underline}
+.ck-btns{display:flex;gap:9px;flex-wrap:wrap}
+.ck-btn{font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:600;padding:11px 20px;border-radius:9px;cursor:pointer;border:1px solid rgba(255,255,255,.14);background:transparent;color:var(--text);transition:all .2s;white-space:nowrap}
+.ck-btn:hover{border-color:rgba(43,232,123,.4);background:var(--gdim)}
+.ck-panel{display:none;width:100%;border-top:1px solid var(--border);padding-top:18px;margin-top:4px}
+.ck-panel.show{display:block}
+.ck-cat{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ck-cat:last-of-type{border-bottom:none}
+.ck-cat strong{font-size:.86rem;display:block;margin-bottom:2px}
+.ck-cat small{color:var(--muted);font-size:.77rem;line-height:1.5;display:block;max-width:620px}
+.ck-cat input{width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:3px}
+.ck-cat input:disabled{opacity:.45;cursor:not-allowed}
+.ck-panel-btns{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.ck-manage{position:fixed;left:16px;bottom:16px;z-index:250;background:var(--navy2);border:1px solid var(--border);color:var(--muted);font-size:.72rem;padding:8px 13px;border-radius:8px;cursor:pointer;display:none;transition:all .2s}
+.ck-manage:hover{color:var(--text);border-color:rgba(43,232,123,.3)}
+.ck-manage.show{display:block}
+
+@media(max-width:860px){
+  .plans-grid{grid-template-columns:1fr;gap:30px;max-width:440px}
+  .plan.featured{order:-1}
+}
+@media(max-width:600px){
+  .plans-guarantee{flex-direction:column;text-align:center;gap:12px}
+  .ck-bar{left:10px;right:10px;bottom:10px;padding:18px 18px}
+  .ck-btns{width:100%}
+  .ck-btn{flex:1;padding:11px 10px;font-size:.8rem}
+  .lead-modal{padding:32px 22px}
+  .ck-manage{font-size:.68rem;padding:7px 11px}
+  .wa-float{bottom:96px;right:20px;width:48px;height:48px}
+}
 </style>
 </head>
 <body>
@@ -559,7 +654,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     </li>
     <li><a href="#canais">Canais</a></li>
     <li><a href="#integracoes">Integrações</a></li>
-    <li><a href="#planos">Planos</a></li>
+    <li><a href="#planos-prontos">Planos</a></li>
   </ul>
   <div class="nav-right">
     <a href="https://chat.leadvox.com.br" class="btn-ghost" target="_blank">Entrar</a>
@@ -594,7 +689,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <div class="mm-section-title">Navegação</div>
     <a class="mm-link" href="#canais" onclick="closeMobile()"><div class="mm-link-ic">📱</div><div><strong>Canais</strong><small>WhatsApp, Instagram e mais</small></div></a>
     <a class="mm-link" href="#integracoes" onclick="closeMobile()"><div class="mm-link-ic">🔗</div><div><strong>Integrações</strong><small>+50 integrações</small></div></a>
-    <a class="mm-link" href="#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>Monte seu plano</small></div></a>
+    <a class="mm-link" href="#planos-prontos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>A partir de R$ 397/mês</small></div></a>
     <a class="mm-link" href="#faq" onclick="closeMobile()"><div class="mm-link-ic">❓</div><div><strong>FAQ</strong><small>Dúvidas frequentes</small></div></a>
   </div>
   <div class="mm-btns">
@@ -614,7 +709,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <p class="hero-sub">Automatize seu atendimento e transforme conversas em vendas nos seus principais canais. Veja resultados já nos primeiros dias.</p>
       <div class="hero-btns">
         <button class="btn-primary" onclick="openModal()">Agendar demonstração</button>
-        <a href="#planos" class="btn-outline" onclick="document.getElementById('planos').scrollIntoView({behavior:'smooth'});return false;">Conhecer planos</a>
+        <a href="#planos-prontos" class="btn-outline" onclick="document.getElementById('planos-prontos').scrollIntoView({behavior:'smooth'});return false;">Conhecer planos</a>
       </div>
     </div>
     <div class="phone-wrap">
@@ -879,6 +974,66 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 </section>
 
 <!-- PRICING BUILDER -->
+<!-- PLANOS FIXOS -->
+<section class="sec plans-sec" id="planos-prontos">
+  <div class="inner">
+    <div style="text-align:center;margin-bottom:52px">
+      <div class="tag" style="display:inline-block;margin-bottom:12px">Planos</div>
+      <h2>Escolha o plano e<br>comece a atender hoje</h2>
+      <p class="ssub" style="margin:12px auto 0">Dois caminhos: o essencial para organizar o atendimento, ou a operação completa com IA trabalhando por você.</p>
+    </div>
+
+    <div class="plans-grid rv">
+      <div class="plan">
+        <div class="plan-name">LEAD Basic-CRM</div>
+        <div class="plan-desc">Para quem quer sair da bagunça do WhatsApp e organizar o funil.</div>
+        <div class="plan-price"><span class="cur">R$</span><span class="val">397</span><span class="per">/mês</span></div>
+        <div class="plan-bonus">&nbsp;</div>
+        <ul>
+          <li>Plataforma LeadVox + CRM</li>
+          <li>Atendimento no WhatsApp</li>
+          <li>Funil de vendas visual</li>
+          <li>Suporte via WhatsApp</li>
+          <li class="no">Agente de IA</li>
+          <li class="no">Ligação via VOIP</li>
+          <li class="no">Instagram, Facebook, Webchat e e-mail</li>
+        </ul>
+        <a href="#" class="btn-outline" onclick="pedirPlano('basic');return false;">Quero o Basic-CRM</a>
+        <div class="plan-note">Fale com a equipe pelo WhatsApp</div>
+      </div>
+
+      <div class="plan featured">
+        <div class="plan-flag">Mais escolhido</div>
+        <div class="plan-name">LEAD VOX-IA CRM</div>
+        <div class="plan-desc">A operação completa: IA atendendo 24h, voz, CRM e todos os canais.</div>
+        <div class="plan-price"><span class="cur">R$</span><span class="val">897</span><span class="per">/mês</span></div>
+        <div class="plan-bonus">+ R$ 3.044 em bônus na contratação</div>
+        <ul>
+          <li>Tudo do Basic-CRM, e mais:</li>
+          <li>Agente de IA que atende e qualifica 24h</li>
+          <li>Ligação via VOIP direto da plataforma</li>
+          <li>WhatsApp + Instagram + Facebook + Webchat + E-mail</li>
+          <li>Site personalizado da sua empresa <strong style="color:var(--green)">(R$ 2.250)</strong></li>
+          <li>Implementação e configuração completa <strong style="color:var(--green)">(R$ 400)</strong></li>
+          <li>2 treinamentos VIP: Gestão Previsível e Atendimento com Conversão <strong style="color:var(--green)">(R$ 394)</strong></li>
+        </ul>
+        <a href="#" class="btn-primary" onclick="pedirPlano('voxia');return false;">Quero o VOX-IA CRM</a>
+        <div class="plan-note">🔒 Sem compromisso · Resposta em minutos</div>
+      </div>
+    </div>
+
+    <div class="plans-guarantee rv">
+      <div class="pg-ic">🛡️</div>
+      <div>
+        <strong>30 dias de garantia</strong>
+        <p>Use a plataforma por 30 dias. Se nesse período você quiser cancelar, é só avisar — sem letra miúda e sem burocracia. E você não começa sozinho: nossa equipe faz toda a implementação e acompanha o início da operação.</p>
+      </div>
+    </div>
+
+    <p class="plans-bridge rv">Precisa de algo diferente — mais linhas de WhatsApp, mais atendentes ou só alguns módulos? <a href="#planos" onclick="document.getElementById('planos').scrollIntoView({behavior:'smooth'});return false;">Monte seu plano sob medida abaixo ↓</a></p>
+  </div>
+</section>
+
 <section class="sec pricing-sec" id="planos">
   <div class="inner">
     <div style="text-align:center;margin-bottom:52px">
@@ -1043,7 +1198,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>A plataforma se integra com outros sistemas?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! A LeadVox utiliza tecnologia REST que permite integrações com CRMs, ERPs, plataformas de marketing e qualquer sistema com API. São mais de 50 integrações disponíveis incluindo RD Station, Pipedrive, HubSpot, Shopify, Zapier e outros.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Quantos atendentes posso cadastrar?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>A LeadVox não limita o número de atendentes. Toda a equipe pode atender pelo mesmo número de WhatsApp simultaneamente, com filas inteligentes e distribuição automática de conversas.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Como funciona o chatbot com IA?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>O chatbot com IA entende o contexto das mensagens e responde automaticamente com linguagem natural. É capaz de qualificar leads, encaminhar conversas e oferecer suporte 24h sem intervenção humana — e passa para o atendente no momento certo.</p></div></div>
-      <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Posso testar antes de contratar?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! Oferecemos demonstração gratuita e 7 dias para você experimentar todas as funcionalidades sem compromisso. Entre em contato pelo WhatsApp (21) 98108-1044 para agendar.</p></div></div>
+      <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Posso testar antes de contratar?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! Oferecemos demonstração gratuita e 7 dias para você experimentar todas as funcionalidades sem compromisso. Entre em contato pelo WhatsApp (21) 98769-6628 para agendar.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>A LeadVox funciona para qualquer segmento?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! Atendemos saúde, varejo, concessionárias, clínicas, imobiliárias, advocacia, educação, e-commerce e muito mais. A plataforma é 100% customizável para qualquer fluxo de atendimento e venda.</p></div></div>
     </div>
   </div>
@@ -1058,7 +1213,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
         <p>Plataforma de atendimento omnichannel com IA + CRM integrado. Automatize processos e transforme conversas em vendas.</p>
         <div class="ft-contact-info">
           <a href="tel:+5521987696628">📞 (21) 98769-6628</a><br>
-          <a href="https://wa.me/5521987696628">💬 (21) 98108-1044</a><br>
+          <a href="https://wa.me/5521987696628">💬 (21) 98769-6628</a><br>
           <a href="mailto:contato@leadvox.com.br">✉️ contato@leadvox.com.br</a>
         </div>
         <div class="ft-socials" style="margin-top:16px">
@@ -1126,6 +1281,98 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <p style="color:var(--muted);font-size:.78rem">📞 (21) 98769-6628</p>
   </div>
 </div>
+
+<!-- POPUP DE DEMONSTRAÇÃO (FORMULÁRIO) -->
+<div class="overlay" id="leadModal">
+  <div class="lead-modal">
+    <button class="mx" onclick="closeLead()" aria-label="Fechar">&times;</button>
+
+    <div id="leadFormWrap">
+      <div class="lead-head">
+        <div class="lem">🚀</div>
+        <h3>Receba uma demonstração</h3>
+        <p>Preencha os dados e nosso time entra em contato pelo seu WhatsApp em poucos minutos.</p>
+      </div>
+
+      <div class="lf-field" id="fNome">
+        <label for="ldNome">Nome completo</label>
+        <input type="text" id="ldNome" placeholder="Como podemos te chamar?" autocomplete="name">
+        <div class="lf-msg">Informe seu nome.</div>
+      </div>
+
+      <div class="lf-field" id="fWa">
+        <label for="ldWa">WhatsApp</label>
+        <input type="tel" id="ldWa" placeholder="(21) 98765-4321" inputmode="numeric" autocomplete="tel" maxlength="16">
+        <div class="lf-msg">Informe um WhatsApp válido com DDD.</div>
+      </div>
+
+      <div class="lf-field" id="fEmail">
+        <label for="ldEmail">E-mail</label>
+        <input type="email" id="ldEmail" placeholder="seu@email.com.br" autocomplete="email">
+        <div class="lf-msg">Informe um e-mail válido.</div>
+      </div>
+
+      <label class="lf-consent">
+        <input type="checkbox" id="ldConsent">
+        <span>Autorizo a LeadVox a entrar em contato comigo e a tratar meus dados conforme a <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a>, nos termos da LGPD.</span>
+      </label>
+
+      <button class="btn-primary lf-submit" id="ldBtn" onclick="enviarLead()">QUERO MINHA DEMONSTRAÇÃO</button>
+      <div class="lf-foot">🔒 Seus dados não são compartilhados com terceiros.</div>
+    </div>
+
+    <div class="lead-success" id="leadSuccess">
+      <div class="lem">✅</div>
+      <h3>Recebemos seus dados!</h3>
+      <p>Fique de olho no seu WhatsApp — nosso time comercial já foi acionado e entra em contato em instantes.</p>
+      <button class="btn-outline" style="width:100%" onclick="closeLead()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANNER LGPD / COOKIES -->
+<div class="ck-bar" id="ckBar" role="dialog" aria-label="Preferências de cookies">
+  <div class="ck-txt">
+    <strong>Sua privacidade importa 🍪</strong>
+    <p>Usamos cookies necessários para o site funcionar e, com sua autorização, cookies de análise e marketing. Você escolhe. Saiba mais na <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a>.</p>
+  </div>
+  <div class="ck-btns">
+    <button class="ck-btn" onclick="ckSave('all')">Aceitar todos</button>
+    <button class="ck-btn" onclick="ckSave('none')">Recusar todos</button>
+    <button class="ck-btn" onclick="ckTogglePanel()">Personalizar</button>
+  </div>
+
+  <div class="ck-panel" id="ckPanel">
+    <div class="ck-cat">
+      <div>
+        <strong>Necessários</strong>
+        <small>Essenciais para navegação, segurança e funcionamento do site. Não podem ser desativados.</small>
+      </div>
+      <input type="checkbox" checked disabled aria-label="Cookies necessários (sempre ativos)">
+    </div>
+    <div class="ck-cat">
+      <div>
+        <strong>Análise / Estatística</strong>
+        <small>Ajudam a entender como o site é usado, quais páginas são mais visitadas e onde melhorar.</small>
+      </div>
+      <input type="checkbox" id="ckAnalytics" aria-label="Cookies de análise">
+    </div>
+    <div class="ck-cat">
+      <div>
+        <strong>Marketing / Publicidade</strong>
+        <small>Permitem medir campanhas e exibir anúncios mais relevantes nas plataformas onde anunciamos.</small>
+      </div>
+      <input type="checkbox" id="ckMarketing" aria-label="Cookies de marketing">
+    </div>
+    <div class="ck-panel-btns">
+      <button class="ck-btn" onclick="ckSave('custom')">Salvar preferências</button>
+      <button class="ck-btn" onclick="ckSave('all')">Aceitar todos</button>
+    </div>
+  </div>
+</div>
+
+<button class="ck-manage" id="ckManage" onclick="ckReopen()">🍪 Preferências de cookies</button>
+
 
 <script>
 // ── CHAT ANIMATION
@@ -1208,6 +1455,257 @@ function closeMobile(){
   document.body.style.overflow="";
 }
 window.addEventListener("resize",()=>{if(window.innerWidth>1024)closeMobile();});
+
+/* ═══════════════════════════════════════════════════════════
+   LEADVOX · CONFIG CENTRAL
+   Altere aqui e vale para o site inteiro.
+   ═══════════════════════════════════════════════════════════ */
+const LV = {
+  push: "https://chatapi.leadvox.com.br/w/6d1ff205-63aa-4d72-9b32-31fbfac99efa",
+  whats: "5521987696628",
+  popupDelay: 15000,  // 15s
+  webchatToken: "78ed9e3c-95ca-4b18-80e5-daa62c3ceb02",
+  webchatBase: "https://chatapi.leadvox.com.br"
+};
+
+/* ─────────────── Helpers ─────────────── */
+function lvStore(k, v){
+  try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }
+  catch(e){ return null; }
+}
+function abrirWhats(msg){
+  window.open("https://wa.me/"+LV.whats+"?text="+encodeURIComponent(msg),"_blank");
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLANOS FIXOS → WhatsApp com resumo
+   ═══════════════════════════════════════════════════════════ */
+function pedirPlano(qual){
+  let msg;
+  if(qual==="voxia"){
+    msg = "Olá! Vim pelo site da *LeadVox* e quero contratar o *LEAD VOX-IA CRM*."
+        + "\n\n💎 *Plano:* LEAD VOX-IA CRM"
+        + "\n💰 *Investimento:* R$ 897,00/mês"
+        + "\n🎁 *Bônus:* R$ 3.044,00 na contratação"
+        + "\n\n📦 *Inclui:*"
+        + "\n  🤖 Agente de IA que atende e qualifica 24h"
+        + "\n  📞 Ligação via VOIP"
+        + "\n  🌐 WhatsApp + Instagram + Facebook + Webchat + E-mail"
+        + "\n  🗂️ CRM completo com funil de vendas"
+        + "\n  🎁 Site personalizado + implementação + 2 treinamentos VIP"
+        + "\n\nPoderia me passar os próximos passos?";
+  } else {
+    msg = "Olá! Vim pelo site da *LeadVox* e quero contratar o *LEAD Basic-CRM*."
+        + "\n\n💼 *Plano:* LEAD Basic-CRM"
+        + "\n💰 *Investimento:* R$ 397,00/mês"
+        + "\n\n📦 *Inclui:*"
+        + "\n  🗂️ Plataforma LeadVox + CRM"
+        + "\n  💬 Atendimento no WhatsApp"
+        + "\n  📋 Funil de vendas visual"
+        + "\n\nPoderia me passar os próximos passos?";
+  }
+  abrirWhats(msg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   POPUP DE LEAD (Nome / WhatsApp / E-mail) → Push + WhatsApp
+   ═══════════════════════════════════════════════════════════ */
+let leadJaEnviado = false;
+
+function openLead(){
+  document.getElementById("leadModal").classList.add("open");
+  document.getElementById("leadModal").style.display = "flex";
+  document.body.style.overflow = "hidden";
+  lvStore("lv_popup_visto","1");
+}
+function closeLead(){
+  document.getElementById("leadModal").classList.remove("open");
+  document.getElementById("leadModal").style.display = "none";
+  document.body.style.overflow = "";
+}
+document.getElementById("leadModal").addEventListener("click", function(e){
+  if(e.target === this) closeLead();
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){ closeLead(); closeModal(); }
+});
+
+/* Máscara de WhatsApp */
+document.getElementById("ldWa").addEventListener("input", function(){
+  let v = this.value.replace(/\D/g,"").slice(0,11);
+  if(v.length > 7)      v = "("+v.slice(0,2)+") "+v.slice(2,7)+"-"+v.slice(7);
+  else if(v.length > 2) v = "("+v.slice(0,2)+") "+v.slice(2);
+  else if(v.length > 0) v = "("+v;
+  this.value = v;
+});
+
+function marcarErro(id, erro){
+  const f = document.getElementById(id);
+  f.classList.toggle("invalid", erro);
+  f.querySelector("input").classList.toggle("err", erro);
+  return !erro;
+}
+
+function enviarLead(){
+  const nome  = document.getElementById("ldNome").value.trim();
+  const waRaw = document.getElementById("ldWa").value.replace(/\D/g,"");
+  const email = document.getElementById("ldEmail").value.trim();
+  const ok    = document.getElementById("ldConsent").checked;
+
+  let valido = true;
+  valido = marcarErro("fNome",  nome.length < 3) && valido;
+  valido = marcarErro("fWa",    !(waRaw.length === 10 || waRaw.length === 11)) && valido;
+  valido = marcarErro("fEmail", !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) && valido;
+  if(!valido) return;
+
+  if(!ok){
+    alert("Para continuar, é necessário autorizar o contato e o tratamento dos seus dados.");
+    return;
+  }
+  if(leadJaEnviado) return;
+  leadJaEnviado = true;
+
+  const btn = document.getElementById("ldBtn");
+  btn.disabled = true;
+  btn.textContent = "ENVIANDO...";
+
+  /* Formato exigido pelo Push: 5521999999999 */
+  const whatsappFull = "55" + waRaw;
+
+  const payload = {
+    "nome": nome,
+    "whatsapp": whatsappFull,
+    "endereco": "",
+    "Email": email
+  };
+
+  /* mode:'no-cors' — o site é estático (GitHub Pages) e o endpoint pode não
+     devolver Access-Control-Allow-Origin. Assim o POST sai, mas não lemos a
+     resposta. Se você liberar CORS no chatapi, troque para mode:'cors'
+     e trate o retorno. */
+  fetch(LV.push, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(function(err){ console.warn("Push:", err); });
+
+  /* Resumo também vai para o WhatsApp comercial */
+  const msg = "Olá! Acabei de pedir uma *demonstração* no site da LeadVox."
+            + "\n\n👤 *Nome:* " + nome
+            + "\n📱 *WhatsApp:* " + document.getElementById("ldWa").value
+            + "\n✉️ *E-mail:* " + email
+            + "\n\n🎯 *Origem:* Formulário do site (leadvox.com.br)"
+            + "\n\nAguardo o contato!";
+
+  setTimeout(function(){
+    abrirWhats(msg);
+    document.getElementById("leadFormWrap").style.display = "none";
+    document.getElementById("leadSuccess").style.display  = "block";
+  }, 600);
+}
+
+/* ─────────────── Gatilhos: 15s + exit-intent (1x por visitante) ─────────────── */
+(function(){
+  if(lvStore("lv_popup_visto") === "1") return;
+
+  let disparado = false;
+  function dispara(){
+    if(disparado) return;
+    if(document.getElementById("modal").classList.contains("open")) return;
+    disparado = true;
+    openLead();
+  }
+
+  setTimeout(dispara, LV.popupDelay);
+
+  document.addEventListener("mouseout", function(e){
+    if(!e.relatedTarget && e.clientY <= 4) dispara();
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   CONSENTIMENTO LGPD / COOKIES
+   Padrão ANPD: opções com peso visual igual, nada pré-marcado,
+   scripts de terceiros só carregam depois do "sim".
+   ═══════════════════════════════════════════════════════════ */
+function ckTogglePanel(){
+  document.getElementById("ckPanel").classList.toggle("show");
+}
+function ckReopen(){
+  const p = JSON.parse(lvStore("lv_consent") || "{}");
+  document.getElementById("ckAnalytics").checked = !!p.analytics;
+  document.getElementById("ckMarketing").checked = !!p.marketing;
+  document.getElementById("ckPanel").classList.add("show");
+  document.getElementById("ckBar").classList.add("show");
+  document.getElementById("ckManage").classList.remove("show");
+}
+function ckSave(modo){
+  let pref;
+  if(modo === "all")       pref = { analytics:true,  marketing:true  };
+  else if(modo === "none") pref = { analytics:false, marketing:false };
+  else pref = {
+    analytics: document.getElementById("ckAnalytics").checked,
+    marketing: document.getElementById("ckMarketing").checked
+  };
+
+  /* Registro auditável do consentimento (exigido pela ANPD) */
+  pref.versao = "1.0";
+  pref.data   = new Date().toISOString();
+  lvStore("lv_consent", JSON.stringify(pref));
+
+  document.getElementById("ckBar").classList.remove("show");
+  document.getElementById("ckPanel").classList.remove("show");
+  document.getElementById("ckManage").classList.add("show");
+  ckAplicar(pref);
+}
+function ckAplicar(pref){
+  /* Google Consent Mode v2 — preserva a mensuração mesmo com recusa */
+  if(typeof gtag === "function"){
+    gtag("consent","update",{
+      analytics_storage:  pref.analytics ? "granted" : "denied",
+      ad_storage:         pref.marketing ? "granted" : "denied",
+      ad_user_data:       pref.marketing ? "granted" : "denied",
+      ad_personalization: pref.marketing ? "granted" : "denied"
+    });
+  }
+
+  /* ▼▼ COLE AQUI SEUS SCRIPTS ▼▼
+     Só rodam depois do consentimento. Ex.:
+     if(pref.analytics){ carregarScript("https://www.googletagmanager.com/gtag/js?id=G-XXXX"); }
+     if(pref.marketing){ ... Meta Pixel ... }                                     */
+  if(pref.analytics){ /* Google Analytics aqui */ }
+  if(pref.marketing){ /* Meta Pixel / Google Ads aqui */ }
+}
+function carregarScript(src){
+  const s = document.createElement("script");
+  s.src = src; s.async = true;
+  document.head.appendChild(s);
+}
+
+(function(){
+  const salvo = lvStore("lv_consent");
+  if(salvo){
+    document.getElementById("ckManage").classList.add("show");
+    try{ ckAplicar(JSON.parse(salvo)); }catch(e){}
+  } else {
+    setTimeout(function(){ document.getElementById("ckBar").classList.add("show"); }, 1200);
+  }
+})();
+</script>
+
+<!-- WEBCHAT LEADVOX -->
+<script>
+(function(d,t){
+  var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src="https://chat.leadvox.com.br/webchat/sdk.js";g.defer=true;g.async=true;
+  s.parentNode.insertBefore(g,s);
+  g.onload=function(){
+    try{
+      window.envioMensagemSDK.run({widgetToken:LV.webchatToken,baseUrl:LV.webchatBase});
+    }catch(e){ console.warn("Webchat LeadVox:",e); }
+  };
+})(document,"script");
 </script>
 </body>
 </html>
