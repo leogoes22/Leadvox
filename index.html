@@ -620,6 +620,71 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
   .ck-manage{font-size:.68rem;padding:7px 11px}
 }
 </style>
+
+<!-- ═══════ EFEITOS (add-on) ═══════ -->
+<style>
+/* ---------- CELULAR 3D ---------- */
+.phone-wrap{perspective:1250px;perspective-origin:50% 45%}
+.rig3d{position:relative;transform-style:preserve-3d;will-change:transform}
+.rig3d .phone{transform:translateZ(0);box-shadow:
+  0 40px 90px rgba(0,0,0,.75),
+  0 0 0 1px rgba(43,232,123,.12),
+  inset 0 1px 0 rgba(255,255,255,.16),
+  inset 0 -1px 0 rgba(255,255,255,.05)}
+/* borda lateral do aparelho — dá espessura */
+.rig3d .phone::after{content:"";position:absolute;inset:0;border-radius:36px;pointer-events:none;z-index:20;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), inset -6px 0 14px -10px rgba(0,0,0,.9), inset 6px 0 14px -10px rgba(255,255,255,.12)}
+/* reflexo de vidro passando na tela */
+.lv-glare{position:absolute;inset:0;z-index:15;pointer-events:none;border-radius:36px;overflow:hidden}
+.lv-glare i{position:absolute;top:-30%;left:-60%;width:45%;height:170%;display:block;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);
+  transform:rotate(14deg);animation:lvSweep 7.5s ease-in-out infinite}
+@keyframes lvSweep{0%,72%{left:-60%}100%{left:150%}}
+/* pastilhas flutuando na frente do aparelho */
+.rig3d .pb{transition:box-shadow .3s}
+.rig3d .pb1{transform:translateZ(78px)}
+.rig3d .pb2{transform:translateZ(58px)}
+.rig3d .pb3{transform:translateZ(68px)}
+/* sombra no chão, atrás de tudo */
+.rig3d::after{content:"";position:absolute;left:50%;bottom:-46px;width:76%;height:34px;
+  transform:translateX(-50%) translateZ(-110px);border-radius:50%;
+  background:radial-gradient(ellipse,rgba(0,0,0,.65),transparent 70%);filter:blur(9px);pointer-events:none}
+
+/* ---------- CARDS COM LUZ NO CURSOR ---------- */
+.fx-spot{position:relative}
+.fx-spot::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity .35s;pointer-events:none;z-index:0;border-radius:inherit;
+  background:radial-gradient(340px circle at var(--mx,50%) var(--my,50%),rgba(43,232,123,.10),transparent 62%)}
+.fx-spot:hover::before{opacity:1}
+.fx-spot>*{position:relative;z-index:1}
+
+/* ---------- ENTRADA EM CASCATA ---------- */
+.fx-ready>*{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+.fx-ready.fx-go>*{opacity:1;transform:none}
+
+/* ---------- NAV ---------- */
+nav{transition:height .28s ease,background .28s ease,box-shadow .28s ease}
+nav.lv-slim{height:58px;box-shadow:0 10px 34px rgba(0,0,0,.45)}
+
+@media(max-width:900px){
+  .rig3d .pb1{right:-14px}
+  .rig3d .pb2{right:-16px}
+  .rig3d .pb3{left:-18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .lv-glare i{animation:none;display:none}
+  .fx-ready>*{opacity:1;transform:none}
+}
+</style>
+<style>
+/* ── 3 PLANOS ── */
+.plans-grid{grid-template-columns:repeat(3,1fr);max-width:1160px;gap:18px}
+.plans-grid .plan{padding:30px 24px}
+.plans-guarantee,.plans-bridge{max-width:1160px}
+@media(max-width:1000px){
+  .plans-grid{grid-template-columns:1fr;max-width:440px;gap:26px}
+  .plan.featured{order:-1}
+}
+</style>
 </head>
 <body>
 
@@ -714,6 +779,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     </div>
     <div class="phone-wrap">
       <div class="phone-halo"></div>
+      <div class="rig3d">
       <div class="pb pb1">✅ Lead qualificado!</div>
       <div class="pb pb2" style="color:var(--green)">📈 +30% conversão</div>
       <div class="pb pb3">⚡ Resposta em 2s</div>
@@ -728,6 +794,7 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
           <input class="wa-inp" placeholder="Digite uma mensagem..." readonly>
           <div class="wa-send"><svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="#041020" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -1002,20 +1069,36 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
         <div class="plan-note">Fale com a equipe pelo WhatsApp</div>
       </div>
 
+      <div class="plan">
+        <div class="plan-name">LEAD Basic-IA CRM</div>
+        <div class="plan-desc">O Basic com a IA ligada: seu WhatsApp respondendo sozinho, 24h.</div>
+        <div class="plan-price"><span class="cur">R$</span><span class="val">497</span><span class="per">/mês</span></div>
+        <div class="plan-bonus">&nbsp;</div>
+        <ul>
+          <li>Tudo do Basic-CRM, e mais:</li>
+          <li>Agente de IA que atende e qualifica 24h</li>
+          <li class="no">Ligação via VOIP</li>
+          <li class="no">Instagram, Facebook, Webchat e e-mail</li>
+          <li class="no">Implementação completa</li>
+          <li class="no">Treinamentos VIP</li>
+        </ul>
+        <a href="#" class="btn-outline" onclick="pedirPlano('basicia');return false;">Quero o Basic-IA CRM</a>
+        <div class="plan-note">Fale com a equipe pelo WhatsApp</div>
+      </div>
+
       <div class="plan featured">
         <div class="plan-flag">Mais escolhido</div>
         <div class="plan-name">LEAD VOX-IA CRM</div>
         <div class="plan-desc">A operação completa: IA atendendo 24h, voz, CRM e todos os canais.</div>
         <div class="plan-price"><span class="cur">R$</span><span class="val">897</span><span class="per">/mês</span></div>
-        <div class="plan-bonus">+ R$ 3.044 em bônus na contratação</div>
+        <div class="plan-bonus">+ Bônus surpresa na contratação</div>
         <ul>
           <li>Tudo do Basic-CRM, e mais:</li>
           <li>Agente de IA que atende e qualifica 24h</li>
           <li>Ligação via VOIP direto da plataforma</li>
           <li>WhatsApp + Instagram + Facebook + Webchat + E-mail</li>
-          <li>Site personalizado da sua empresa <strong style="color:var(--green)">(R$ 2.250)</strong></li>
-          <li>Implementação e configuração completa <strong style="color:var(--green)">(R$ 400)</strong></li>
-          <li>2 treinamentos VIP: Gestão Previsível e Atendimento com Conversão <strong style="color:var(--green)">(R$ 394)</strong></li>
+          <li>Implementação e configuração completa</li>
+          <li>2 treinamentos VIPs: Gestão Previsível e Atendimento com Conversão</li>
         </ul>
         <a href="#" class="btn-primary" onclick="pedirPlano('voxia');return false;">Quero o VOX-IA CRM</a>
         <div class="plan-note">🔒 Sem compromisso · Resposta em minutos</div>
@@ -1483,13 +1566,23 @@ function pedirPlano(qual){
     msg = "Olá! Vim pelo site da *LeadVox* e quero contratar o *LEAD VOX-IA CRM*."
         + "\n\n💎 *Plano:* LEAD VOX-IA CRM"
         + "\n💰 *Investimento:* R$ 897,00/mês"
-        + "\n🎁 *Bônus:* R$ 3.044,00 na contratação"
+        + "\n🎁 *Bônus surpresa na contratação*"
         + "\n\n📦 *Inclui:*"
         + "\n  🤖 Agente de IA que atende e qualifica 24h"
         + "\n  📞 Ligação via VOIP"
         + "\n  🌐 WhatsApp + Instagram + Facebook + Webchat + E-mail"
         + "\n  🗂️ CRM completo com funil de vendas"
-        + "\n  🎁 Site personalizado + implementação + 2 treinamentos VIP"
+        + "\n  🎁 Implementação completa + 2 treinamentos VIP"
+        + "\n\nPoderia me passar os próximos passos?";
+  } else if(qual==="basicia"){
+    msg = "Olá! Vim pelo site da *LeadVox* e quero contratar o *LEAD Basic-IA CRM*."
+        + "\n\n🤖 *Plano:* LEAD Basic-IA CRM"
+        + "\n💰 *Investimento:* R$ 497,00/mês"
+        + "\n\n📦 *Inclui:*"
+        + "\n  🗂️ Plataforma LeadVox + CRM"
+        + "\n  💬 Atendimento no WhatsApp"
+        + "\n  📋 Funil de vendas visual"
+        + "\n  🤖 Agente de IA que atende e qualifica 24h"
         + "\n\nPoderia me passar os próximos passos?";
   } else {
     msg = "Olá! Vim pelo site da *LeadVox* e quero contratar o *LEAD Basic-CRM*."
@@ -1732,6 +1825,126 @@ if(location.hash === "#planos"){
     }catch(e){ console.warn("Webchat LeadVox:",e); }
   };
 })(document,"script");
+</script>
+
+<!-- ═══════ EFEITOS (add-on) ═══════ -->
+<script>
+(function(){
+  "use strict";
+  var reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ── 1. CELULAR 3D ───────────────────────────── */
+  try{
+    var rig = document.querySelector(".rig3d"),
+        fone = document.querySelector(".rig3d .phone"),
+        hero = document.querySelector(".hero-outer");
+    if(rig && fone){
+      var g = document.createElement("div");
+      g.className = "lv-glare"; g.innerHTML = "<i></i>";
+      fone.appendChild(g);
+
+      var alvoX = -4, alvoY = 9, curX = -4, curY = 9, t0 = performance.now(), vivo = true;
+
+      function desenha(t){
+        if(!vivo) return;
+        curX += (alvoX - curX) * .07;
+        curY += (alvoY - curY) * .07;
+        var flutua = reduz ? 0 : Math.sin((t - t0) / 1750) * 7;
+        rig.style.transform = "rotateX(" + curX.toFixed(2) + "deg) rotateY(" + curY.toFixed(2) +
+                              "deg) translateY(" + flutua.toFixed(2) + "px)";
+        requestAnimationFrame(desenha);
+      }
+      requestAnimationFrame(desenha);
+
+      /* mouse no desktop: o aparelho acompanha */
+      if(hero && matchMedia("(pointer:fine)").matches){
+        hero.addEventListener("pointermove", function(e){
+          var r = hero.getBoundingClientRect();
+          alvoY = ((e.clientX - r.left) / r.width - .5) * 26;
+          alvoX = -(((e.clientY - r.top) / r.height - .5) * 16);
+        });
+        hero.addEventListener("pointerleave", function(){ alvoX = -4; alvoY = 9; });
+      }
+
+      /* celular: gira pelo giroscópio; sem giroscópio, gira pelo scroll */
+      var temGiro = false;
+      addEventListener("deviceorientation", function(ev){
+        if(ev.gamma == null) return;
+        temGiro = true;
+        alvoY = Math.max(-22, Math.min(22, ev.gamma * .55));
+        alvoX = Math.max(-14, Math.min(14, ((ev.beta || 45) - 45) * -.28));
+      });
+      addEventListener("scroll", function(){
+        if(temGiro || matchMedia("(pointer:fine)").matches) return;
+        var p = Math.min(1, scrollY / (innerHeight || 1));
+        alvoY = 9 - p * 16;
+        alvoX = -4 + p * 8;
+      }, {passive:true});
+
+      /* pausa a animação quando o hero sai da tela */
+      if("IntersectionObserver" in window && hero){
+        new IntersectionObserver(function(es){
+          if(es[0].isIntersecting && !vivo){ vivo = true; requestAnimationFrame(desenha); }
+          else if(!es[0].isIntersecting){ vivo = false; }
+        }, {threshold:0}).observe(hero);
+      }
+    }
+  }catch(e){ console.warn("3D:", e); }
+
+  /* ── 2. LUZ SEGUINDO O CURSOR NOS CARDS ──────── */
+  try{
+    var cards = document.querySelectorAll(".pillar, .feat-card, .plans-grid > *, .testi-grid > *, .support-grid > *, .fq");
+    cards.forEach(function(c){
+      c.classList.add("fx-spot");
+      c.addEventListener("pointermove", function(ev){
+        var r = c.getBoundingClientRect();
+        c.style.setProperty("--mx", (ev.clientX - r.left) + "px");
+        c.style.setProperty("--my", (ev.clientY - r.top) + "px");
+      });
+    });
+  }catch(e){ console.warn("spot:", e); }
+
+  /* ── 3. ENTRADA EM CASCATA NAS GRADES ────────── */
+  try{
+    if("IntersectionObserver" in window && !reduz){
+      var grades = document.querySelectorAll(".pillars, .plans-grid, .testi-grid, .support-grid");
+      var ob = new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if(!e.isIntersecting) return;
+          e.target.classList.add("fx-go");
+          ob.unobserve(e.target);
+        });
+      }, {threshold:.12});
+      grades.forEach(function(g){
+        g.classList.add("fx-ready");
+        Array.prototype.forEach.call(g.children, function(f, i){
+          f.style.transitionDelay = (i * 85) + "ms";
+        });
+        ob.observe(g);
+      });
+      /* rede de segurança: se algo travar, revela tudo */
+      setTimeout(function(){
+        document.querySelectorAll(".fx-ready:not(.fx-go)").forEach(function(g){
+          if(g.getBoundingClientRect().top < innerHeight) g.classList.add("fx-go");
+        });
+      }, 2500);
+    }
+  }catch(e){ console.warn("cascata:", e); }
+
+  /* ── 4. NAV ENCOLHE NO SCROLL ────────────────── */
+  try{
+    var barra = document.querySelector("nav");
+    if(barra) addEventListener("scroll", function(){
+      barra.classList.toggle("lv-slim", scrollY > 40);
+    }, {passive:true});
+  }catch(e){}
+
+  /* se qualquer erro escapar, nada fica escondido */
+  addEventListener("error", function(){
+    document.querySelectorAll(".fx-ready").forEach(function(g){ g.classList.add("fx-go"); });
+    document.querySelectorAll(".rv").forEach(function(e){ e.classList.add("show"); });
+  });
+})();
 </script>
 </body>
 </html>
