@@ -654,7 +654,7 @@ function novoNumero() {
 }
 function novaProposta() {
   return {
-    numero: novoNumero(), validadeDias: 7, unidades: 1, oportunidade: true, enviarEmail: true, assunto: '', mensagem: '', ia: null, iaIds: '', instrucoes: '',
+    numero: novoNumero(), validadeDias: 7, unidades: 1, oportunidade: true, enviarEmail: true, anexarPdf: false, assunto: '', msg1Email: null, msg1Link: null, msg2: null, ia: null, iaIds: '', instrucoes: '',
     cliente: { empresa: '', cnpj: '', responsavel: '', cargo: '', whatsapp: '', email: '', cidade: '', segmento: '' },
     cenario: { equipe: '', leadsMes: '', canais: [], atual: '', desafios: [], objetivo: '', usaQR: false, lucroVenda: '', vendasDia: '' },
     sel: {}, avulsos: [],
@@ -941,32 +941,31 @@ function gerarIA() {
 }
 function assuntoPadrao() { var c = S.p.cliente; return 'Proposta comercial LeadVox — ' + (c.empresa || c.responsavel || 'sua empresa'); }
 function emailValido(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim()); }
-function msgPadrao() {
-  var cl = S.p.cliente, nome = (cl.responsavel || '').split(' ')[0];
-  return 'Olá' + (nome ? ', ' + nome : '') + '! Segue a proposta comercial da LeadVox' + (cl.empresa ? ' para a ' + cl.empresa : '') + '.\n\n' +
-    'Para aprovar, é só assinar o PDF de uma destas formas:\n' +
-    '• Pelo gov.br, grátis: https://assinador.iti.br\n' +
-    '• Ou imprimir, assinar à mão e me mandar a foto ou o scan por aqui.\n\n' +
-    'A proposta também fica online: {link}\n\n' +
-    'Qualquer dúvida, estou à disposição.';
-}
+var MSG1_EMAIL = 'Olá, {nome}! Acabei de enviar a proposta detalhada da LeadVox para o seu e-mail ({email}).\n\nSe preferir, você também pode abrir por aqui: {link}';
+var MSG1_LINK = 'Olá, {nome}! Segue a proposta detalhada da LeadVox. É só abrir por aqui: {link}';
+var MSG2 = 'Me coloco à sua disposição para tirar dúvidas e ouvir as suas ideias. É só me chamar por aqui.';
+function vaiEmail() { return !!(S.p.enviarEmail && emailValido(S.p.cliente.email)); }
 function telaEnviar() {
-  if (!S.p.mensagem) S.p.mensagem = msgPadrao();
-  var t = totais(), itens = itensProposta(), cl = S.p.cliente;
-  return '<h2>Revisar e enviar</h2><p class="lead">O PDF vai pelo WhatsApp deste ticket, com a mensagem abaixo antes.</p>' +
+  if (S.p.msg1Email == null) S.p.msg1Email = MSG1_EMAIL;
+  if (S.p.msg1Link == null) S.p.msg1Link = MSG1_LINK;
+  if (S.p.msg2 == null) S.p.msg2 = MSG2;
+  var t = totais(), itens = itensProposta(), cl = S.p.cliente, em = vaiEmail();
+  return '<h2>Revisar e enviar</h2><p class="lead">' + (em ? 'A proposta completa vai por e-mail. No WhatsApp saem duas mensagens curtas, com o link.' : 'No WhatsApp saem duas mensagens curtas, a primeira com o link da proposta.') + '</p>' +
     '<div class="sum"><div class="sum-e">' + esc(cl.empresa || cl.responsavel || 'Cliente sem nome') + '</div>' +
     '<div class="sum-items">' + (itens.length ? itens.map(function (i) { return esc(i.nome) + (i.qtd > 1 ? ' ×' + i.qtd : ''); }).join(', ') : 'Nenhum serviço marcado') + '</div>' +
     '<div class="sum-l">Pagamento inicial (' + t.N + (t.N > 1 ? ' meses' : ' mês') + ') <b style="color:var(--green)">' + brl(t.inicial) + '</b></div>' +
     '<div class="sum-l">Mensalidade a partir do ' + (t.N + 1) + 'º mês <b>' + brl(t.mensalRen) + '</b></div>' +
     '<div class="sum-l">Total do ' + t.rotuloPeriodo + ' <b>' + brl(t.contrato) + '</b></div></div>' +
     '<div class="actions"><button class="btn-sec" id="prev">Ver prévia do PDF</button><button class="btn-sec" id="down">Baixar PDF</button></div>' +
-    campo('Enviar para (WhatsApp)', 'cliente.whatsapp', { type: 'tel', im: 'tel' }) +
-    campo('Mensagem que acompanha o PDF', 'mensagem', { area: 1, rows: 9 }) +
-    '<p class="hint">{link} vira o endereço leadvox.com.br/pdf-… da proposta na hora do envio.</p>' +
-    '<div class="grp">' + toggle('Enviar também por e-mail', 'E-mail com o resumo da proposta e o PDF anexado', 'enviarEmail') + '</div>' +
+    '<div class="grp">' + toggle('Enviar por e-mail', 'Proposta completa, com o PDF anexado', 'enviarEmail') + '</div>' +
     (S.p.enviarEmail ? campo('E-mail do cliente', 'cliente.email', { type: 'email', im: 'email', ph: 'Deixe em branco para enviar só no WhatsApp' }) +
       campo('Assunto do e-mail', 'assunto', { ph: assuntoPadrao() }) : '') +
-    '<div class="grp">' + toggle('Registrar oportunidade no funil', 'Etapa “Call de Apresentação / Proposta”, com o valor do contrato', 'oportunidade') + '</div>';
+    campo('Enviar para (WhatsApp)', 'cliente.whatsapp', { type: 'tel', im: 'tel' }) +
+    (em ? campo('Mensagem 1 no WhatsApp', 'msg1Email', { area: 1, rows: 5 }) : campo('Mensagem 1 no WhatsApp', 'msg1Link', { area: 1, rows: 3 })) +
+    campo('Mensagem 2 no WhatsApp', 'msg2', { area: 1, rows: 2 }) +
+    '<p class="hint">{nome} vira o primeiro nome do cliente, {email} o e-mail e {link} o link direto do PDF da proposta.' + (em ? ' Se o e-mail falhar, a mensagem 1 sai sem citar o e-mail.' : '') + '</p>' +
+    '<div class="grp">' + toggle('Anexar o PDF também no WhatsApp', 'Vai entre a mensagem 1 e a 2', 'anexarPdf') +
+    toggle('Registrar oportunidade no funil', 'Etapa “Call de Apresentação / Proposta”, com o valor do 1º ano', 'oportunidade') + '</div>';
 }
 function telaEnviado() {
   var e = S.enviado;
@@ -997,12 +996,13 @@ function atualizarTotais() {
 function ligar() {
   app.querySelectorAll('[data-passo]').forEach(function (b) { b.onclick = function () { irPara(+b.dataset.passo); }; });
   app.querySelectorAll('[data-k]').forEach(function (el) {
-    el.oninput = el.onchange = function () {
+    el.oninput = el.onchange = function (ev) {
       var k = el.dataset.k, v = el.value;
       if (/Pct$/.test(k) || /\.v$/.test(k)) v = num(v);
       if (k === 'unidades') v = Math.max(1, parseInt(v, 10) || 1);
       set(S.p, k, v); salvarRascunho(); atualizarTotais();
       if (k === 'desc.meses' && el.tagName === 'SELECT') return rerender();
+      if (k === 'cliente.email' && ev && ev.type === 'change') return rerender();
       if (k === 'cliente.empresa' || k === 'cliente.responsavel') { var w = document.querySelector('.who'); if (w) w.innerHTML = '<strong>' + esc(S.p.cliente.empresa || S.p.cliente.responsavel) + '</strong>'; }
     };
   });
@@ -1094,7 +1094,10 @@ function enviar() {
     api({
       rota: 'enviar',
       numero: S.p.numero, fileName: nomeArquivo(), pdfBase64: b64,
-      telefone: telefoneEnvio(cl.whatsapp), mensagem: S.p.mensagem,
+      telefone: telefoneEnvio(cl.whatsapp),
+      mensagem1: vaiEmail() ? (S.p.msg1Email || MSG1_EMAIL) : (S.p.msg1Link || MSG1_LINK),
+      mensagem1SemEmail: S.p.msg1Link || MSG1_LINK, mensagem2: S.p.msg2 == null ? MSG2 : S.p.msg2,
+      anexarPdf: !!S.p.anexarPdf,
       ticketId: tk.id || null, contactId: (tk.contact && tk.contact.id) || tk.contactId || null,
       atendente: (tk.user && tk.user.name) || '',
       empresa: cl.empresa, responsavel: cl.responsavel, unidades: t.u,
