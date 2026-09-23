@@ -892,6 +892,7 @@ function msgPadrao() {
     'Para aprovar, é só assinar o PDF de uma destas formas:\n' +
     '• Pelo gov.br, grátis: https://assinador.iti.br\n' +
     '• Ou imprimir, assinar à mão e me mandar a foto ou o scan por aqui.\n\n' +
+    'A proposta também fica online: {link}\n\n' +
     'Qualquer dúvida, estou à disposição.';
 }
 function telaEnviar() {
@@ -905,7 +906,8 @@ function telaEnviar() {
     '<div class="sum-l">Total do ' + t.rotuloPeriodo + ' <b>' + brl(t.contrato) + '</b></div></div>' +
     '<div class="actions"><button class="btn-sec" id="prev">Ver prévia do PDF</button><button class="btn-sec" id="down">Baixar PDF</button></div>' +
     campo('Enviar para (WhatsApp)', 'cliente.whatsapp', { type: 'tel', im: 'tel' }) +
-    campo('Mensagem que acompanha o PDF', 'mensagem', { area: 1, rows: 8 }) +
+    campo('Mensagem que acompanha o PDF', 'mensagem', { area: 1, rows: 9 }) +
+    '<p class="hint">{link} vira o endereço leadvox.com.br/pdf-… da proposta na hora do envio.</p>' +
     '<div class="grp">' + toggle('Registrar oportunidade no funil', 'Etapa “Call de Apresentação / Proposta”, com o valor do contrato', 'oportunidade') + '</div>';
 }
 function telaEnviado() {
