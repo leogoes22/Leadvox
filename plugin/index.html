@@ -57,6 +57,15 @@ select.i{appearance:none;background-image:linear-gradient(45deg,transparent 50%,
 .btn-ia{width:100%;padding:12px;border-radius:var(--r-sm);background:var(--green);color:var(--navy);font-weight:600;margin-bottom:16px}
 .btn-ia:disabled{opacity:.55;cursor:wait}
 .warn{font-size:12px;color:#ffc36b;background:rgba(255,195,107,.08);border-left:2px solid #ffc36b;padding:8px 10px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px}
+.seg{display:flex;gap:0;border:1px solid var(--line2);border-radius:var(--r-sm);overflow:hidden;flex:none}
+.seg button{padding:9px 12px;font-size:13px;color:var(--muted);background:var(--panel)}
+.seg button.on{background:var(--green);color:var(--navy);font-weight:600}
+.desc-row{display:flex;gap:8px;align-items:stretch}
+.desc-row input{flex:1;min-width:0}
+.res{background:var(--panel2);border:1px solid var(--green);border-radius:var(--r);padding:12px 14px;margin:4px 0 18px;font-size:13px;line-height:1.5}
+.res b{color:var(--green)}
+.res p+p{margin-top:6px}
+.grp-t b{color:var(--txt)}
 .hint{font-size:12px;color:var(--muted);background:var(--panel);border-left:2px solid var(--green);padding:8px 10px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -127,12 +136,13 @@ select.i{appearance:none;background-image:linear-gradient(45deg,transparent 50%,
 .modal.on{display:flex}
 .modal-h{display:flex;justify-content:space-between;align-items:center;padding:0 2px 10px;gap:8px}
 .modal iframe{flex:1;border:0;border-radius:var(--r-sm);background:#fff;width:100%}
-.toast{position:fixed;left:12px;right:12px;bottom:84px;background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--red);padding:10px 12px;border-radius:var(--r-sm);font-size:13px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s;z-index:30}
-.toast.on{transform:none;opacity:1}
+.toast{white-space:pre-line;max-height:60vh;overflow:auto;position:fixed;left:12px;right:12px;bottom:84px;background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--red);padding:10px 12px;border-radius:var(--r-sm);font-size:13px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s;z-index:30}
+.toast.on{transform:none;opacity:1;pointer-events:auto}
 .toast.good{border-left-color:var(--green)}
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:8px;color:var(--muted)}
 .center h2{color:var(--txt)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:400px){.bar{gap:8px;padding:10px 12px 12px}.tot-v{font-size:17px}.back{padding:11px 8px}.back .bk-t{display:none}.back::before{content:"←";font-size:16px}.go{padding:11px 12px;font-size:13px}}
 </style>
 </head>
 <body>
@@ -166,36 +176,60 @@ function brl0(v) { return 'R$ ' + Math.round(Number(v) || 0).toLocaleString('pt-
 function dataBR(d) { var x = new Date(d); return String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear(); }
 function corta(s, n) { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/[\s,;:.-]+\S*$/, '') + '…' : s; }
 
+function descontar(base, d) {
+  d = d || {}; var v = Number(d.v) || 0;
+  if (v <= 0 || base <= 0) return 0;
+  return d.modo === 'valor' ? Math.min(v, base) : Math.min(base, base * v / 100);
+}
+function rotDesc(d) { d = d || {}; return d.modo === 'valor' ? brl(d.v) + ' de desconto' : String(Number(d.v) || 0).replace('.', ',') + '% de desconto'; }
+function mesesTxt(n) { return n + (n > 1 ? ' meses' : ' mês'); }
 function calcular(p) {
   var u = Math.max(1, parseInt(p.unidades, 10) || 1);
   var implU = 0, mensalU = 0;
   (p.itens || []).forEach(function (i) { var q = Number(i.qtd) || 0; implU += q * (Number(i.impl) || 0); mensalU += q * (Number(i.mensal) || 0); });
   var d = p.desc || {};
-  var implDescU = d.isentarImpl ? implU : implU * (Number(d.implPct) || 0) / 100;
-  var mensalDescU = mensalU * (Number(d.mensalPct) || 0) / 100;
-  var meses = 12;
+  var N = Math.min(12, Math.max(1, parseInt(d.meses, 10) || 1));
+  var implTab = implU * u, mensalTab = mensalU * u;
+  var implDesc = d.isentarImpl ? implTab : descontar(implTab, d.impl);
+  var impl = implTab - implDesc;
+  var pacoteBruto = impl + mensalTab * N;
+  var iniDesc = descontar(pacoteBruto, d.ini);
+  var inicial = pacoteBruto - iniDesc;
+  var mensDesc = descontar(mensalTab, d.mens);
+  var mensalRen = mensalTab - mensDesc;
+  var dur = parseInt((d.mens || {}).duracao, 10) || 0;
+  var resto = Math.max(0, 12 - N);
+  var comDesc = mensDesc > 0 ? (dur > 0 ? Math.min(dur, resto) : resto) : 0;
   var t = {
-    u: u, implBrutoU: implU, mensalBrutoU: mensalU,
-    implU: Math.max(0, implU - implDescU), mensalU: Math.max(0, mensalU - mensalDescU),
-    implBruto: implU * u, mensalBruto: mensalU * u
+    u: u, N: N, implBrutoU: implU, mensalBrutoU: mensalU, implBruto: implTab, mensalBruto: mensalTab,
+    implDesc: implDesc, implTotal: impl, implU: impl / u, isento: !!d.isentarImpl && implTab > 0,
+    pacoteBruto: pacoteBruto, iniDesc: iniDesc, inicial: inicial,
+    mensDesc: mensDesc, mensalRen: mensalRen, mensalTotal: mensalRen, mensalU: mensalRen / u, duracao: dur,
+    resto: resto, comDesc: comDesc, meses: 12, rotuloPeriodo: '1º ano',
+    dIni: d.ini || {}, dMens: d.mens || {}, dImpl: d.impl || {}
   };
-  t.implTotal = t.implU * u; t.mensalTotal = t.mensalU * u;
-  t.implDesc = t.implBruto - t.implTotal; t.mensalDesc = t.mensalBruto - t.mensalTotal;
-  t.inicial = t.implTotal + t.mensalTotal;
-  t.meses = meses; t.rotuloPeriodo = '1º ano';
-  t.contrato = t.implTotal + t.mensalTotal * meses;
-  t.contratoTabela = t.implBruto + t.mensalBruto * meses;
+  t.mensalidadesAno = comDesc * mensalRen + (resto - comDesc) * mensalTab;
+  t.contrato = inicial + t.mensalidadesAno;
+  t.contratoTabela = implTab + mensalTab * 12;
   t.economia = Math.max(0, t.contratoTabela - t.contrato);
-  t.diariaU = t.mensalU / 30;
+  t.diariaU = mensalRen / u / 30;
   var c = p.cenario || {};
   var lucro = Number(String(c.lucroVenda || '').replace(/\./g, '').replace(',', '.')) || 0, vendas = Number(String(c.vendasDia || '').replace(',', '.')) || 0;
   t.risco = lucro > 0 && vendas > 0 ? lucro * vendas * 7 : 0; t.lucro = lucro; t.vendas = vendas;
   return t;
 }
+function resumoCondicao(t) {
+  var l1 = 'Pagamento inicial de ' + brl(t.inicial) + ': implantação + ' + mesesTxt(t.N) + ' de serviço, liberando ' + (t.N * 30) + ' dias corridos';
+  if (t.iniDesc > 0.009) l1 += ' (já com ' + rotDesc(t.dIni) + ')';
+  var l2 = 'A partir do ' + (t.N + 1) + 'º mês: ' + brl(t.mensalRen) + ' a cada 30 dias';
+  if (t.mensDesc > 0.009) l2 += t.duracao > 0 ? ' por ' + mesesTxt(t.duracao) + ' (' + rotDesc(t.dMens) + '); depois, ' + brl(t.mensalBruto) : ' (' + rotDesc(t.dMens) + ')';
+  return [l1 + '.', l2 + '.'];
+}
 
 function condicoesTexto(p, t) {
   var c = p.cond || {}, out = [];
-  out.push('Pré-pago: o pagamento inicial de ' + brl(t.inicial) + ' soma a implantação e o 1º mês' + (t.mensalTotal > 0 ? '; depois, ' + brl(t.mensalTotal) + ' a cada 30 dias.' : '.'));
+  resumoCondicao(t).forEach(function (x) { out.push(x); });
+  if (t.isento) out.push('Implantação isenta nesta condição.');
   (p.condPadrao || []).forEach(function (x) { if (x) out.push(x); });
   if (c.pagamento && c.pagamento.length) out.push('Formas de pagamento: ' + c.pagamento.join(', ') + '.');
   if (c.inicio) out.push('Início dos trabalhos: ' + c.inicio + '.');
@@ -291,7 +325,7 @@ function linhaValor(x, y, w, rot, val, o) {
   o = o || {};
   return [
     T(x, y, w * 0.62, { text: rot, fontSize: 11, color: K.muted }),
-    T(x + w * 0.4, y, w * 0.6, { text: val, fontSize: 11.5, alignment: 'right', color: o.cor || (o.riscado ? K.muted : K.white), decoration: o.riscado ? 'lineThrough' : undefined, bold: !!o.forte }),
+    T(x + w * 0.4, y, w * 0.6, { text: o.de ? [{ text: o.de, decoration: 'lineThrough', color: K.muted, fontSize: 9.5 }, { text: '   ' + val }] : val, fontSize: 11.5, alignment: 'right', color: o.cor || (o.riscado ? K.muted : K.white), decoration: o.riscado ? 'lineThrough' : undefined, bold: !!o.forte }),
     { canvas: [{ type: 'line', x1: 0, y1: 0, x2: w, y2: 0, lineWidth: 0.6, lineColor: K.cardLine }], absolutePosition: { x: x, y: y + 24 } }
   ];
 }
@@ -409,8 +443,8 @@ function painel(x, y, w, h, o) {
   var n = cartao(x, y, w, h);
   n.push(R(x + 22, y + 22, o.pillW || 186, 24, { fill: K.pillFill, line: K.pillLine, r: 12 }));
   n.push(T(x + 22, y + 29, o.pillW || 186, { text: o.pill, font: 'PH', bold: true, fontSize: 8.5, characterSpacing: 1.3, color: K.lime, alignment: 'center' }));
-  var yy = y + 66;
-  (o.linhas || []).forEach(function (l) { n = n.concat(linhaValor(x + 22, yy, w - 44, l[0], l[1], l[2])); yy += 34; });
+  var yy = y + 62;
+  (o.linhas || []).forEach(function (l) { n = n.concat(linhaValor(x + 22, yy, w - 44, l[0], l[1], l[2])); yy += 32; });
   var hy = y + h - 118;
   n.push(R(x + 22, hy, w - 44, 80, { fill: '#1a2d31', line: '#355a2d' }));
   n.push(T(x + 38, hy + 12, w - 76, { stack: [
@@ -423,33 +457,31 @@ function painel(x, y, w, h, o) {
 }
 
 function slideInvestimento(p, t) {
-  var cl = p.cliente || {}, c = p.cond || {}, n = [], u = t.u;
+  var cl = p.cliente || {}, c = p.cond || {}, n = [], u = t.u, N = t.N;
   n = n.concat(sobrancelha(K.X, 62, 'Investimento'));
   n.push(T(K.X, 86, 840, { text: [{ text: 'Condição exclusiva ', color: K.white }, { text: corta(cl.empresa || cl.responsavel || 'para você', 34), color: K.lime }], font: 'PH', bold: true, fontSize: 30 }));
-  n.push(T(K.X, 132, 760, { text: u > 1 ? 'Condição válida para o fechamento das ' + u + ' unidades em conjunto.' : 'Condição válida por ' + (p.validadeDias || 7) + ' dias a partir do envio.', fontSize: 12, color: K.muted }));
-  var descI = t.implDesc > 0.009, descM = t.mensalDesc > 0.009, isento = p.desc && p.desc.isentarImpl && t.implBruto > 0;
-  var li = [];
-  if (t.implBruto > 0) {
-    li.push(['Valor de tabela' + (u > 1 ? ' — por unidade' : ''), brl(t.implBrutoU), { riscado: descI }]);
-    if (u > 1) li.push(['Valor de tabela — ' + u + ' unidades', brl(t.implBruto), { riscado: descI }]);
-    else if (descI && !isento) li.push(['Desconto aplicado', '− ' + brl(t.implDesc), { cor: K.lime }]);
-  }
-  var rotI = t.implBruto <= 0 ? 'Sem taxa de implantação' : isento ? 'Implantação isenta' : descI ? 'Condição especial — ' + Math.round(t.implDesc / t.implBruto * 100) + '% off' : 'Pagamento único';
-  n = n.concat(painel(K.X, 170, 414, 272, {
-    pill: '1   SETUP / IMPLANTAÇÃO', linhas: li, rotulo: rotI, valor: brl(t.implTotal),
-    sub: u > 1 ? brl(t.implU) + ' por unidade · pagamento único' : 'pagamento único',
+  n.push(T(K.X, 132, 760, { text: (u > 1 ? 'Condição para o fechamento das ' + u + ' unidades em conjunto, válida' : 'Condição válida') + ' por ' + (p.validadeDias || 7) + ' dias a partir do envio.', fontSize: 12, color: K.muted }));
+  var li = [], uu = u > 1 ? ' (' + u + ' unidades)' : '';
+  if (t.implBruto > 0) li.push(['Implantação' + uu, t.isento ? 'isenta' : brl(t.implTotal), t.implDesc > 0.009 ? { de: brl(t.implBruto), cor: t.isento ? K.lime : null } : {}]);
+  if (t.mensalBruto > 0) li.push([mesesTxt(N).replace('mês', 'mensalidade').replace('meses', 'mensalidades') + uu, brl(t.mensalBruto * N)]);
+  if (t.iniDesc > 0.009) li.push(['Desconto na contratação', '− ' + brl(t.iniDesc), { cor: K.lime }]);
+  var off = t.pacoteBruto + t.implDesc > 0 ? Math.round((t.implDesc + t.iniDesc) / (t.implBruto + t.mensalBruto * N) * 100) : 0;
+  n = n.concat(painel(K.X, 168, 414, 282, {
+    pill: '1   PAGAMENTO INICIAL', pillW: 176, linhas: li,
+    rotulo: 'Pagamento inicial' + (off >= 1 ? ' — ' + off + '% off' : ''), valor: brl(t.inicial),
+    sub: 'implantação + ' + mesesTxt(N) + ' · libera ' + (N * 30) + ' dias corridos',
     nota: c.pagamento && c.pagamento.length ? 'Formas de pagamento: ' + c.pagamento.join(', ') + '.' : ''
   }));
-  var lm = [['Mensalidade de tabela' + (u > 1 ? ' — por unidade' : ''), brl(t.mensalBrutoU), { riscado: descM }]];
-  if (descM) lm.push(['Condição negociada' + (u > 1 ? ' — por unidade' : ''), brl(t.mensalU)]);
-  n = n.concat(painel(490, 170, 414, 272, {
-    pill: '2   LICENCIAMENTO MENSAL', linhas: lm, rotulo: 'Total mensal' + (u > 1 ? ' — ' + u + ' unidades' : ''), valor: brl(t.mensalTotal),
-    sub: (u > 1 ? brl(t.mensalU) + ' por unidade · ' : '') + 'a cada 30 dias, a partir do 2º mês',
-    nota: 'Pré-pago e sem fidelidade: cada pagamento libera 30 dias corridos.'
+  var lm = [['Mensalidade de tabela' + uu, brl(t.mensalBruto), { riscado: t.mensDesc > 0.009 }]];
+  if (t.mensDesc > 0.009) lm.push(['Com desconto' + (t.duracao > 0 ? ' — por ' + mesesTxt(t.duracao) : ''), brl(t.mensalRen), { cor: K.lime }]);
+  var notaM = t.mensDesc > 0.009 && t.duracao > 0 ? 'Depois de ' + mesesTxt(t.duracao) + ' com desconto, volta para ' + brl(t.mensalBruto) + '. Sem fidelidade.' : 'Pré-pago e sem fidelidade: cada pagamento libera 30 dias corridos.';
+  n = n.concat(painel(490, 168, 414, 282, {
+    pill: '2   MENSALIDADES', pillW: 150, linhas: lm, rotulo: 'A partir do ' + (N + 1) + 'º mês', valor: brl(t.mensalRen),
+    sub: 'a cada 30 dias' + (u > 1 ? ' · ' + brl(t.mensalU) + ' por unidade' : ''), nota: notaM
   }));
-  var fr = [{ text: 'Pagamento inicial: ' + brl(t.inicial), bold: true }, { text: ' — implantação + 1ª mensalidade', color: K.muted }];
-  if (t.economia > 0.009) fr.push({ text: '   |   Economia no ' + t.rotuloPeriodo + ': ', color: K.muted }, { text: brl(t.economia), bold: true, color: K.lime });
-  n = n.concat(barraFrase(468, fr));
+  var fr = [{ text: 'Pagamento inicial: ' + brl(t.inicial), bold: true }, { text: ' — implantação + ' + mesesTxt(N), color: K.muted }];
+  if (t.economia > 0.009) fr.push({ text: '   |   Economia no 1º ano: ', color: K.muted }, { text: brl(t.economia), bold: true, color: K.lime });
+  n = n.concat(barraFrase(470, fr));
   return n;
 }
 
@@ -460,8 +492,8 @@ function slideConta(p, tx, t) {
   n.push(T(K.X, 136, 620, { text: corta(tx.valor.frase, 170), fontSize: 12.5, color: K.muted, lineHeight: 1.35 }));
   n = n.concat(cartao(K.X, 196, 414, 232));
   n.push(T(K.X + 22, 216, 370, { text: 'Seu ' + t.rotuloPeriodo + ', com a condição negociada', font: 'PH', bold: true, fontSize: 13.5, color: K.white }));
-  n = n.concat(linhaValor(K.X + 22, 258, 370, 'Implantação' + (t.u > 1 ? ' (' + t.u + ' unidades)' : ''), brl(t.implTotal)));
-  n = n.concat(linhaValor(K.X + 22, 292, 370, t.meses + ' meses de licença' + (t.u > 1 ? ' (' + t.u + ' unidades)' : ''), brl(t.mensalTotal * t.meses)));
+  n = n.concat(linhaValor(K.X + 22, 258, 370, 'Pagamento inicial (' + mesesTxt(t.N) + ' + implantação)', brl(t.inicial)));
+  n = n.concat(linhaValor(K.X + 22, 292, 370, t.resto + ' mensalidades seguintes' + (t.u > 1 ? ' (' + t.u + ' unidades)' : ''), brl(t.mensalidadesAno)));
   n = n.concat(linhaValor(K.X + 22, 326, 370, 'Total do ' + t.rotuloPeriodo, brl(t.contrato), { cor: K.lime, forte: true }));
   if (t.economia > 0.009) n.push(T(K.X + 22, 372, 370, { text: 'Pelo valor de tabela, o mesmo pacote sairia por ' + brl(t.contratoTabela) + '.', fontSize: 9, color: K.muted }));
   var stats = temIA ? [['47s', '1ª resposta média\nda Vox-IA'], ['100%', 'dos leads respondidos,\n24h por dia'], ['24/7', 'sem folga ou fila']]
@@ -515,12 +547,12 @@ function slideAceite(p, t, e, logo) {
   if (logo) n.push({ image: logo, width: 118, absolutePosition: { x: K.W - K.X - 118, y: 24 } });
   n.push(T(K.X, 28, 600, { text: 'Aceite da proposta', font: 'PH', bold: true, fontSize: 22, color: K.white }));
   n.push(T(K.X, 104, 520, { text: [{ text: 'Proposta ' + p.numero, bold: true, color: ink }, { text: '   emitida em ' + dataBR(p.data || new Date()) + ' para ' + (cl.empresa || cl.responsavel || ''), color: mut }], fontSize: 10.5 }));
-  var caixas = [['Implantação', brl(t.implTotal)], ['Mensalidade', brl(t.mensalTotal)], ['Pagamento inicial', brl(t.inicial)], [t.rotuloPeriodo.charAt(0).toUpperCase() + t.rotuloPeriodo.slice(1), brl(t.contrato)]];
+  var caixas = [['Pagamento inicial', brl(t.inicial)], ['Período coberto', (t.N * 30) + ' dias'], ['Mensalidade a partir do ' + (t.N + 1) + 'º mês', brl(t.mensalRen)], ['Total do 1º ano', brl(t.contrato)]];
   var w = (K.CW - 3 * 12) / 4;
   caixas.forEach(function (c, i) {
     var x = K.X + i * (w + 12);
     n.push(R(x, 130, w, 58, { fill: K.paper, line: K.paperLine, r: 8 }));
-    n.push(T(x + 14, 140, w - 28, { stack: [{ text: c[0], fontSize: 8.5, color: mut }, { text: c[1], font: 'PH', bold: true, fontSize: 15, color: i === 2 ? '#4f8a12' : ink, margin: [0, 2, 0, 0] }] }));
+    n.push(T(x + 14, 140, w - 28, { stack: [{ text: c[0], fontSize: 8.5, color: mut }, { text: c[1], font: 'PH', bold: true, fontSize: 15, color: i === 0 ? '#4f8a12' : ink, margin: [0, 2, 0, 0] }] }));
   });
   n.push(T(K.X, 204, K.CW, { text: [{ text: 'Serviços: ', bold: true, color: ink }, { text: (p.itens || []).map(function (i) { return (i.qtd > 1 ? i.qtd + '× ' : '') + i.nome; }).join(', ') + (t.u > 1 ? ' — para ' + t.u + ' unidades' : '') + '.', color: mut }], fontSize: 10, lineHeight: 1.3 }));
   n.push(T(K.X, 246, K.CW, { text: 'Ao assinar, o contratante declara estar de acordo com os serviços, valores e condições descritos nesta proposta. As partes reconhecem como válidas a assinatura eletrônica realizada pelo gov.br e a assinatura manuscrita digitalizada, nos termos do art. 10, § 2º, da MP nº 2.200-2/2001 e da Lei nº 14.063/2020.', fontSize: 9.5, color: mut, lineHeight: 1.4 }));
@@ -593,7 +625,7 @@ function montarProposta(p, cfg) {
   };
 }
 
-if (typeof module !== 'undefined') module.exports = { montarProposta: montarProposta, calcular: calcular, textosPadrao: textosPadrao, brl: brl };
+if (typeof module !== 'undefined') module.exports = { montarProposta: montarProposta, calcular: calcular, resumoCondicao: resumoCondicao, textosPadrao: textosPadrao, brl: brl };
 
 </script>
 <script>
@@ -608,7 +640,8 @@ var CFG = {
 var DESAFIOS = ['Demora no primeiro atendimento', 'Leads sem resposta fora do horário', 'Atendimento espalhado em vários WhatsApps',
   'Sem CRM ou controle dos leads', 'Sem saber quem atendeu cada cliente', 'Poucos leads chegando', 'Sem site ou página de conversão',
   'Redes sociais paradas', 'Gerente sem visão da equipe'];
-var CANAIS = ['WhatsApp', 'Instagram', 'Facebook', 'Site', 'Telefone', 'Portais (OLX, Webmotors…)', 'Google'];
+var QR = 'WhatsApp (QR Code / não oficial)';
+var CANAIS = ['WhatsApp (API Oficial)', QR, 'Instagram', 'Facebook', 'Webchat do site', 'E-mail', 'Ligação (VoIP)'];
 var SEGMENTOS = ['Lojas de veículos', 'Lojas de motos', 'Clínicas e saúde', 'Imobiliárias', 'Restaurantes e delivery', 'Espaços de eventos', 'Igrejas', 'Varejo', 'Prestação de serviços'];
 var PASSOS = ['Cliente', 'Cenário', 'Serviços', 'Condições', 'Texto', 'Enviar'];
 
@@ -621,11 +654,11 @@ function novoNumero() {
 }
 function novaProposta() {
   return {
-    numero: novoNumero(), validadeDias: 7, unidades: 1, oportunidade: true, mensagem: '', ia: null, iaIds: '', instrucoes: '',
+    numero: novoNumero(), validadeDias: 7, unidades: 1, oportunidade: true, enviarEmail: true, assunto: '', mensagem: '', ia: null, iaIds: '', instrucoes: '',
     cliente: { empresa: '', cnpj: '', responsavel: '', cargo: '', whatsapp: '', email: '', cidade: '', segmento: '' },
     cenario: { equipe: '', leadsMes: '', canais: [], atual: '', desafios: [], objetivo: '', usaQR: false, lucroVenda: '', vendasDia: '' },
     sel: {}, avulsos: [],
-    desc: { implPct: 0, mensalPct: 0, isentarImpl: false },
+    desc: { meses: '1', isentarImpl: false, impl: { modo: 'pct', v: 0 }, ini: { modo: 'pct', v: 0 }, mens: { modo: 'pct', v: 0, duracao: '0' } },
     cond: { pagamento: ['Pix'], vencimento: '10', prazo: '0', inicio: 'em até 7 dias úteis após o pagamento', garantia: true, extras: '' }
   };
 }
@@ -793,9 +826,10 @@ function telaCliente() {
     '<datalist id="dl-seg">' + SEGMENTOS.map(function (s) { return '<option value="' + s + '">'; }).join('') + '</datalist>';
 }
 function telaCenario() {
-  return '<h2>Cenário do cliente</h2><p class="lead">O que você levantou na conversa. Vira a seção “Cenário e objetivos” do PDF; o que ficar em branco não aparece.</p>' +
+  return '<h2>Cenário do cliente</h2><p class="lead">O que você levantou na conversa. A IA usa essas informações para escrever as dores e os textos da proposta.</p>' +
     '<div class="two">' + campo('Equipe de atendimento', 'cenario.equipe', { ph: 'Ex.: 4 vendedores' }) + campo('Contatos por mês', 'cenario.leadsMes', { ph: 'Ex.: ≈ 600' }) + '</div>' +
-    '<div class="grp"><p class="grp-t">Canais que usa hoje</p>' + chips(CANAIS, 'cenario.canais') + '</div>' +
+    '<div class="grp"><p class="grp-t">Canais que o cliente usa hoje</p>' + chips(CANAIS, 'cenario.canais') +
+    '<div class="add-row"><input class="i" id="novoCanal" placeholder="Outro canal (integração personalizada)…"><button class="btn-sm" id="addCanal">Adicionar</button></div></div>' +
     '<div class="grp"><p class="grp-t">Dores que a proposta resolve</p>' + chips(DESAFIOS, 'cenario.desafios') +
     '<div class="add-row"><input class="i" id="novaDor" placeholder="Outra dor…"><button class="btn-sm" id="addDor">Adicionar</button></div></div>' +
     campo('Como é hoje', 'cenario.atual', { area: 1, ph: 'Ex.: atendem por 3 WhatsApps diferentes e fora do horário ninguém responde.' }) +
@@ -834,11 +868,30 @@ function telaServicos() {
   h += '<button class="btn-sm" id="addAv">Adicionar item avulso</button></div>';
   return h;
 }
+function campoDesc(rot, path, sub) {
+  var d = get(S.p, path) || { modo: 'pct', v: 0 };
+  return '<label class="f"><span>' + rot + (sub ? ' <em style="font-style:normal;opacity:.75">— ' + sub + '</em>' : '') + '</span><div class="desc-row">' +
+    '<input class="i" data-k="' + path + '.v" inputmode="decimal" value="' + (Number(d.v) ? String(d.v).replace('.', ',') : '') + '" placeholder="0">' +
+    '<div class="seg"><button data-modo="' + path + '" data-v="pct" class="' + (d.modo !== 'valor' ? 'on' : '') + '">%</button><button data-modo="' + path + '" data-v="valor" class="' + (d.modo === 'valor' ? 'on' : '') + '">R$</button></div></div></label>';
+}
+function resumoHTML() {
+  var t = totais();
+  if (!itensProposta().length) return '<p>Marque os serviços para ver a condição.</p>';
+  return resumoCondicao(t).map(function (l) { return '<p>' + esc(l).replace(/R\$ [\d.]+,\d{2}/g, function (m) { return '<b>' + m + '</b>'; }) + '</p>'; }).join('') +
+    (t.economia > 0.009 ? '<p style="color:var(--muted)">Economia no 1º ano: <b>' + brl(t.economia) + '</b></p>' : '');
+}
 function telaCondicoes() {
-  return '<h2>Condições</h2><p class="lead">Viram a lista “Condições comerciais” do PDF.</p>' +
-    '<div class="grp"><p class="grp-t">Desconto</p>' +
-    toggle('Isentar a implantação', 'Aparece como condição especial no PDF', 'desc.isentarImpl') +
-    '<div class="two" style="margin-top:10px">' + (S.p.desc.isentarImpl ? '<div></div>' : campo('Desconto implantação (%)', 'desc.implPct', { type: 'text', im: 'decimal' })) + campo('Desconto mensal (%)', 'desc.mensalPct', { type: 'text', im: 'decimal' }) + '</div></div>' +
+  var d = S.p.desc;
+  return '<h2>Condições</h2><p class="lead">Monte a condição do cliente. O resumo abaixo é exatamente o que vai para o PDF.</p>' +
+    '<div class="res" id="resCond">' + resumoHTML() + '</div>' +
+    '<div class="grp"><p class="grp-t"><b>1. Pagamento inicial</b> — implantação + meses pagos na contratação</p>' +
+    selecao('Meses pagos na contratação', 'desc.meses', [['1', '1 mês (padrão)'], ['2', '2 meses'], ['3', '3 meses'], ['4', '4 meses'], ['6', '6 meses'], ['12', '12 meses']]) +
+    toggle('Isentar a implantação', null, 'desc.isentarImpl') + '<div style="height:10px"></div>' +
+    (d.isentarImpl ? '' : campoDesc('Desconto só na implantação', 'desc.impl')) +
+    campoDesc('Desconto no pagamento inicial', 'desc.ini', 'sobre o total da contratação') + '</div>' +
+    '<div class="grp"><p class="grp-t"><b>2. Mensalidades seguintes</b> — a partir do ' + ((parseInt(d.meses, 10) || 1) + 1) + 'º mês</p>' +
+    campoDesc('Desconto na mensalidade', 'desc.mens') +
+    selecao('Por quanto tempo', 'desc.mens.duracao', [['0', 'Sempre'], ['1', '1 mês'], ['2', '2 meses'], ['3', '3 meses'], ['6', '6 meses'], ['12', '12 meses']]) + '</div>' +
     '<div class="grp"><p class="grp-t">Formas de pagamento</p>' + chips(['Pix', 'Boleto', 'Cartão de crédito'], 'cond.pagamento') + '</div>' +
     '<div class="two">' + selecao('Validade da proposta', 'validadeDias', [['3', '3 dias'], ['7', '7 dias'], ['15', '15 dias'], ['30', '30 dias']]) + '<div></div></div>' +
     (S.condicoes && S.condicoes.length ? '<div class="hint">Sempre entram no PDF:<br>' + S.condicoes.map(esc).join('<br>') + '</div>' : '') +
@@ -886,6 +939,8 @@ function gerarIA() {
     S.p.ia = j.ia; S.p.iaIds = idsAtuais(); salvarRascunho(); rerender(); aviso('Texto pronto. Revise e ajuste o que quiser.', true);
   }).catch(function () { S.gerando = false; rerender(); aviso('Sem conexão com o servidor do plugin.'); });
 }
+function assuntoPadrao() { var c = S.p.cliente; return 'Proposta comercial LeadVox — ' + (c.empresa || c.responsavel || 'sua empresa'); }
+function emailValido(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim()); }
 function msgPadrao() {
   var cl = S.p.cliente, nome = (cl.responsavel || '').split(' ')[0];
   return 'Olá' + (nome ? ', ' + nome : '') + '! Segue a proposta comercial da LeadVox' + (cl.empresa ? ' para a ' + cl.empresa : '') + '.\n\n' +
@@ -901,13 +956,16 @@ function telaEnviar() {
   return '<h2>Revisar e enviar</h2><p class="lead">O PDF vai pelo WhatsApp deste ticket, com a mensagem abaixo antes.</p>' +
     '<div class="sum"><div class="sum-e">' + esc(cl.empresa || cl.responsavel || 'Cliente sem nome') + '</div>' +
     '<div class="sum-items">' + (itens.length ? itens.map(function (i) { return esc(i.nome) + (i.qtd > 1 ? ' ×' + i.qtd : ''); }).join(', ') : 'Nenhum serviço marcado') + '</div>' +
-    '<div class="sum-l">Implantação <b>' + brl(t.implTotal) + '</b></div><div class="sum-l">Mensalidade <b>' + brl(t.mensalTotal) + '</b></div>' +
-    '<div class="sum-l">Pagamento inicial <b style="color:var(--green)">' + brl(t.inicial) + '</b></div>' +
+    '<div class="sum-l">Pagamento inicial (' + t.N + (t.N > 1 ? ' meses' : ' mês') + ') <b style="color:var(--green)">' + brl(t.inicial) + '</b></div>' +
+    '<div class="sum-l">Mensalidade a partir do ' + (t.N + 1) + 'º mês <b>' + brl(t.mensalRen) + '</b></div>' +
     '<div class="sum-l">Total do ' + t.rotuloPeriodo + ' <b>' + brl(t.contrato) + '</b></div></div>' +
     '<div class="actions"><button class="btn-sec" id="prev">Ver prévia do PDF</button><button class="btn-sec" id="down">Baixar PDF</button></div>' +
     campo('Enviar para (WhatsApp)', 'cliente.whatsapp', { type: 'tel', im: 'tel' }) +
     campo('Mensagem que acompanha o PDF', 'mensagem', { area: 1, rows: 9 }) +
     '<p class="hint">{link} vira o endereço leadvox.com.br/pdf-… da proposta na hora do envio.</p>' +
+    '<div class="grp">' + toggle('Enviar também por e-mail', 'E-mail com o resumo da proposta e o PDF anexado', 'enviarEmail') + '</div>' +
+    (S.p.enviarEmail ? campo('E-mail do cliente', 'cliente.email', { type: 'email', im: 'email', ph: 'Deixe em branco para enviar só no WhatsApp' }) +
+      campo('Assunto do e-mail', 'assunto', { ph: assuntoPadrao() }) : '') +
     '<div class="grp">' + toggle('Registrar oportunidade no funil', 'Etapa “Call de Apresentação / Proposta”, com o valor do contrato', 'oportunidade') + '</div>';
 }
 function telaEnviado() {
@@ -921,7 +979,7 @@ function telaEnviado() {
 function barra() {
   var ult = S.passo === PASSOS.length - 1;
   return '<footer class="bar"><div class="tot"><div class="tot-l">Pagamento inicial</div><div class="tot-v" id="tv">R$ 0,00</div><div class="tot-m" id="tm"></div></div>' +
-    (S.passo > 0 ? '<button class="back" id="voltar">Voltar</button>' : '') +
+    (S.passo > 0 ? '<button class="back" id="voltar" aria-label="Voltar"><span class="bk-t">Voltar</span></button>' : '') +
     '<button class="go" id="avancar">' + (ult ? 'Enviar proposta' : 'Continuar') + '</button></footer>';
 }
 var ultimoTotal = null;
@@ -932,6 +990,7 @@ function atualizarTotais() {
   tm.innerHTML = 'Mensal <b>' + brl(t.mensalTotal) + '</b>';
   if (ultimoTotal !== null && ultimoTotal !== t.inicial) { tv.classList.remove('bump'); void tv.offsetWidth; tv.classList.add('bump'); setTimeout(function () { tv.classList.remove('bump'); }, 200); }
   ultimoTotal = t.inicial;
+  var rc = document.getElementById('resCond'); if (rc) rc.innerHTML = resumoHTML();
 }
 
 /* ================= EVENTOS ================= */
@@ -940,17 +999,23 @@ function ligar() {
   app.querySelectorAll('[data-k]').forEach(function (el) {
     el.oninput = el.onchange = function () {
       var k = el.dataset.k, v = el.value;
-      if (/Pct$/.test(k)) v = num(v);
+      if (/Pct$/.test(k) || /\.v$/.test(k)) v = num(v);
       if (k === 'unidades') v = Math.max(1, parseInt(v, 10) || 1);
       set(S.p, k, v); salvarRascunho(); atualizarTotais();
+      if (k === 'desc.meses' && el.tagName === 'SELECT') return rerender();
       if (k === 'cliente.empresa' || k === 'cliente.responsavel') { var w = document.querySelector('.who'); if (w) w.innerHTML = '<strong>' + esc(S.p.cliente.empresa || S.p.cliente.responsavel) + '</strong>'; }
     };
   });
   app.querySelectorAll('[data-chip]').forEach(function (b) {
-    b.onclick = function () { var arr = get(S.p, b.dataset.chip), v = b.dataset.v, i = arr.indexOf(v); if (i > -1) arr.splice(i, 1); else arr.push(v); b.classList.toggle('on'); salvarRascunho(); };
+    b.onclick = function () {
+      var arr = get(S.p, b.dataset.chip), v = b.dataset.v, i = arr.indexOf(v); if (i > -1) arr.splice(i, 1); else arr.push(v); b.classList.toggle('on');
+      if (v === QR) { S.p.cenario.usaQR = arr.indexOf(QR) > -1; salvarRascunho(); return rerender(); }
+      salvarRascunho();
+    };
   });
   app.querySelectorAll('[data-tg]').forEach(function (b) {
-    b.onclick = function () { var k = b.dataset.tg; set(S.p, k, !get(S.p, k)); salvarRascunho(); if (k === 'desc.isentarImpl') rerender(); else { b.classList.toggle('on'); b.setAttribute('aria-checked', !!get(S.p, k)); atualizarTotais(); } };
+    b.onclick = function () { var k = b.dataset.tg; set(S.p, k, !get(S.p, k)); salvarRascunho(); if (k === 'cenario.usaQR') { var cs = S.p.cenario.canais, q = cs.indexOf(QR); if (S.p.cenario.usaQR && q === -1) cs.push(QR); if (!S.p.cenario.usaQR && q > -1) cs.splice(q, 1); salvarRascunho(); rerender(); }
+      else if (k === 'desc.isentarImpl' || k === 'enviarEmail') rerender(); else { b.classList.toggle('on'); b.setAttribute('aria-checked', !!get(S.p, k)); atualizarTotais(); } };
   });
   app.querySelectorAll('[data-svc]').forEach(function (b) {
     b.onclick = function () {
@@ -972,9 +1037,12 @@ function ligar() {
   app.querySelectorAll('[data-rmav]').forEach(function (b) { b.onclick = function () { S.p.avulsos.splice(+b.dataset.rmav, 1); salvarRascunho(); rerender(); }; });
   on('addAv', function () { S.p.avulsos.push({ id: 'av' + Date.now(), nome: '', descricao: '', qtd: 1, impl: 0, mensal: 0 }); salvarRascunho(); rerender(); });
   on('addDor', function () { var i = document.getElementById('novaDor'), v = i.value.trim(); if (!v) return; if (S.p.cenario.desafios.indexOf(v) === -1) S.p.cenario.desafios.push(v); salvarRascunho(); rerender(); });
+  on('addCanal', function () { var i = document.getElementById('novoCanal'), v = i.value.trim(); if (!v) return; if (S.p.cenario.canais.indexOf(v) === -1) S.p.cenario.canais.push(v); salvarRascunho(); rerender(); });
+  var nc = document.getElementById('novoCanal'); if (nc) nc.onkeydown = function (e) { if (e.key === 'Enter') document.getElementById('addCanal').click(); };
   var nd = document.getElementById('novaDor'); if (nd) nd.onkeydown = function (e) { if (e.key === 'Enter') document.getElementById('addDor').click(); };
   on('voltar', function () { irPara(S.passo - 1); });
   on('avancar', function () { if (S.passo < PASSOS.length - 1) irPara(S.passo + 1); else enviar(); });
+  app.querySelectorAll('[data-modo]').forEach(function (b) { b.onclick = function (ev) { ev.preventDefault(); set(S.p, b.dataset.modo + '.modo', b.dataset.v); salvarRascunho(); rerender(); }; });
   on('prev', previa); on('down', baixar); on('gerarIA', gerarIA);
   app.querySelectorAll('[data-linhas]').forEach(function (el) { el.oninput = function () { set(S.p, el.dataset.linhas, el.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean)); salvarRascunho(); }; });
   on('nova', function () { apagarRascunho(); S.p = novaProposta(); S.enviado = null; S.passo = 0; if (S.ticket) { var t = S.ticket; S.ticket = null; aplicarTicket(t); } else render(); });
@@ -1012,6 +1080,7 @@ function validar() {
   var tel = telefoneEnvio(cl.whatsapp);
   if (tel.length < 12 || tel.length > 13) return { passo: 5, msg: 'O WhatsApp de envio parece incompleto. Use DDD + número.' };
   if (!itensProposta().length) return { passo: 2, msg: 'Marque pelo menos um serviço.' };
+  if (S.p.enviarEmail && String(cl.email || '').trim() && !emailValido(cl.email)) return { passo: 5, msg: 'O e-mail do cliente parece incompleto. Corrija ou deixe em branco.' };
   return null;
 }
 function enviar() {
@@ -1029,11 +1098,19 @@ function enviar() {
       ticketId: tk.id || null, contactId: (tk.contact && tk.contact.id) || tk.contactId || null,
       atendente: (tk.user && tk.user.name) || '',
       empresa: cl.empresa, responsavel: cl.responsavel, unidades: t.u,
-      implantacao: t.implTotal, mensal: t.mensalTotal, inicial: t.inicial, meses: t.meses, valorContrato: t.contrato,
+      implantacao: t.implTotal, mensal: t.mensalRen, inicial: t.inicial, meses: t.meses, valorContrato: t.contrato,
+      mesesAntecipados: t.N, condicao: resumoCondicao(t),
       itens: itens.map(function (i) { return (i.qtd > 1 ? i.qtd + '× ' : '') + i.nome; }),
-      criarOportunidade: !!S.p.oportunidade
+      criarOportunidade: !!S.p.oportunidade,
+      enviarEmail: !!(S.p.enviarEmail && emailValido(cl.email)), email: String(cl.email || '').trim(),
+      assunto: S.p.assunto || assuntoPadrao(), validadeDias: S.p.validadeDias,
+      resumoIA: (S.p.ia && S.p.ia.capa && S.p.ia.capa.subtitulo) || ''
     }).then(function (j) {
-      if (!j.ok) { btn.disabled = false; btn.textContent = 'Enviar proposta'; return aviso(j.erro || 'O envio falhou. Nada foi mandado ao cliente.'); }
+      if (!j.ok) {
+        btn.disabled = false; btn.textContent = 'Enviar proposta';
+        var det = (j.status || []).map(function (x) { return (x.ok ? '✓ ' : '✕ ') + x.texto; }).join('\n');
+        return aviso((j.erro || 'O envio falhou. Nada foi mandado ao cliente.') + (det ? '\n\n' + det : ''), false, 14000);
+      }
       apagarRascunho();
       S.enviado = { numero: S.p.numero, telefone: telefoneEnvio(cl.whatsapp), pdfUrl: j.pdfUrl, status: j.status };
       render();
@@ -1042,9 +1119,9 @@ function enviar() {
 }
 
 var tt;
-function aviso(msg, bom) {
+function aviso(msg, bom, ms) {
   var el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast on' + (bom ? ' good' : '');
-  clearTimeout(tt); tt = setTimeout(function () { el.className = 'toast'; }, 4200);
+  clearTimeout(tt); tt = setTimeout(function () { el.className = 'toast'; }, ms || 4200);
 }
 
 render();
