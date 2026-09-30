@@ -171,7 +171,7 @@ function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;
 async function chamar(corpo) {
   const adminKey = $('adminKey').value;
   if (!adminKey) throw new Error('Informe a chave de admin no topo da página.');
-  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminKey, ...corpo }) });
+  const r = await fetch(API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey, ...corpo }) }) });
   let j = {}; try { j = await r.json(); } catch (e) {}
   if (!r.ok || j.ok === false) throw new Error(j.erro || ('O n8n respondeu HTTP ' + r.status + '.'));
   return j;
