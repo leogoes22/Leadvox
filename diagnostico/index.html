@@ -195,6 +195,7 @@ button{font:inherit;color:inherit}
       <a class="btn block" id="r-wa" target="_blank" rel="noopener">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-13.4 7.9L3 21l1.2-4.4A9 9 0 1 1 21 12z"/></svg>
         Falar com um especialista</a>
+      <button class="btn ghost block" id="r-pdf" hidden>Baixar o diagnóstico em PDF</button>
       <button class="btn ghost block" id="r-again">Refazer o diagnóstico</button>
     </div>
   </section>
@@ -202,7 +203,261 @@ button{font:inherit;color:inherit}
   <footer class="foot">LeadVox, Central de Vendas com IA para lojas de veículos. <a href="https://leadvox.com.br">leadvox.com.br</a></footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
 <script>
+/* ====== PDF DO DIAGNÓSTICO (mesmo motor da proposta: pdfmake + Poppins) ====== */
+var K = {
+  W: 960, H: 540, X: 56, CW: 848,
+  lime: '#8fcc22', white: '#ffffff', muted: '#a3aecb', soft: '#d3daec',
+  card: '#121e44', cardLine: '#23315c', coral: '#ff7a66', coralFill: '#261a38', coralLine: '#4a2b45',
+  greenFill: '#14292f', greenLine: '#2f5230', pillFill: '#19302a', pillLine: '#3b6a2c',
+  navy: '#0a1741', ink: '#152044', paper: '#f3f5fa', paperLine: '#dde2ee'
+};
+function dataBR(d) { var x = new Date(d); return String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear(); }
+function corta(s, n) { s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/[\s,;:.-]+\S*$/, '') + '…' : s; }
+/* ---------- primitivas de layout absoluto ---------- */
+var NOPAD = { defaultBorder: false, paddingLeft: function () { return 0; }, paddingRight: function () { return 0; }, paddingTop: function () { return 0; }, paddingBottom: function () { return 0; } };
+function T(x, y, w, node) { return { table: { widths: [w], body: [[node]] }, layout: NOPAD, absolutePosition: { x: x, y: y } }; }
+function R(x, y, w, h, o) {
+  o = o || {};
+  var r = { type: 'rect', x: 0, y: 0, w: w, h: h, r: o.r == null ? 10 : o.r, color: o.fill || K.card };
+  if (o.line) { r.lineColor = o.line; r.lineWidth = o.lw || 0.8; } else r.lineWidth = 0;
+  if (o.op != null) r.fillOpacity = o.op;
+  return { canvas: [r], absolutePosition: { x: x, y: y } };
+}
+function cartao(x, y, w, h, o) { o = o || {}; var n = [R(x, y, w, h, { fill: o.fill || K.card, line: o.line || K.cardLine })]; if (o.topo) n.push(R(x + 2, y, w - 4, 2.4, { fill: o.topo, r: 1.2 })); return n; }
+function sobrancelha(x, y, txt, cor) {
+  cor = cor || K.lime;
+  return [
+    { canvas: [{ type: 'ellipse', x: 3, y: 3, r1: 2.8, r2: 2.8, lineColor: cor, lineWidth: 1 }, { type: 'line', x1: 11, y1: 3, x2: 31, y2: 3, lineColor: cor, lineWidth: 1 }], absolutePosition: { x: x, y: y + 3.5 } },
+    T(x + 40, y, 700, { text: txt.toUpperCase(), font: 'PH', fontSize: 9, characterSpacing: 2.2, color: cor })
+  ];
+}
+function tamTitulo(linhas, base, w) {
+  var maior = Math.max.apply(null, linhas.map(function (l) { return String(l || '').length; }));
+  var cabe = w / (base * 0.6);
+  return maior <= cabe ? base : Math.max(22, Math.floor(w / (maior * 0.6)));
+}
+function titulo(x, y, w, l1, l2, tam) {
+  tam = tamTitulo(String(l1).split('\n').concat(l2 ? [l2] : []), tam || 32, w);
+  var partes = [{ text: l1, color: K.white }];
+  if (l2) partes.push({ text: '\n' + l2, color: K.lime });
+  return T(x, y, w, { text: partes, font: 'PH', bold: true, fontSize: tam, lineHeight: 0.84 });
+}
+function barraFrase(y, partes, cor) {
+  return [R(K.X, y, 3, 17, { fill: cor || K.lime, r: 1.5 }), T(K.X + 13, y + 1, K.CW - 13, { text: partes, fontSize: 12, color: K.white })];
+}
+function check(cor) { return { canvas: [{ type: 'polyline', points: [{ x: 0, y: 5 }, { x: 3.6, y: 8.6 }, { x: 10, y: 1.5 }], lineWidth: 1.6, lineColor: cor || K.lime, lineCap: 'round' }], width: 16, margin: [0, 3, 0, 0] }; }
+function xis() { return { canvas: [{ type: 'line', x1: 0, y1: 1, x2: 8, y2: 9, lineWidth: 1.5, lineColor: K.coral }, { type: 'line', x1: 8, y1: 1, x2: 0, y2: 9, lineWidth: 1.5, lineColor: K.coral }], width: 16, margin: [0, 3, 0, 0] }; }
+function lista(itens, icone, tam, cor) {
+  return { stack: itens.map(function (t) { return { columns: [icone(), { text: t, fontSize: tam || 10.5, color: cor || K.soft, lineHeight: 1.25 }], margin: [0, 0, 0, 6] }; }) };
+}
+/* ---------- slides do diagnóstico (sem valores) ---------- */
+function arcoPts(cx, cy, r, a0, a1) {
+  var pts = [], passos = Math.max(2, Math.ceil(Math.abs(a1 - a0) / 3));
+  for (var i = 0; i <= passos; i++) { var a = (a0 + (a1 - a0) * i / passos) * Math.PI / 180; pts.push({ x: cx + r * Math.sin(a), y: cy - r * Math.cos(a) }); }
+  return pts;
+}
+function corNivel(s) { return s < 30 ? K.coral : s < 55 ? '#f5c542' : s < 80 ? '#b5dc5a' : K.lime; }
+function slideCapaD(R, L) {
+  var n = [];
+  n = n.concat(sobrancelha(K.X, 62, 'Diagnóstico de vendas · ' + corta(L.loja, 40)));
+  n.push(titulo(K.X, 96, 820, 'A venda da ' + corta(L.loja, 34), 'está em ' + R.nivel, 34));
+  n.push(T(K.X, 190, 620, { text: corta(R.nivel_desc, 200), fontSize: 12.5, color: K.muted, lineHeight: 1.35 }));
+  var ds = [
+    { titulo: R.score + '/100', linha: 'Pontuação da loja no diagnóstico' },
+    { titulo: R.gaps.length + (R.gaps.length === 1 ? ' ponto' : ' pontos'), linha: 'Onde a venda está escapando hoje' },
+    { titulo: R.solucoes.length + (R.solucoes.length === 1 ? ' solução' : ' soluções'), linha: 'Indicadas para a operação da loja' }
+  ];
+  var gap = 20, w = (K.CW - gap * 2) / 3;
+  ds.forEach(function (d, i) {
+    var x = K.X + i * (w + gap), y = 270;
+    n = n.concat(cartao(x, y, w, 128, { topo: i === 0 ? corNivel(R.score) : K.lime }));
+    n.push(T(x + 20, y + 22, w - 40, { stack: [
+      { text: d.titulo, font: 'PH', bold: true, fontSize: 24, color: K.white, margin: [0, 0, 0, 8] },
+      { text: d.linha, fontSize: 10.5, color: K.muted, lineHeight: 1.35 }
+    ] }));
+  });
+  n = n.concat(barraFrase(484, [
+    { text: 'Preparado para ' + [L.nome, L.loja].filter(Boolean).join(' · '), bold: true },
+    { text: '   |   Diagnóstico feito em ' + dataBR(new Date()), color: K.muted }
+  ]));
+  return n;
+}
+function slideResultado(R) {
+  var n = [];
+  n = n.concat(sobrancelha(K.X, 62, 'Resultado'));
+  n.push(titulo(K.X, 86, 820, 'Como a loja está hoje', null, 30));
+  var cx = K.X + 195, y0 = 150, cy = y0 + 180, r = 112, A0 = -120, A1 = 120, ang = function (v) { return A0 + (A1 - A0) * v / 100; };
+  n = n.concat(cartao(K.X, y0, 390, 300));
+  var cv = [];
+  cv.push({ type: 'polyline', points: arcoPts(cx, cy, r, A0, A1), lineWidth: 16, lineColor: K.cardLine, lineCap: 'round' });
+  [[0, 30, K.coral], [30, 55, '#f5c542'], [55, 80, '#b5dc5a'], [80, 100, K.lime]].forEach(function (z) {
+    cv.push({ type: 'polyline', points: arcoPts(cx, cy, r + 15, ang(z[0]) + 1, ang(z[1]) - 1), lineWidth: 3, lineColor: z[2] });
+  });
+  if (R.score > 0) cv.push({ type: 'polyline', points: arcoPts(cx, cy, r, A0, ang(R.score)), lineWidth: 16, lineColor: corNivel(R.score), lineCap: 'round' });
+  for (var v = 0; v <= 100; v += 10) {
+    var p1 = arcoPts(cx, cy, r - 16, ang(v), ang(v))[0], p2 = arcoPts(cx, cy, r - (v % 20 ? 22 : 28), ang(v), ang(v))[0];
+    cv.push({ type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, lineWidth: v % 20 ? 1 : 1.8, lineColor: v % 20 ? '#3a4a7a' : K.soft });
+  }
+  var pn = arcoPts(cx, cy, r - 30, ang(R.score), ang(R.score))[0];
+  cv.push({ type: 'line', x1: cx, y1: cy, x2: pn.x, y2: pn.y, lineWidth: 3.5, lineColor: K.white, lineCap: 'round' });
+  cv.push({ type: 'ellipse', x: cx, y: cy, r1: 9, r2: 9, color: K.card, lineColor: K.white, lineWidth: 2.5 });
+  n.push({ canvas: cv, absolutePosition: { x: 0, y: 0 } });
+  [0, 20, 40, 60, 80, 100].forEach(function (v) {
+    var p = arcoPts(cx, cy, r - 42, ang(v), ang(v))[0];
+    n.push(T(p.x - 15, p.y - 6, 30, { text: String(v), fontSize: 8.5, color: K.muted, alignment: 'center' }));
+  });
+  n.push(T(K.X, cy + 16, 390, { stack: [
+    { text: R.score + '/100', font: 'PH', bold: true, fontSize: 30, color: K.white, alignment: 'center' },
+    { text: R.nivel, font: 'PH', bold: true, fontSize: 14, color: corNivel(R.score), alignment: 'center' }
+  ] }));
+  var x2 = K.X + 410, w2 = K.CW - 410;
+  n = n.concat(cartao(x2, y0, w2, 300));
+  var itens = R.respostas.filter(function (q) { return q.pontos != null; }).slice(0, 7);
+  n.push(T(x2 + 22, y0 + 20, w2 - 44, { stack: itens.map(function (q) {
+    var ok = q.pontos >= 10;
+    return { columns: [ok ? check() : xis(), { text: [{ text: corta(q.curto || q.pergunta, 48) + '\n', font: 'PH', bold: true, fontSize: 10.5, color: K.white }, { text: corta(q.resposta, 60), fontSize: 9.5, color: K.muted }], lineHeight: 1.15 }], margin: [0, 0, 0, 8] };
+  }) }));
+  return n;
+}
+function slidesDorD(R, L) {
+  var out = [], gs = R.gaps_det || [];
+  for (var ini = 0; ini < gs.length; ini += 4) {
+    var cs = gs.slice(ini, ini + 4), n = [];
+    n = n.concat(sobrancelha(K.X, 62, 'Diagnóstico · ' + corta(L.loja, 40) + (ini ? ' · continuação' : ''), K.coral));
+    n.push(titulo(K.X, 86, 760, 'Onde a venda está escapando', null, 30));
+    var gap = 16, w = (K.CW - gap) / 2, h = cs.length > 2 ? 108 : 150;
+    cs.forEach(function (c, i) {
+      var x = K.X + (i % 2) * (w + gap), y = 180 + Math.floor(i / 2) * (h + gap);
+      n = n.concat(cartao(x, y, w, h));
+      n.push(R_(x + 18, y + 20));
+      n.push(T(x + 18, y + 24, 24, { text: '!', font: 'PH', bold: true, fontSize: 13, color: K.coral, alignment: 'center' }));
+      n.push(T(x + 56, y + 18, w - 76, { stack: [
+        { text: corta(c.titulo, 44), font: 'PH', bold: true, fontSize: 13, color: K.white, margin: [0, 0, 0, 5] },
+        { text: corta(c.texto, 150), fontSize: 10, color: K.muted, lineHeight: 1.35 }
+      ] }));
+    });
+    n = n.concat(barraFrase(452, [{ text: 'Cada ponto destes é lead que chega na loja e não vira venda.', bold: true }]));
+    out.push(n);
+  }
+  return out;
+}
+function R_(x, y) { return R(x, y, 24, 24, { fill: '#3a2242', r: 6 }); }
+function slidesSolucoesD(R, L) {
+  var its = R.solucoes, out = [];
+  for (var ini = 0; ini < its.length; ini += 6) {
+    var parte = its.slice(ini, ini + 6), n = [];
+    n = n.concat(sobrancelha(K.X, 62, 'Soluções' + (ini ? ' · continuação' : '')));
+    n.push(titulo(K.X, 86, 820, L.loja && L.loja.length <= 26 ? 'O que a ' + L.loja + ' recebe' : 'O que a sua loja recebe', null, 30));
+    n.push(T(K.X, 132, 760, { text: 'Soluções indicadas a partir das suas respostas. Os valores entram na proposta, depois de uma conversa.', fontSize: 12, color: K.muted }));
+    var cols = parte.length <= 3 ? parte.length : parte.length === 4 ? 2 : 3, gap = 18, w = (K.CW - gap * (cols - 1)) / cols, h = parte.length <= cols ? 200 : 132;
+    parte.forEach(function (it, i) {
+      var ia = /^ia_/.test(it.chave || ''), x = K.X + (i % cols) * (w + gap), y = 176 + Math.floor(i / cols) * (h + 16);
+      n = n.concat(cartao(x, y, w, h, ia ? { fill: K.greenFill, line: K.greenLine } : {}));
+      n.push(T(x + 20, y + 18, w - 40, { stack: [
+        { text: corta(it.nome, 40), font: 'PH', bold: true, fontSize: 14, color: ia ? K.lime : K.white, margin: [0, 0, 0, 7] },
+        { text: corta(it.txt, cols === 3 ? 150 : 190), fontSize: 10, color: K.muted, lineHeight: 1.38 }
+      ] }));
+    });
+    out.push(n);
+  }
+  return out;
+}
+function slidePassosD(L, contato) {
+  var n = [];
+  n = n.concat(sobrancelha(K.X, 62, 'Próximos passos'));
+  n.push(titulo(K.X, 86, 820, 'Como colocar a loja', 'numa marcha acima', 30));
+  var ps = [
+    ['Conversa rápida', 'Entendemos a rotina da loja, o estoque e quem atende cada cliente.'],
+    ['Demonstração', 'Você vê a IA atendendo no WhatsApp com o estoque real da sua loja.'],
+    ['Proposta sob medida', 'Montamos a proposta com os valores para o que faz sentido agora.']
+  ];
+  var gap = 20, w = (K.CW - gap * 2) / 3;
+  ps.forEach(function (p, i) {
+    var x = K.X + i * (w + gap), y = 196;
+    n = n.concat(cartao(x, y, w, 150, { topo: K.lime }));
+    n.push(R(x + 20, y + 22, 30, 30, { fill: K.pillFill, line: K.pillLine, r: 15 }));
+    n.push(T(x + 20, y + 29, 30, { text: String(i + 1), font: 'PH', bold: true, fontSize: 12, color: K.lime, alignment: 'center' }));
+    n.push(T(x + 20, y + 66, w - 40, { stack: [
+      { text: p[0], font: 'PH', bold: true, fontSize: 14, color: K.white, margin: [0, 0, 0, 6] },
+      { text: p[1], fontSize: 10, color: K.muted, lineHeight: 1.38 }
+    ] }));
+  });
+  n = n.concat(cartao(K.X, 370, K.CW, 70, { fill: K.greenFill, line: K.greenLine }));
+  n.push(T(K.X + 24, 386, K.CW - 48, { columns: [
+    { text: [{ text: 'Fale com a LeadVox\n', font: 'PH', bold: true, fontSize: 13, color: K.lime }, { text: 'Responda a mensagem no WhatsApp ou chame no número ao lado.', fontSize: 10, color: K.muted }], width: '*' },
+    { text: [{ text: contato.whats + '\n', font: 'PH', bold: true, fontSize: 13, color: K.white }, { text: contato.email + '   |   ' + contato.site, fontSize: 10, color: K.muted }], width: 'auto', alignment: 'right' }
+  ] }));
+  n = n.concat(barraFrase(484, [{ text: 'Preparado para ' + [L.nome, L.loja].filter(Boolean).join(' · '), bold: true }]));
+  return n;
+}
+function montarDiagnostico(R, L, cfg) {
+  cfg = cfg || {};
+  var slides = [slideCapaD(R, L), slideResultado(R)].concat(slidesDorD(R, L), slidesSolucoesD(R, L), [slidePassosD(L, cfg.contato)]);
+  var total = slides.length;
+  function mix(x, y, f) { return '#' + [0, 1, 2].map(function (k) { return Math.round(x[k] + (y[k] - x[k]) * f).toString(16).padStart(2, '0'); }).join(''); }
+  function bandas(size) {
+    var cv = [], nb = 36, h = size.height / nb, a = [16, 48, 112], b = [8, 22, 64], z = [4, 12, 34];
+    for (var i = 0; i < nb; i++) { var f = i / (nb - 1), col = f < 0.5 ? mix(a, b, f / 0.5) : mix(b, z, (f - 0.5) / 0.5); cv.push({ type: 'rect', x: 0, y: i * h, w: size.width, h: h + 0.6, color: col }); }
+    for (var g = 0; g < 10; g++) { var k = 1 - g / 10;
+      cv.push({ type: 'ellipse', x: size.width - 90, y: 40, r1: 380 * k, r2: 230 * k, color: '#1d5e52', fillOpacity: 0.045 });
+      cv.push({ type: 'ellipse', x: 40, y: 0, r1: 360 * k, r2: 170 * k, color: '#1f4fa8', fillOpacity: 0.04 }); }
+    return cv;
+  }
+  var content = slides.map(function (nodes, i) {
+    nodes.push(T(K.X, K.H - 20, 260, { text: 'Diagnóstico ' + (cfg.id || '') + '   ' + (i + 1) + '/' + total, fontSize: 7.5, color: '#6e7aa0' }));
+    return { stack: nodes, pageBreak: i ? 'before' : undefined };
+  });
+  return {
+    pageSize: { width: K.W, height: K.H }, pageMargins: [0, 0, 0, 0],
+    info: { title: 'Diagnóstico LeadVox — ' + (L.loja || ''), author: 'LeadVox' },
+    background: function (page, size) {
+      var cv = bandas(size), extra = [];
+      if (page === 1) for (var s = 0; s < 9; s++) { var x0 = size.width - 250 + s * 30; cv.push({ type: 'polyline', closePath: true, color: K.lime, lineColor: K.lime, lineWidth: 0.1, points: [{ x: x0, y: size.height }, { x: x0 + 26, y: size.height - 34 }, { x: x0 + 40, y: size.height - 34 }, { x: x0 + 14, y: size.height }] }); }
+      if (cfg.logo) extra.push({ image: cfg.logo, width: page === 1 ? 156 : 124, absolutePosition: { x: size.width - K.X - (page === 1 ? 156 : 124), y: page === 1 ? 30 : 32 } });
+      else extra.push({ text: [{ text: 'Lead', color: '#ffffff' }, { text: 'Vox', color: K.lime }], font: 'PH', bold: true, fontSize: 20, absolutePosition: { x: size.width - K.X - 100, y: 38 } });
+      cv.push({ type: 'rect', x: 0, y: size.height - 4, w: size.width, h: 4, linearGradient: [K.lime, '#2a63c9'] });
+      return { stack: [{ canvas: cv, absolutePosition: { x: 0, y: 0 } }].concat(extra) };
+    },
+    content: content,
+    defaultStyle: { font: 'P', color: K.white }
+  };
+}
+
+var ROBOTO = { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Medium.ttf', italics: 'Roboto-Italic.ttf', bolditalics: 'Roboto-MediumItalic.ttf' };
+function ab64(buf) { var b = new Uint8Array(buf), s = '', CH = 0x8000; for (var i = 0; i < b.length; i += CH) s += String.fromCharCode.apply(null, b.subarray(i, i + CH)); return btoa(s); }
+var FONTES = (function () {
+  if (typeof pdfMake === 'undefined') return Promise.resolve();
+  var base = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/poppins/', pesos = ['Light', 'Regular', 'SemiBold', 'Bold', 'ExtraBold'];
+  return Promise.all(pesos.map(function (w) {
+    return fetch(base + 'Poppins-' + w + '.ttf').then(function (r) { if (!r.ok) throw new Error('fonte'); return r.arrayBuffer(); })
+      .then(function (b) { pdfMake.vfs['Poppins-' + w + '.ttf'] = ab64(b); });
+  })).then(function () {
+    pdfMake.fonts = { Roboto: ROBOTO,
+      P: { normal: 'Poppins-Light.ttf', bold: 'Poppins-SemiBold.ttf', italics: 'Poppins-Regular.ttf', bolditalics: 'Poppins-Bold.ttf' },
+      PH: { normal: 'Poppins-SemiBold.ttf', bold: 'Poppins-Bold.ttf', italics: 'Poppins-Bold.ttf', bolditalics: 'Poppins-ExtraBold.ttf' } };
+  }).catch(function () { pdfMake.fonts = { Roboto: ROBOTO, P: ROBOTO, PH: ROBOTO }; });
+})();
+var LOGO_PDF = fetch('logo-leadvox.png').then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+  .then(function (b) { return new Promise(function (ok) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.onerror = function () { ok(null); }; fr.readAsDataURL(b); }); })
+  .catch(function () { return null; });
+function nomePDF() { return 'Diagnostico-LeadVox-' + String((S.lead && S.lead.loja) || 'loja').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.pdf'; }
+function gerarPDF() {
+  if (typeof pdfMake === 'undefined') return Promise.resolve('');
+  var limite = new Promise(function (ok) { setTimeout(function () { ok(''); }, 9000); });
+  var gera = Promise.all([FONTES, LOGO_PDF]).then(function (r) {
+    return new Promise(function (ok) {
+      try {
+        S.docDef = montarDiagnostico(S.result, S.lead, { id: S.id, logo: r[1], contato: { whats: '(21) 98108-1044', email: 'contato@leadvox.com.br', site: 'leadvox.com.br' } });
+        pdfMake.createPdf(S.docDef).getBase64(function (b64) { ok(b64 || ''); });
+      } catch (e) { console.error('PDF', e); ok(''); }
+    });
+  });
+  return Promise.race([gera, limite]);
+}
+
 /* ====== CONFIGURAÇÃO ====== */
 const CFG = {
   WEBHOOK: 'https://webhook.lv-mktdeconversa.com/webhook/diagnostico-leadvox',
@@ -222,29 +477,29 @@ const QUESTIONS = [
     {l:'Até 30'},{l:'De 30 a 80'},{l:'De 80 a 150'},{l:'Mais de 150'} ]},
   { id:'sistema', t:'Onde fica o cadastro do seu estoque?', o:[
     {l:'AutoCerto'},{l:'Revenda Mais'},{l:'Outro sistema'},{l:'Planilha ou caderno'} ]},
-  { id:'resposta', t:'Um cliente chama no WhatsApp às 22h perguntando de um carro. O que acontece?', o:[
+  { id:'resposta', curto:'Resposta fora do horário', gt:'Lead sem resposta fora do horário', t:'Um cliente chama no WhatsApp às 22h perguntando de um carro. O que acontece?', o:[
     {l:'Só vemos no dia seguinte',pts:0},{l:'Algum vendedor responde, se vir',pts:4},
     {l:'Um robô de menu responde',pts:6},{l:'Uma IA responde na hora, com o estoque',pts:10} ],
     gap:'Lead que chama fora do horário espera até o dia seguinte, e costuma fechar com a loja que respondeu primeiro.'},
-  { id:'conversas', t:'Onde ficam as conversas com os clientes?', o:[
+  { id:'conversas', curto:'Conversas centralizadas', gt:'Conversas espalhadas nos celulares', t:'Onde ficam as conversas com os clientes?', o:[
     {l:'No celular de cada vendedor',pts:0},{l:'Num WhatsApp da loja, dividido entre todos',pts:4},
     {l:'Num sistema, com cada lead no nome de alguém',pts:10} ],
     gap:'As conversas ficam espalhadas: quando um vendedor sai, a carteira de clientes vai junto com o celular.'},
-  { id:'followup', t:'O cliente parou de responder. E aí?', o:[
+  { id:'followup', curto:'Retorno programado', gt:'Cliente que some não é procurado', t:'O cliente parou de responder. E aí?', o:[
     {l:'Fica por isso mesmo',pts:0},{l:'O vendedor tenta de novo quando lembra',pts:4},
     {l:'Existe uma sequência de retorno programada',pts:10} ],
     gap:'Cliente que some não é procurado de novo, e muita venda acontece justamente no retorno.'},
-  { id:'anuncios', t:'A loja faz anúncio pago no Instagram, Facebook ou Google?', o:[
+  { id:'anuncios', curto:'Anúncios com gestão', gtBy:{0:'Poucos leads chegando',5:'Anúncio sem medição de venda'}, t:'A loja faz anúncio pago no Instagram, Facebook ou Google?', o:[
     {l:'Não faz',pts:0},{l:'Faz, a gente mesmo impulsiona',pts:5},{l:'Faz, com um gestor de tráfego',pts:10} ],
     gapBy:{0:'Sem anúncio, a loja depende só de quem já a conhece ou passa na porta.',
            5:'Os anúncios rodam sem estratégia, e fica difícil saber qual deles trouxe venda.'}},
-  { id:'site', t:'E o site da loja?', o:[
+  { id:'site', curto:'Site com estoque atualizado', gt:'Estoque fora do Google', t:'E o site da loja?', o:[
     {l:'Não temos site',pts:0},{l:'Temos, mas o estoque fica desatualizado',pts:4},{l:'Temos, com o estoque atualizando sozinho',pts:10} ],
     gap:'Quem pesquisa no Google não encontra o seu estoque atualizado e acaba no site do concorrente.'},
-  { id:'instagram', t:'Como anda o Instagram da loja?', o:[
+  { id:'instagram', curto:'Instagram com frequência', gt:'Instagram sem constância', t:'Como anda o Instagram da loja?', o:[
     {l:'Parado ou quase parado',pts:0},{l:'Postamos quando dá tempo',pts:4},{l:'Tem frequência e planejamento',pts:10} ],
     gap:'O Instagram é a primeira vitrine que o cliente olha, e hoje ele não mostra o estoque com constância.'},
-  { id:'numeros', t:'Você sabe quantos leads chegaram mês passado e quantos viraram venda?', o:[
+  { id:'numeros', curto:'Números da operação', gt:'Sem números de leads e vendas', t:'Você sabe quantos leads chegaram mês passado e quantos viraram venda?', o:[
     {l:'Não faço ideia',pts:0},{l:'Mais ou menos',pts:4},{l:'Sei exatamente',pts:10} ],
     gap:'Sem o número de leads e de vendas, não dá para saber o que funciona nem acompanhar a equipe.'}
 ];
@@ -268,7 +523,7 @@ const SOLUTIONS = {
 };
 
 /* ====== ESTADO ====== */
-const S = { i:0, ans:{}, lead:null, result:null, id:null };
+const S = { i:0, ans:{}, lead:null, result:null, id:null, pdf:null, docDef:null };
 const $ = s => document.querySelector(s);
 const screens = ['intro','quiz','gate','load','res'];
 function show(name){
@@ -329,11 +584,11 @@ function compute(){
   const score = Math.round(total / (scored.length * 10) * 100);
   const level = LEVELS.find(l => score >= l.min);
 
-  const gaps = [];
+  const gaps = [], gaps_det = [];
   scored.forEach(q => {
     const p = q.o[S.ans[q.id]].pts;
-    if (q.gapBy){ if (q.gapBy[p]) gaps.push(q.gapBy[p]); }
-    else if (p < 10) gaps.push(q.gap);
+    if (q.gapBy){ if (q.gapBy[p]){ gaps.push(q.gapBy[p]); gaps_det.push({titulo:q.gtBy[p], texto:q.gapBy[p]}); } }
+    else if (p < 10){ gaps.push(q.gap); gaps_det.push({titulo:q.gt, texto:q.gap}); }
   });
 
   const sol = [];
@@ -358,8 +613,8 @@ function compute(){
   const solucoes = sol.slice(0,5).map(k => ({chave:k, ...SOLUTIONS[k]}));
   solucoes.push({chave:'integracao', ...integ});
 
-  const respostas = QUESTIONS.map(q => ({id:q.id, pergunta:q.t, resposta:q.o[S.ans[q.id]].l, pontos:q.o[S.ans[q.id]].pts ?? null}));
-  return { score, nivel:level.nome, nivel_desc:level.desc, gaps, solucoes, respostas,
+  const respostas = QUESTIONS.map(q => ({id:q.id, pergunta:q.t, curto:q.curto || '', resposta:q.o[S.ans[q.id]].l, pontos:q.o[S.ans[q.id]].pts ?? null}));
+  return { score, nivel:level.nome, nivel_desc:level.desc, gaps, gaps_det, solucoes, respostas,
     perfil:{ segmento:A('segmento').l, vendedores:A('vendedores').l, estoque:A('estoque').l, sistema } };
 }
 
@@ -394,7 +649,7 @@ $('#gform').addEventListener('submit', e => {
   S.result = compute();
   S.id = 'DG' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
   show('load');
-  send().then(ok => { renderResult(ok); });
+  gerarPDF().then(b64 => { S.pdf = b64; return send(); }).then(ok => { renderResult(ok); });
 });
 
 /* ====== ENVIO ====== */
@@ -402,7 +657,7 @@ function payload(){
   const p = new URLSearchParams(location.search);
   const utm = {}; ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','origem'].forEach(k => { if (p.get(k)) utm[k] = p.get(k); });
   return { id:S.id, criado_em:new Date().toISOString(), pagina:location.href.split('?')[0], utm,
-    honeypot:$('#f-site').value, lead:S.lead, ...S.result };
+    honeypot:$('#f-site').value, lead:S.lead, ...S.result, pdfBase64:S.pdf || '', pdfNome:nomePDF() };
 }
 async function send(){
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), CFG.TIMEOUT_MS);
@@ -461,6 +716,7 @@ function renderResult(sentOk){
   sentState(sentOk);
   const msg = 'Oi! Fiz o diagnóstico no site. Sou ' + L.nome + ', da ' + L.loja + ', e deu ' + R.score + '/100 (' + R.nivel + '). Quero entender as soluções para a minha loja.';
   $('#r-wa').href = 'https://wa.me/' + CFG.WHATS_LEADVOX + '?text=' + encodeURIComponent(msg);
+  $('#r-pdf').hidden = !S.docDef;
   setTimeout(() => drawTach(R.score), 120);
 }
 function sentState(ok){
@@ -473,7 +729,8 @@ function sentState(ok){
     $('#retry').addEventListener('click', async () => { $('#retry').textContent = 'Enviando...'; sentState(await send()); });
   }
 }
-$('#r-again').addEventListener('click', () => { S.i = 0; S.ans = {}; show('intro'); });
+$('#r-again').addEventListener('click', () => { S.i = 0; S.ans = {}; S.pdf = null; S.docDef = null; show('intro'); });
+$('#r-pdf').addEventListener('click', () => { try { pdfMake.createPdf(S.docDef).download(nomePDF()); } catch (e) {} });
 </script>
 </body>
 </html>
