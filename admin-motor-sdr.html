@@ -266,11 +266,11 @@ async function listar() {
     $('lista').innerHTML = `<table><thead><tr><th>Loja</th><th>Situação</th><th>Estoque</th><th>Canal</th><th>Tenant</th><th></th></tr></thead><tbody>${
       j.lojas.map(l => `<tr>
         <td><b>${esc(l.nome)}</b><br><span style="color:var(--suave);font-size:12px">${esc(l.chave)}</span></td>
-        <td><span class="etiqueta ${l.ativo ? 'pronta' : ''}">${l.ativo ? 'IA ligada' : (l.configurada ? 'pronta para ligar' : 'aguardando o dono')}</span></td>
+        <td><span class="etiqueta ${l.ativo && !l.bloqueado ? 'pronta' : ''}">${l.bloqueado ? 'suspensa por você' : l.ativo ? 'IA ligada' : (l.configurada ? 'desligada pelo dono' : 'aguardando o dono')}</span></td>
         <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : 'AutoCerto'}</td>
         <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
         <td>${esc(l.tenantId)}</td>
-        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.ativo ? '0' : '1'}" ${!l.ativo && !l.configurada ? 'disabled title="O dono ainda não configurou a IA"' : ''}>${l.ativo ? 'Desligar IA' : 'Ligar IA'}</button></td>
+        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
 }
@@ -285,9 +285,9 @@ document.addEventListener('click', async (ev) => {
   const at = ev.target.closest('[data-ativo]');
   if (at) {
     const ligar = at.dataset.ligar === '1';
-    if (!confirm(ligar ? 'Ligar a IA desta loja? Ela passa a responder os clientes no WhatsApp.' : 'Desligar a IA desta loja? Ela para de responder na hora.')) return;
+    if (!confirm(ligar ? 'Reativar esta loja? O dono volta a poder ligar e desligar a IA.' : 'Suspender esta loja? A IA para de responder na hora e o dono não consegue religar até você reativar.')) return;
     at.disabled = true;
-    try { await chamar({ acao: 'ativo', chave: at.dataset.ativo, ligar }); toast(ligar ? 'IA ligada' : 'IA desligada'); listar(); }
+    try { await chamar({ acao: 'ativo', chave: at.dataset.ativo, ligar }); toast(ligar ? 'Loja reativada' : 'Loja suspensa'); listar(); }
     catch (e) { toast(e.message); at.disabled = false; }
     return;
   }
