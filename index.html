@@ -93,7 +93,7 @@
       "offers": {
         "@type": "Offer",
         "priceCurrency": "BRL",
-        "price": "219.90",
+        "price": "397.00",
         "priceValidUntil": "2026-12-31"
       },
       "aggregateRating": {
@@ -713,7 +713,10 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 .bld-info small{display:block;font-size:.8rem;color:var(--muted);line-height:1.45}
 .bld-preco{font-family:"Syne",sans-serif;font-weight:700;font-size:.98rem;white-space:nowrap;text-align:right}
 .bld-preco small{display:block;font-family:"DM Sans",sans-serif;font-weight:400;font-size:.72rem;color:var(--muted);margin-top:1px}
-.bld-row.on .bld-preco{color:var(--green)}
+.bld-row.on .bld-preco,.bld-row.promo .bld-preco{color:var(--green)}
+.bld-preco s.de{display:block;font-family:"DM Sans",sans-serif;font-weight:500;font-size:.78rem;color:var(--muted);text-decoration:line-through}
+.bld-promo{font-size:.82rem;color:var(--light);background:rgba(43,232,123,.07);border:1px solid rgba(43,232,123,.2);border-radius:9px;padding:9px 12px;margin:-2px 0 10px}
+.bld-promo strong{color:var(--green)}
 .bld-cnt{display:flex;align-items:center;gap:10px;margin-left:6px}
 .bld-cnt button{width:32px;height:32px;background:rgba(43,232,123,.1);border:1px solid rgba(43,232,123,.22);border-radius:8px;color:var(--green);font-size:1.1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .2s}
 .bld-cnt button:hover{background:rgba(43,232,123,.2)}
@@ -821,7 +824,7 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
     <div class="mm-section-title">Navegação</div>
     <a class="mm-link" href="#canais" onclick="closeMobile()"><div class="mm-link-ic">📱</div><div><strong>Canais</strong><small>WhatsApp, Instagram e mais</small></div></a>
     <a class="mm-link" href="#integracoes" onclick="closeMobile()"><div class="mm-link-ic">🔗</div><div><strong>Integrações</strong><small>+50 integrações</small></div></a>
-    <a class="mm-link" href="#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>A partir de R$ 219,90/mês</small></div></a>
+    <a class="mm-link" href="#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>CRM a partir de R$ 397/mês</small></div></a>
     <a class="mm-link" href="#faq" onclick="closeMobile()"><div class="mm-link-ic">❓</div><div><strong>FAQ</strong><small>Dúvidas frequentes</small></div></a>
   </div>
   <div class="mm-btns">
@@ -1111,9 +1114,9 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 <section class="sec pricing-sec" id="planos">
   <div class="inner">
     <div style="text-align:center;margin-bottom:48px">
-      <div class="tag" style="display:inline-block;margin-bottom:12px">Planos · a partir de R$ 219,90/mês</div>
+      <div class="tag" style="display:inline-block;margin-bottom:12px">Planos · CRM a partir de R$ 397/mês</div>
       <h2>Monte o plano do tamanho<br>da sua operação</h2>
-      <p class="ssub" style="margin:12px auto 0">Você paga só pelo que usa. Tudo começa no Plano Base: escolha a IA, quantas conexões precisa de cada canal e se quer a implementação feita pela nossa equipe.</p>
+      <p class="ssub" style="margin:12px auto 0">Você paga só pelo que usa. Tudo começa no Plano Base do CRM — e, escolhendo uma IA, o CRM sai com 50% de desconto.</p>
     </div>
 
     <div class="bld rv">
@@ -1121,15 +1124,16 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 
         <div class="bld-grp">
           <div class="bld-grp-h"><h3>Plano Base</h3><span>já incluso</span></div>
-          <div class="bld-row fixo">
+          <div class="bld-row fixo" id="baseRow">
             <span class="bld-mark">✓</span>
             <span class="bld-info"><strong>CRM LeadVox · Plano Base</strong><small>Acesso ao sistema, com treinamento autônomo</small></span>
-            <span class="bld-preco">R$ 219,90<small>/mês</small></span>
+            <span class="bld-preco" id="basePreco">R$ 397,00<small>/mês</small></span>
           </div>
         </div>
 
         <div class="bld-grp">
           <div class="bld-grp-h"><h3>Inteligência Artificial</h3><span>escolha uma</span></div>
+          <p class="bld-promo">🎁 Escolhendo qualquer IA, o CRM sai com <strong>50% de desconto</strong>.</p>
           <button type="button" class="bld-row" data-ia="sdr" role="radio" aria-checked="false" onclick="escolherIA('sdr')">
             <span class="bld-mark radio"></span>
             <span class="bld-info"><strong>IA SDR</strong><small>Pré-atendimento e distribuição de leads 24h</small></span>
@@ -1197,11 +1201,16 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
         </div>
 
         <div class="bld-grp">
-          <div class="bld-grp-h"><h3>Implementação</h3><span>pagamento único</span></div>
-          <button type="button" class="bld-row" role="checkbox" aria-checked="false" onclick="toggleImpl(this)">
-            <span class="bld-mark"></span>
+          <div class="bld-grp-h"><h3>Implementação</h3><span>pagamento único · escolha uma</span></div>
+          <button type="button" class="bld-row" data-impl="impl" role="radio" aria-checked="false" onclick="escolherImpl('impl')">
+            <span class="bld-mark radio"></span>
             <span class="bld-info"><strong>Implementação CRM Personalizada</strong><small>Configuração completa feita pela nossa equipe</small></span>
             <span class="bld-preco">R$ 700,00<small>uma vez</small></span>
+          </button>
+          <button type="button" class="bld-row" data-impl="combo" role="radio" aria-checked="false" onclick="escolherImpl('combo')">
+            <span class="bld-mark radio"></span>
+            <span class="bld-info"><strong>Implementação CRM Personalizada + Combo API Oficial</strong><small>Configuração completa da plataforma e da API Oficial do WhatsApp</small></span>
+            <span class="bld-preco">R$ 1.200,00<small>uma vez</small></span>
           </button>
         </div>
       </div>
@@ -1209,9 +1218,9 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
       <aside class="bld-sum" aria-live="polite">
         <h3>Seu plano</h3>
         <ul class="sum-lista" id="sumLista"></ul>
-        <div class="sum-linha sum-mensal"><span>Mensalidade</span><span class="v" id="sumMensal">R$ 219,90<small>/mês</small></span></div>
+        <div class="sum-linha sum-mensal"><span>Mensalidade</span><span class="v" id="sumMensal">R$ 397,00<small>/mês</small></span></div>
         <div class="sum-linha"><span>Implementação (única)</span><span id="sumTaxa">R$ 0,00</span></div>
-        <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 219,90</span></div>
+        <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 397,00</span></div>
         <p class="sum-obs">Pré-pago e sem fidelidade: o 1º pagamento soma a implementação à primeira mensalidade. Os serviços de IA funcionam de forma independente do CRM. Conexões sob consulta são orçadas pela equipe.</p>
         <button type="button" class="btn-primary" onclick="enviarPlano()">
           <span style="display:flex;align-items:center;gap:8px">
@@ -1530,7 +1539,7 @@ function showSeg(i){document.querySelectorAll(".seg-panel").forEach((p,idx)=>p.c
 function toggleFaq(btn){const item=btn.closest(".fq");const open=item.classList.contains("open");document.querySelectorAll(".fq.open").forEach(i=>i.classList.remove("open"));if(!open)item.classList.add("open");}
 
 // ── MONTE SEU PLANO (tabela de preços LeadVox)
-const PRECO = { base:219.90, sdr:339.97, manager:475.97, impl:700 };
+const PRECO = { base:397, descontoIA:0.5, sdr:339.97, manager:475.97, impl:700, combo:1200 };
 const CONN  = [
   { k:"wa",   nome:"WhatsApp",  preco:169.90 },
   { k:"voip", nome:"VoIP",      preco:149.90 },
@@ -1538,8 +1547,8 @@ const CONN  = [
   { k:"fb",   nome:"Facebook",  preco:79.90  },
   { k:"wc",   nome:"Webchat",   preco:69.90  }
 ];
-const NOME = { base:"CRM LeadVox · Plano Base", sdr:"IA SDR", manager:"IA SDR Avançada (Manager)", impl:"Implementação CRM Personalizada" };
-const cfg = { ia:null, conn:{ wa:0, voip:0, ig:0, fb:0, wc:0 }, outras:false, impl:false };
+const NOME = { base:"CRM LeadVox · Plano Base", sdr:"IA SDR", manager:"IA SDR Avançada (Manager)", impl:"Implementação CRM Personalizada", combo:"Implementação CRM Personalizada + Combo API Oficial" };
+const cfg = { ia:null, conn:{ wa:0, voip:0, ig:0, fb:0, wc:0 }, outras:false, impl:null };
 
 function brl(v){ return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
 
@@ -1564,17 +1573,28 @@ function marcar(el, on){
   el.querySelector(".bld-mark").textContent = on ? "✓" : "";
 }
 function toggleOutras(el){ cfg.outras = !cfg.outras; marcar(el, cfg.outras); calcularPlano(); }
-function toggleImpl(el){ cfg.impl = !cfg.impl; marcar(el, cfg.impl); calcularPlano(); }
+function escolherImpl(k){
+  cfg.impl = (cfg.impl === k) ? null : k;   // clicar de novo desmarca
+  document.querySelectorAll("[data-impl]").forEach(function(b){
+    const on = b.dataset.impl === cfg.impl;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on);
+  });
+  calcularPlano();
+}
 
 /* Linhas do plano: [rótulo, valor, tipo]  tipo: "m" mensal, "u" única, "c" sob consulta */
+function baseComDesconto(){ return Math.round(PRECO.base * (1 - PRECO.descontoIA) * 100) / 100; }
 function linhasPlano(){
-  const l = [[NOME.base, PRECO.base, "m"]];
+  const l = [cfg.ia
+    ? [NOME.base + " (50% off com IA)", baseComDesconto(), "m"]
+    : [NOME.base, PRECO.base, "m"]];
   if(cfg.ia) l.push([NOME[cfg.ia], PRECO[cfg.ia], "m"]);
   CONN.forEach(function(c){
     const q = cfg.conn[c.k];
     if(q) l.push([q + "× " + c.nome, q * c.preco, "m"]);
   });
-  if(cfg.impl)   l.push([NOME.impl, PRECO.impl, "u"]);
+  if(cfg.impl)   l.push([NOME[cfg.impl], PRECO[cfg.impl], "u"]);
   if(cfg.outras) l.push(["Outras conexões", 0, "c"]);
   return l;
 }
@@ -1591,6 +1611,10 @@ function calcularPlano(){
     return '<li class="' + (x[2] === "m" ? "" : "taxa") + '"><span>' + x[0] + '</span><span>' + valorLinha(x) + '</span></li>';
   }).join("");
   const t = totaisPlano();
+  document.getElementById("basePreco").innerHTML = cfg.ia
+    ? '<s class="de">' + brl(PRECO.base) + '</s>' + brl(baseComDesconto()) + '<small>/mês · 50% off com IA</small>'
+    : brl(PRECO.base) + '<small>/mês</small>';
+  document.getElementById("baseRow").classList.toggle("promo", !!cfg.ia);
   document.getElementById("sumMensal").innerHTML     = brl(t.mensal) + "<small>/mês</small>";
   document.getElementById("sumTaxa").textContent     = brl(t.taxa);
   document.getElementById("sumPrimeiro").textContent = brl(t.primeiro);
@@ -1600,7 +1624,7 @@ function enviarPlano(){
   const item = function(x){ return "  • " + x[0] + " — " + valorLinha(x); };
   let msg = "Olá! Montei meu plano no site da *LeadVox*."
           + "\n\n🧩 *Meu plano:*\n" + l.filter(function(x){ return x[2] === "m"; }).map(item).join("\n");
-  if(cfg.impl)   msg += "\n\n🛠️ *Implementação (pagamento único):*\n" + item([NOME.impl, PRECO.impl, "u"]);
+  if(cfg.impl)   msg += "\n\n🛠️ *Implementação (pagamento único):*\n" + item([NOME[cfg.impl], PRECO[cfg.impl], "u"]);
   if(cfg.outras) msg += "\n\n🔎 *Sob consulta:* outras conexões";
   msg += "\n\n💰 *Mensalidade:* " + brl(t.mensal) + "/mês";
   if(t.taxa) msg += "\n💳 *1º pagamento:* " + brl(t.primeiro) + " (implementação + 1ª mensalidade)";
