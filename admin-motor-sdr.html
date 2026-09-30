@@ -83,8 +83,8 @@
 
 <main>
   <section>
-    <h2>Nova loja</h2>
-    <p class="sub">Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.</p>
+    <h2 id="tituloForm">Nova loja</h2>
+    <p class="sub" id="subForm">Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.</p>
     <form id="form" autocomplete="off" onsubmit="return false">
       <label for="nome">Nome da loja</label>
       <input id="nome" required placeholder="Ex.: MG Motos">
@@ -121,6 +121,7 @@
       <div class="acoes">
         <button id="btTestar" type="button">Testar conexões</button>
         <button id="btCriar" type="button" class="principal" disabled>Criar loja e gerar link</button>
+        <button id="btCancelar" type="button" hidden>Cancelar edição</button>
       </div>
     </form>
   </section>
@@ -146,7 +147,28 @@
 <script>
 const API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-admin';
 const $ = (id) => document.getElementById(id);
-let testado = null;
+let testado = null, editando = null;
+const LOJAS = {};
+const SECRETOS = ['senha', 'feedUrl', 'urlEnvio', 'tokenRest'];
+function modoEdicao(l) {
+  editando = l ? l.chave : null;
+  $('tituloForm').textContent = l ? 'Editar acesso: ' + l.nome : 'Nova loja';
+  $('subForm').textContent = l ? 'Deixe em branco o que não mudou. Senha, URL e token atuais continuam valendo.' : 'Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.';
+  $('btCriar').textContent = l ? 'Salvar alterações' : 'Criar loja e gerar link';
+  $('btCancelar').hidden = !l;
+  $('nome').disabled = !!l;
+  ['nome', 'unidade', 'usuario', ...SECRETOS].forEach(id => $(id).value = '');
+  SECRETOS.forEach(id => $(id).placeholder = l ? 'Em branco = manter a atual' : ($(id).dataset.ph || ''));
+  if (l) {
+    $('nome').value = l.nome || ''; $('fonte').value = l.fonte === 'revendamais' ? 'revendamais' : 'autocerto';
+    $('unidade').value = l.unidade || ''; $('usuario').value = l.usuario || '';
+  } else { $('fonte').value = 'autocerto'; }
+  $('fonte').dispatchEvent(new Event('change'));
+  $('checks').innerHTML = '<p class="vazio">' + (l ? 'Mude o que precisar e clique em "Testar conexões".' : 'Preencha os dados e clique em "Testar conexões".') + '</p>';
+  $('aviso').hidden = true; $('entrega').innerHTML = ''; invalidar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+SECRETOS.forEach(id => { const el = document.getElementById(id); if (el) el.dataset.ph = el.placeholder; });
 
 try { $('adminKey').value = sessionStorage.getItem('sdrAdminKey') || ''; } catch (e) {}
 $('adminKey').addEventListener('change', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} });
@@ -196,7 +218,7 @@ $('btTestar').addEventListener('click', async () => {
   const bt = $('btTestar'); bt.disabled = true; bt.textContent = 'Testando…';
   $('entrega').innerHTML = ''; $('aviso').hidden = true;
   try {
-    const d = dados(); const j = await chamar({ acao: 'testar', loja: d });
+    const d = dados(); const j = await chamar(editando ? { acao: 'editar', chave: editando, salvar: false, loja: d } : { acao: 'testar', loja: d });
     mostrarChecks(j);
     testado = j.aprovado ? JSON.stringify(d) : null;
     $('btCriar').disabled = !j.aprovado;
@@ -207,7 +229,16 @@ $('btTestar').addEventListener('click', async () => {
 $('btCriar').addEventListener('click', async () => {
   const d = dados();
   if (testado !== JSON.stringify(d)) { invalidar(); toast('Os dados mudaram. Teste de novo.'); return; }
-  const bt = $('btCriar'); bt.disabled = true; bt.textContent = 'Criando…';
+  const bt = $('btCriar'); bt.disabled = true; bt.textContent = editando ? 'Salvando…' : 'Criando…';
+  if (editando) {
+    try {
+      const j = await chamar({ acao: 'editar', chave: editando, salvar: true, loja: d });
+      mostrarChecks(j);
+      if (!j.salvo) throw new Error(j.aviso || 'As alterações não foram salvas.');
+      toast('Acesso atualizado'); modoEdicao(null); listar();
+    } catch (e) { $('aviso').hidden = false; $('aviso').textContent = e.message; bt.disabled = false; bt.textContent = 'Salvar alterações'; }
+    return;
+  }
   try {
     const j = await chamar({ acao: 'criar', loja: d, sufixo: hexAleatorio(16), pin: pinAleatorio() });
     mostrarChecks(j);
@@ -230,6 +261,7 @@ $('btCriar').addEventListener('click', async () => {
 async function listar() {
   try {
     const j = await chamar({ acao: 'listar' });
+    j.lojas.forEach(l => LOJAS[l.chave] = l);
     if (!j.lojas.length) { $('lista').innerHTML = '<p class="vazio">Nenhuma loja cadastrada ainda. Cadastre a primeira no formulário acima.</p>'; return; }
     $('lista').innerHTML = `<table><thead><tr><th>Loja</th><th>Situação</th><th>Estoque</th><th>Canal</th><th>Tenant</th><th></th></tr></thead><tbody>${
       j.lojas.map(l => `<tr>
@@ -238,15 +270,18 @@ async function listar() {
         <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : 'AutoCerto'}</td>
         <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
         <td>${esc(l.tenantId)}</td>
-        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.ativo ? '0' : '1'}" ${!l.ativo && !l.configurada ? 'disabled title="O dono ainda não configurou a IA"' : ''}>${l.ativo ? 'Desligar IA' : 'Ligar IA'}</button></td>
+        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.ativo ? '0' : '1'}" ${!l.ativo && !l.configurada ? 'disabled title="O dono ainda não configurou a IA"' : ''}>${l.ativo ? 'Desligar IA' : 'Ligar IA'}</button></td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
 }
 $('btListar').addEventListener('click', listar);
+$('btCancelar').addEventListener('click', () => modoEdicao(null));
 
 document.addEventListener('click', async (ev) => {
   const c = ev.target.closest('[data-copiar]');
   if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Link copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
+  const ed = ev.target.closest('[data-editar]');
+  if (ed) { modoEdicao(LOJAS[ed.dataset.editar]); return; }
   const at = ev.target.closest('[data-ativo]');
   if (at) {
     const ligar = at.dataset.ligar === '1';
