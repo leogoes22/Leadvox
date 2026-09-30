@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Motor SDR — cadastro de lojas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #070d1c; --painel: #0e1730; --linha: #1f2b4a; --texto: #e8edf7;
+    --suave: #8b97b3; --verde: #2be87b; --verde-escuro: #0b3d24; --erro: #ff6b6b;
+    --raio: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--navy); color: var(--texto);
+    font: 16px/1.55 "DM Sans", system-ui, sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 1180px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+  h1 { font: 700 28px/1.1 Syne, sans-serif; margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--suave); font-weight: 600; }
+  h2 { font: 600 19px/1.2 Syne, sans-serif; margin: 0 0 4px; }
+  .sub { color: var(--suave); margin: 0 0 20px; font-size: 15px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 24px 64px;
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 24px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 24px; }
+  .largo { grid-column: 1 / -1; }
+  label { display: block; font-size: 14px; font-weight: 500; margin: 14px 0 6px; }
+  label small { color: var(--suave); font-weight: 400; }
+  input, select { width: 100%; padding: 11px 12px; border-radius: var(--raio);
+    border: 1px solid var(--linha); background: var(--navy); color: var(--texto); font: inherit; font-size: 15px; }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  @media (max-width: 520px) { .duas { grid-template-columns: 1fr; } }
+  fieldset { border: 0; padding: 0; margin: 18px 0 0; }
+  legend { font: 600 15px Syne, sans-serif; color: var(--verde); padding: 0; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  button { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 11px 18px;
+    border: 1px solid var(--linha); background: transparent; color: var(--texto); cursor: pointer; }
+  button.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .chave-admin { display: flex; gap: 8px; align-items: center; }
+  .chave-admin input { width: 260px; }
+  .check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--linha); }
+  .check:first-of-type { border-top: 0; }
+  .ponto { width: 14px; height: 14px; border-radius: 50%; margin-top: 5px; background: var(--linha); }
+  .ok .ponto { background: var(--verde); } .falha .ponto { background: var(--erro); }
+  .check b { display: block; font-weight: 500; }
+  .check span { color: var(--suave); font-size: 14px; }
+  .aviso { color: var(--erro); font-size: 14px; margin: 12px 0 0; }
+  .vazio { color: var(--suave); }
+  .entrega { margin-top: 20px; border-radius: 14px; padding: 22px; background: var(--verde); color: var(--navy); }
+  .entrega h3 { font: 700 20px Syne, sans-serif; margin: 0 0 4px; }
+  .entrega p { margin: 0 0 14px; font-size: 15px; }
+  .campo-copia { display: flex; gap: 8px; margin-bottom: 12px; }
+  .campo-copia input { background: #fff; color: var(--navy); border-color: #fff; font-size: 14px; }
+  .campo-copia button { background: var(--navy); color: #fff; border-color: var(--navy); white-space: nowrap; }
+  .pin { font: 700 30px/1 Syne, sans-serif; letter-spacing: .18em; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--suave); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--linha); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
+  .tabela { overflow-x: auto; }
+  .etiqueta { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--linha); color: var(--suave); }
+  .etiqueta.pronta { border-color: var(--verde); color: var(--verde); }
+  td button { padding: 7px 12px; font-size: 13px; margin-right: 6px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--texto); color: var(--navy);
+    padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motor SDR <span>cadastro de lojas</span></h1>
+  <div class="chave-admin">
+    <label for="adminKey" style="margin:0">Chave de admin</label>
+    <input id="adminKey" type="password" autocomplete="off" placeholder="a mesma do n8n">
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Nova loja</h2>
+    <p class="sub">Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.</p>
+    <form id="form" autocomplete="off" onsubmit="return false">
+      <label for="nome">Nome da loja</label>
+      <input id="nome" required placeholder="Ex.: MG Motos">
+
+      <fieldset>
+        <legend>Estoque</legend>
+        <label for="fonte">Sistema de estoque da loja</label>
+        <select id="fonte">
+          <option value="autocerto">AutoCerto</option>
+          <option value="revendamais">Revenda Mais</option>
+        </select>
+        <div id="blocoAC">
+          <div class="duas">
+            <div><label for="unidade">Código de unidade</label><input id="unidade" inputmode="numeric" placeholder="Ex.: 4425"></div>
+            <div><label for="usuario">Usuário da API</label><input id="usuario" placeholder="loja@autocerto.com"></div>
+          </div>
+          <label for="senha">Senha da API</label>
+          <input id="senha" type="password">
+        </div>
+        <div id="blocoRM" hidden>
+          <label for="feedUrl">URL do feed JSON do Revenda Mais</label>
+          <input id="feedUrl" placeholder="https://…/appdaloja/…json">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>LeadVox</legend>
+        <label for="urlEnvio">URL de envio da API externa <small>(completa, com ?token=)</small></label>
+        <input id="urlEnvio" type="password" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…">
+        <label for="tokenRest">Token da API REST <small>(opcional, para ler o CRM)</small></label>
+        <input id="tokenRest" type="password">
+      </fieldset>
+
+      <div class="acoes">
+        <button id="btTestar" type="button">Testar conexões</button>
+        <button id="btCriar" type="button" class="principal" disabled>Criar loja e gerar link</button>
+      </div>
+    </form>
+  </section>
+
+  <section aria-live="polite">
+    <h2>Conferência</h2>
+    <p class="sub">O link só é gerado depois que as duas conexões passarem no teste.</p>
+    <div id="checks"><p class="vazio">Preencha os dados e clique em "Testar conexões".</p></div>
+    <p class="aviso" id="aviso" hidden></p>
+    <div id="entrega"></div>
+  </section>
+
+  <section class="largo">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">Copie o link de novo ou gere outro PIN se o dono esquecer.</p></div>
+      <button id="btListar" type="button">Atualizar lista</button>
+    </div>
+    <div class="tabela" id="lista" style="margin-top:14px"><p class="vazio">Informe a chave de admin e clique em "Atualizar lista".</p></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-admin';
+const $ = (id) => document.getElementById(id);
+let testado = null;
+
+try { $('adminKey').value = sessionStorage.getItem('sdrAdminKey') || ''; } catch (e) {}
+$('adminKey').addEventListener('change', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} });
+
+$('fonte').addEventListener('change', () => {
+  const ac = $('fonte').value === 'autocerto';
+  $('blocoAC').hidden = !ac; $('blocoRM').hidden = ac; invalidar();
+});
+document.querySelectorAll('#form input, #form select').forEach(el => el.addEventListener('input', invalidar));
+function invalidar() { testado = null; $('btCriar').disabled = true; }
+
+function dados() {
+  return { nome: $('nome').value.trim(), fonte: $('fonte').value, unidade: $('unidade').value.trim(),
+    usuario: $('usuario').value.trim(), senha: $('senha').value, feedUrl: $('feedUrl').value.trim(),
+    urlEnvio: $('urlEnvio').value.trim(), tokenRest: $('tokenRest').value.trim() };
+}
+function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
+function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 1800); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+async function chamar(corpo) {
+  const adminKey = $('adminKey').value;
+  if (!adminKey) throw new Error('Informe a chave de admin no topo da página.');
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminKey, ...corpo }) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || j.ok === false) throw new Error(j.erro || ('O n8n respondeu HTTP ' + r.status + '.'));
+  return j;
+}
+
+function mostrarChecks(j) {
+  const lv = j.leadvox || {}, es = j.estoque || {};
+  const nomeFonte = es.fonte === 'revendamais' ? 'Revenda Mais' : 'AutoCerto';
+  const canal = lv.canal === 'waba' ? 'API oficial (WABA)' : (lv.canal ? 'não oficial (' + lv.canal + ')' : 'não identificado');
+  $('checks').innerHTML = `
+    <div class="check ${lv.ok ? 'ok' : 'falha'}"><div class="ponto"></div><div>
+      <b>LeadVox ${lv.ok ? 'conectada' : 'não respondeu'}</b>
+      <span>Tenant ${esc(lv.tenantId)} · sessão ${esc(lv.sessionId ?? '?')} · ${esc(canal)}${lv.etiquetas != null ? ' · ' + lv.etiquetas + ' etiquetas lidas' : ''}</span></div></div>
+    <div class="check ${es.ok ? 'ok' : 'falha'}"><div class="ponto"></div><div>
+      <b>${nomeFonte} ${es.ok ? 'conectado' : 'não respondeu'}</b>
+      <span>${es.ok ? es.total + ' veículos no estoque' + (es.exemplos && es.exemplos.length ? ', como ' + es.exemplos.map(esc).join(', ') : '') : 'Sem estoque lido'}</span></div></div>`;
+  const msgs = (j.mensagens || []).concat(j.aviso ? [j.aviso] : []);
+  $('aviso').hidden = !msgs.length; $('aviso').textContent = msgs.join(' ');
+}
+
+$('btTestar').addEventListener('click', async () => {
+  const bt = $('btTestar'); bt.disabled = true; bt.textContent = 'Testando…';
+  $('entrega').innerHTML = ''; $('aviso').hidden = true;
+  try {
+    const d = dados(); const j = await chamar({ acao: 'testar', loja: d });
+    mostrarChecks(j);
+    testado = j.aprovado ? JSON.stringify(d) : null;
+    $('btCriar').disabled = !j.aprovado;
+  } catch (e) { $('checks').innerHTML = ''; $('aviso').hidden = false; $('aviso').textContent = e.message; }
+  bt.disabled = false; bt.textContent = 'Testar conexões';
+});
+
+$('btCriar').addEventListener('click', async () => {
+  const d = dados();
+  if (testado !== JSON.stringify(d)) { invalidar(); toast('Os dados mudaram. Teste de novo.'); return; }
+  const bt = $('btCriar'); bt.disabled = true; bt.textContent = 'Criando…';
+  try {
+    const j = await chamar({ acao: 'criar', loja: d, sufixo: hexAleatorio(16), pin: pinAleatorio() });
+    mostrarChecks(j);
+    if (!j.criada) throw new Error(j.aviso || 'A loja não foi criada.');
+    $('entrega').innerHTML = `
+      <div class="entrega">
+        <h3>${esc(j.nome)} cadastrada</h3>
+        <p>Cole este link em Nova Integração, na LeadVox da loja, com "Permitir transferência de dados" ligado.</p>
+        <div class="campo-copia"><input readonly value="${esc(j.link)}" aria-label="Link do plugin"><button type="button" data-copiar="${esc(j.link)}">Copiar link</button></div>
+        <p style="margin-bottom:4px">PIN do dono, para ele entrar na configuração da IA:</p>
+        <div class="pin">${esc(j.pin)}</div>
+        <p style="margin:10px 0 0;font-size:13px">Anote agora. O PIN não aparece de novo, mas você pode gerar outro na lista abaixo.</p>
+      </div>`;
+    ['nome', 'unidade', 'usuario', 'senha', 'feedUrl', 'urlEnvio', 'tokenRest'].forEach(id => $(id).value = '');
+    invalidar(); listar();
+  } catch (e) { $('aviso').hidden = false; $('aviso').textContent = e.message; bt.disabled = false; }
+  bt.textContent = 'Criar loja e gerar link';
+});
+
+async function listar() {
+  try {
+    const j = await chamar({ acao: 'listar' });
+    if (!j.lojas.length) { $('lista').innerHTML = '<p class="vazio">Nenhuma loja cadastrada ainda. Cadastre a primeira no formulário acima.</p>'; return; }
+    $('lista').innerHTML = `<table><thead><tr><th>Loja</th><th>Situação</th><th>Estoque</th><th>Canal</th><th>Tenant</th><th></th></tr></thead><tbody>${
+      j.lojas.map(l => `<tr>
+        <td><b>${esc(l.nome)}</b><br><span style="color:var(--suave);font-size:12px">${esc(l.chave)}</span></td>
+        <td><span class="etiqueta ${l.configurada ? 'pronta' : ''}">${l.configurada ? 'IA configurada' : 'aguardando o dono'}</span></td>
+        <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : 'AutoCerto'}</td>
+        <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
+        <td>${esc(l.tenantId)}</td>
+        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
+}
+$('btListar').addEventListener('click', listar);
+
+document.addEventListener('click', async (ev) => {
+  const c = ev.target.closest('[data-copiar]');
+  if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Link copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
+  const p = ev.target.closest('[data-pin]');
+  if (p) {
+    if (!confirm('Gerar um novo PIN? O PIN antigo deixa de funcionar.')) return;
+    try { const j = await chamar({ acao: 'novoPin', chave: p.dataset.pin, pin: pinAleatorio() }); alert('Novo PIN: ' + j.pin + '\n\nAnote agora e passe para o dono da loja.'); }
+    catch (e) { toast(e.message); }
+  }
+});
+</script>
+</body>
+</html>
