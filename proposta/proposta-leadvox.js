@@ -12,7 +12,7 @@
      r.nome    → nome do arquivo     r.numero → nº da proposta
 
    Arquivos que ficam na mesma pasta deste script:
-     base-carro.pdf · base-moto.pdf · pagina-modelo.pdf · fonts/Poppins-*.ttf
+     base-carro.pdf · base-moto.pdf · pagina-modelo.pdf · Poppins-*.ttf (aqui ou em fonts/)
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   // ─────────────── TEXTOS EDITÁVEIS ───────────────
@@ -64,6 +64,8 @@
     const r = await fetch(url); if (!r.ok) throw new Error("Arquivo não encontrado: " + url);
     return new Uint8Array(await r.arrayBuffer());
   }
+  // fontes: aceita na mesma pasta do script ou na subpasta fonts/
+  const fonte = (nome) => bytes(BASE + nome).catch(() => bytes(BASE + "fonts/" + nome));
   const limpa = (s) => String(s == null ? "" : s)
     .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").replace(/\s+/g, " ").trim();
   const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -84,7 +86,7 @@
     const [baseB, modeloB, fR, fM, fB] = await Promise.all([
       bytes(BASE + "base-" + tipo + ".pdf").catch(() => bytes(BASE + "base-carro.pdf")),
       bytes(BASE + "pagina-modelo.pdf"),
-      bytes(BASE + "fonts/Poppins-Regular.ttf"), bytes(BASE + "fonts/Poppins-Medium.ttf"), bytes(BASE + "fonts/Poppins-Bold.ttf"),
+      fonte("Poppins-Regular.ttf"), fonte("Poppins-Medium.ttf"), fonte("Poppins-Bold.ttf"),
     ]);
     const doc = await PDFDocument.create();
     doc.registerFontkit(window.fontkit);
