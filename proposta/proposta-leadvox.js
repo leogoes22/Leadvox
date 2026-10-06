@@ -18,7 +18,7 @@
   // ─────────────── TEXTOS EDITÁVEIS ───────────────
   const CONFIG = {
     validadeDias: 7,
-    whatsapp: "(21) 98108-1044",
+    whatsapp: "(21) 98769-6628",
     email: "contato@leadvox.com.br",
     site: "leadvox.com.br",
     responsavel: "Leonardo Vasconcellos",
@@ -163,21 +163,21 @@
     async function paginaPlano() {
       const T = CONFIG.plano, pl = o.plano || {};
       await novaPagina(T.selo);
-      espacado(`Proposta nº ${numero}  ·  ${hoje()}  ·  válida por ${CONFIG.validadeDias} dias`, MX, y, F.b, 6, C.verde); y += 18;
+      espacado(`Proposta nº ${numero}  ·  ${hoje()}  ·  válida por ${o.validadeDias || CONFIG.validadeDias} dias`, MX, y, F.b, 6, C.verde); y += 18;
       titulo(T.titulo1, loja);
       y += paragrafo((o.intro || T.intro).replace("{nome}", primeiro), MX, y, F.r, 8.4, C.suave, CW * 0.8) + 14;
 
       espacado("O que está incluso", MX, y, F.b, 6, C.verde); y += 14;
       for (const it of (pl.itens || [])) {
         const desc = limpa(it.desc);
-        const linhasDesc = desc ? quebra(desc, F.r, 6.9, CW - 160) : [];
+        const linhasDesc = desc ? quebra(desc, F.r, 6.9, CW - 190) : [];
         const h = 22 + linhasDesc.length * 9.5;
         await garante(h + 6, T.selo);
         caixa(MX, y, CW, h, C.card, C.borda, 8);
         texto(it.nome, MX + 14, y + 8, F.b, 8.1, C.branco);
         linhasDesc.forEach((l, i) => texto(l, MX + 14, y + 19 + i * 9.5, F.r, 6.9, C.suave));
         const valor = it.tipo === "c" ? "Sob consulta" : brl(it.valor);
-        let sufixo = it.tipo === "m" ? "por mês" : it.tipo === "u" ? "pagamento único" : "";
+        let sufixo = it.tipo === "m" ? (it.impl > 0 ? "por mês  +  " + brl(it.impl) + " implantação" : "por mês") : it.tipo === "u" ? "pagamento único" : "";
         if (it.valorDe && it.valorDe > it.valor) {   // preço com desconto: mostra o "de" riscado
           const de = "de " + brl(it.valorDe), wDe = F.r.widthOfTextAtSize(de, 6.3), xDe = MX + CW - 14;
           texto(de, xDe, y + h / 2 + 2, F.r, 6.3, C.apagado, { alinha: "direita" });
@@ -216,10 +216,12 @@
       y += 6;
 
       // condições
-      const condH = CONFIG.condicoes.reduce((s, c) => s + quebra(c, F.r, 7.4, CW - 24).length * 10.5 + 4, 0);
-      await garante(condH + 20, T.selo);
+      const conds = (Array.isArray(o.condicoes) && o.condicoes.length ? o.condicoes : CONFIG.condicoes).map(limpa).filter(Boolean);
+      const condH = conds.reduce((s, c) => s + quebra(c, F.r, 7.4, CW - 24).length * 10.5 + 4, 0);
+      await garante(Math.min(condH, 300) + 20, T.selo);
       espacado("Condições", MX, y, F.b, 6, C.verde); y += 14;
-      for (const c of CONFIG.condicoes) {
+      for (const c of conds) {
+        await garante(quebra(c, F.r, 7.4, CW - 24).length * 10.5 + 4, T.selo);
         bolinha(MX + 5, y + 4.5, C.verde, "ok");
         y += paragrafo(c, MX + 16, y, F.r, 7.4, C.texto, CW - 24, 10.5) + 4;
       }
