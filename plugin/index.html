@@ -1052,7 +1052,58 @@ function rerender() { var m = document.getElementById('main'), y = m ? m.scrollT
 function irPara(i) { S.passo = Math.max(0, Math.min(PASSOS.length - 1, i)); salvarRascunho(); render(); document.getElementById('main').scrollTop = 0; }
 
 /* ================= PDF ================= */
-function doc(cb) { fontes.then(function () { cb(pdfMake.createPdf(montarProposta(dadosPDF(), { empresa: S.empresa, logo: LOGO, logoPequena: LOGO_P }))); }); }
+/* PDF antigo (slides 16:9) — continua para segmentos que não são de veículos */
+function docAntigo(cb) { fontes.then(function () { cb(pdfMake.createPdf(montarProposta(dadosPDF(), { empresa: S.empresa, logo: LOGO, logoPequena: LOGO_P }))); }); }
+
+/* PDF novo (A4, mesmo modelo do site e do diagnóstico) — lojas de carros e motos */
+var PROPOSTA_JS = 'https://leadvox.com.br/proposta/proposta-leadvox.js';
+function carregarGerador() {
+  if (window.LeadVoxProposta) return Promise.resolve();
+  return new Promise(function (ok, erro) { var sc = document.createElement('script'); sc.src = PROPOSTA_JS; sc.onload = ok; sc.onerror = erro; document.head.appendChild(sc); });
+}
+function usaModeloNovo(p) {
+  var sg = String((p.cliente || {}).segmento || '').toLowerCase();
+  return !sg || /ve[ií]cul|carro|moto|autom|revenda|concession|multimarca/.test(sg);
+}
+function opcoesModeloNovo(p) {
+  var t = calcular(p), cl = p.cliente || {}, u = t.u;
+  var sg = String(cl.segmento || '').toLowerCase();
+  var tipo = /moto/.test(sg) && !/carro|ve[ií]cul/.test(sg) ? 'moto' : 'carro';
+  var itens = [];
+  (p.itens || []).forEach(function (i) {
+    var q = Number(i.qtd) || 0; if (q <= 0) return;
+    var nome = (q > 1 ? q + '× ' : '') + i.nome + (u > 1 ? ' (' + u + ' unidades)' : '');
+    var m = q * (Number(i.mensal) || 0) * u, im = q * (Number(i.impl) || 0) * u;
+    if (m > 0) itens.push({ nome: nome, desc: i.descricao || '', valor: m, impl: im, tipo: 'm' });
+    else if (im > 0) itens.push({ nome: nome, desc: i.descricao || '', valor: im, tipo: 'u' });
+  });
+  var ia = p.ia || {}, loja = cl.empresa || cl.responsavel || '';
+  var intro = (ia.capa && ia.capa.subtitulo) || ('{nome}, esta é a proposta que a LeadVox preparou para a ' + (loja || 'sua loja') + '.');
+  if (u > 1) intro += ' Valores para ' + u + ' unidades.';
+  var economia = t.contratoTabela - t.contrato;
+  var oferta = null;
+  if (t.isento) oferta = { titulo: 'Condição especial', texto: 'Implantação isenta nesta proposta: economia de ' + brl(t.implBruto) + '.' };
+  else if (economia > 0.009) oferta = { titulo: 'Condição especial', texto: 'Com as condições desta proposta, a economia é de ' + brl(economia) + ' no 1º ano em relação à tabela.' };
+  return {
+    modo: 'plano', tipo: tipo, numero: p.numero, validadeDias: p.validadeDias || 7,
+    cliente: { nome: cl.responsavel || '', loja: loja },
+    intro: intro,
+    plano: { itens: itens, mensal: t.mensalRen, taxa: t.implTotal, primeiro: t.inicial },
+    condicoes: condicoesTexto(p, t),
+    oferta: oferta
+  };
+}
+function doc(cb) {
+  var p = dadosPDF();
+  if (!usaModeloNovo(p)) return docAntigo(cb);
+  carregarGerador().then(function () { return window.LeadVoxProposta.gerar(opcoesModeloNovo(p)); }).then(function (r) {
+    cb({
+      getBlob: function (f) { f(r.blob); },
+      getBase64: function (f) { f(r.base64); },
+      download: function (nome) { var a = document.createElement('a'); a.href = URL.createObjectURL(r.blob); a.download = nome; document.body.appendChild(a); a.click(); a.remove(); }
+    });
+  }).catch(function (e) { console.warn('PDF novo indisponível, usando o antigo', e); docAntigo(cb); });
+}
 function nomeArquivo() {
   var base = (S.p.cliente.empresa || S.p.cliente.responsavel || 'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   return 'Proposta-LeadVox-' + base + '-' + S.p.numero + '.pdf';
