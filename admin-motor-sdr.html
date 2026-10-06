@@ -59,6 +59,12 @@
   .campo-copia input { background: #fff; color: var(--navy); border-color: #fff; font-size: 14px; }
   .campo-copia button { background: var(--navy); color: #fff; border-color: var(--navy); white-space: nowrap; }
   .pin { font: 700 30px/1 Syne, sans-serif; letter-spacing: .18em; }
+  .info .ponto { background: var(--suave); }
+  .check.info span { color: var(--texto); }
+  .entrega .rot { margin: 14px 0 6px; font-weight: 700; font-size: 14px; }
+  .entrega .rot small { display: block; font-weight: 400; opacity: .8; }
+  .entrega .tudo { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; margin-top: 6px; }
+  .entrega hr { border: 0; border-top: 1px solid rgba(7,13,28,.25); margin: 18px 0; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; color: var(--suave); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--linha); }
   td { padding: 12px 10px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
@@ -136,7 +142,7 @@
 
   <section class="largo">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">Copie o link de novo ou gere outro PIN se o dono esquecer.</p></div>
+      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">Em "Endereços" ficam o link do plugin e os dois webhooks da loja, prontos para copiar.</p></div>
       <button id="btListar" type="button">Atualizar lista</button>
     </div>
     <div class="tabela" id="lista" style="margin-top:14px"><p class="vazio">Informe a chave de admin e clique em "Atualizar lista".</p></div>
@@ -187,6 +193,31 @@ function dados() {
 }
 function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
 function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
+const BASE_WH = API.replace(/\/sdr-admin\/?$/, '/');
+function enderecos(l) {
+  const ch = l.chave || '';
+  return { nome: l.nome || '', link: l.link || '',
+    ia: l.webhookIA || (ch ? BASE_WH + 'sdr-motor?k=' + ch : ''),
+    sent: l.webhookSentinela || (ch ? BASE_WH + 'sdr-sentinela?k=' + ch : '') };
+}
+function campo(valor, rotulo) {
+  return `<div class="campo-copia"><input readonly value="${esc(valor)}" aria-label="${esc(rotulo)}"><button type="button" data-copiar="${esc(valor)}">Copiar</button></div>`;
+}
+function blocoEnderecos(l, titulo) {
+  const e = enderecos(l);
+  const tudo = 'Configuração da IA — ' + e.nome + '\n\n' +
+    (e.link ? '1) Plugin (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.link + '\n\n' : '') +
+    (e.link ? '2' : '1') + ') Webhook do CHATFLOW da IA:\n' + e.ia + '\n\n' +
+    (e.link ? '3' : '2') + ') Configuração da API → URL Webhook (marcar os eventos de mensagem e deixar "Manter aberto"):\n' + e.sent;
+  return `<div class="entrega">
+    <h3>${esc(titulo || ('Endereços — ' + e.nome))}</h3>
+    <p>Mande para o cliente ou cole você mesmo na LeadVox da loja.</p>
+    ${e.link ? `<p class="rot">Plugin <small>LeadVox → Nova Integração, com "Permitir transferência de dados" ligado</small></p>${campo(e.link, 'Link do plugin')}` : ''}
+    <p class="rot">Webhook do chatflow (IA) <small>No chatflow da loja, no lugar do webhook do bot antigo</small></p>${campo(e.ia, 'Webhook do chatflow')}
+    <p class="rot">Webhook da API (Sentinela) <small>Configuração da API → URL Webhook · eventos de mensagem · "Manter aberto"</small></p>${campo(e.sent, 'Webhook da API')}
+    <button type="button" class="tudo" data-copiar="${esc(tudo)}">Copiar tudo para o cliente</button>
+  </div>`;
+}
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 1800); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -210,8 +241,13 @@ function mostrarChecks(j) {
     <div class="check ${es.ok ? 'ok' : 'falha'}"><div class="ponto"></div><div>
       <b>${nomeFonte} ${es.ok ? 'conectado' : 'não respondeu'}</b>
       <span>${es.ok ? es.total + ' veículos no estoque' + (es.exemplos && es.exemplos.length ? ', como ' + es.exemplos.map(esc).join(', ') : '') : 'Sem estoque lido'}</span></div></div>`;
-  const msgs = (j.mensagens || []).concat(j.aviso ? [j.aviso] : []);
+  const INFO = ['📱', '👥', '📈', '🤖', '🧾'], ENDER = ['🔗', '🛡'];
+  const todas = j.mensagens || [];
+  const info = todas.filter(m => INFO.some(e => m.startsWith(e)));
+  const msgs = todas.filter(m => !INFO.some(e => m.startsWith(e)) && !ENDER.some(e => m.startsWith(e))).concat(j.aviso ? [j.aviso] : []);
+  $('checks').innerHTML += info.map(m => `<div class="check info"><div class="ponto"></div><div><span>${esc(m)}</span></div></div>`).join('');
   $('aviso').hidden = !msgs.length; $('aviso').textContent = msgs.join(' ');
+  if (j.webhookIA && editando) $('entrega').innerHTML = blocoEnderecos({ ...(LOJAS[editando] || {}), chave: editando, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela });
 }
 
 $('btTestar').addEventListener('click', async () => {
@@ -235,7 +271,9 @@ $('btCriar').addEventListener('click', async () => {
       const j = await chamar({ acao: 'editar', chave: editando, salvar: true, loja: d });
       mostrarChecks(j);
       if (!j.salvo) throw new Error(j.aviso || 'As alterações não foram salvas.');
-      toast('Acesso atualizado'); modoEdicao(null); listar();
+      const ch = editando;
+      toast('Acesso atualizado'); modoEdicao(null); await listar();
+      if (LOJAS[ch]) $('entrega').innerHTML = blocoEnderecos(LOJAS[ch], 'Acesso salvo — ' + (LOJAS[ch].nome || ''));
     } catch (e) { $('aviso').hidden = false; $('aviso').textContent = e.message; bt.disabled = false; bt.textContent = 'Salvar alterações'; }
     return;
   }
@@ -246,11 +284,12 @@ $('btCriar').addEventListener('click', async () => {
     $('entrega').innerHTML = `
       <div class="entrega">
         <h3>${esc(j.nome)} cadastrada</h3>
-        <p>Cole este link em Nova Integração, na LeadVox da loja, com "Permitir transferência de dados" ligado.</p>
-        <div class="campo-copia"><input readonly value="${esc(j.link)}" aria-label="Link do plugin"><button type="button" data-copiar="${esc(j.link)}">Copiar link</button></div>
-        <p style="margin-bottom:4px">PIN do dono, para ele entrar na configuração da IA:</p>
+        <p>Os três endereços da loja estão logo abaixo. Depois, cadastre o acesso do dono (e-mail e senha) no workflow Login do cliente.</p>
+      </div>` + blocoEnderecos({ nome: j.nome, chave: j.chave, link: j.link, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela }, 'Endereços para a LeadVox') + `
+      <div class="entrega" style="background:var(--painel);color:var(--texto);border:1px solid var(--linha)">
+        <p style="margin-bottom:4px">PIN da loja (só para o link antigo, sem login):</p>
         <div class="pin">${esc(j.pin)}</div>
-        <p style="margin:10px 0 0;font-size:13px">Anote agora. O PIN não aparece de novo, mas você pode gerar outro na lista abaixo.</p>
+        <p style="margin:10px 0 0;font-size:13px;color:var(--suave)">Anote se for usar. Ao cadastrar o acesso com e-mail e senha, este PIN deixa de valer.</p>
       </div>`;
     ['nome', 'unidade', 'usuario', 'senha', 'feedUrl', 'urlEnvio', 'tokenRest'].forEach(id => $(id).value = '');
     invalidar(); listar();
@@ -270,7 +309,7 @@ async function listar() {
         <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : 'AutoCerto'}</td>
         <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
         <td>${esc(l.tenantId)}</td>
-        <td style="white-space:nowrap"><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></td>
+        <td style="white-space:nowrap"><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
 }
@@ -279,7 +318,9 @@ $('btCancelar').addEventListener('click', () => modoEdicao(null));
 
 document.addEventListener('click', async (ev) => {
   const c = ev.target.closest('[data-copiar]');
-  if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Link copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
+  const en = ev.target.closest('[data-enderecos]');
+  if (en) { const l = LOJAS[en.dataset.enderecos]; if (l) { $('entrega').innerHTML = blocoEnderecos(l); $('entrega').scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+  if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
   const ed = ev.target.closest('[data-editar]');
   if (ed) { modoEdicao(LOJAS[ed.dataset.editar]); return; }
   const at = ev.target.closest('[data-ativo]');
