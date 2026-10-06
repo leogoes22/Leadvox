@@ -18,7 +18,7 @@
   // ─────────────── TEXTOS EDITÁVEIS ───────────────
   const CONFIG = {
     validadeDias: 7,
-    whatsapp: "(21) 98769-6628",
+    whatsapp: "(21) 98108-1044",
     email: "contato@leadvox.com.br",
     site: "leadvox.com.br",
     responsavel: "Leonardo Vasconcellos",
