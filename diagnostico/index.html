@@ -444,7 +444,35 @@ var LOGO_PDF = fetch('logo-leadvox.png').then(function (r) { if (!r.ok) throw 0;
   .then(function (b) { return new Promise(function (ok) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.onerror = function () { ok(null); }; fr.readAsDataURL(b); }); })
   .catch(function () { return null; });
 function nomePDF() { return 'Diagnostico-LeadVox-' + String((S.lead && S.lead.loja) || 'loja').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.pdf'; }
+/* ====== PDF NOVO (mesmo modelo da proposta do site) ======
+   Usa /proposta/proposta-leadvox.js no modo "diagnostico". Se der qualquer erro,
+   cai no PDF antigo (pdfMake) para o cliente nunca ficar sem o diagnóstico. */
+var PROPOSTA_JS = '/proposta/proposta-leadvox.js';
+function carregarGerador() {
+  if (window.LeadVoxProposta) return Promise.resolve();
+  return new Promise(function (ok, erro) {
+    var sc = document.createElement('script'); sc.src = PROPOSTA_JS; sc.onload = ok; sc.onerror = erro; document.head.appendChild(sc);
+  });
+}
 function gerarPDF() {
+  var R = S.result, L = S.lead;
+  var limite = new Promise(function (ok) { setTimeout(function () { ok(null); }, 15000); });
+  var gera = carregarGerador().then(function () {
+    return window.LeadVoxProposta.gerar({
+      modo: 'diagnostico',
+      tipo: /^motos$/i.test(String((R.perfil && R.perfil.segmento) || '')) ? 'moto' : 'carro',
+      numero: S.id,
+      cliente: { nome: L.nome, loja: L.loja },
+      diagnostico: {
+        score: R.score, nivel: R.nivel, nivelDesc: R.nivel_desc,
+        pontos: R.gaps || [],
+        solucoes: (R.solucoes || []).map(function (x) { return { nome: x.nome, txt: x.txt }; })
+      }
+    });
+  }).then(function (r) { return r && r.base64 ? r.base64 : null; }).catch(function (e) { console.warn('PDF novo', e); return null; });
+  return Promise.race([gera, limite]).then(function (b64) { return b64 || gerarPDFAntigo(); });
+}
+function gerarPDFAntigo() {
   if (typeof pdfMake === 'undefined') return Promise.resolve('');
   var limite = new Promise(function (ok) { setTimeout(function () { ok(''); }, 9000); });
   var gera = Promise.all([FONTES, LOGO_PDF]).then(function (r) {
