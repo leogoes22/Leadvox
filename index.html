@@ -754,9 +754,22 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 .sum-gate input.err{border-color:#ff7a7a}
 .sum-gate label{display:flex;gap:8px;align-items:flex-start;font-size:.72rem;color:var(--muted);line-height:1.45;margin:4px 0 12px;cursor:pointer}
 .sum-gate label input{margin-top:2px;accent-color:var(--green)}
-.sum-gate label a{color:var(--green)}
+.sum-gate label a,.sum-gate .gate-aviso a{color:var(--green)}
+.sum-gate .gate-aviso{font-size:.72rem;line-height:1.45;margin:2px 0 12px}
 .sum-gate .btn-primary{padding:12px 16px;font-size:.9rem}
 .sum-gate .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.sum-gate .tipo-loja{display:flex;gap:6px;margin:2px 0 10px;flex-wrap:wrap}
+.sum-gate .tipo-loja span{display:block;width:100%;font-size:.74rem;color:var(--muted)}
+.sum-gate .tipo-loja button{flex:1;min-width:0;padding:8px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:.78rem;cursor:pointer}
+.sum-gate .tipo-loja button.on{border-color:var(--green);color:var(--green);background:rgba(43,232,123,.1)}
+.sum-gate.alerta{animation:gatePulse 1s ease 2}
+@keyframes gatePulse{50%{box-shadow:0 0 0 4px rgba(43,232,123,.35)}}
+.sum-ok{display:none;margin-top:12px;padding:14px;border-radius:12px;border:1px solid rgba(43,232,123,.35);background:rgba(43,232,123,.08);font-size:.84rem;line-height:1.5}
+.sum-ok.on{display:block}
+.sum-ok strong{display:block;margin-bottom:4px}
+.sum-ok .acoes{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.sum-ok .acoes a{flex:1;text-align:center;padding:9px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.18);color:inherit;text-decoration:none;font-size:.8rem;font-weight:600}
+#btnPlano[disabled]{opacity:.7;cursor:wait}
 @media(max-width:960px){
   .bld{grid-template-columns:1fr}
   .bld-sum{position:static}
@@ -1239,12 +1252,12 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
         <ul class="sum-lista" id="sumLista"></ul>
         <div class="sum-gate" id="sumGate">
           <strong>🔒 Veja o valor do seu plano</strong>
-          <p>Informe seu nome e WhatsApp para liberar o total. Assim a gente também consegue te ajudar a ajustar o plano, se precisar.</p>
+          <p>Informe seu nome e WhatsApp: liberamos o total e enviamos a proposta completa em PDF no seu WhatsApp.</p>
           <input type="text" id="pgNome" placeholder="Seu nome" autocomplete="name" maxlength="60">
           <input type="tel" id="pgWa" placeholder="WhatsApp com DDD" inputmode="numeric" autocomplete="tel" maxlength="16">
           <input type="text" id="pgHp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <label><input type="checkbox" id="pgOk"><span>Autorizo a LeadVox a falar comigo pelo WhatsApp sobre este plano, conforme a <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a> (LGPD).</span></label>
-          <button type="button" class="btn-primary" onclick="liberarTotal()">Ver o valor do meu plano</button>
+          <p class="gate-aviso">📲 A proposta será enviada para este WhatsApp. Ao informar seu número, você autoriza a LeadVox a falar com você por lá, conforme a <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a> (LGPD).</p>
+          <button type="button" class="btn-primary" id="btnGate" onclick="liberarTotal()">Ver valor e receber proposta</button>
         </div>
         <div class="sum-totais trancado" id="sumTotais" aria-hidden="true">
         <div class="sum-linha sum-mensal"><span>Mensalidade</span><span class="v" id="sumMensal">R$ 397,90<small>/mês</small></span></div>
@@ -1252,13 +1265,14 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
         <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 397,90</span></div>
         </div>
         <p class="sum-obs">Pré-pago e sem fidelidade: o 1º pagamento soma a implementação à primeira mensalidade. Os serviços de IA funcionam de forma independente do CRM. Outras conexões sob consulta são orçadas pela equipe.</p>
-        <button type="button" class="btn-primary" onclick="enviarPlano()">
+        <button type="button" class="btn-primary" id="btnPlano" onclick="enviarPlano()">
           <span style="display:flex;align-items:center;gap:8px">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.996 0C5.373 0 0 5.373 0 11.996c0 2.117.554 4.103 1.523 5.824L.044 23.956l6.334-1.456a11.96 11.96 0 005.618 1.396c6.623 0 11.996-5.373 11.996-11.996S18.619 0 11.996 0z"/></svg>
-            Receber meu plano no WhatsApp
+            <span id="btnPlanoTxt">Receber minha proposta no WhatsApp</span>
           </span>
         </button>
-        <span class="sum-nota">🔒 Sem compromisso · Resposta em minutos</span>
+        <div class="sum-ok" id="sumOk" aria-live="polite"></div>
+        <span class="sum-nota">🔒 Sem compromisso · Proposta em PDF na hora</span>
       </aside>
     </div>
     <div class="plans-guarantee rv" style="max-width:none;margin-top:28px">
@@ -1651,8 +1665,8 @@ function calcularPlano(){
   document.getElementById("sumPrimeiro").textContent = brl(t.primeiro);
   if(PS.pronto) agendarSync();
 }
-function enviarPlano(){
-  if(PS.liberado){ clearTimeout(PS.timer); eventoPlano("enviado"); }   // cancela o resgate
+/* Mensagem antiga (plano em texto para o WhatsApp da LeadVox) — usada como plano B */
+function mensagemPlano(){
   const l = linhasPlano(), t = totaisPlano();
   const item = function(x){ return "  • " + x[0] + " — " + valorLinha(x); };
   let msg = "Olá! Montei meu plano no site da *LeadVox*."
@@ -1662,15 +1676,104 @@ function enviarPlano(){
   if(sob.length) msg += "\n\n🔎 *Sob consulta:*\n" + sob.map(function(x){ return "  • " + x[0]; }).join("\n");
   msg += "\n\n💰 *Mensalidade:* " + brl(t.mensal) + "/mês";
   if(t.taxa) msg += "\n💳 *1º pagamento:* " + brl(t.primeiro) + " (implementação + 1ª mensalidade)";
-  msg += "\n\nPoderia me passar os próximos passos?";
-  abrirWhats(msg);
+  return msg + "\n\nPoderia me passar os próximos passos?";
+}
+/* Descrição de cada item na proposta em PDF */
+const DESC = {
+  base:"Acesso ao sistema, com treinamento autônomo", sdr:"Pré-atendimento e distribuição de leads 24h",
+  impl:"Configuração completa feita pela nossa equipe", combo:"Configuração completa da plataforma e da API Oficial do WhatsApp",
+  wa:"Cada número de WhatsApp conectado", voip:"Ligações feitas e recebidas direto da plataforma", ig:"Direct do Instagram na mesma caixa de atendimento",
+  fb:"Messenger da sua página no mesmo atendimento", wc:"Chat do seu site integrado à plataforma", em:"Caixa de e-mail atendida na mesma plataforma",
+  outras:"Outro canal que você precise integrar"
+};
+function itensProposta(){
+  const it = [];
+  it.push({ nome: cfg.ia ? NOME.base + " (50% off com IA)" : NOME.base, desc: DESC.base, valor: cfg.ia ? baseComDesconto() : PRECO.base, tipo:"m" });
+  if(cfg.ia) it.push({ nome: NOME[cfg.ia], desc: DESC[cfg.ia], valor: PRECO[cfg.ia], tipo:"m" });
+  CONN.forEach(function(c){ const q = cfg.conn[c.k]; if(q) it.push({ nome: q + "× " + c.nome, desc: DESC[c.k], valor: q * c.preco, tipo:"m" }); });
+  if(cfg.impl)   it.push({ nome: NOME[cfg.impl], desc: DESC[cfg.impl], valor: PRECO[cfg.impl], tipo:"u" });
+  if(cfg.outras) it.push({ nome: "Outras conexões", desc: DESC.outras, valor: 0, tipo:"c" });
+  return it;
+}
+function tipoLoja(t){
+  PS.tipo = ["carro","moto","ambos"].indexOf(t) >= 0 ? t : "carro";
+  document.querySelectorAll(".tipo-loja button").forEach(function(b){ b.classList.toggle("on", b.dataset.tipo === PS.tipo); });
+  if(PS.liberado) lvSet("lv_tipo", PS.tipo);
+}
+function carregarGerador(){
+  if(window.LeadVoxProposta) return Promise.resolve();
+  return new Promise(function(ok, erro){
+    const sc = document.createElement("script"); sc.src = PROPOSTA_JS; sc.onload = ok; sc.onerror = erro; document.head.appendChild(sc);
+  });
+}
+function botaoPlano(txt, ocupado){
+  document.getElementById("btnPlanoTxt").textContent = txt;
+  document.getElementById("btnPlano").disabled = !!ocupado;
+}
+function waBonito(w){ const d = String(w).replace(/^55/, ""); return "(" + d.slice(0,2) + ") " + d.slice(2, d.length - 4) + "-" + d.slice(-4); }
+
+async function enviarPlano(){
+  if(PS.enviando) return;
+  if(!PS.liberado){   // precisa do WhatsApp para mandar a proposta
+    const g = document.getElementById("sumGate");
+    g.classList.remove("alerta"); void g.offsetWidth; g.classList.add("alerta");
+    g.scrollIntoView({ behavior:"smooth", block:"center" });
+    setTimeout(function(){ document.getElementById("pgNome").focus(); }, 400);
+    return;
+  }
+  PS.enviando = true; clearTimeout(PS.timer); clearTimeout(PS.capTimer);
+  const ok = document.getElementById("sumOk"); ok.classList.remove("on");
+  botaoPlano("Gerando sua proposta...", true);
+  let pdf = null;
+  try{
+    await carregarGerador();
+    const t = totaisPlano();
+    pdf = await window.LeadVoxProposta.gerar({
+      modo:"plano", tipo: PS.tipo === "moto" ? "moto" : "carro",
+      cliente:{ nome: PS.nome, loja: PS.loja },
+      plano:{ itens: itensProposta(), mensal: t.mensal, taxa: t.taxa, primeiro: t.primeiro }
+    });
+    botaoPlano("Enviando para o seu WhatsApp...", true);
+    const corpo = payloadPlano("enviado");
+    corpo.pdfBase64 = pdf.base64; corpo.pdfNome = pdf.nome; corpo.numero = pdf.numero;
+    const ctrl = new AbortController(); const to = setTimeout(function(){ ctrl.abort(); }, 25000);
+    const r = await fetch(RESGATE_URL, { method:"POST", mode:"cors", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(corpo), signal: ctrl.signal });
+    clearTimeout(to);
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const url = URL.createObjectURL(pdf.blob);
+    ok.innerHTML = "<strong>✅ Proposta enviada!</strong>A proposta " + (PS.loja ? "da <b>" + PS.loja.replace(/</g, "&lt;") + "</b> " : "")
+      + "está chegando no seu WhatsApp " + waBonito(PS.wa) + ". Se preferir, baixe agora:"
+      + '<div class="acoes"><a href="' + url + '" download="' + pdf.nome + '">⬇️ Baixar PDF</a>'
+      + '<a href="https://wa.me/' + LV.whats + '?text=' + encodeURIComponent("Olá! Acabei de receber a proposta " + pdf.numero + " pelo site e quero conversar.") + '" target="_blank" rel="noopener">💬 Falar agora</a></div>';
+    ok.classList.add("on");
+    botaoPlano("Enviar de novo", false);
+  }catch(e){
+    console.warn("Proposta:", e);
+    // plano B: manda o plano em texto direto para o WhatsApp da LeadVox, como antes
+    eventoPlano("enviado");
+    abrirWhats(mensagemPlano());
+    if(pdf){
+      const url = URL.createObjectURL(pdf.blob);
+      ok.innerHTML = '<strong>Abrimos o WhatsApp para você.</strong>Não conseguimos enviar a proposta automaticamente, mas você pode baixá-la aqui:<div class="acoes"><a href="' + url + '" download="' + pdf.nome + '">⬇️ Baixar PDF</a></div>';
+      ok.classList.add("on");
+    }
+    botaoPlano("Receber minha proposta no WhatsApp", false);
+  }
+  PS.enviando = false;
 }
 
-/* ── RESGATE DE PLANO: o total só aparece com nome + WhatsApp.
-   O plano vai para o N8N; se a pessoa não clicar em "Receber meu plano
-   no WhatsApp", o N8N manda uma mensagem de resgate depois de alguns minutos. */
+/* ── PROPOSTA + RESGATE
+   1) O total fica desfocado até a pessoa informar nome e WhatsApp.
+   2) Ao clicar em "Ver valor e receber proposta", o total aparece e a proposta em PDF
+      vai para o WhatsApp dela (evento "enviado").
+   3) Se ela digitar nome e WhatsApp e NÃO clicar, o site já guarda uma proposta de resgate
+      (com desconto na implementação) no N8N (evento "capturado"). Se em alguns minutos
+      ela não tiver enviado, o N8N manda o resgate no WhatsApp dela. */
 const RESGATE_URL = "https://webhook.lv-mktdeconversa.com/webhook/plano-site";
-const PS = { sid: Math.random().toString(36).slice(2, 10), liberado:false, pronto:false, nome:"", wa:"", timer:null, ultimo:"" };
+const PROPOSTA_JS = "/proposta/proposta-leadvox.js";   // gerador do PDF (pasta /proposta do site)
+const RESGATE = { descontoImpl: 0.5, validadeHoras: 48 };   // condição do resgate
+const PS = { sid: Math.random().toString(36).slice(2, 10), liberado:false, pronto:false, nome:"", wa:"", loja:"", tipo:"carro",
+             timer:null, capTimer:null, capturado:"", ultimoCap:"", enviando:false };
 
 function lvGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lvSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
@@ -1681,38 +1784,89 @@ function destrancar(){
   const tt = document.getElementById("sumTotais");
   tt.classList.remove("trancado"); tt.removeAttribute("aria-hidden");
 }
+function lerFormulario(){
+  const nome = document.getElementById("pgNome").value.trim(), wa = document.getElementById("pgWa").value.replace(/\D/g, "");
+  return { nome: nome, wa: "55" + wa, okNome: nome.length >= 2, okWa: wa.length === 10 || wa.length === 11 };
+}
 function liberarTotal(){
-  const nEl = document.getElementById("pgNome"), wEl = document.getElementById("pgWa");
-  const nome = nEl.value.trim(), wa = wEl.value.replace(/\D/g, "");
-  const okNome = nome.length >= 2, okWa = wa.length === 10 || wa.length === 11;
-  nEl.classList.toggle("err", !okNome); wEl.classList.toggle("err", !okWa);
-  if(!okNome || !okWa) return;
-  if(!document.getElementById("pgOk").checked){ alert("Para ver o valor, autorize o contato pelo WhatsApp."); return; }
+  const f = lerFormulario();
+  document.getElementById("pgNome").classList.toggle("err", !f.okNome);
+  document.getElementById("pgWa").classList.toggle("err", !f.okWa);
+  if(!f.okNome || !f.okWa) return;
   if(document.getElementById("pgHp").value) return;   // robô
-  PS.nome = nome; PS.wa = "55" + wa;
-  lvSet("lv_nome", nome); lvSet("lv_wa", PS.wa);
+  clearTimeout(PS.capTimer);
+  PS.nome = f.nome; PS.wa = f.wa;
+  lvSet("lv_nome", f.nome); lvSet("lv_wa", f.wa);
   destrancar();
-  eventoPlano("iniciado");
+  enviarPlano();   // já manda a proposta para o WhatsApp
 }
 function payloadPlano(evento){
   const t = totaisPlano();
-  return { evento:evento, sid:PS.sid, nome:PS.nome, whatsapp:PS.wa, pagina:location.href,
+  return { evento:evento, sid:PS.sid, nome:PS.nome, whatsapp:PS.wa, loja:PS.loja, tipo:PS.tipo, pagina:location.href,
     plano:{ itens: linhasPlano().map(function(x){ return { nome:x[0], valor:x[1], tipo:x[2] }; }),
             mensal:t.mensal, taxa:t.taxa, primeiro:t.primeiro } };
 }
-function eventoPlano(evento){
-  const body = JSON.stringify(payloadPlano(evento));
-  if(evento === "atualizado" && body === PS.ultimo) return;
-  PS.ultimo = body.replace('"evento":"' + evento + '"', '"evento":"atualizado"');
+function eventoPlano(evento){   // evento leve, sem PDF
   try{
-    fetch(RESGATE_URL, { method:"POST", mode:"cors", keepalive:true, headers:{ "Content-Type":"application/json" }, body:body })
+    fetch(RESGATE_URL, { method:"POST", mode:"cors", keepalive:true, headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payloadPlano(evento)) })
       .catch(function(e){ console.warn("Plano:", e); });
   }catch(e){}
 }
+
+/* Proposta de resgate: implementação com desconto + caixa de condição especial */
+function dataBR(d){ return d.toLocaleDateString("pt-BR"); }
+async function capturar(evento){
+  if(PS.liberado || PS.enviando || !PS.wa) return;
+  try{
+    await carregarGerador();
+    const ate = dataBR(new Date(Date.now() + RESGATE.validadeHoras * 3600e3));
+    const pct = Math.round(RESGATE.descontoImpl * 100) + "%";
+    const t = totaisPlano();
+    let taxa = 0, implDe = 0, implPor = 0;
+    const itens = itensProposta().map(function(it){
+      if(it.tipo !== "u") return it;
+      const por = Math.round(it.valor * (1 - RESGATE.descontoImpl) * 100) / 100;
+      implDe += it.valor; implPor += por; taxa += por;
+      return { nome: it.nome, desc: it.desc, valor: por, valorDe: it.valor, tipo: "u" };
+    });
+    const primeiro = Math.round((t.mensal + taxa) * 100) / 100;
+    if(!implDe){ implDe = PRECO.impl; implPor = Math.round(PRECO.impl * (1 - RESGATE.descontoImpl) * 100) / 100; }
+    const oferta = itens.some(function(i){ return i.valorDe; })
+      ? pct + " de desconto na implementação: de " + brl(implDe) + " por " + brl(implPor) + ". Condição válida até " + ate + "."
+      : "Se quiser que a nossa equipe monte tudo para você, a implementação sai com " + pct + " de desconto: de " + brl(implDe) + " por " + brl(implPor) + ". Condição válida até " + ate + ".";
+    const pdf = await window.LeadVoxProposta.gerar({
+      modo:"plano", tipo: PS.tipo === "moto" ? "moto" : "carro", cliente:{ nome: PS.nome, loja: PS.loja },
+      intro: "{nome}, você montou este plano no nosso site e separamos uma condição especial para a sua loja começar agora.",
+      plano:{ itens: itens, mensal: t.mensal, taxa: taxa, primeiro: primeiro },
+      oferta:{ titulo: "Condição especial para você", texto: oferta }
+    });
+    if(PS.liberado) return;   // enviou a proposta normal enquanto gerava
+    const corpo = payloadPlano(evento);
+    corpo.pdfBase64 = pdf.base64; corpo.pdfNome = pdf.nome; corpo.numero = pdf.numero;
+    corpo.oferta = { pct: pct, ate: ate, implDe: implDe, implPor: implPor, primeiro: primeiro, taxa: taxa };
+    PS.ultimoCap = JSON.stringify(payloadPlano("x").plano) + PS.wa;
+    fetch(RESGATE_URL, { method:"POST", mode:"cors", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(corpo) })
+      .catch(function(e){ console.warn("Resgate:", e); });
+    PS.capturado = PS.wa;
+  }catch(e){ console.warn("Resgate:", e); }
+}
+function aoDigitar(){
+  if(PS.liberado) return;
+  const f = lerFormulario();
+  clearTimeout(PS.capTimer);
+  if(!f.okNome || !f.okWa || document.getElementById("pgHp").value) return;
+  PS.capTimer = setTimeout(function(){
+    PS.nome = f.nome; PS.wa = f.wa;
+    capturar(PS.capturado === f.wa ? "atualizado" : "capturado");
+  }, 1800);
+}
+/* Plano mudou depois da captura (e antes de enviar): atualiza a proposta de resgate */
 function agendarSync(){
-  if(!PS.liberado) return;
+  if(PS.liberado || !PS.capturado) return;
   clearTimeout(PS.timer);
-  PS.timer = setTimeout(function(){ eventoPlano("atualizado"); }, 2500);
+  PS.timer = setTimeout(function(){
+    if(JSON.stringify(payloadPlano("x").plano) + PS.wa !== PS.ultimoCap) capturar("atualizado");
+  }, 3000);
 }
 document.getElementById("pgWa").addEventListener("input", function(){
   let v = this.value.replace(/\D/g,"").slice(0,11);
@@ -1720,13 +1874,19 @@ document.getElementById("pgWa").addEventListener("input", function(){
   else if(v.length > 2) v = "("+v.slice(0,2)+") "+v.slice(2);
   else if(v.length > 0) v = "("+v;
   this.value = v;
+  aoDigitar();
 });
+document.getElementById("pgNome").addEventListener("input", aoDigitar);
 
 calcularPlano();
-/* Quem já deixou nome e WhatsApp no site (popup de demonstração) não precisa preencher de novo */
+/* Quem já deixou nome e WhatsApp no site só encontra os campos preenchidos (o total continua travado) */
 (function(){
   const n = lvGet("lv_nome"), w = lvGet("lv_wa");
-  if(n && w && /^55\d{10,11}$/.test(w)){ PS.nome = n; PS.wa = w; destrancar(); }
+  if(n && w && /^55\d{10,11}$/.test(w)){
+    const d = w.slice(2);
+    document.getElementById("pgNome").value = n;
+    document.getElementById("pgWa").value = "(" + d.slice(0,2) + ") " + d.slice(2, d.length - 4) + "-" + d.slice(-4);
+  }
   PS.pronto = true;
 })();
 
