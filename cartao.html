@@ -78,6 +78,20 @@ h1{font-family:Syne,"DM Sans",sans-serif;font-weight:800;font-size:2.35rem;line-
 .btn-outline:hover{border-color:var(--green);background:var(--gdim)}
 .btn-outline svg{width:19px;height:19px;color:var(--green)}
 .save{margin:22px 22px 0;width:auto}
+/* destaque: diagnóstico grátis */
+.diag{position:relative;display:flex;align-items:center;gap:14px;margin:14px 22px 0;padding:16px 16px 16px 14px;border-radius:16px;
+  background:linear-gradient(135deg,rgba(43,232,123,.16),rgba(42,99,201,.14));border:1px solid rgba(43,232,123,.45);
+  box-shadow:0 0 0 0 rgba(43,232,123,.35);animation:diagPulse 2.6s ease-out infinite;transition:transform .2s,border-color .2s}
+.diag:hover{transform:translateY(-2px);border-color:var(--green)}
+.diag .di{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--green);color:#041020}
+.diag .di svg{width:26px;height:26px}
+.diag .dt{flex:1;min-width:0}
+.diag .dt b{display:block;font-family:Syne,sans-serif;font-weight:800;font-size:1.04rem;line-height:1.2;color:var(--text)}
+.diag .dt small{display:block;margin-top:3px;font-size:.8rem;line-height:1.35;color:var(--light)}
+.diag .badge{position:absolute;top:-9px;right:14px;padding:3px 9px;border-radius:999px;background:var(--green);color:#041020;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.diag .seta{flex:none;width:22px;height:22px;color:var(--green)}
+@keyframes diagPulse{0%{box-shadow:0 0 0 0 rgba(43,232,123,.35)}70%{box-shadow:0 0 0 12px rgba(43,232,123,0)}100%{box-shadow:0 0 0 0 rgba(43,232,123,0)}}
+@media (prefers-reduced-motion:reduce){.diag{animation:none}}
 
 /* contatos */
 .contacts{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:14px 22px 0;background:var(--border);border-radius:16px;overflow:hidden}
@@ -207,6 +221,13 @@ dialog button{margin-top:16px}
   <a class="btn-primary save" id="btn-save" href="#">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
     Salvar contato
+  </a>
+
+  <a class="diag" href="https://leadvox.com.br/diagnostico" target="_blank" rel="noopener">
+    <span class="badge">Grátis</span>
+    <span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14l4-4"/><path d="M3.3 17a9 9 0 1 1 17.4 0"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></svg></span>
+    <span class="dt"><b>Diagnóstico de vendas da sua loja</b><small>Descubra onde a venda está escapando. Resultado no seu WhatsApp.</small></span>
+    <svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
   </a>
 
   <nav class="contacts" aria-label="Contatos">
