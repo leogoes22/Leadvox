@@ -71,7 +71,32 @@
   .tabela { overflow-x: auto; }
   .etiqueta { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--linha); color: var(--suave); }
   .etiqueta.pronta { border-color: var(--verde); color: var(--verde); }
-  td button { padding: 7px 12px; font-size: 13px; margin-right: 6px; }
+  td button { padding: 7px 12px; font-size: 13px; }
+  .acoes-linha { display: flex; flex-wrap: wrap; gap: 6px; min-width: 300px; }
+  button.ia { border-color: var(--verde); color: var(--verde); font-weight: 700; }
+  .mini { display: block; color: var(--suave); font-size: 12px; margin-top: 4px; }
+  .etiqueta.sup { border-color: #f5c451; color: #f5c451; margin-left: 4px; }
+  a.botao { display: inline-block; text-decoration: none; font: 700 15px "DM Sans", sans-serif; border-radius: var(--raio);
+    padding: 11px 18px; background: var(--navy); color: #fff; margin: 4px 0 14px; }
+  .entrega .perigo { background: transparent; border-color: var(--navy); color: var(--navy); margin-top: 6px; }
+  /* histórico */
+  .hist-topo { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .versao { border-top: 1px solid var(--linha); padding: 14px 0; display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; align-items: start; }
+  .versao:first-of-type { border-top: 0; }
+  .versao .num { font: 700 18px Syne, sans-serif; color: var(--suave); }
+  .versao.atual .num { color: var(--verde); }
+  .versao .quem { font-weight: 700; }
+  .versao .quem small { font-weight: 400; color: var(--suave); margin-left: 6px; }
+  .mudancas { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; color: var(--suave); }
+  .mudancas li { padding: 2px 0; }
+  .mudancas b { color: var(--texto); font-weight: 500; }
+  .mudancas .de { text-decoration: line-through; opacity: .7; }
+  .detalhe { grid-column: 2 / -1; background: var(--navy); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; font-size: 13px; margin-top: 6px; }
+  .detalhe dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+  .detalhe dt { color: var(--suave); } .detalhe dd { margin: 0; }
+  .versao .botoes { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .versao .botoes button { padding: 7px 12px; font-size: 13px; white-space: nowrap; }
+  @media (max-width: 640px) { .versao { grid-template-columns: 48px 1fr; } .versao .botoes { grid-column: 2; flex-direction: row; flex-wrap: wrap; } .detalhe { grid-column: 1 / -1; } }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--texto); color: var(--navy);
     padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.on { opacity: 1; }
@@ -144,11 +169,13 @@
 
   <section class="largo">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">Em "Endereços" ficam o link do plugin e os dois webhooks da loja, prontos para copiar.</p></div>
+      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">"Editar IA" abre a configuração da IA da loja sem a senha do dono. "Histórico" mostra quem mudou o quê e permite voltar uma versão.</p></div>
       <button id="btListar" type="button">Atualizar lista</button>
     </div>
     <div class="tabela" id="lista" style="margin-top:14px"><p class="vazio">Informe a chave de admin e clique em "Atualizar lista".</p></div>
   </section>
+
+  <section class="largo" id="painelHist" hidden aria-live="polite"></section>
 </main>
 <div class="toast" id="toast" role="status"></div>
 
@@ -311,20 +338,175 @@ async function listar() {
     $('lista').innerHTML = `<table><thead><tr><th>Loja</th><th>Situação</th><th>Estoque</th><th>Canal</th><th>Tenant</th><th></th></tr></thead><tbody>${
       j.lojas.map(l => `<tr>
         <td><b>${esc(l.nome)}</b><br><span style="color:var(--suave);font-size:12px">${esc(l.chave)}</span></td>
-        <td><span class="etiqueta ${l.ativo && !l.bloqueado ? 'pronta' : ''}">${l.bloqueado ? 'suspensa por você' : l.ativo ? 'IA ligada' : (l.configurada ? 'desligada pelo dono' : 'aguardando o dono')}</span></td>
+        <td><span class="etiqueta ${l.ativo && !l.bloqueado ? 'pronta' : ''}">${l.bloqueado ? 'suspensa por você' : l.ativo ? 'IA ligada' : (l.configurada ? 'desligada pelo dono' : 'aguardando o dono')}</span>${l.suporteAberto ? '<span class="etiqueta sup">suporte aberto</span>' : ''}
+          ${l.nomeIA ? `<span class="mini">IA: ${esc(l.nomeIA)}</span>` : ''}${l.ultima ? `<span class="mini">Última alteração: ${esc(quemFez(l.ultima.origem))}${l.ultima.em ? ' · ' + esc(dataCurta(l.ultima.em)) : ''}</span>` : ''}</td>
         <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : l.fonte === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto'}</td>
         <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
         <td>${esc(l.tenantId)}</td>
-        <td style="white-space:nowrap"><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></td>
+        <td><div class="acoes-linha"><button type="button" class="ia" data-suporte="${esc(l.chave)}">Editar IA</button><button type="button" data-hist="${esc(l.chave)}">Histórico</button><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></div></td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
 }
+// ═══════════════ MODO SUPORTE E HISTÓRICO ═══════════════
+function dataCurta(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
+}
+function horaCurta(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+}
+function quemFez(origem) {
+  const o = String(origem || '');
+  if (o === 'plugin') return 'dono da loja';
+  if (o.startsWith('suporte')) return (o.split(':')[1] || 'LeadVox') + ' (suporte)';
+  if (o.startsWith('restaurar')) { const p = o.split(':'); return (p[2] || 'LeadVox') + ' restaurou a versão ' + (p[1] || '?'); }
+  if (o === 'admin') return 'cadastro da loja';
+  if (o === 'admin-acesso') return 'acesso editado no admin';
+  if (o === 'carga-n8n') return 'carga inicial';
+  return o || 'desconhecido';
+}
+
+async function abrirSuporte(chave, bt) {
+  const l = LOJAS[chave] || {};
+  // abre a aba já no clique (senão o navegador bloqueia como pop-up) e só depois põe o endereço
+  let aba = null; try { aba = window.open('', '_blank'); if (aba) aba.document.write('<p style="font:16px sans-serif;padding:24px">Abrindo o modo suporte…</p>'); } catch (e) { aba = null; }
+  bt.disabled = true;
+  try {
+    const j = await chamar({ acao: 'suporte', chave });
+    if (aba) { try { aba.opener = null; aba.location.replace(j.link); } catch (e) { aba = null; } }
+    $('entrega').innerHTML = `<div class="entrega">
+      <h3>Modo suporte — ${esc(l.nome || chave)}</h3>
+      <p>Abre a configuração da IA desta loja sem a senha do dono${j.expiraEm ? ', até as ' + esc(horaCurta(j.expiraEm)) : ''}. O que você salvar fica no histórico como alteração da LeadVox.</p>
+      <a class="botao" href="${esc(j.link)}" target="_blank" rel="noopener noreferrer">${aba ? 'Abrir de novo' : 'Abrir configuração da IA'}</a>
+      ${campo(j.link, 'Link do modo suporte')}
+      <p style="font-size:13px">Não mande este link para o cliente: ele abre a IA sem senha. Para o dono, continue usando o link do plugin.</p>
+      <button type="button" class="perigo" data-encerrar="${esc(chave)}">Encerrar acesso agora</button>
+    </div>`;
+    $('entrega').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    listar();
+  } catch (e) { if (aba) aba.close(); toast(e.message); }
+  bt.disabled = false;
+}
+
+const SECAO = { ia: 'IA', loja: 'Loja', horario: 'Horário', regras: 'Regras', departamentos: 'Departamentos', distribuicao: 'Atendentes',
+  lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox' };
+const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero', 'ia.diferenciais': 'Diferenciais', 'loja.nome': 'Nome da loja',
+  'loja.tipo': 'Vende', 'loja.endereco': 'Endereço', 'loja.site': 'Site', 'loja.telefone': 'Telefone', 'regras.informaPreco': 'IA informa preço',
+  'regras.atendimentoNoHorarioDaEquipe': 'Atendimento no horário da equipe', 'regras.perguntaSeJaEAtendido': 'Pergunta se já é atendido',
+  'regras.coletaFinanciamento': 'Dados de financiamento', 'lead.enviarAutoCerto': 'Envia lead pro AutoCerto', 'lead.whatsappGerente': 'WhatsApp do gerente',
+  'followup.primeiroMin': '1º follow-up (min)', 'followup.segundoMin': '2º follow-up (min)', 'followup.transferir.quando': 'Quando transferir',
+  'followup.transferir.personalizadoMin': 'Transferir após (min)', 'crm.ativo': 'Lança no funil', 'crm.etapaInicialId': 'Etapa inicial do funil',
+  'estoque.fonte': 'Sistema de estoque', 'estoque.autocerto.unidade': 'Unidade AutoCerto', 'estoque.autocerto.usuario': 'Usuário AutoCerto',
+  'leadvox.tenantId': 'Tenant LeadVox', 'leadvox.sessionId': 'Sessão LeadVox', 'horario.feriados': 'Feriados',
+  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação' };
+const DIA = { seg: 'segunda', ter: 'terça', qua: 'quarta', qui: 'quinta', sex: 'sexta', sab: 'sábado', dom: 'domingo' };
+function achatar(o, pre, out) {
+  out = out || {};
+  if (Array.isArray(o)) {
+    if (o.every(x => x === null || typeof x !== 'object')) out[pre] = o.join(pre.startsWith('horario.') ? '–' : ', ');
+    else o.forEach((x, i) => achatar(x, pre + '[' + (i + 1) + ']', out));
+  } else if (o && typeof o === 'object') Object.keys(o).forEach(k => achatar(o[k], pre ? pre + '.' + k : k, out));
+  else out[pre] = o === null || o === undefined ? '' : String(o);
+  return out;
+}
+const IGNORAR = /^(versao|chave|configurada|ativo|bloqueado)(\.|$)|^loja\.(fuso|dominioSite)$|^estoque\.leadvox\.desde$/;
+function rotulo(path) {
+  if (ROTULO[path]) return ROTULO[path];
+  const m = /^horario\.(\w+)$/.exec(path); if (m && DIA[m[1]]) return 'Horário de ' + DIA[m[1]];
+  const s = path.split('.')[0].replace(/\[\d+\]$/, '');
+  return (SECAO[s] || s) + ' › ' + path.slice(s.length + 1).replace(/\[(\d+)\]/g, ' $1').replace(/\./g, ' › ');
+}
+function valorTxt(v) {
+  if (v === undefined || v === '') return '(vazio)';
+  if (v === 'true') return 'sim'; if (v === 'false') return 'não';
+  return v.length > 60 ? v.slice(0, 58) + '…' : v;
+}
+function mudancas(nova, velha) {
+  const a = achatar(nova || {}, ''), b = achatar(velha || {}, '');
+  const chaves = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !IGNORAR.test(k));
+  return chaves.filter(k => (a[k] ?? '') !== (b[k] ?? '')).map(k => ({ k, de: b[k], para: a[k] }));
+}
+function resumoVersao(c) {
+  c = c || {};
+  const h = c.horario || {}, ia = c.ia || {}, lj = c.loja || {}, fu = c.followup || {};
+  const dias = Object.keys(DIA).filter(d => Array.isArray(h[d])).map(d => DIA[d].slice(0, 3) + ' ' + h[d].join('–')).join(', ');
+  const linhas = [
+    ['IA', ia.nome ? ia.nome + (ia.tom ? ', tom ' + ia.tom : '') : 'ainda não configurada'],
+    ['Loja', (lj.nome || '') + (lj.tipo ? ' · vende ' + ({ moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[lj.tipo] || lj.tipo) : '')],
+    ['Horário', dias || '—'],
+    ['Preço', c.regras ? (c.regras.informaPreco ? 'IA pode informar' : 'só o consultor informa') : '—'],
+    ['Departamentos', (c.departamentos || []).map(d => d.nome + (d.queueId ? ' (fila ' + d.queueId + ')' : '')).join(', ') || '—'],
+    ['Atendentes', String(((c.distribuicao || {}).vendedores || []).length)],
+    ['Follow-up', fu.primeiroMin ? fu.primeiroMin + ' e ' + fu.segundoMin + ' min, transfere ' + ((fu.transferir || {}).quando || '').replace(/_/g, ' ') : '—'],
+    ['Lead', c.lead ? (c.lead.enviarAutoCerto ? 'vai pro AutoCerto e avisa o gerente' : 'transfere pro Comercial') : '—'],
+    ['Estoque', (c.estoque || {}).fonte || '—']
+  ];
+  return '<dl>' + linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('') + '</dl>';
+}
+let HIST = { chave: null, versoes: [], atual: null };
+async function mostrarHistorico(chave) {
+  const p = $('painelHist'), l = LOJAS[chave] || {};
+  p.hidden = false; p.innerHTML = '<p class="vazio">Carregando o histórico…</p>';
+  p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const j = await chamar({ acao: 'historico', chave });
+    HIST = { chave, versoes: j.versoes || [], atual: j.atual };
+    const vs = HIST.versoes;
+    p.innerHTML = `<div class="hist-topo"><div><h2>Histórico — ${esc(l.nome || chave)}</h2>
+        <p class="sub" style="margin:0">As 30 últimas versões. Restaurar volta só a parte da IA; estoque e conexão da LeadVox continuam como estão hoje.</p></div>
+        <button type="button" data-fecharhist>Fechar</button></div>` +
+      (vs.length ? vs.map((v, i) => {
+        const anterior = vs[i + 1];
+        const ms = anterior ? mudancas(v.config, anterior.config) : [];
+        const lista = !anterior ? '<li>Primeira versão desta lista.</li>'
+          : ms.length ? ms.slice(0, 6).map(m => `<li><b>${esc(rotulo(m.k))}:</b> <span class="de">${esc(valorTxt(m.de))}</span> → ${esc(valorTxt(m.para))}</li>`).join('') + (ms.length > 6 ? `<li>e mais ${ms.length - 6} alteração(ões).</li>` : '')
+          : '<li>Sem mudança na configuração.</li>';
+        const podeRestaurar = v.config && v.config.ia && v.versao !== HIST.atual;
+        return `<div class="versao ${v.versao === HIST.atual ? 'atual' : ''}">
+          <div class="num">v${esc(v.versao)}</div>
+          <div><div class="quem">${esc(quemFez(v.origem))}<small>${esc(v.em ? dataCurta(v.em) : 'sem data')}${v.versao === HIST.atual ? ' · versão atual' : ''}</small></div>
+            <ul class="mudancas">${lista}</ul></div>
+          <div class="botoes"><button type="button" data-detalhe="${esc(v.versao)}">Ver versão</button>
+            ${podeRestaurar ? `<button type="button" data-restaurar="${esc(v.versao)}">Restaurar</button>` : ''}</div>
+          <div class="detalhe" id="det-${esc(v.versao)}" hidden>${resumoVersao(v.config)}</div>
+        </div>`;
+      }).join('') : '<p class="vazio">Nenhuma versão registrada ainda.</p>');
+  } catch (e) { p.innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
+}
+async function restaurar(versao, bt) {
+  const l = LOJAS[HIST.chave] || {};
+  if (!confirm('Restaurar a versão ' + versao + ' da IA da ' + (l.nome || 'loja') + '?\n\nA IA volta a ter as configurações dessa versão na hora. A versão de agora continua no histórico, então dá para desfazer.')) return;
+  bt.disabled = true;
+  try {
+    const j = await chamar({ acao: 'restaurar', chave: HIST.chave, versao: Number(versao) });
+    toast('Versão ' + j.restaurada + ' restaurada (agora é a v' + j.versao + ')');
+    await mostrarHistorico(HIST.chave); listar();
+  } catch (e) { toast(e.message); bt.disabled = false; }
+}
+
 $('btListar').addEventListener('click', listar);
 $('btCancelar').addEventListener('click', () => modoEdicao(null));
 
 document.addEventListener('click', async (ev) => {
   const c = ev.target.closest('[data-copiar]');
   const en = ev.target.closest('[data-enderecos]');
+  const su = ev.target.closest('[data-suporte]');
+  if (su) { abrirSuporte(su.dataset.suporte, su); return; }
+  const fim = ev.target.closest('[data-encerrar]');
+  if (fim) {
+    fim.disabled = true;
+    try { await chamar({ acao: 'encerrarSuporte', chave: fim.dataset.encerrar }); toast('Acesso de suporte encerrado'); $('entrega').innerHTML = ''; listar(); }
+    catch (e) { toast(e.message); fim.disabled = false; }
+    return;
+  }
+  const hi = ev.target.closest('[data-hist]');
+  if (hi) { mostrarHistorico(hi.dataset.hist); return; }
+  if (ev.target.closest('[data-fecharhist]')) { $('painelHist').hidden = true; return; }
+  const de = ev.target.closest('[data-detalhe]');
+  if (de) { const d = $('det-' + de.dataset.detalhe); if (d) { d.hidden = !d.hidden; de.textContent = d.hidden ? 'Ver versão' : 'Esconder'; } return; }
+  const rs = ev.target.closest('[data-restaurar]');
+  if (rs) { restaurar(rs.dataset.restaurar, rs); return; }
   if (en) { const l = LOJAS[en.dataset.enderecos]; if (l) { $('entrega').innerHTML = blocoEnderecos(l); $('entrega').scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
   if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
   const ed = ev.target.closest('[data-editar]');
