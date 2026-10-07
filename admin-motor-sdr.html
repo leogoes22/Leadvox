@@ -390,7 +390,8 @@ async function abrirSuporte(chave, bt) {
 }
 
 const SECAO = { ia: 'IA', loja: 'Loja', horario: 'Horário', regras: 'Regras', departamentos: 'Departamentos', distribuicao: 'Atendentes',
-  lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox' };
+  lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox',
+  vendas: 'Pagamento e troca', faq: 'Perguntas frequentes' };
 const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero', 'ia.diferenciais': 'Diferenciais', 'loja.nome': 'Nome da loja',
   'loja.tipo': 'Vende', 'loja.endereco': 'Endereço', 'loja.site': 'Site', 'loja.telefone': 'Telefone', 'regras.informaPreco': 'IA informa preço',
   'regras.atendimentoNoHorarioDaEquipe': 'Atendimento no horário da equipe', 'regras.perguntaSeJaEAtendido': 'Pergunta se já é atendido',
@@ -399,7 +400,10 @@ const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero
   'followup.transferir.personalizadoMin': 'Transferir após (min)', 'crm.ativo': 'Lança no funil', 'crm.etapaInicialId': 'Etapa inicial do funil',
   'estoque.fonte': 'Sistema de estoque', 'estoque.autocerto.unidade': 'Unidade AutoCerto', 'estoque.autocerto.usuario': 'Usuário AutoCerto',
   'leadvox.tenantId': 'Tenant LeadVox', 'leadvox.sessionId': 'Sessão LeadVox', 'horario.feriados': 'Feriados',
-  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação' };
+  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação',
+  'regras.precoModo': 'Quando fala o preço', 'regras.precoFormato': 'Formato do preço', 'regras.precoDepois': 'Depois do preço', 'regras.respostaDesconto': 'Resposta a desconto',
+  'ia.tamanho': 'Tamanho das mensagens', 'ia.emojis': 'Emojis', 'ia.tratamento': 'Tratamento', 'vendas.financia': 'Financia', 'vendas.bancos': 'Bancos parceiros',
+  'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca' };
 const DIA = { seg: 'segunda', ter: 'terça', qua: 'quarta', qui: 'quinta', sex: 'sexta', sab: 'sábado', dom: 'domingo' };
 function achatar(o, pre, out) {
   out = out || {};
@@ -435,7 +439,9 @@ function resumoVersao(c) {
     ['IA', ia.nome ? ia.nome + (ia.tom ? ', tom ' + ia.tom : '') : 'ainda não configurada'],
     ['Loja', (lj.nome || '') + (lj.tipo ? ' · vende ' + ({ moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[lj.tipo] || lj.tipo) : '')],
     ['Horário', dias || '—'],
-    ['Preço', c.regras ? (c.regras.informaPreco ? 'IA pode informar' : 'só o consultor informa') : '—'],
+    ['Preço', c.regras ? ({ nunca: 'só o consultor informa', quando_perguntar: 'IA informa se perguntarem', com_foto: 'na legenda da foto', primeira_mencao: 'IA fala ao apresentar' }[c.regras.precoModo || (c.regras.informaPreco ? 'quando_perguntar' : 'nunca')]) : '—'],
+    ['Pagamento', c.vendas ? (c.vendas.financia === false ? 'não financia' : 'financia') + (c.vendas.troca === 'nao' ? ', sem troca' : '') : '—'],
+    ['Perguntas frequentes', String((c.faq || []).length)],
     ['Departamentos', (c.departamentos || []).map(d => d.nome + (d.queueId ? ' (fila ' + d.queueId + ')' : '')).join(', ') || '—'],
     ['Atendentes', String(((c.distribuicao || {}).vendedores || []).length)],
     ['Follow-up', fu.primeiroMin ? fu.primeiroMin + ' e ' + fu.segundoMin + ' min, transfere ' + ((fu.transferir || {}).quando || '').replace(/_/g, ' ') : '—'],
