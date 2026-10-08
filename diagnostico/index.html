@@ -137,260 +137,9 @@ button{font:inherit;color:inherit}
 @keyframes spin{to{transform:rotate(360deg)}}
 .foot{margin-top:auto;padding-top:26px;text-align:center;font-size:12.5px;color:#66739a}
 .foot a{color:#8c98b3}
-
-/* =====================================================================
-   MODO GAME: cenário automotivo, transições e HUD
-   ===================================================================== */
-body{background:var(--navy);background-image:none;overflow-x:hidden}
-.wrap{position:relative;z-index:2}
-
-/* ---------- cenário fixo ---------- */
-.scene{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;--spd:3s}
-.scene > *{position:absolute;transition:opacity .9s ease}
-.sky{inset:0;background:
-  radial-gradient(ellipse 90% 55% at 50% -8%,rgba(43,232,123,.13),transparent 70%),
-  radial-gradient(ellipse 70% 40% at 50% 100%,rgba(42,99,201,.20),transparent 70%),
-  linear-gradient(180deg,#070d1c 0%,#08132a 60%,#060f22 100%)}
-.scan{inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);opacity:.7}
-
-/* holofotes de showroom */
-.beams{inset:0}
-.beam{position:absolute;top:-6%;width:min(46vw,440px);height:92vh;transform-origin:50% 0;
-  background:linear-gradient(180deg,rgba(43,232,123,.17),rgba(43,232,123,.04) 55%,transparent 80%);
-  clip-path:polygon(44% 0,56% 0,100% 100%,0 100%);filter:blur(5px);animation:sway 8s ease-in-out infinite alternate}
-.beam.l{left:-4%;rotate:16deg}
-.beam.r{right:-4%;rotate:-16deg;animation-delay:-4s}
-@keyframes sway{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
-
-/* cidade no horizonte */
-.skyline{left:0;right:0;bottom:var(--hz);height:110px}
-.scene{--hz:168px}
-.skyline svg{width:100%;height:100%;display:block}
-
-/* pista neon em perspectiva */
-.road{left:0;right:0;bottom:0;height:calc(var(--hz) + 4px);overflow:hidden;
-  -webkit-mask-image:linear-gradient(to top,#000 55%,rgba(0,0,0,.35) 92%,transparent);mask-image:linear-gradient(to top,#000 55%,rgba(0,0,0,.35) 92%,transparent)}
-.plane{position:absolute;left:50%;bottom:0;width:2400px;margin-left:-1200px;height:2600px;overflow:hidden;
-  transform:perspective(340px) rotateX(60deg);transform-origin:50% 100%}
-.plane-in{position:absolute;left:0;right:0;top:-80px;bottom:0;animation:roll var(--spd) linear infinite;will-change:transform}
-.plane-in .grid{position:absolute;inset:0;
-  background-image:linear-gradient(rgba(43,232,123,.45) 3px,transparent 3px),linear-gradient(90deg,rgba(43,232,123,.24) 3px,transparent 3px);
-  background-size:80px 80px}
-.plane-in .asph{position:absolute;top:0;bottom:0;left:50%;width:300px;margin-left:-150px;background:rgba(4,9,20,.82);
-  box-shadow:0 0 0 3px rgba(43,232,123,.75),0 0 40px rgba(43,232,123,.35)}
-.plane-in .dash{position:absolute;top:0;bottom:0;left:50%;width:10px;margin-left:-5px;
-  background:repeating-linear-gradient(to bottom,rgba(238,242,248,.85) 0 40px,transparent 40px 80px)}
-@keyframes roll{from{transform:translateY(0)}to{transform:translateY(80px)}}
-
-/* linhas de velocidade */
-.streaks{inset:0}
-.streaks i{position:absolute;left:100%;height:2px;border-radius:2px;
-  background:linear-gradient(90deg,rgba(43,232,123,.85),rgba(43,232,123,0));animation:streak linear infinite}
-.streaks i:nth-child(3n){background:linear-gradient(90deg,rgba(238,242,248,.7),rgba(238,242,248,0))}
-@keyframes streak{from{transform:translateX(0)}to{transform:translateX(-200vw)}}
-
-/* bandeira quadriculada (chegada) */
-.checker{left:0;right:0;top:0;height:120px;
-  background:conic-gradient(rgba(238,242,248,.07) 25%,transparent 0 50%,rgba(238,242,248,.07) 0 75%,transparent 0) 0 0/36px 36px;
-  -webkit-mask-image:linear-gradient(to bottom,#000,transparent);mask-image:linear-gradient(to bottom,#000,transparent)}
-
-/* veículo em traço neon */
-.veh{left:50%;bottom:calc(var(--hz) - 34px);width:min(620px,118vw);aspect-ratio:400/150;margin-left:calc(min(620px,118vw) / -2)}
-.veh svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transition:opacity .9s ease}
-.veh path,.veh circle,.veh line{fill:none;stroke:#2be87b;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-.veh svg{filter:drop-shadow(0 0 6px rgba(43,232,123,.55))}
-.veh .glass{fill:rgba(43,232,123,.08)}
-.veh .lamp{fill:#eef2f8;stroke:none}
-.veh .beamf{fill:url(#farol);stroke:none}
-.veh .spin{transform-box:fill-box;transform-origin:center;animation:wheel .9s linear infinite}
-@keyframes wheel{to{transform:rotate(360deg)}}
-.v-moto{opacity:0}
-body[data-veh="moto"] .v-car{opacity:0}
-body[data-veh="moto"] .v-moto{opacity:1}
-body[data-veh="ambos"] .v-car{animation:vA 9s ease-in-out infinite}
-body[data-veh="ambos"] .v-moto{animation:vB 9s ease-in-out infinite}
-@keyframes vA{0%,42%{opacity:1}50%,92%{opacity:0}100%{opacity:1}}
-@keyframes vB{0%,42%{opacity:0}50%,92%{opacity:1}100%{opacity:0}}
-.veh.park{animation:park 1.6s cubic-bezier(.15,.75,.25,1) both}
-@keyframes park{from{translate:-120vw 0}to{translate:0 0}}
-
-/* cenas por etapa */
-.scene .beams,.scene .streaks,.scene .checker,.scene .veh{opacity:0}
-body[data-scene="intro"] .beams{opacity:1}
-body[data-scene="intro"] .veh{opacity:.30}
-body[data-scene="intro"] .road{opacity:.75}
-body[data-scene="quiz"] .beams{opacity:.25}
-body[data-scene="quiz"] .streaks{opacity:.35}
-body[data-scene="gate"] .beams{opacity:.6}
-body[data-scene="gate"] .checker{opacity:1}
-body[data-scene="gate"] .veh{opacity:.22}
-body[data-scene="load"] .streaks{opacity:1}
-body[data-scene="load"] .skyline{opacity:.25}
-body[data-scene="res"] .beams{opacity:.8}
-body[data-scene="res"] .checker{opacity:1}
-body[data-scene="res"] .veh{opacity:.18}
-body[data-scene="res"] .road{opacity:.6}
-@media (min-width:1100px){
-  .veh{left:auto;right:max(1vw,calc(50% - 790px));width:min(470px,calc(50vw - 300px));margin-left:0;bottom:calc(var(--hz) - 30px)}
-  body[data-scene="intro"] .veh{opacity:.42}
-  body[data-scene="gate"] .veh,body[data-scene="res"] .veh{opacity:.34}
-}
-@media (max-width:640px){body[data-scene="intro"] .veh{opacity:.2}}
-
-/* ---------- transição de página (faixa de corrida) ---------- */
-.wipe{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden;visibility:hidden}
-.wipe i{position:absolute;top:-30%;bottom:-30%;left:-40%;width:180%;transform:translateX(-130%) skewX(-18deg)}
-.wipe i:nth-child(1){background:linear-gradient(90deg,#1fb862,#2be87b 60%,#8ff7bb)}
-.wipe i:nth-child(2){background:#0a1630 repeating-linear-gradient(0deg,rgba(43,232,123,.08) 0 2px,transparent 2px 22px)}
-.wipe.go{visibility:visible}
-.wipe.go i{animation:wipe .66s cubic-bezier(.75,0,.25,1) both}
-.wipe.go i:nth-child(2){animation-delay:.07s}
-@keyframes wipe{0%{transform:translateX(-130%) skewX(-18deg)}46%,54%{transform:translateX(0) skewX(-18deg)}100%{transform:translateX(130%) skewX(-18deg)}}
-
-/* entrada das telas */
-@keyframes enter{from{opacity:0;transform:translateX(26px) scale(.985);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
-
-/* ---------- semáforo de largada ---------- */
-.lights{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
-  background:rgba(4,8,18,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.lights[hidden]{display:none}
-.lights .cap{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin:0}
-.lamps{display:flex;gap:12px;padding:16px 18px;background:#0b1428;border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
-.lamps span{width:46px;height:46px;border-radius:50%;background:#18213b;box-shadow:inset 0 -5px 10px rgba(0,0,0,.55);transition:background .1s,box-shadow .1s}
-@media (max-width:360px){.lamps span{width:38px;height:38px}}
-.lamps span.on{background:#ff4b4b;box-shadow:0 0 18px #ff4b4b,0 0 46px rgba(255,75,75,.55)}
-.lamps.green span{background:var(--green);box-shadow:0 0 18px var(--green),0 0 52px rgba(43,232,123,.6)}
-.lights .go{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(40px,12vw,64px);letter-spacing:1px;color:var(--green);margin:0;opacity:0;
-  text-shadow:0 0 30px rgba(43,232,123,.6)}
-.lights .go.show{animation:pop .5s cubic-bezier(.2,1.6,.4,1) both}
-.lights.out{animation:fade .38s ease both}
-@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
-@keyframes fade{to{opacity:0;transform:scale(1.04)}}
-
-/* ---------- placa de fase ---------- */
-.splash{position:fixed;inset:0;z-index:50;display:flex;align-items:center;pointer-events:none;background:rgba(4,8,18,.45);animation:fadein .2s ease both}
-@keyframes fadein{from{opacity:0}}
-.splash[hidden]{display:none}
-.splash .band{width:100%;padding:26px 20px;text-align:center;overflow:hidden;
-  background:linear-gradient(90deg,rgba(7,13,28,0),rgba(7,13,28,.96) 18%,rgba(7,13,28,.96) 82%,rgba(7,13,28,0));
-  border-top:1px solid rgba(43,232,123,.5);border-bottom:1px solid rgba(43,232,123,.5);animation:band 1.25s ease both}
-.splash .sp-k{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--green);margin:0 0 4px;animation:slide 1.25s ease both}
-.splash .sp-t{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(32px,9vw,50px);letter-spacing:-1px;line-height:1.05;margin:0;animation:slide 1.25s ease .05s both}
-@keyframes band{0%{clip-path:inset(50% 0);opacity:0}14%{clip-path:inset(0 0);opacity:1}84%{clip-path:inset(0 0);opacity:1}100%{clip-path:inset(50% 0);opacity:0}}
-@keyframes slide{0%{opacity:0;transform:translateX(60px)}20%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateX(-60px)}}
-
-/* ---------- HUD do quiz ---------- */
-.hud{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 4px;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase}
-.hud-phase{color:var(--green);display:flex;align-items:center;gap:8px}
-.hud-phase::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--green);box-shadow:0 0 10px var(--green);rotate:45deg}
-.hud-xp{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(13,23,45,.8);border-radius:999px;padding:5px 12px;color:var(--muted)}
-.hud-xp b{color:var(--ink);font-size:14px;letter-spacing:.5px;display:inline-block}
-.hud-xp b.bump{animation:bump .45s cubic-bezier(.2,1.8,.4,1)}
-@keyframes bump{40%{transform:scale(1.45);color:var(--green)}}
-.track .road{box-shadow:0 0 0 1px rgba(43,232,123,.06)}
-.track .done{box-shadow:0 0 12px rgba(43,232,123,.8)}
-.track .car{filter:drop-shadow(0 0 6px rgba(43,232,123,.7))}
-
-/* perguntas: troca com deslize */
-.qcard{animation:qin .42s cubic-bezier(.2,.8,.2,1) both}
-.qcard.back{animation-name:qinb}
-.qcard.leave{animation:qout .2s ease both}
-.qcard.leave.back{animation-name:qoutb}
-@keyframes qin{from{opacity:0;transform:translateX(54px) skewX(-5deg);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
-@keyframes qinb{from{opacity:0;transform:translateX(-54px) skewX(5deg);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
-@keyframes qout{to{opacity:0;transform:translateX(-54px) skewX(5deg);filter:blur(3px)}}
-@keyframes qoutb{to{opacity:0;transform:translateX(54px) skewX(-5deg);filter:blur(3px)}}
-.qcard .opt{animation:optin .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.08s + var(--d,0) * .06s)}
-@keyframes optin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-
-/* opções com cara de botão de controle */
-.opt{position:relative;overflow:hidden;background:rgba(13,23,45,.88)}
-.opt::after{content:'';position:absolute;top:0;bottom:0;left:-60%;width:40%;transform:skewX(-20deg);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);transition:left .5s ease;pointer-events:none}
-.opt:hover::after{left:120%}
-.opt:hover .k{border-color:var(--green);color:var(--green)}
-.opt.sel{box-shadow:0 0 0 1px var(--green),0 0 26px rgba(43,232,123,.28);animation:hit .38s ease}
-.opt.sel .k{box-shadow:0 0 12px rgba(43,232,123,.7)}
-@keyframes hit{40%{transform:scale(1.025)}}
-.qcard{position:relative}
-.xpf{position:absolute;right:16px;top:50%;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--green);
-  text-shadow:0 0 12px rgba(43,232,123,.7);pointer-events:none;animation:xpf .75s ease-out both}
-@keyframes xpf{0%{opacity:0;transform:translateY(-30%) scale(.7)}25%{opacity:1;transform:translateY(-60%) scale(1.1)}100%{opacity:0;transform:translateY(-190%)}}
-
-/* tela inicial */
-.kicker{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin:14px 0 0;padding:6px 12px;border-radius:999px;border:1px solid rgba(43,232,123,.35);
-  background:rgba(43,232,123,.07);font-family:'Syne',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--green)}
-.kicker::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s ease-in-out infinite}
-@keyframes blink{50%{opacity:.25}}
-.gear .needle{transform-origin:60px 60px;animation:rev 2.6s cubic-bezier(.5,0,.3,1) infinite}
-@keyframes rev{0%{transform:rotate(-95deg)}35%{transform:rotate(18deg)}48%{transform:rotate(-6deg)}62%{transform:rotate(30deg)}100%{transform:rotate(-95deg)}}
-.gear{filter:drop-shadow(0 0 14px rgba(43,232,123,.35))}
-.intro h1{text-shadow:0 2px 30px rgba(7,13,28,.9)}
-.facts li{background:rgba(13,23,45,.85)}
-.chip{background:rgba(13,23,45,.88)}
-.chip[aria-pressed="true"]{box-shadow:0 0 22px rgba(43,232,123,.22)}
-#start{position:relative;overflow:hidden;box-shadow:0 0 0 0 rgba(43,232,123,.5);animation:ign 2.4s ease-out infinite}
-#start::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:28%;transform:skewX(-20deg);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shine 3.2s ease-in-out infinite}
-@keyframes ign{0%{box-shadow:0 0 0 0 rgba(43,232,123,.45)}70%,100%{box-shadow:0 0 0 16px rgba(43,232,123,0)}}
-@keyframes shine{0%,55%{left:-40%}85%,100%{left:120%}}
-
-/* formulário e resultado */
-.win{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;padding:8px 14px 8px 10px;border-radius:999px;margin:4px 0 6px;
-  border:1px solid rgba(245,197,66,.4);background:rgba(245,197,66,.08);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);
-  animation:pop .55s cubic-bezier(.2,1.6,.4,1) .25s both}
-.win b{color:var(--ink);letter-spacing:.5px}
-.gate form{background:rgba(9,17,36,.72);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.res-top .win{margin-bottom:12px}
-.tach{filter:drop-shadow(0 0 22px rgba(43,232,123,.22))}
-.res-level{text-shadow:0 0 34px rgba(43,232,123,.35)}
-.sol,.sent{background:rgba(13,23,45,.9)}
-.loading p{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.2px;min-height:1.5em;transition:opacity .25s}
-.speedo{width:150px;height:150px}
-.speedo .nd{transform-origin:75px 75px;animation:redline 1.1s ease-in-out infinite alternate}
-@keyframes redline{from{transform:rotate(-100deg)}to{transform:rotate(95deg)}}
-.confetti{position:fixed;inset:0;z-index:45;pointer-events:none}
-
-@media (prefers-reduced-motion:reduce){
-  .plane-in,.streaks i,.beam,.veh .spin,.gear .needle,#start,#start::after,.kicker::before,.speedo .nd,body[data-veh="ambos"] .v-car,body[data-veh="ambos"] .v-moto{animation:none!important}
-  .qcard,.qcard .opt,.opt.sel,.xpf,.win,.veh.park{animation:none!important}
-}
 </style>
 </head>
-<body data-scene="intro" data-veh="ambos">
-<div class="scene" id="scene" aria-hidden="true">
-  <div class="sky"></div>
-  <div class="beams"><div class="beam l"></div><div class="beam r"></div></div>
-  <div class="checker"></div>
-  <div class="skyline" id="skyline"></div>
-  <div class="road"><div class="plane"><div class="plane-in"><div class="grid"></div><div class="asph"></div><div class="dash"></div></div></div></div>
-  <div class="veh park" id="veh">
-      <svg class="v-car" viewBox="0 0 400 150">
-        <defs><linearGradient id="farol" x1="0" x2="1"><stop offset="0" stop-color="#eef2f8" stop-opacity=".32"/><stop offset="1" stop-color="#eef2f8" stop-opacity="0"/></linearGradient></defs>
-        <path class="beamf" d="M382 82 L540 60 L540 124 Z"/>
-        <path d="M58 115 H26 Q18 115 18 107 V96 Q20 82 40 78 L118 68 Q150 42 188 35 H250 Q284 36 312 62 L360 70 Q382 74 384 92 V107 Q384 115 376 115 H342 A37 37 0 0 0 268 115 H132 A37 37 0 0 0 58 115"/>
-        <path class="glass" d="M140 68 L170 46 Q178 41 190 41 H220 V68 Z"/>
-        <path class="glass" d="M228 41 H250 Q272 42 294 66 H228 Z"/>
-        <path d="M224 72 V106 M196 82 H210 M256 82 H268 M20 90 H32"/>
-        <path class="lamp" d="M366 79 L382 82 L382 88 L364 86 Z"/>
-        <g class="spin"><circle cx="95" cy="115" r="28"/><circle cx="95" cy="115" r="9"/><path d="M95 89 V106 M95 124 V141 M69 115 H86 M104 115 H121"/></g>
-        <g class="spin"><circle cx="305" cy="115" r="28"/><circle cx="305" cy="115" r="9"/><path d="M305 89 V106 M305 124 V141 M279 115 H296 M314 115 H331"/></g>
-      </svg>
-      <svg class="v-moto" viewBox="0 0 400 150">
-        <path class="beamf" d="M286 62 L440 42 L440 100 Z"/>
-        <path d="M98 112 L180 100 M168 90 H220 L228 120 H176 Z M176 118 L124 126 H90"/>
-        <path class="glass" d="M178 64 Q204 48 244 56 L250 74 Q214 80 182 82 Z"/>
-        <path d="M112 70 Q144 60 180 66 L182 80 Q146 84 116 84 Z M116 84 L80 64 L112 70"/>
-        <path d="M182 82 L222 90 M244 58 L268 52 M250 74 L228 92 M306 112 L264 44 M264 44 L246 36 M264 44 L284 38 M250 74 L276 60 Q286 56 284 68 L262 80"/>
-        <circle class="lamp" cx="281" cy="63" r="4"/>
-        <g class="spin"><circle cx="98" cy="112" r="34"/><circle cx="98" cy="112" r="10"/><path d="M98 80 V102 M98 122 V144 M66 112 H88 M108 112 H130"/></g>
-        <g class="spin"><circle cx="306" cy="112" r="34"/><circle cx="306" cy="112" r="10"/><path d="M306 80 V102 M306 122 V144 M274 112 H296 M316 112 H338"/></g>
-      </svg>
-  </div>
-  <div class="streaks" id="streaks"></div>
-  <div class="scan"></div>
-</div>
+<body>
 <div class="wrap">
   <header class="brand">
     <a href="https://leadvox.com.br" aria-label="LeadVox, voltar para o site"><img class="logo" src="logo-leadvox.png" alt="LeadVox, Marketing e Automação I.A / Plataforma Omnichannel" width="162" height="51"></a>
@@ -403,10 +152,9 @@ body[data-scene="res"] .road{opacity:.6}
     <svg class="gear" viewBox="0 0 120 120" aria-hidden="true">
       <circle cx="60" cy="60" r="52" fill="none" stroke="#1e2c4d" stroke-width="8"/>
       <path d="M22 82 A44 44 0 1 1 98 82" fill="none" stroke="#2be87b" stroke-width="8" stroke-linecap="round" stroke-dasharray="4 10"/>
-      <line class="needle" x1="60" y1="60" x2="60" y2="24" stroke="#eef2f8" stroke-width="5" stroke-linecap="round"/>
+      <line x1="60" y1="60" x2="88" y2="36" stroke="#eef2f8" stroke-width="5" stroke-linecap="round"/>
       <circle cx="60" cy="60" r="8" fill="#2be87b"/>
     </svg>
-    <p class="kicker">Modo desafio · 4 fases</p>
     <h1>Em que marcha está a venda da sua loja?</h1>
     <p class="lead">Responda 11 perguntas rápidas sobre o atendimento da sua loja de carros ou motos. No final você vê onde os leads estão escapando e o que resolve cada ponto.</p>
     <ul class="facts"><li>2 minutos</li><li>Sem cadastro para começar</li><li>Resultado na hora</li></ul>
@@ -430,7 +178,6 @@ body[data-scene="res"] .road{opacity:.6}
 
   <!-- QUIZ -->
   <section class="screen" id="s-quiz" hidden>
-    <div class="hud" aria-hidden="true"><span class="hud-phase" id="hud-phase">Fase 1/4 · A loja</span><span class="hud-xp"><b id="hud-xp">0</b> XP</span></div>
     <div class="track" aria-hidden="true">
       <div class="road"></div><div class="done" id="done"></div>
       <svg class="car" id="car" viewBox="0 0 34 22"><path d="M3 15h28v-4l-5-2-4-5H11L6 9l-3 1z" fill="#2be87b"/><circle cx="10" cy="16" r="3.4" fill="#070d1c" stroke="#eef2f8" stroke-width="1.6"/><circle cx="25" cy="16" r="3.4" fill="#070d1c" stroke="#eef2f8" stroke-width="1.6"/><path d="M12 5.5h9l3 3.5H9.5z" fill="#070d1c" opacity=".55"/></svg>
@@ -441,7 +188,6 @@ body[data-scene="res"] .road{opacity:.6}
 
   <!-- GATE -->
   <section class="screen gate" id="s-gate" hidden>
-    <p class="win"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Fase concluída <b id="g-xp">+110 XP</b></p>
     <h2>Seu diagnóstico está pronto.</h2>
     <p>Para onde enviamos o resultado completo? Você vê tudo aqui na tela logo em seguida.</p>
     <form id="gform" novalidate>
@@ -461,22 +207,12 @@ body[data-scene="res"] .road{opacity:.6}
 
   <!-- LOADING -->
   <section class="screen" id="s-load" hidden>
-    <div class="loading">
-      <svg class="speedo" viewBox="0 0 150 150" aria-hidden="true">
-        <path d="M30.9 109.5 A56 56 0 1 1 119.1 109.5" fill="none" stroke="#1e2c4d" stroke-width="10" stroke-linecap="round"/>
-        <path d="M123.5 47 A56 56 0 0 1 119.1 109.5" fill="none" stroke="#ff8a5b" stroke-width="10" stroke-linecap="round" opacity=".85"/>
-        <path d="M30.9 109.5 A56 56 0 0 1 75 19" fill="none" stroke="#2be87b" stroke-width="10" stroke-linecap="round" opacity=".9"/>
-        <line class="nd" x1="75" y1="75" x2="75" y2="30" stroke="#eef2f8" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="75" cy="75" r="8" fill="#2be87b"/>
-      </svg>
-      <p id="load-msg" role="status">Aquecendo os motores...</p>
-    </div>
+    <div class="loading"><div class="spin" aria-hidden="true"></div><p>Calculando o diagnóstico da sua loja...</p></div>
   </section>
 
   <!-- RESULT -->
   <section class="screen" id="s-res" hidden>
     <div class="res-top">
-      <p class="win"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Corrida concluída <b id="r-xp">110 XP</b></p>
       <svg class="tach" id="tach" viewBox="0 0 300 232" role="img" aria-label="Pontuação da loja"></svg>
       <p class="res-label">A venda da <span id="r-loja">sua loja</span> está em</p>
       <p class="res-level" id="r-level"></p>
@@ -496,14 +232,6 @@ body[data-scene="res"] .road{opacity:.6}
 
   <footer class="foot">LeadVox, Central de Vendas com IA para lojas de veículos. <a href="https://leadvox.com.br">leadvox.com.br</a></footer>
 </div>
-
-<div class="wipe" id="wipe" aria-hidden="true"><i></i><i></i></div>
-<div class="lights" id="lights" hidden aria-hidden="true">
-  <p class="cap">Prepare-se</p>
-  <div class="lamps"><span></span><span></span><span></span><span></span></div>
-  <p class="go">LARGADA!</p>
-</div>
-<div class="splash" id="splash" hidden aria-hidden="true"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
@@ -856,174 +584,42 @@ const SOLUTIONS = {
 const S = { i:0, ans:{}, cargo:'', lead:null, result:null, id:null, pdf:null, docDef:null };
 const $ = s => document.querySelector(s);
 const screens = ['intro','quiz','gate','load','res'];
-/* ====== MODO GAME ====== */
-const REDUZ = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const XP_POR = 10;
-const PHASES = [{de:0,n:'A loja'},{de:4,n:'Atendimento'},{de:7,n:'Vitrine e anúncios'},{de:10,n:'Gestão'}];
-const SPD = {intro:'5s', gate:'4s', load:'.32s', res:'7s'};
-function faseDe(i){ let f = 0; PHASES.forEach((p,k) => { if (i >= p.de) f = k; }); return f; }
-function vib(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
-function xpAtual(){ return Object.keys(S.ans).length * XP_POR; }
-function setScene(name){
-  document.body.dataset.scene = name;
-  if (SPD[name]) $('#scene').style.setProperty('--spd', SPD[name]);
-}
-const CAR_ICON = $('#car').innerHTML;
-const MOTO_ICON = '<circle cx="8" cy="16" r="4.6" fill="#070d1c" stroke="#eef2f8" stroke-width="1.6"/><circle cx="27" cy="16" r="4.6" fill="#070d1c" stroke="#eef2f8" stroke-width="1.6"/>'
-  + '<path d="M8 16 L15 12 H21 L27 16 M21 12 L24 5 M24 5 L21 4" fill="none" stroke="#2be87b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
-  + '<path d="M12 10 Q16 6.5 22 8.2 L21.5 11.5 H13.5 Z" fill="#2be87b"/><path d="M6 9.5 H13 L12.5 11.5 H7.5 Z" fill="#2be87b"/>';
-function setVeh(){
-  const v = S.ans.segmento;
-  document.body.dataset.veh = v === 0 ? 'carro' : v === 1 ? 'moto' : 'ambos';
-  $('#car').innerHTML = v === 1 ? MOTO_ICON : CAR_ICON;
-}
-(function montarCenario(){
-  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  let svg = '<svg viewBox="0 0 1200 110" preserveAspectRatio="xMidYMax slice">', x = 0;
-  while (x < 1200){
-    const w = 30 + rnd()*70, h = 25 + rnd()*80, y = 110 - h;
-    svg += '<rect x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'" width="'+(w-4).toFixed(0)+'" height="'+h.toFixed(0)+'" fill="#0b1730"/>';
-    svg += '<rect x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'" width="'+(w-4).toFixed(0)+'" height="1.5" fill="rgba(43,232,123,.35)"/>';
-    for (let wy = y + 8; wy < 104; wy += 11) for (let wx = x + 6; wx < x + w - 10; wx += 10)
-      if (rnd() < .22) svg += '<rect x="'+wx.toFixed(0)+'" y="'+wy.toFixed(0)+'" width="4" height="4" fill="'+(rnd() < .7 ? 'rgba(43,232,123,.55)' : 'rgba(238,242,248,.45)')+'"/>';
-    x += w;
-  }
-  $('#skyline').innerHTML = svg + '</svg>';
-  let st = '';
-  for (let i = 0; i < 18; i++){
-    st += '<i style="top:'+(6 + rnd()*86).toFixed(1)+'%;width:'+(70 + rnd()*220).toFixed(0)+'px;animation-duration:'+(.55 + rnd()*1.1).toFixed(2)+'s;animation-delay:-'+(rnd()*2).toFixed(2)+'s;opacity:'+(.35 + rnd()*.65).toFixed(2)+'"></i>';
-  }
-  $('#streaks').innerHTML = st;
-})();
-setScene('intro');
-function swapTo(name){
+function show(name){
   screens.forEach(n => { const el = $('#s-'+n); el.hidden = n !== name; });
   const el = $('#s-'+name); el.classList.remove('anim'); void el.offsetWidth; el.classList.add('anim');
   $('#back').hidden = !(name === 'quiz' || name === 'gate');
-  setScene(name);
   window.scrollTo(0,0);
-}
-let showTok = 0;
-function show(name, cb){
-  const tok = ++showTok;
-  if (REDUZ){ swapTo(name); if (cb) cb(); return; }
-  const w = $('#wipe'); w.classList.remove('go'); void w.offsetWidth; w.classList.add('go');
-  setTimeout(() => { if (tok !== showTok) return; swapTo(name); if (cb) cb(); }, 340);
-  setTimeout(() => { if (tok === showTok) w.classList.remove('go'); }, 780);
-}
-function largada(){
-  return new Promise(ok => {
-    if (REDUZ){ ok(); return; }
-    const L = $('#lights'), box = L.querySelector('.lamps'), lamps = box.querySelectorAll('span'), go = L.querySelector('.go');
-    L.classList.remove('out'); box.classList.remove('green'); go.classList.remove('show'); lamps.forEach(x => x.classList.remove('on'));
-    L.hidden = false;
-    let i = 0;
-    const t = setInterval(() => {
-      if (i < lamps.length){ lamps[i].classList.add('on'); vib(10); i++; return; }
-      clearInterval(t);
-      lamps.forEach(x => x.classList.remove('on')); box.classList.add('green'); go.classList.add('show'); vib(45);
-      setTimeout(() => { ok(); L.classList.add('out'); setTimeout(() => { L.hidden = true; }, 380); }, 560);
-    }, 320);
-  });
-}
-function placa(f){
-  return new Promise(ok => {
-    if (REDUZ){ ok(); return; }
-    const sp = $('#splash');
-    sp.innerHTML = '<div class="band"><p class="sp-k">Fase ' + (f+1) + ' de ' + PHASES.length + '</p><p class="sp-t">' + PHASES[f].n + '</p></div>';
-    sp.hidden = false; vib(20);
-    setTimeout(ok, 480);
-    setTimeout(() => { sp.hidden = true; }, 1260);
-  });
-}
-function atualizaXP(bump){
-  const b = $('#hud-xp'); b.textContent = xpAtual();
-  if (bump && !REDUZ){ b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
-}
-const LOAD_MSGS = ['Aquecendo os motores...','Analisando o atendimento da loja...','Medindo a vitrine e os anúncios...','Calculando a marcha da sua loja...'];
-let loadT = null;
-function loadMsgs(on){
-  clearInterval(loadT); const el = $('#load-msg'); el.style.opacity = 1;
-  if (!on) return;
-  let i = 0; el.textContent = LOAD_MSGS[0];
-  loadT = setInterval(() => { i = (i + 1) % LOAD_MSGS.length; el.style.opacity = 0; setTimeout(() => { el.textContent = LOAD_MSGS[i]; el.style.opacity = 1; }, 250); }, 1150);
-}
-function confete(){
-  if (REDUZ) return;
-  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.appendChild(c);
-  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
-  c.width = W * dpr; c.height = H * dpr; const x = c.getContext('2d'); x.scale(dpr, dpr);
-  const cores = ['#2be87b','#eef2f8','#f5c542','#2a63c9','#8fe08a'];
-  const P = Array.from({length:150}, () => ({ x:W/2 + (Math.random()-.5)*W*.35, y:H*.32, vx:(Math.random()-.5)*13, vy:-Math.random()*14-4,
-    w:5+Math.random()*6, h:8+Math.random()*8, r:Math.random()*6, vr:(Math.random()-.5)*.4, c:cores[Math.random()*cores.length|0] }));
-  const t0 = performance.now();
-  (function f(now){
-    const t = now - t0; x.clearRect(0,0,W,H);
-    P.forEach(p => { p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
-      x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.globalAlpha = Math.max(0, 1 - t/2700); x.fillStyle = p.c; x.fillRect(-p.w/2,-p.h/2,p.w,p.h); x.restore(); });
-    if (t < 2700) requestAnimationFrame(f); else c.remove();
-  })(t0);
 }
 
 /* ====== QUIZ ====== */
-function renderQ(dir){
-  dir = dir || 1;
-  const old = $('#qbox .qcard');
-  if (old && !REDUZ && !$('#s-quiz').hidden){
-    old.classList.add('leave'); if (dir < 0) old.classList.add('back');
-    setTimeout(() => paintQ(dir), 190);
-  } else paintQ(dir);
-}
-function paintQ(dir){
+function renderQ(){
   const q = QUESTIONS[S.i], n = QUESTIONS.length;
-  const f = faseDe(S.i);
-  $('#hud-phase').textContent = 'Fase ' + (f+1) + '/' + PHASES.length + ' · ' + PHASES[f].n;
-  atualizaXP(false);
-  $('#scene').style.setProperty('--spd', (2.8 - 2.1 * S.i / (n - 1)).toFixed(2) + 's');
   const pct = (S.i / n) * 100;
   $('#done').style.width = 'calc((100% - 22px) * ' + (S.i/n) + ')';
   $('#car').style.left = 'calc(17px + (100% - 56px) * ' + (S.i/n) + ')';
   const cur = S.ans[q.id];
   const keys = ['A','B','C','D'];
   $('#qbox').innerHTML =
-    '<div class="qcard' + (dir < 0 ? ' back' : '') + '"><p class="count">Pergunta ' + (S.i+1) + ' de ' + n + '</p>' +
+    '<div class="anim"><p class="count">Pergunta ' + (S.i+1) + ' de ' + n + '</p>' +
     '<h2 class="q" id="qt">' + q.t + '</h2>' +
     '<div class="opts" role="radiogroup" aria-labelledby="qt">' +
-    q.o.map((o,k) => '<button class="opt' + (cur===k?' sel':'') + '" style="--d:' + k + '" role="radio" aria-checked="' + (cur===k) + '" data-k="' + k + '"><span class="k">' + keys[k] + '</span><span>' + o.l + '</span></button>').join('') +
+    q.o.map((o,k) => '<button class="opt' + (cur===k?' sel':'') + '" role="radio" aria-checked="' + (cur===k) + '" data-k="' + k + '"><span class="k">' + keys[k] + '</span><span>' + o.l + '</span></button>').join('') +
     '</div></div>';
   document.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => pick(+b.dataset.k)));
   const first = document.querySelector('.opt.sel') || document.querySelector('.opt');
   if (first && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('opt')) first.focus();
-  picking = false;
 }
 let picking = false;
 function pick(k){
   if (picking) return; picking = true;
   const q = QUESTIONS[S.i];
-  const novo = S.ans[q.id] === undefined;
   S.ans[q.id] = k;
-  const btns = document.querySelectorAll('#qbox .opt');
-  btns.forEach((b,j) => { b.classList.toggle('sel', j===k); b.setAttribute('aria-checked', j===k); });
-  vib(12);
-  if (novo){
-    const btn = btns[k], fl = document.createElement('span');
-    fl.className = 'xpf'; fl.textContent = '+' + XP_POR + ' XP';
-    fl.style.top = (btn.offsetTop + btn.offsetHeight / 2) + 'px';
-    btn.parentNode.parentNode.appendChild(fl); setTimeout(() => fl.remove(), 800);
-    atualizaXP(true);
-  }
-  if (q.id === 'segmento') setVeh();
+  document.querySelectorAll('.opt').forEach((b,j) => { b.classList.toggle('sel', j===k); b.setAttribute('aria-checked', j===k); });
   setTimeout(() => {
-    if (S.i < QUESTIONS.length - 1){
-      const fa = faseDe(S.i), fb = faseDe(S.i + 1);
-      S.i++;
-      if (fa !== fb) placa(fb).then(() => renderQ(1)); else renderQ(1);
-    } else {
-      $('#done').style.width = 'calc(100% - 22px)'; $('#car').style.left = 'calc(100% - 39px)';
-      $('#g-xp').textContent = '+' + xpAtual() + ' XP';
-      setTimeout(() => { picking = false; show('gate', () => $('#f-nome').focus({preventScroll:true})); }, 420);
-    }
-  }, 320);
+    picking = false;
+    if (S.i < QUESTIONS.length - 1){ S.i++; renderQ(); }
+    else { $('#done').style.width = 'calc(100% - 22px)'; $('#car').style.left = 'calc(100% - 39px)'; setTimeout(() => { show('gate'); $('#f-nome').focus({preventScroll:true}); }, 380); }
+  }, 230);
 }
 document.addEventListener('keydown', e => {
   if ($('#s-quiz').hidden) return;
@@ -1032,7 +628,7 @@ document.addEventListener('keydown', e => {
   if (k !== undefined && k < QUESTIONS[S.i].o.length) pick(k);
 });
 /* ====== CARGO (tela inicial) ====== */
-let cargoSel = null, largando = false;
+let cargoSel = null;
 document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
   cargoSel = b.dataset.cargo;
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b));
@@ -1055,14 +651,11 @@ $('#start').addEventListener('click', () => {
     $('#f-cargo').setAttribute('aria-invalid', 'true'); $('#f-cargo').focus(); return;
   }
   S.cargo = cargoAtual();
-  if (largando) return; largando = true;
-  S.i = 0; $('#qbox').innerHTML = ''; paintQ(1);
-  largada().then(() => { largando = false; swapTo('quiz'); });
+  S.i = 0; show('quiz'); renderQ();
 });
 $('#back').addEventListener('click', () => {
-  if (!$('#s-gate').hidden){ S.i = QUESTIONS.length - 1; $('#qbox').innerHTML = ''; paintQ(-1); show('quiz'); return; }
-  if (picking) return;
-  if (S.i > 0){ picking = true; S.i--; renderQ(-1); } else show('intro');
+  if (!$('#s-gate').hidden){ S.i = QUESTIONS.length - 1; show('quiz'); renderQ(); return; }
+  if (S.i > 0){ S.i--; renderQ(); } else show('intro');
 });
 
 /* ====== CÁLCULO ====== */
@@ -1138,7 +731,7 @@ $('#gform').addEventListener('submit', e => {
   S.lead = { nome, loja, cargo:S.cargo, whatsapp:'55'+whats, email, cidade };
   S.result = compute();
   S.id = 'DG' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
-  show('load'); loadMsgs(true);
+  show('load');
   gerarPDF().then(b64 => { S.pdf = b64; return send(); }).then(ok => { renderResult(ok); });
 });
 
@@ -1196,9 +789,7 @@ function drawTach(score){
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function renderResult(sentOk){
   const R = S.result, L = S.lead;
-  loadMsgs(false);
-  $('#r-xp').textContent = xpAtual() + ' XP';
-  show('res', () => { setTimeout(() => drawTach(R.score), 160); if (R.score >= 55) setTimeout(confete, 1500); });
+  show('res');
   $('#r-loja').textContent = L.loja;
   $('#r-level').textContent = R.nivel;
   $('#r-desc').textContent = R.nivel_desc;
@@ -1209,6 +800,7 @@ function renderResult(sentOk){
   const msg = 'Oi! Fiz o diagnóstico no site. Sou ' + L.nome + (L.cargo ? ' (' + L.cargo + ')' : '') + ', da ' + L.loja + ', e deu ' + R.score + '/100 (' + R.nivel + '). Quero entender as soluções para a minha loja.';
   $('#r-wa').href = 'https://wa.me/' + CFG.WHATS_LEADVOX + '?text=' + encodeURIComponent(msg);
   $('#r-pdf').hidden = !S.docDef;
+  setTimeout(() => drawTach(R.score), 120);
 }
 function sentState(ok){
   const box = $('#r-sent');
@@ -1220,7 +812,7 @@ function sentState(ok){
     $('#retry').addEventListener('click', async () => { $('#retry').textContent = 'Enviando...'; sentState(await send()); });
   }
 }
-$('#r-again').addEventListener('click', () => { S.i = 0; S.ans = {}; S.pdf = null; S.docDef = null; setVeh(); show('intro'); });
+$('#r-again').addEventListener('click', () => { S.i = 0; S.ans = {}; S.pdf = null; S.docDef = null; show('intro'); });
 $('#r-pdf').addEventListener('click', () => { try { pdfMake.createPdf(S.docDef).download(nomePDF()); } catch (e) {} });
 </script>
 </body>
