@@ -223,9 +223,17 @@ function dados() {
 function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
 function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
 const BASE_WH = API.replace(/\/sdr-admin\/?$/, '/');
+// plugin do vendedor (estoque): mesma chave da loja, serve AutoCerto, Revenda Mais e Estoque LeadVox
+const PLUGIN_VENDEDOR_PADRAO = 'https://leogoes22.github.io/iasdr/plugin/';
+function linkVendedor(l) {
+  const ch = l.chave || ''; if (!ch) return '';
+  let base = PLUGIN_VENDEDOR_PADRAO;
+  try { if (l.link) { const u = new URL(l.link); base = u.origin + u.pathname.replace(/[^/]*$/, '') + 'plugin/'; } } catch (e) {}
+  return base + '?k=' + encodeURIComponent(ch);
+}
 function enderecos(l) {
   const ch = l.chave || '';
-  return { nome: l.nome || '', link: l.link || '',
+  return { nome: l.nome || '', link: l.link || '', vend: linkVendedor(l),
     ia: l.webhookIA || (ch ? BASE_WH + 'sdr-motor?k=' + ch : ''),
     sent: l.webhookSentinela || (ch ? BASE_WH + 'sdr-sentinela?k=' + ch : ''),
     api: l.apiEstoque || (ch && l.fonte === 'leadvox' ? BASE_WH + 'sdr-estoque-api?k=' + ch : '') };
@@ -235,15 +243,18 @@ function campo(valor, rotulo) {
 }
 function blocoEnderecos(l, titulo) {
   const e = enderecos(l);
+  let n = 0; const num = () => (++n) + ') ';
   const tudo = 'Configuração da IA — ' + e.nome + '\n\n' +
-    (e.link ? '1) Plugin (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.link + '\n\n' : '') +
-    (e.link ? '2' : '1') + ') Webhook do CHATFLOW da IA:\n' + e.ia + '\n\n' +
-    (e.link ? '3' : '2') + ') Configuração da API → URL Webhook (marcar os eventos de mensagem e deixar "Manter aberto"):\n' + e.sent +
+    (e.link ? num() + 'Plugin da IA, para o dono (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.link + '\n\n' : '') +
+    (e.vend ? num() + 'Plugin do vendedor: estoque, fotos e ficha (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.vend + '\n\n' : '') +
+    num() + 'Webhook do CHATFLOW da IA:\n' + e.ia + '\n\n' +
+    num() + 'Configuração da API → URL Webhook (marcar os eventos de mensagem e deixar "Manter aberto"):\n' + e.sent +
     (e.api ? '\n\nAPI do estoque (para o site):\n' + e.api : '');
   return `<div class="entrega">
     <h3>${esc(titulo || ('Endereços — ' + e.nome))}</h3>
     <p>Mande para o cliente ou cole você mesmo na LeadVox da loja.</p>
-    ${e.link ? `<p class="rot">Plugin <small>LeadVox → Nova Integração, com "Permitir transferência de dados" ligado</small></p>${campo(e.link, 'Link do plugin')}` : ''}
+    ${e.link ? `<p class="rot">Plugin da IA (dono) <small>LeadVox → Nova Integração, com "Permitir transferência de dados" ligado</small></p>${campo(e.link, 'Link do plugin da IA')}` : ''}
+    ${e.vend ? `<p class="rot">Plugin do vendedor (estoque) <small>Foto, galeria, vídeo e ficha direto no ticket · Nova Integração com "Permitir transferência de dados" ligado</small></p>${campo(e.vend, 'Link do plugin do vendedor')}` : ''}
     <p class="rot">Webhook do chatflow (IA) <small>No chatflow da loja, no lugar do webhook do bot antigo</small></p>${campo(e.ia, 'Webhook do chatflow')}
     <p class="rot">Webhook da API (Sentinela) <small>Configuração da API → URL Webhook · eventos de mensagem · "Manter aberto"</small></p>${campo(e.sent, 'Webhook da API')}
     ${e.api ? `<p class="rot">API do estoque (sites) <small>JSON com os veículos disponíveis, para o site da loja</small></p>${campo(e.api, 'API do estoque')}` : ''}
@@ -317,7 +328,7 @@ $('btCriar').addEventListener('click', async () => {
     $('entrega').innerHTML = `
       <div class="entrega">
         <h3>${esc(j.nome)} cadastrada</h3>
-        <p>Os três endereços da loja estão logo abaixo. Depois, cadastre o acesso do dono (e-mail e senha) no workflow Login do cliente.</p>
+        <p>Os endereços da loja estão logo abaixo (plugin da IA, plugin do vendedor e webhooks). Depois, cadastre o acesso do dono (e-mail e senha) no workflow Login do cliente.</p>
       </div>` + blocoEnderecos({ nome: j.nome, chave: j.chave, link: j.link, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela, apiEstoque: j.apiEstoque, fonte: j.fonte }, 'Endereços para a LeadVox') + `
       <div class="entrega" style="background:var(--painel);color:var(--texto);border:1px solid var(--linha)">
         <p style="margin-bottom:4px">PIN da loja (só para o link antigo, sem login):</p>
@@ -343,7 +354,7 @@ async function listar() {
         <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : l.fonte === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto'}</td>
         <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
         <td>${esc(l.tenantId)}</td>
-        <td><div class="acoes-linha"><button type="button" class="ia" data-suporte="${esc(l.chave)}">Editar IA</button><button type="button" data-hist="${esc(l.chave)}">Histórico</button><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Copiar link</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></div></td>
+        <td><div class="acoes-linha"><button type="button" class="ia" data-suporte="${esc(l.chave)}">Editar IA</button><button type="button" data-hist="${esc(l.chave)}">Histórico</button><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Link da IA</button><button type="button" data-copiar="${esc(linkVendedor(l))}">Link do vendedor</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></div></td>
       </tr>`).join('')}</tbody></table>`;
   } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
 }
