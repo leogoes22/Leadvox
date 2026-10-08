@@ -147,7 +147,7 @@
         <legend>LeadVox</legend>
         <label for="urlEnvio">URL de envio da API externa <small>(completa, com ?token=)</small></label>
         <input id="urlEnvio" type="password" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…">
-        <label for="tokenRest">Token da API REST <small>(opcional, para ler o CRM)</small></label>
+        <label for="tokenRest">Token da API REST <small>(opcional: etiquetas e leitura do CRM; vazio = usa o da URL de envio)</small></label>
         <input id="tokenRest" type="password">
       </fieldset>
 
@@ -391,7 +391,7 @@ async function abrirSuporte(chave, bt) {
 
 const SECAO = { ia: 'IA', loja: 'Loja', horario: 'Horário', regras: 'Regras', departamentos: 'Departamentos', distribuicao: 'Atendentes',
   lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox',
-  vendas: 'Pagamento e troca', faq: 'Perguntas frequentes' };
+  vendas: 'Pagamento e troca', faq: 'Perguntas frequentes', etiquetas: 'Etiquetas' };
 const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero', 'ia.diferenciais': 'Diferenciais', 'loja.nome': 'Nome da loja',
   'loja.tipo': 'Vende', 'loja.endereco': 'Endereço', 'loja.site': 'Site', 'loja.telefone': 'Telefone', 'regras.informaPreco': 'IA informa preço',
   'regras.atendimentoNoHorarioDaEquipe': 'Atendimento no horário da equipe', 'regras.perguntaSeJaEAtendido': 'Pergunta se já é atendido',
@@ -403,7 +403,9 @@ const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero
   'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação',
   'regras.precoModo': 'Quando fala o preço', 'regras.precoFormato': 'Formato do preço', 'regras.precoDepois': 'Depois do preço', 'regras.respostaDesconto': 'Resposta a desconto',
   'ia.tamanho': 'Tamanho das mensagens', 'ia.emojis': 'Emojis', 'ia.tratamento': 'Tratamento', 'vendas.financia': 'Financia', 'vendas.bancos': 'Bancos parceiros',
-  'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca' };
+  'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca',
+  'etiquetas.ativo': 'Marca etiquetas', 'etiquetas.grupos': 'Etiquetas marcadas', 'etiquetas.entradaAlta': 'Entrada alta a partir de (R$)',
+  'etiquetas.entradaBaixa': 'Entrada baixa até (R$)', 'etiquetas.substituir': 'IA troca as próprias etiquetas' };
 const DIA = { seg: 'segunda', ter: 'terça', qua: 'quarta', qui: 'quinta', sex: 'sexta', sab: 'sábado', dom: 'domingo' };
 function achatar(o, pre, out) {
   out = out || {};
@@ -446,7 +448,8 @@ function resumoVersao(c) {
     ['Atendentes', String(((c.distribuicao || {}).vendedores || []).length)],
     ['Follow-up', fu.primeiroMin ? fu.primeiroMin + ' e ' + fu.segundoMin + ' min, transfere ' + ((fu.transferir || {}).quando || '').replace(/_/g, ' ') : '—'],
     ['Lead', c.lead ? (c.lead.enviarAutoCerto ? 'vai pro AutoCerto e avisa o gerente' : 'transfere pro Comercial') : '—'],
-    ['Estoque', (c.estoque || {}).fonte || '—']
+    ['Estoque', (c.estoque || {}).fonte || '—'],
+    ['Etiquetas', c.etiquetas ? (c.etiquetas.ativo ? 'marca ' + (c.etiquetas.grupos || []).join(', ') : 'desligadas') : 'não configuradas']
   ];
   return '<dl>' + linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('') + '</dl>';
 }
