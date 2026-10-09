@@ -197,6 +197,20 @@
   </div>
 </dialog>
 
+<!-- modal: onde atua -->
+<dialog id="dlgLugar" aria-labelledby="tLugar">
+  <div class="modal">
+    <div class="modal-topo"><div><h2 id="tLugar">Onde o agente atua</h2><p class="sub" id="sLugar" style="margin:0"></p></div>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar">×</button></div>
+    <label for="lugDep">Departamento da LeadVox</label>
+    <select id="lugDep"></select>
+    <label style="display:flex;gap:10px;align-items:center;font-weight:400;margin-top:14px"><input type="checkbox" id="lugEnt" style="width:auto">
+      Porta de entrada: atende as conversas que ainda não têm departamento</label>
+    <p class="sub" style="margin:10px 0 0">Só um agente por conta pode ser a porta de entrada. Marcar aqui tira a marcação do outro.</p>
+    <div class="acoes"><button class="principal" id="btLugar" type="button">Salvar</button></div>
+  </div>
+</dialog>
+
 <!-- modal: histórico -->
 <dialog id="dlgHist" aria-labelledby="tHist">
   <div class="modal">
@@ -234,7 +248,8 @@ const API = 'https://webhook.lv-mktdeconversa.com/webhook/iag-admin';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const PEND = { conta_suspensa: 'conta suspensa', arquivado: 'arquivado', nao_configurado: 'cliente ainda não terminou de configurar no plugin', sem_conexao: 'falta a conexão da LeadVox' };
+const PEND = { conta_suspensa: 'conta suspensa', arquivado: 'arquivado', nao_configurado: 'cliente ainda não terminou de configurar no plugin', sem_conexao: 'falta a conexão da LeadVox na conta', sem_departamento: 'falta escolher o departamento' };
+const nomeFila = (c, id) => { const f = ((c.conexao || {}).filas || []).find(x => String(x.id) === String(id)); return f ? f.nome : 'departamento ' + id; };
 let DADOS = { contas: [], tipos: [], enderecos: {} };
 
 /* ---------- utilidades ---------- */
@@ -299,27 +314,32 @@ const tiposOpt = (sel, soAtivos) => DADOS.tipos.filter(t => !soAtivos || t.ativo
 function htmlAgente(a, c) {
   const pend = (a.pendencias || []).filter(p => p !== 'conta_suspensa');
   const status = a.ativo ? '<span class="pill verde">ligado</span>' : '<span class="pill">desligado</span>';
-  const end = DADOS.enderecos || {};
-  const con = a.conectado
-    ? `<div class="con">Conexão: ${esc(a.canal || 'canal')} ligada</div>
-       <div class="ends">
-         <div class="copia"><span>Chatflow</span><code title="${esc(end.motor + a.chave)}">${esc(end.motor + a.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.motor + a.chave)}">Copiar</button></div>
-         <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela + a.chave)}">${esc(end.sentinela + a.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela + a.chave)}">Copiar</button></div>
-       </div>`
-    : '<div class="con">Sem conexão da LeadVox.</div>';
+  const lugar = [a.entrada ? '🚪 porta de entrada (conversas sem departamento)' : '', a.departamentoId ? '🗂️ ' + esc(nomeFila(c, a.departamentoId)) : ''].filter(Boolean).join(' · ');
+  const con = `<div class="con">${lugar || '<span style="color:var(--amarelo)">Ainda não tem departamento</span>'}</div>`;
   return `<div class="agente ${a.ativo ? 'ligado' : ''}">
     <div class="linha1"><div><div class="slot">Vaga ${a.slot}</div><div class="nome">${esc(a.nome || 'Sem nome ainda')}</div>
       <div class="tipo">${esc(a.tipoNome)} · versão ${a.versao}${a.ultima ? ' · ' + esc(dataBr(a.ultima.em)) : ''}</div></div>${status}</div>
     ${pend.length ? `<div class="pend">Pendente: ${pend.map(p => esc(PEND[p] || p)).join('; ')}</div>` : ''}
     ${con}
     <div class="botoes">
-      <button class="sm" type="button" onclick="abrirConexao('${a.chave}')">${a.conectado ? 'Trocar conexão' : 'Conectar LeadVox'}</button>
+      <button class="sm" type="button" onclick="abrirLugar('${a.chave}')">Onde atua</button>
       <button class="sm ${a.ativo ? 'perigo' : ''}" type="button" onclick="ligar('${a.chave}', ${!a.ativo})">${a.ativo ? 'Desligar' : 'Ligar'}</button>
       <button class="sm" type="button" onclick="historico('${a.chave}')">Histórico</button>
       <select class="sm" aria-label="Trocar tipo" onchange="trocarTipo('${a.chave}', this)" style="width:auto;padding:6px 8px;font-size:13px">${tiposOpt(a.tipo)}</select>
       <button class="sm perigo" type="button" onclick="arquivar('${a.chave}', true)">Arquivar</button>
     </div>
   </div>`;
+}
+function htmlConexao(c) {
+  const x = c.conexao || {}, end = DADOS.enderecos || {};
+  if (!x.conectado) return `<div class="acesso" style="border:0;padding:0"><span class="con" style="color:var(--amarelo)">Sem conexão da LeadVox. Todos os agentes desta conta usam o mesmo número.</span>
+    <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Conectar LeadVox</button></div>`;
+  return `<div class="acesso" style="border:0;padding:0"><span>📱 <b>${esc(x.nomeCanal || 'Canal')}</b> <small>${esc(x.numero || '')} · tenant ${esc(x.tenantId)} · sessão ${esc(x.sessionId)} · ${(x.filas || []).length} departamentos</small></span>
+      <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Trocar / testar de novo</button></div>
+    <div class="ends" style="margin-top:8px">
+      <div class="copia"><span>Chatflow</span><code title="${esc(end.motor + c.chave)}">${esc(end.motor + c.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.motor + c.chave)}">Copiar</button></div>
+      <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela + c.chave)}">${esc(end.sentinela + c.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela + c.chave)}">Copiar</button></div>
+    </div>`;
 }
 function htmlConta(c) {
   const ativos = (c.agentes || []).filter(a => !a.arquivado);
@@ -343,6 +363,8 @@ function htmlConta(c) {
         <button type="button" aria-label="Aumentar" onclick="mudarLimite('${c.chave}', ${c.limite + 1})" ${c.limite >= 50 ? 'disabled' : ''}>+</button>
       </div>
     </div>
+    <div class="bloco-tit">WhatsApp da conta</div>
+    ${htmlConexao(c)}
     <div class="bloco-tit">Agentes</div>
     <div class="agentes">${ativos.map(a => htmlAgente(a, c)).join('')}${vagas}${!ativos.length && !livres ? '<p class="sub">Sem vagas. Aumente os agentes contratados.</p>' : ''}</div>
     ${arq.length ? `<details class="arq"><summary>Arquivados (${arq.length})</summary><div class="acessos" style="margin-top:8px">${arq.map(a => `<div class="acesso"><div><b>${esc(a.nome || 'Sem nome')}</b> <small>· ${esc(a.tipoNome)} · versão ${a.versao}</small></div>
@@ -412,11 +434,11 @@ async function suporte(conta) {
 async function encerrarSuporte(conta) { await acaoERecarrega('encerrarSuporte', { conta }, 'Modo suporte encerrado.'); }
 
 /* ---------- conexão ---------- */
-let conAgente = null;
-function abrirConexao(agente) {
-  conAgente = agente;
-  const a = DADOS.contas.flatMap(c => c.agentes).find(x => x.chave === agente);
-  $('#sCon').textContent = (a.nome || 'Agente') + ' · vaga ' + a.slot;
+let conConta = null;
+function abrirConexao(conta) {
+  conConta = conta;
+  const c = DADOS.contas.find(x => x.chave === conta);
+  $('#sCon').textContent = c.nome + ' · um número para todos os agentes da conta';
   $('#urlEnvio').value = ''; $('#tokenRest').value = ''; $('#resCon').innerHTML = '';
   $('#dlgCon').showModal();
 }
@@ -426,7 +448,7 @@ async function testarConexao(salvar) {
   $('#btTestar').disabled = $('#btSalvarCon').disabled = true;
   $('#resCon').innerHTML = '<p class="sub" style="margin-top:14px">Testando na LeadVox…</p>';
   try {
-    const j = await api('conexao', { agente: conAgente, urlEnvio, tokenRest: $('#tokenRest').value.trim(), salvar });
+    const j = await api('conexao', { conta: conConta, urlEnvio, tokenRest: $('#tokenRest').value.trim(), salvar });
     const filas = (j.filas || []).map(f => `<tr><td>${esc(f.id)}</td><td>${esc(f.nome)}</td></tr>`).join('');
     $('#resCon').innerHTML = `
       <p class="${j.aprovado ? 'ok-txt' : 'aviso'}">${j.aprovado ? (j.salvo ? '✅ Conexão testada e salva.' : '✅ Token aceito. Clique em "Testar e salvar" para gravar.') : '❌ Token recusado.'}</p>
@@ -447,6 +469,26 @@ async function testarConexao(salvar) {
 }
 $('#btTestar').onclick = () => testarConexao(false);
 $('#btSalvarCon').onclick = () => testarConexao(true);
+
+/* ---------- onde atua ---------- */
+let lugAgente = null;
+function abrirLugar(agente) {
+  lugAgente = agente;
+  const c = DADOS.contas.find(x => (x.agentes || []).some(a => a.chave === agente));
+  const a = c.agentes.find(x => x.chave === agente);
+  const ocupados = {}; c.agentes.filter(x => !x.arquivado && x.chave !== agente && x.departamentoId).forEach(x => ocupados[x.departamentoId] = x.nome || 'outro agente');
+  const filas = (c.conexao || {}).filas || [];
+  $('#sLugar').textContent = (a.nome || 'Agente') + ' · ' + a.tipoNome;
+  $('#lugDep').innerHTML = '<option value="">Nenhum</option>' + (filas.length ? filas.map(f => `<option value="${esc(f.id)}" ${String(f.id) === String(a.departamentoId) ? 'selected' : ''} ${ocupados[f.id] ? 'disabled' : ''}>${esc(f.nome)} (${esc(f.id)})${ocupados[f.id] ? ' — já é de ' + esc(ocupados[f.id]) : ''}</option>`).join('')
+    : (a.departamentoId ? `<option value="${esc(a.departamentoId)}" selected>departamento ${esc(a.departamentoId)}</option>` : ''));
+  if (!filas.length) toast('Conecte a LeadVox da conta para listar os departamentos.', true);
+  $('#lugEnt').checked = !!a.entrada;
+  $('#dlgLugar').showModal();
+}
+$('#btLugar').onclick = async () => {
+  await api('lugar', { agente: lugAgente, departamento: $('#lugDep').value, entrada: $('#lugEnt').checked });
+  $('#dlgLugar').close(); toast('Salvo.'); carregar();
+};
 
 /* ---------- histórico ---------- */
 const ORIGEM = (o) => {
