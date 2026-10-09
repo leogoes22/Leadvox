@@ -331,14 +331,15 @@ function htmlAgente(a, c) {
   </div>`;
 }
 function htmlConexao(c) {
-  const x = c.conexao || {}, end = DADOS.enderecos || {};
+  const x = c.conexao || {}, e0 = DADOS.enderecos || {};
+  const end = (e0.porConta || {})[c.chave] || { motor: '(atualize o workflow do admin para ver o endereço)', sentinela: '(atualize o workflow do admin para ver o endereço)' };
   if (!x.conectado) return `<div class="acesso" style="border:0;padding:0"><span class="con" style="color:var(--amarelo)">Sem conexão da LeadVox. Todos os agentes desta conta usam o mesmo número.</span>
     <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Conectar LeadVox</button></div>`;
   return `<div class="acesso" style="border:0;padding:0"><span>📱 <b>${esc(x.nomeCanal || 'Canal')}</b> <small>${esc(x.numero || '')} · tenant ${esc(x.tenantId)} · sessão ${esc(x.sessionId)} · ${(x.filas || []).length} departamentos</small></span>
       <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Trocar / testar de novo</button></div>
     <div class="ends" style="margin-top:8px">
-      <div class="copia"><span>Chatflow</span><code title="${esc(end.motor + c.chave)}">${esc(end.motor + c.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.motor + c.chave)}">Copiar</button></div>
-      <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela + c.chave)}">${esc(end.sentinela + c.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela + c.chave)}">Copiar</button></div>
+      <div class="copia"><span>Chatflow</span><code title="${esc(end.motor)}">${esc(end.motor)}</code><button class="sm" type="button" data-copiar="${esc(end.motor)}">Copiar</button></div>
+      <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela)}">${esc(end.sentinela)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela)}">Copiar</button></div>
     </div>`;
 }
 function htmlConta(c) {
