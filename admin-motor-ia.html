@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Motor IA — admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #070d1c; --painel: #0e1730; --painel2: #121d3a; --linha: #1f2b4a; --texto: #e8edf7;
+    --suave: #8b97b3; --verde: #2be87b; --verde-escuro: #0b3d24; --erro: #ff6b6b; --amarelo: #f5c451;
+    --raio: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--navy); }
+  body { margin: 0; color: var(--texto); font: 16px/1.55 "DM Sans", system-ui, sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 1240px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+  h1 { font: 700 28px/1.1 Syne, sans-serif; margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--suave); font-weight: 600; }
+  h2 { font: 600 19px/1.2 Syne, sans-serif; margin: 0 0 4px; }
+  h3 { font: 600 16px/1.25 Syne, sans-serif; margin: 0; }
+  .sub { color: var(--suave); margin: 0 0 18px; font-size: 15px; }
+  main { max-width: 1240px; margin: 0 auto; padding: 16px 24px 80px; display: grid; gap: 24px; }
+  .topo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 24px; }
+  @media (max-width: 900px) { .topo { grid-template-columns: 1fr; } }
+  section { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 24px; }
+  label { display: block; font-size: 14px; font-weight: 500; margin: 14px 0 6px; }
+  label small { color: var(--suave); font-weight: 400; }
+  input, select, textarea { width: 100%; padding: 11px 12px; border-radius: var(--raio);
+    border: 1px solid var(--linha); background: var(--navy); color: var(--texto); font: inherit; font-size: 15px; }
+  textarea { min-height: 84px; resize: vertical; font-size: 13px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  @media (max-width: 560px) { .duas { grid-template-columns: 1fr; } }
+  .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: center; }
+  button { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 10px 16px;
+    border: 1px solid var(--linha); background: transparent; color: var(--texto); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--suave); }
+  button.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); font-weight: 700; }
+  button.perigo { border-color: rgba(255,107,107,.5); color: var(--erro); }
+  button.sm { padding: 6px 11px; font-size: 13px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .chave-admin { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .chave-admin input { width: 260px; }
+  .aviso { color: var(--erro); font-size: 14px; margin: 12px 0 0; }
+  .ok-txt { color: var(--verde); font-size: 14px; margin: 12px 0 0; }
+  .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .numero { background: var(--navy); border: 1px solid var(--linha); border-radius: 12px; padding: 14px; }
+  .numero b { display: block; font: 700 28px/1.1 Syne, sans-serif; }
+  .numero span { color: var(--suave); font-size: 13px; }
+  .busca { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+  .busca input { max-width: 340px; }
+  /* conta */
+  .conta { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 20px 22px; }
+  .conta.suspensa { border-color: rgba(255,107,107,.45); }
+  .conta-topo { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: start; }
+  .conta-topo .id { color: var(--suave); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  .obs { color: var(--suave); font-size: 13px; margin-top: 4px; }
+  .pill { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--linha); color: var(--suave); vertical-align: middle; margin-left: 6px; white-space: nowrap; }
+  .pill.verde { border-color: var(--verde); color: var(--verde); }
+  .pill.vermelho { border-color: var(--erro); color: var(--erro); }
+  .pill.amarelo { border-color: var(--amarelo); color: var(--amarelo); }
+  .vagas { display: flex; align-items: center; gap: 8px; background: var(--navy); border: 1px solid var(--linha); border-radius: 12px; padding: 8px 10px; }
+  .vagas b { font: 700 22px/1 Syne, sans-serif; min-width: 26px; text-align: center; }
+  .vagas small { color: var(--suave); font-size: 12px; line-height: 1.25; }
+  .vagas button { width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1; }
+  .bloco-tit { font: 600 14px Syne, sans-serif; color: var(--verde); margin: 18px 0 8px; }
+  .agentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .agente { background: var(--painel2); border: 1px solid var(--linha); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .agente.ligado { border-color: rgba(43,232,123,.55); }
+  .agente .linha1 { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+  .agente .slot { color: var(--suave); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .agente .nome { font: 600 17px Syne, sans-serif; }
+  .agente .tipo { color: var(--suave); font-size: 13px; }
+  .agente .pend { font-size: 13px; color: var(--amarelo); }
+  .agente .con { font-size: 13px; color: var(--suave); }
+  .agente .botoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .agente.vaga { border-style: dashed; background: transparent; justify-content: center; }
+  .agente.vaga p { margin: 0; color: var(--suave); font-size: 14px; }
+  .agente.vaga .migrar { display: flex; gap: 6px; }
+  .agente.vaga .migrar select { flex: 1; min-width: 0; }
+  .agente.vaga .migrar button { white-space: nowrap; }
+  .agente.vaga select { padding: 6px 8px; font-size: 13px; }
+  .ends { display: grid; gap: 6px; min-width: 0; }
+  .copia { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .copia code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--navy); border: 1px solid var(--linha); border-radius: 8px; padding: 5px 8px; font-size: 12px; color: var(--texto); }
+  .copia span { color: var(--suave); font-size: 12px; width: 70px; flex: none; }
+  .acessos { display: grid; gap: 6px; }
+  .acesso { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; border-top: 1px solid var(--linha); padding-top: 8px; }
+  .acesso:first-child { border-top: 0; padding-top: 0; }
+  .acesso small { color: var(--suave); }
+  .form-inline { display: grid; grid-template-columns: 1.3fr 1fr 1fr auto; gap: 8px; margin-top: 8px; align-items: end; }
+  .form-inline input { padding: 8px 10px; font-size: 14px; }
+  @media (max-width: 720px) { .form-inline { grid-template-columns: 1fr; } }
+  .rodape-conta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--linha); }
+  details.arq summary { cursor: pointer; color: var(--suave); font-size: 14px; margin-top: 14px; }
+  .vazio { color: var(--suave); text-align: center; padding: 32px; }
+  /* modais */
+  dialog { background: var(--painel); color: var(--texto); border: 1px solid var(--linha); border-radius: 16px; padding: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+  dialog::backdrop { background: rgba(3,6,14,.72); }
+  .modal { padding: 24px; overflow: auto; max-height: calc(100vh - 48px); }
+  .modal-topo { display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 8px; }
+  .fechar { padding: 4px 10px; font-size: 18px; }
+  .msgs { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+  .msgs li { background: var(--navy); border: 1px solid var(--linha); border-radius: 8px; padding: 8px 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+  th { text-align: left; color: var(--suave); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--linha); }
+  td { padding: 8px; border-bottom: 1px solid var(--linha); }
+  .versao { border-top: 1px solid var(--linha); padding: 12px 0; display: grid; grid-template-columns: 54px 1fr auto; gap: 4px 12px; align-items: start; }
+  .versao:first-of-type { border-top: 0; }
+  .versao .num { font: 700 18px Syne, sans-serif; color: var(--suave); }
+  .versao.atual .num { color: var(--verde); }
+  .versao pre { grid-column: 2 / -1; background: var(--navy); border: 1px solid var(--linha); border-radius: 8px; padding: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; margin: 6px 0 0; }
+  .link-suporte { background: var(--verde); color: var(--navy); border-radius: 12px; padding: 16px; margin-top: 12px; }
+  .link-suporte a { color: var(--navy); font-weight: 700; }
+  .link-suporte .copia code { background: #fff; color: var(--navy); border-color: #fff; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--texto); color: var(--navy);
+    padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; max-width: calc(100vw - 32px); text-align: center; }
+  .toast.on { opacity: 1; }
+  .toast.erro { background: var(--erro); color: #fff; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motor IA <span>agentes de IA LeadVox</span></h1>
+  <form class="chave-admin" id="formChave" onsubmit="return false">
+    <label for="adminKey" style="margin:0">Chave de admin</label>
+    <input id="adminKey" type="password" autocomplete="off" placeholder="a mesma do n8n">
+    <button class="principal" id="btEntrar" type="submit">Entrar</button>
+  </form>
+</header>
+
+<main>
+  <div class="topo">
+    <section>
+      <h2>Novo cliente</h2>
+      <p class="sub">Crie a conta e diga quantos agentes ele contratou. O cliente escolhe o tipo de cada agente no plugin.</p>
+      <form id="formConta" autocomplete="off" onsubmit="return false">
+        <div class="duas">
+          <div><label for="cNome">Nome do cliente</label><input id="cNome" placeholder="Ex.: Vassouras GranRio"></div>
+          <div><label for="cLimite">Agentes contratados</label><input id="cLimite" type="number" min="0" max="50" value="1"></div>
+        </div>
+        <div class="duas">
+          <div><label for="cEmail">E-mail de acesso <small>(login do plugin)</small></label><input id="cEmail" type="email" placeholder="contato@cliente.com"></div>
+          <div><label for="cZap">WhatsApp <small>(recebe o código)</small></label><input id="cZap" inputmode="tel" placeholder="21 99999-9999"></div>
+        </div>
+        <div class="duas">
+          <div><label for="cResp">Nome do responsável <small>(opcional)</small></label><input id="cResp"></div>
+          <div><label for="cObs">Observação <small>(só você vê)</small></label><input id="cObs" placeholder="Ex.: plano Pro, vence dia 10"></div>
+        </div>
+        <div class="acoes"><button class="principal" id="btCriar" type="submit">Criar cliente</button></div>
+        <p id="msgConta" role="status"></p>
+      </form>
+    </section>
+    <section>
+      <h2>Resumo</h2>
+      <p class="sub">Atualiza a cada ação.</p>
+      <div class="numeros">
+        <div class="numero"><b id="nContas">—</b><span>clientes</span></div>
+        <div class="numero"><b id="nLigados">—</b><span>agentes ligados</span></div>
+        <div class="numero"><b id="nVagas">—</b><span>vagas livres</span></div>
+      </div>
+      <p class="sub" style="margin:16px 0 0">Mudanças feitas aqui valem no atendimento em até 1 minuto.</p>
+    </section>
+  </div>
+
+  <div>
+    <div class="busca">
+      <h2 style="margin:0 12px 0 0">Clientes</h2>
+      <input id="busca" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar cliente">
+      <button class="sm" id="btAtualizar" type="button">Atualizar</button>
+    </div>
+    <div id="lista" style="display:grid;gap:16px;margin-top:12px"><p class="vazio">Digite a chave de admin e clique em Entrar.</p></div>
+  </div>
+</main>
+
+<!-- modal: conexão LeadVox -->
+<dialog id="dlgCon" aria-labelledby="tCon">
+  <div class="modal">
+    <div class="modal-topo"><div><h2 id="tCon">Conexão da LeadVox</h2><p class="sub" id="sCon" style="margin:0"></p></div>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar">×</button></div>
+    <label for="urlEnvio">URL de envio <small>(API Config da LeadVox, completa, com ?token=)</small></label>
+    <textarea id="urlEnvio" placeholder="https://chatapi.leadvox.com.br/v1/api/external/.../?token=..."></textarea>
+    <label for="tokenRest">Token REST <small>(opcional — usado para CRM e etiquetas)</small></label>
+    <input id="tokenRest" autocomplete="off">
+    <div class="acoes">
+      <button id="btTestar" type="button">Testar</button>
+      <button class="principal" id="btSalvarCon" type="button">Testar e salvar</button>
+    </div>
+    <div id="resCon"></div>
+  </div>
+</dialog>
+
+<!-- modal: histórico -->
+<dialog id="dlgHist" aria-labelledby="tHist">
+  <div class="modal">
+    <div class="modal-topo"><div><h2 id="tHist">Histórico</h2><p class="sub" id="sHist" style="margin:0"></p></div>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar">×</button></div>
+    <div id="resHist"></div>
+  </div>
+</dialog>
+
+<!-- modal: suporte -->
+<dialog id="dlgSup" aria-labelledby="tSup">
+  <div class="modal">
+    <div class="modal-topo"><div><h2 id="tSup">Modo suporte</h2><p class="sub" style="margin:0">Link de acesso ao plugin deste cliente, válido por 2 horas.</p></div>
+      <button class="fechar" type="button" data-fechar aria-label="Fechar">×</button></div>
+    <div id="resSup"></div>
+  </div>
+</dialog>
+
+<!-- modal: confirmar -->
+<dialog id="dlgOk" aria-labelledby="tOk">
+  <div class="modal">
+    <h2 id="tOk">Confirmar</h2>
+    <p id="txtOk" class="sub" style="margin:8px 0 0"></p>
+    <div class="acoes"><button id="btOkNao" type="button">Cancelar</button><button class="principal" id="btOkSim" type="button">Confirmar</button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Endereço do workflow "Motor IA · Admin" no N8N
+   ═══════════════════════════════════════════════════════════════════ */
+const API = 'https://webhook.lv-mktdeconversa.com/webhook/iag-admin';
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PEND = { conta_suspensa: 'conta suspensa', arquivado: 'arquivado', nao_configurado: 'cliente ainda não terminou de configurar no plugin', sem_conexao: 'falta a conexão da LeadVox' };
+let DADOS = { contas: [], tipos: [], enderecos: {} };
+
+/* ---------- utilidades ---------- */
+function guardar(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+function ler(k) { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } }
+let tToast;
+function toast(msg, erro) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast on' + (erro ? ' erro' : '');
+  clearTimeout(tToast); tToast = setTimeout(() => t.className = 'toast', erro ? 5200 : 2600);
+}
+async function api(acao, dados = {}) {
+  const key = $('#adminKey').value.trim();
+  if (!key) { toast('Digite a chave de admin.', true); throw new Error('sem chave'); }
+  let r, j;
+  try {
+    r = await fetch(API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey: key, acao, ...dados }) }) });
+    j = await r.json();
+  } catch (e) {
+    toast('Não consegui falar com o N8N. Confira se o workflow do admin está ativo.', true); throw e;
+  }
+  if (!j || j.ok === false) { toast((j && j.erro) || 'Algo deu errado.', true); const er = new Error('api'); er.resposta = j; throw er; }
+  return j;
+}
+function confirmar(texto) {
+  return new Promise(res => {
+    const d = $('#dlgOk'); $('#txtOk').textContent = texto;
+    const fim = (v) => { d.close(); $('#btOkSim').onclick = $('#btOkNao').onclick = null; res(v); };
+    $('#btOkSim').onclick = () => fim(true); $('#btOkNao').onclick = () => fim(false);
+    d.showModal();
+  });
+}
+async function copiar(txt) {
+  try { await navigator.clipboard.writeText(txt); toast('Copiado.'); }
+  catch (e) { toast('Não deu para copiar automaticamente. Selecione e copie.', true); }
+}
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-copiar]'); if (c) copiar(c.dataset.copiar);
+  const f = e.target.closest('[data-fechar]'); if (f) f.closest('dialog').close();
+});
+const dataBr = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); };
+
+/* ---------- carregar e desenhar ---------- */
+async function carregar() {
+  const j = await api('listar');
+  DADOS = { contas: j.contas || [], tipos: j.tipos || [], enderecos: j.enderecos || {} };
+  guardar('iagAdminKey', $('#adminKey').value.trim());
+  desenhar();
+}
+function desenhar() {
+  const q = $('#busca').value.trim().toLowerCase();
+  const contas = DADOS.contas.filter(c => !q || c.nome.toLowerCase().includes(q) ||
+    (c.acessos || []).some(a => a.email.includes(q)));
+  let ligados = 0, livres = 0;
+  DADOS.contas.forEach(c => { ligados += (c.agentes || []).filter(a => a.ativo && !a.arquivado).length; livres += Math.max(c.limite - c.emUso, 0); });
+  $('#nContas').textContent = DADOS.contas.length; $('#nLigados').textContent = ligados; $('#nVagas').textContent = livres;
+  $('#lista').innerHTML = contas.length ? contas.map(htmlConta).join('') :
+    '<p class="vazio">' + (DADOS.contas.length ? 'Nenhum cliente encontrado.' : 'Nenhum cliente ainda. Crie o primeiro acima.') + '</p>';
+}
+const tiposOpt = (sel, soAtivos) => DADOS.tipos.filter(t => !soAtivos || t.ativo)
+  .map(t => `<option value="${esc(t.codigo)}" ${t.codigo === sel ? 'selected' : ''}>${esc(t.nome)}${t.ativo ? '' : ' (fase 2)'}</option>`).join('');
+
+function htmlAgente(a, c) {
+  const pend = (a.pendencias || []).filter(p => p !== 'conta_suspensa');
+  const status = a.ativo ? '<span class="pill verde">ligado</span>' : '<span class="pill">desligado</span>';
+  const end = DADOS.enderecos || {};
+  const con = a.conectado
+    ? `<div class="con">Conexão: ${esc(a.canal || 'canal')} ligada</div>
+       <div class="ends">
+         <div class="copia"><span>Chatflow</span><code title="${esc(end.motor + a.chave)}">${esc(end.motor + a.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.motor + a.chave)}">Copiar</button></div>
+         <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela + a.chave)}">${esc(end.sentinela + a.chave)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela + a.chave)}">Copiar</button></div>
+       </div>`
+    : '<div class="con">Sem conexão da LeadVox.</div>';
+  return `<div class="agente ${a.ativo ? 'ligado' : ''}">
+    <div class="linha1"><div><div class="slot">Vaga ${a.slot}</div><div class="nome">${esc(a.nome || 'Sem nome ainda')}</div>
+      <div class="tipo">${esc(a.tipoNome)} · versão ${a.versao}${a.ultima ? ' · ' + esc(dataBr(a.ultima.em)) : ''}</div></div>${status}</div>
+    ${pend.length ? `<div class="pend">Pendente: ${pend.map(p => esc(PEND[p] || p)).join('; ')}</div>` : ''}
+    ${con}
+    <div class="botoes">
+      <button class="sm" type="button" onclick="abrirConexao('${a.chave}')">${a.conectado ? 'Trocar conexão' : 'Conectar LeadVox'}</button>
+      <button class="sm ${a.ativo ? 'perigo' : ''}" type="button" onclick="ligar('${a.chave}', ${!a.ativo})">${a.ativo ? 'Desligar' : 'Ligar'}</button>
+      <button class="sm" type="button" onclick="historico('${a.chave}')">Histórico</button>
+      <select class="sm" aria-label="Trocar tipo" onchange="trocarTipo('${a.chave}', this)" style="width:auto;padding:6px 8px;font-size:13px">${tiposOpt(a.tipo)}</select>
+      <button class="sm perigo" type="button" onclick="arquivar('${a.chave}', true)">Arquivar</button>
+    </div>
+  </div>`;
+}
+function htmlConta(c) {
+  const ativos = (c.agentes || []).filter(a => !a.arquivado);
+  const arq = (c.agentes || []).filter(a => a.arquivado);
+  const livres = Math.max(c.limite - ativos.length, 0);
+  const vagas = Array.from({ length: livres }, () => `<div class="agente vaga">
+      <p>Vaga livre — o cliente cria o agente pelo plugin.</p>
+      <div class="migrar"><select aria-label="Tipo do agente">${tiposOpt('', true)}</select>
+      <button class="sm" type="button" onclick="criarAgente('${c.chave}', this)">Criar aqui</button></div></div>`).join('');
+  const acessos = (c.acessos || []).map(x => `<div class="acesso">
+      <div><b>${esc(x.email)}</b> <small>· ${esc(x.whatsapp)}${x.nome ? ' · ' + esc(x.nome) : ''}</small>
+      ${x.temSenha ? '<span class="pill verde">senha criada</span>' : '<span class="pill amarelo">aguardando 1º acesso</span>'}</div>
+      <button class="sm perigo" type="button" onclick="removerAcesso('${c.chave}', '${esc(x.email)}')">Remover</button></div>`).join('');
+  return `<article class="conta ${c.bloqueado ? 'suspensa' : ''}" id="c-${c.chave}">
+    <div class="conta-topo">
+      <div><h3>${esc(c.nome)}${c.bloqueado ? '<span class="pill vermelho">suspensa</span>' : ''}${c.suporteAberto ? '<span class="pill amarelo">suporte aberto</span>' : ''}</h3>
+        <div class="id">${esc(c.chave)}</div>${c.observacao ? `<div class="obs">${esc(c.observacao)}</div>` : ''}</div>
+      <div class="vagas" role="group" aria-label="Agentes contratados">
+        <button type="button" aria-label="Diminuir" onclick="mudarLimite('${c.chave}', ${c.limite - 1})" ${c.limite <= ativos.length ? 'disabled' : ''}>−</button>
+        <b>${c.limite}</b><small>agentes<br>contratados · ${ativos.length} em uso</small>
+        <button type="button" aria-label="Aumentar" onclick="mudarLimite('${c.chave}', ${c.limite + 1})" ${c.limite >= 50 ? 'disabled' : ''}>+</button>
+      </div>
+    </div>
+    <div class="bloco-tit">Agentes</div>
+    <div class="agentes">${ativos.map(a => htmlAgente(a, c)).join('')}${vagas}${!ativos.length && !livres ? '<p class="sub">Sem vagas. Aumente os agentes contratados.</p>' : ''}</div>
+    ${arq.length ? `<details class="arq"><summary>Arquivados (${arq.length})</summary><div class="acessos" style="margin-top:8px">${arq.map(a => `<div class="acesso"><div><b>${esc(a.nome || 'Sem nome')}</b> <small>· ${esc(a.tipoNome)} · versão ${a.versao}</small></div>
+      <button class="sm" type="button" onclick="arquivar('${a.chave}', false)">Desarquivar</button></div>`).join('')}</div></details>` : ''}
+    <div class="bloco-tit">Acessos ao plugin</div>
+    <div class="acessos">${acessos || '<p class="sub">Nenhum acesso.</p>'}</div>
+    <form class="form-inline" onsubmit="return false" aria-label="Novo acesso">
+      <div><label class="sr" for="ne-${c.chave}">E-mail</label><input id="ne-${c.chave}" type="email" placeholder="novo e-mail"></div>
+      <div><label class="sr" for="nz-${c.chave}">WhatsApp</label><input id="nz-${c.chave}" placeholder="WhatsApp"></div>
+      <div><label class="sr" for="nn-${c.chave}">Nome</label><input id="nn-${c.chave}" placeholder="nome (opcional)"></div>
+      <button class="sm" type="submit" onclick="novoAcesso('${c.chave}')">Adicionar</button>
+    </form>
+    <div class="rodape-conta">
+      <button class="sm" type="button" onclick="suporte('${c.chave}')">Abrir modo suporte</button>
+      ${c.suporteAberto ? `<button class="sm" type="button" onclick="encerrarSuporte('${c.chave}')">Encerrar suporte</button>` : ''}
+      <button class="sm" type="button" onclick="editarConta('${c.chave}')">Editar nome / observação</button>
+      <button class="sm ${c.bloqueado ? '' : 'perigo'}" type="button" onclick="bloquear('${c.chave}', ${!c.bloqueado})">${c.bloqueado ? 'Reativar conta' : 'Suspender conta'}</button>
+    </div>
+  </article>`;
+}
+
+/* ---------- ações ---------- */
+async function acaoERecarrega(acao, dados, ok) { await api(acao, dados); if (ok) toast(ok); await carregar(); }
+async function mudarLimite(conta, limite) { await acaoERecarrega('editarConta', { conta, limite }, 'Agentes contratados: ' + limite); }
+async function ligar(agente, ligarIA) {
+  if (!ligarIA && !(await confirmar('Desligar este agente? Ele para de responder em até 1 minuto.'))) return;
+  await acaoERecarrega('ativo', { agente, ligar: ligarIA }, ligarIA ? 'Agente ligado.' : 'Agente desligado.');
+}
+async function trocarTipo(agente, sel) {
+  if (!(await confirmar('Trocar o tipo deste agente? A configuração atual fica guardada, mas o comportamento da IA muda.'))) { desenhar(); return; }
+  try { await acaoERecarrega('trocarTipo', { agente, tipo: sel.value }, 'Tipo trocado.'); } catch (e) { desenhar(); }
+}
+async function arquivar(agente, arq) {
+  if (arq && !(await confirmar('Arquivar este agente? Ele é desligado e a vaga fica livre. A configuração e o histórico ficam guardados.'))) return;
+  await acaoERecarrega('arquivar', { agente, arquivar: arq }, arq ? 'Agente arquivado.' : 'Agente de volta.');
+}
+async function criarAgente(conta, bt) {
+  const tipo = bt.parentElement.querySelector('select').value;
+  await acaoERecarrega('criarAgente', { conta, tipo }, 'Agente criado. Configure pelo modo suporte ou deixe o cliente configurar.');
+}
+async function bloquear(conta, bloq) {
+  if (bloq && !(await confirmar('Suspender esta conta? Todos os agentes dela param de responder em até 1 minuto.'))) return;
+  await acaoERecarrega('bloquear', { conta, bloqueado: bloq }, bloq ? 'Conta suspensa.' : 'Conta reativada.');
+}
+async function novoAcesso(conta) {
+  const email = $('#ne-' + conta).value.trim(), whatsapp = $('#nz-' + conta).value.trim(), nome = $('#nn-' + conta).value.trim();
+  if (!email || !whatsapp) { toast('Preencha e-mail e WhatsApp.', true); return; }
+  await acaoERecarrega('acesso', { conta, email, whatsapp, nome }, 'Acesso criado. No primeiro login a pessoa recebe o código no WhatsApp.');
+}
+async function removerAcesso(conta, email) {
+  if (!(await confirmar('Remover o acesso de ' + email + '?'))) return;
+  await acaoERecarrega('removerAcesso', { conta, email }, 'Acesso removido.');
+}
+async function editarConta(conta) {
+  const c = DADOS.contas.find(x => x.chave === conta);
+  const nome = prompt('Nome do cliente:', c.nome); if (nome === null) return;
+  const observacao = prompt('Observação (só você vê):', c.observacao || ''); if (observacao === null) return;
+  await acaoERecarrega('editarConta', { conta, nome, observacao }, 'Salvo.');
+}
+async function suporte(conta) {
+  const j = await api('suporte', { conta });
+  $('#resSup').innerHTML = `<div class="link-suporte"><p style="margin:0 0 8px"><b>Link pronto.</b> Expira ${esc(dataBr(j.expiraEm))}. Quem tiver o link entra no plugin deste cliente.</p>
+    <div class="copia"><code>${esc(j.link)}</code><button class="sm" type="button" data-copiar="${esc(j.link)}" style="background:var(--navy);color:#fff;border-color:var(--navy)">Copiar</button></div>
+    <p style="margin:10px 0 0"><a href="${esc(j.link)}" target="_blank" rel="noopener">Abrir o plugin em outra aba →</a></p></div>`;
+  $('#dlgSup').showModal(); carregar();
+}
+async function encerrarSuporte(conta) { await acaoERecarrega('encerrarSuporte', { conta }, 'Modo suporte encerrado.'); }
+
+/* ---------- conexão ---------- */
+let conAgente = null;
+function abrirConexao(agente) {
+  conAgente = agente;
+  const a = DADOS.contas.flatMap(c => c.agentes).find(x => x.chave === agente);
+  $('#sCon').textContent = (a.nome || 'Agente') + ' · vaga ' + a.slot;
+  $('#urlEnvio').value = ''; $('#tokenRest').value = ''; $('#resCon').innerHTML = '';
+  $('#dlgCon').showModal();
+}
+async function testarConexao(salvar) {
+  const urlEnvio = $('#urlEnvio').value.trim();
+  if (!urlEnvio) { toast('Cole a URL de envio.', true); return; }
+  $('#btTestar').disabled = $('#btSalvarCon').disabled = true;
+  $('#resCon').innerHTML = '<p class="sub" style="margin-top:14px">Testando na LeadVox…</p>';
+  try {
+    const j = await api('conexao', { agente: conAgente, urlEnvio, tokenRest: $('#tokenRest').value.trim(), salvar });
+    const filas = (j.filas || []).map(f => `<tr><td>${esc(f.id)}</td><td>${esc(f.nome)}</td></tr>`).join('');
+    $('#resCon').innerHTML = `
+      <p class="${j.aprovado ? 'ok-txt' : 'aviso'}">${j.aprovado ? (j.salvo ? '✅ Conexão testada e salva.' : '✅ Token aceito. Clique em "Testar e salvar" para gravar.') : '❌ Token recusado.'}</p>
+      ${j.aviso ? `<p class="aviso">${esc(j.aviso)}</p>` : ''}
+      <p class="sub" style="margin:8px 0 0">Tenant ${esc(j.leadvox.tenantId)} · sessão ${esc(j.leadvox.sessionId)} · ${esc(j.leadvox.canal)}</p>
+      <ul class="msgs">${(j.mensagens || []).map(m => `<li>${esc(m)}</li>`).join('')}</ul>
+      ${filas ? `<table><thead><tr><th>ID da fila</th><th>Setor</th></tr></thead><tbody>${filas}</tbody></table>` : ''}
+      ${j.salvo ? `<div class="ends" style="margin-top:14px">
+        <p class="sub" style="margin:0">Cole na LeadVox desta conexão:</p>
+        <div class="copia"><span>Chatflow</span><code>${esc(j.enderecos.motor)}</code><button class="sm" type="button" data-copiar="${esc(j.enderecos.motor)}">Copiar</button></div>
+        <div class="copia"><span>Eventos</span><code>${esc(j.enderecos.sentinela)}</code><button class="sm" type="button" data-copiar="${esc(j.enderecos.sentinela)}">Copiar</button></div></div>` : ''}`;
+    if (j.salvo) carregar();
+  } catch (e) {
+    const r = e.resposta;
+    $('#resCon').innerHTML = `<p class="aviso">${esc((r && r.erro) || 'Não deu certo.')}</p>` +
+      (r && r.mensagens ? `<ul class="msgs">${r.mensagens.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '');
+  } finally { $('#btTestar').disabled = $('#btSalvarCon').disabled = false; }
+}
+$('#btTestar').onclick = () => testarConexao(false);
+$('#btSalvarCon').onclick = () => testarConexao(true);
+
+/* ---------- histórico ---------- */
+const ORIGEM = (o) => {
+  if (!o) return 'sistema';
+  if (o === 'plugin') return 'cliente pelo plugin';
+  if (o.startsWith('suporte:')) return 'suporte (' + o.slice(8) + ')';
+  if (o.startsWith('restaurar:')) { const p = o.split(':'); return 'restaurou a versão ' + p[1] + (p[2] ? ' (' + p[2] + ')' : ''); }
+  if (o === 'admin-criacao') return 'criado pelo admin';
+  return o;
+};
+async function historico(agente) {
+  const a = DADOS.contas.flatMap(c => c.agentes).find(x => x.chave === agente);
+  $('#sHist').textContent = (a.nome || 'Agente') + ' · ' + a.tipoNome;
+  $('#resHist').innerHTML = '<p class="sub">Carregando…</p>'; $('#dlgHist').showModal();
+  const j = await api('historico', { agente });
+  $('#resHist').innerHTML = (j.versoes || []).map(v => `<div class="versao ${v.versao === j.atual ? 'atual' : ''}">
+      <div class="num">v${v.versao}</div>
+      <div><b>${esc(ORIGEM(v.origem))}</b><br><small style="color:var(--suave)">${esc(dataBr(v.em))}${v.versao === j.atual ? ' · versão atual' : ''}</small></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:end">
+        <button class="sm" type="button" onclick="this.closest('.versao').querySelector('pre').hidden ^= 1">Ver</button>
+        ${v.versao !== j.atual ? `<button class="sm" type="button" onclick="restaurar('${agente}', ${v.versao})">Restaurar</button>` : ''}</div>
+      <pre hidden>${esc(JSON.stringify(v.config, null, 2))}</pre></div>`).join('') || '<p class="sub">Sem versões.</p>';
+}
+async function restaurar(agente, versao) {
+  if (!(await confirmar('Restaurar a versão ' + versao + '? Ela vira a versão atual (a de hoje continua no histórico).'))) return;
+  await api('restaurar', { agente, versao }); toast('Versão ' + versao + ' restaurada.'); historico(agente); carregar();
+}
+
+/* ---------- criar conta ---------- */
+$('#btCriar').onclick = async () => {
+  const msg = $('#msgConta'); msg.className = ''; msg.textContent = '';
+  const dados = { nome: $('#cNome').value.trim(), limite: $('#cLimite').value, email: $('#cEmail').value.trim(),
+    whatsapp: $('#cZap').value.trim(), nomeUsuario: $('#cResp').value.trim(), observacao: $('#cObs').value.trim() };
+  if (!dados.nome || !dados.email || !dados.whatsapp) { msg.className = 'aviso'; msg.textContent = 'Preencha nome, e-mail e WhatsApp.'; return; }
+  $('#btCriar').disabled = true;
+  try {
+    await api('criarConta', dados);
+    msg.className = 'ok-txt';
+    msg.textContent = '✅ Cliente criado. Mande o link do plugin para ' + dados.email + ': no primeiro acesso ele recebe um código no WhatsApp e cria a senha.';
+    ['#cNome', '#cEmail', '#cZap', '#cResp', '#cObs'].forEach(s => $(s).value = ''); $('#cLimite').value = 1;
+    await carregar();
+  } catch (e) { msg.className = 'aviso'; msg.textContent = (e.resposta && e.resposta.erro) || 'Não deu certo.'; }
+  finally { $('#btCriar').disabled = false; }
+};
+
+/* ---------- início ---------- */
+$('#btEntrar').onclick = () => carregar().catch(() => {});
+$('#btAtualizar').onclick = () => carregar().catch(() => {});
+$('#busca').oninput = desenhar;
+window.addEventListener('unhandledrejection', (e) => e.preventDefault());
+const k = ler('iagAdminKey'); if (k) { $('#adminKey').value = k; carregar().catch(() => {}); }
+</script>
+</body>
+</html>
