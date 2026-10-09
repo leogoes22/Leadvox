@@ -434,7 +434,9 @@ $$('#abas button').forEach(b => b.onclick = () => irAba(b.dataset.aba));
 
 /* ---------- agentes ---------- */
 const ICONES = { sdr: '🎯', recepcao: '🧭', suporte: '🛟', catalogo: '🛒', agendamento: '📅' };
-const PEND = { conta_suspensa: 'conta suspensa — fale com a LeadVox', arquivado: 'arquivado', nao_configurado: 'termine a configuração e clique em "Concluir"', sem_conexao: 'aguardando a LeadVox ligar o WhatsApp deste agente' };
+const PEND = { conta_suspensa: 'conta suspensa — fale com a LeadVox', arquivado: 'arquivado', nao_configurado: 'termine a configuração e clique em "Concluir"', sem_conexao: 'aguardando a LeadVox ligar o WhatsApp da sua conta', sem_departamento: 'escolha o departamento onde ele atua' };
+let FILAS = [];   // departamentos da LeadVox (guardados ao abrir um agente)
+const nomeFila = (id) => { const f = FILAS.find(x => String(x.id) === String(id)); return f ? f.nome : 'departamento ' + id; };
 function desenharAgentes() {
   const v = PAINEL.vagas;
   $('#txtVagas').textContent = v.limite === 1 ? 'Seu plano tem 1 agente.' : 'Seu plano tem ' + v.limite + ' agentes · ' + v.emUso + ' em uso.';
@@ -442,6 +444,7 @@ function desenharAgentes() {
     const pend = (a.pendencias || []);
     return `<div class="card ag ${a.ativo ? 'on' : ''}">
       <div style="min-width:0"><b class="nome">${ICONES[a.tipo] || ''} ${esc(a.nome || 'Sem nome')}</b><span class="tipo">${esc(a.tipoNome)}${a.ativo ? ' · <span style="color:var(--verde)">atendendo</span>' : ' · desligado'}</span>
+        <span class="tipo" style="display:block">${[a.entrada ? '🚪 porta de entrada' : '', a.departamentoId ? '🗂️ ' + esc(nomeFila(a.departamentoId)) : ''].filter(Boolean).join(' · ')}</span>
         ${pend.length ? `<p class="pend">${pend.map(p => esc(PEND[p] || p)).join(' · ')}</p>` : ''}</div>
       <div class="acoes"><button type="button" class="switch" role="switch" aria-checked="${a.ativo}" aria-label="Ligar ou desligar ${esc(a.nome)}" data-ligar="${a.chave}"><span></span></button>
         <button class="principal sm" type="button" data-abrir="${a.chave}">Configurar</button></div></div>`;
@@ -482,13 +485,13 @@ async function ligar(chave, ligarIA) {
 
 /* ═══════════ EDITOR ═══════════ */
 const TIPO_PASSOS = {
-  sdr:         ['identidade', 'empresa', 'horario', 'conhecimento', 'precos', 'catalogo', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
-  recepcao:    ['identidade', 'empresa', 'horario', 'conhecimento', 'setores', 'coleta', 'materiais', 'crm', 'revisar'],
-  suporte:     ['identidade', 'empresa', 'horario', 'conhecimento', 'materiais', 'setores', 'revisar'],
-  catalogo:    ['identidade', 'empresa', 'horario', 'catalogo', 'conhecimento', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
-  agendamento: ['identidade', 'empresa', 'horario', 'precos', 'conhecimento', 'coleta', 'setores', 'materiais', 'followup', 'crm', 'revisar']
+  sdr:         ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'precos', 'catalogo', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
+  recepcao:    ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'setores', 'coleta', 'materiais', 'crm', 'revisar'],
+  suporte:     ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'materiais', 'setores', 'revisar'],
+  catalogo:    ['identidade', 'lugar', 'empresa', 'horario', 'catalogo', 'conhecimento', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
+  agendamento: ['identidade', 'lugar', 'empresa', 'horario', 'precos', 'conhecimento', 'coleta', 'setores', 'materiais', 'followup', 'crm', 'revisar']
 };
-const NOMES_PASSO = { identidade: 'Identidade', empresa: 'Empresa', horario: 'Horário', conhecimento: 'Conhecimento', precos: 'Preços',
+const NOMES_PASSO = { identidade: 'Identidade', lugar: 'Onde atua', empresa: 'Empresa', horario: 'Horário', conhecimento: 'Conhecimento', precos: 'Preços',
   catalogo: 'Catálogo', materiais: 'Materiais', coleta: 'Coleta de dados', setores: 'Setores', followup: 'Follow-up', crm: 'CRM', revisar: 'Revisar' };
 const CAMPOS_PADRAO = {
   sdr: [['Nome', true], ['Cidade ou bairro', false], ['O que procura', true], ['Para quando precisa', false], ['Forma de pagamento', false]],
@@ -528,7 +531,10 @@ async function abrirAgente(chave, novo) {
     const j = await api('carregar', { agente: chave });
     const pad = configPadrao(j.agente.tipo, j.agente.nome);
     const vazio = !j.config || !Object.keys(j.config).filter(k => k !== 'identidade').length;
-    AG = { agente: j.agente, versao: j.versao, config: vazio ? mesclar(pad, j.config) : mesclar(pad, j.config), lv: j.leadvox || { filas: [], usuarios: [], etapas: [] } };
+    AG = { agente: j.agente, versao: j.versao, config: vazio ? mesclar(pad, j.config) : mesclar(pad, j.config), lv: j.leadvox || { filas: [], usuarios: [], etapas: [] },
+           lugar: { departamento: j.agente.departamentoId || null, entrada: !!j.agente.entrada } };
+    AG.lugarOrig = { ...AG.lugar };
+    if (AG.lv.filas.length) FILAS = AG.lv.filas;
     if (!MATS.length) { try { MATS = (await api('materialListar')).materiais || []; } catch (e) {} }
   } catch (e) { toast(e.message, true); return; }
   $('#vAgentes').hidden = true; $('#vEditor').hidden = false; $('#barra').hidden = false; $('#caixaConflito').hidden = true;
@@ -601,6 +607,17 @@ const PASSOS = {
       $('#previa').textContent = 'Olá, tudo bem?' + em + '\n' + (ap || ('Eu sou ' + n + ', do atendimento da ' + (AG.config.empresa.nome || 'empresa') + '.')) + '\nComo posso te ajudar?'; };
       ['#pNome', '#pApres', '#pEmoji'].forEach(s => $(s).addEventListener('input', up)); up(); },
     ler: (c) => { c.identidade = { nome: $('#pNome').value.trim(), apresentacao: $('#pApres').value.trim(), tom: radioVal('tom') || 'amigavel', emojis: $('#pEmoji').value, tratamento: $('#pTrat').value }; }
+  },
+  lugar: {
+    html: () => { const outros = {}; PAINEL.agentes.filter(x => x.chave !== AG.agente.chave && x.departamentoId).forEach(x => outros[x.departamentoId] = x.nome);
+      const ent = PAINEL.agentes.find(x => x.chave !== AG.agente.chave && x.entrada);
+      return `<div class="card"><h2>Onde ${esc(AG.config.identidade.nome || 'o agente')} atua</h2>
+      <p class="muted">Cada agente cuida de um departamento da LeadVox. Quando um atendimento chega nesse departamento, é ele quem responde.</p>
+      ${AG.lv.filas.length ? `<label for="lgDep">Departamento</label><select id="lgDep"><option value="">Nenhum</option>${AG.lv.filas.map(f => `<option value="${f.id}" ${String(f.id) === String(AG.lugar.departamento) ? 'selected' : ''} ${outros[f.id] ? 'disabled' : ''}>${esc(f.nome)}${outros[f.id] ? ' — já é de ' + esc(outros[f.id]) : ''}</option>`).join('')}</select>`
+        : `<p class="alerta">Os departamentos aparecem aqui assim que a LeadVox ligar o WhatsApp da sua conta.</p><input type="hidden" id="lgDep" value="${AG.lugar.departamento || ''}">`}
+      <label class="check-lin"><input type="checkbox" id="lgEnt" ${AG.lugar.entrada ? 'checked' : ''}> <span><b>Porta de entrada</b> — atende as conversas novas, que ainda não têm departamento${ent ? ` <small class="muted">(hoje é ${esc(ent.nome)}; marcar aqui passa para este agente)</small>` : ''}</span></label>
+      <p class="dica">Exemplo: a Triagem é a porta de entrada; o SDR fica em "Comercial"; o Suporte em "Suporte". Departamentos sem agente ficam com a sua equipe.</p></div>`; },
+    ler: () => { AG.lugar = { departamento: Number($('#lgDep').value) || null, entrada: $('#lgEnt').checked }; }
   },
   empresa: {
     html: (c) => `<div class="card"><h2>Empresa</h2><p class="muted">O que a IA precisa saber sobre o negócio.</p>
@@ -681,11 +698,13 @@ const PASSOS = {
   },
   setores: {
     html: (c) => { const temFilas = AG.lv.filas.length;
-      return `<div class="card"><h2>Setores e transferência</h2><p class="muted">Para onde a IA manda o atendimento e quando.</p>
+      return `<div class="card"><h2>Setores e transferência</h2><p class="muted">Para onde a IA manda o atendimento e quando. Se o departamento tiver um agente (🤖), ele assume a conversa; se não, sua equipe (👤) assume.</p>
       ${temFilas ? '' : '<p class="alerta">Ainda não consegui ler as filas da LeadVox deste agente. A LeadVox precisa ligar o WhatsApp dele primeiro.</p>'}
       <div id="lSet"></div>
       <label for="trMsg">Mensagem ao passar para a equipe <small>(opcional)</small></label><textarea id="trMsg" maxlength="500" style="min-height:64px" placeholder="Ex.: Perfeito! Já passei seu pedido para nosso time comercial.">${esc(c.transferencia.mensagem)}</textarea></div>`; },
-    depois: (c) => { const opF = AG.lv.filas.map(f => ({ v: f.id, t: f.nome + ' (' + f.id + ')' }));
+    depois: (c) => { const dono = {}; PAINEL.agentes.forEach(x => { if (x.departamentoId && x.chave !== AG.agente.chave) dono[x.departamentoId] = '🤖 ' + x.nome; });
+      if (AG.lugar.departamento) dono[AG.lugar.departamento] = 'este agente';
+      const opF = AG.lv.filas.map(f => ({ v: f.id, t: f.nome + (dono[f.id] ? ' — ' + dono[f.id] : ' — 👤 equipe') }));
       const campoFila = opF.length ? { k: 'filaId', rot: 'Fila da LeadVox', tipo: 'select', opcoes: [{ v: '', t: 'Escolha…' }, ...opF] } : { k: 'filaId', rot: 'ID da fila', tipo: 'number' };
       lista($('#lSet'), c.setores, [{ k: 'nome', rot: 'Setor', max: 60, ph: 'Ex.: Vendas' }, campoFila,
         { k: 'quando', rot: 'Quando mandar para este setor', tipo: 'textarea', max: 400, ph: 'Ex.: quem quer comprar ou pedir orçamento' },
@@ -721,6 +740,7 @@ const PASSOS = {
       ${f.length ? `<p class="alerta">Antes de concluir, falta:</p><ul class="falta">${f.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="dica">Tudo certo. Clique em <b>Concluir</b> para liberar o agente.</p>'}
       <dl class="resumo">
         <dt>Agente</dt><dd>${esc(c.identidade.nome)} · ${esc(AG.agente.tipoNome)}</dd>
+        <dt>Onde atua</dt><dd>${[AG.lugar.entrada ? 'porta de entrada' : '', AG.lugar.departamento ? nomeFila(AG.lugar.departamento) : ''].filter(Boolean).join(' · ') || 'não definido'}</dd>
         <dt>Empresa</dt><dd>${esc(c.empresa.nome)}${c.empresa.segmento ? ' · ' + esc(c.empresa.segmento) : ''}</dd>
         <dt>Endereços</dt><dd>${c.empresa.unidades.length || 'nenhum'}</dd>
         <dt>Perguntas frequentes / respostas oficiais</dt><dd>${c.conhecimento.faq.length} / ${c.conhecimento.oficiais.length}</dd>
@@ -738,6 +758,7 @@ const PASSOS = {
 function faltando(c) {
   const f = [], t = AG.agente.tipo;
   if (!c.identidade.nome) f.push('nome do agente (Identidade)');
+  if (!AG.lugar.entrada && !AG.lugar.departamento) f.push('departamento onde o agente atua (Onde atua)');
   if (!c.empresa.nome) f.push('nome da empresa (Empresa)');
   if (!c.empresa.descricao) f.push('o que a empresa faz (Empresa)');
   if (!c.setores.length) f.push('pelo menos 1 setor com fila (Setores)');
@@ -778,6 +799,11 @@ async function salvar(concluir, porCima) {
   if (concluir && faltando(AG.config).length) { irPasso(TIPO_PASSOS[AG.agente.tipo].length - 1, true); return; }
   $('#btSalvar').disabled = true;
   try {
+    if (AG.lugar.departamento !== AG.lugarOrig.departamento || AG.lugar.entrada !== AG.lugarOrig.entrada) {
+      const l = await api('lugar', { agente: AG.agente.chave, departamento: AG.lugar.departamento, entrada: AG.lugar.entrada });
+      AG.agente = l.agente; AG.lugarOrig = { ...AG.lugar };
+      try { await carregarPainel(); } catch (e) {}
+    }
     const j = await api('salvar', { agente: AG.agente.chave, config: AG.config, versaoBase: porCima ? null : AG.versao, concluir });
     AG.versao = j.versao; AG.agente = j.agente || AG.agente; sujo = false; $('#caixaConflito').hidden = true;
     cabecalhoEditor();
