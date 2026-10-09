@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Seus agentes de IA — LeadVox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #070d1c; --painel: #0e1730; --painel2: #121d3a; --linha: #1f2b4a; --texto: #e8edf7; --suave: #8b97b3;
+    --verde: #2be87b; --verde-fundo: rgba(43,232,123,.10); --erro: #ff6b6b; --amarelo: #ffc861; --raio: 10px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--navy); color: var(--texto); font: 15px/1.5 "DM Sans", system-ui, sans-serif; }
+  h1, h2, h3 { font-family: Syne, sans-serif; letter-spacing: -.01em; margin: 0; }
+  h1 { font-size: 22px; line-height: 1.15; } h2 { font-size: 18px; margin-bottom: 4px; } h3 { font-size: 16px; }
+  p { margin: 0; }
+  .muted { color: var(--suave); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 18px 16px 120px; }
+  .card { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 18px; margin-top: 14px; }
+  label { display: block; font-weight: 500; font-size: 14px; margin: 14px 0 6px; }
+  label small, .rot small { color: var(--suave); font-weight: 400; }
+  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--linha); border-radius: var(--raio);
+    font: inherit; color: var(--texto); background: var(--navy); color-scheme: dark; }
+  option { background: var(--navy); color: var(--texto); }
+  input::placeholder, textarea::placeholder { color: #56627f; }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .tres { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 520px) { .duas, .tres { grid-template-columns: 1fr; } }
+  button { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--linha); background: transparent; color: var(--texto); }
+  button.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); font-weight: 700; }
+  button.leve { border: 0; background: none; color: var(--verde); padding: 6px 0; }
+  button.perigo { color: var(--erro); border-color: rgba(255,107,107,.4); }
+  button.sm { padding: 6px 11px; font-size: 13px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .erro { color: var(--erro); font-size: 14px; margin-top: 10px; }
+  .ok-msg { color: var(--verde); font-size: 14px; margin-top: 10px; }
+  .dica { background: var(--verde-fundo); border: 1px solid rgba(43,232,123,.25); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+  .alerta { background: rgba(255,200,97,.08); border: 1px solid rgba(255,200,97,.35); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+
+  /* porta */
+  .porta { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .porta .card { width: 100%; max-width: 400px; padding: 28px 22px; }
+  .marca-lv { font: 700 15px Syne, sans-serif; color: var(--suave); margin-bottom: 14px; text-align: center; }
+  .marca-lv b { color: var(--verde); }
+  .porta h1, .porta .sub { text-align: center; }
+  .lembrar { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 12px; }
+  .lembrar input { width: auto; }
+  .codigo-in { font: 700 26px Syne, sans-serif; letter-spacing: .35em; text-align: center; }
+
+  /* topo do app */
+  .topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .topo .marca-lv { margin: 0; text-align: left; }
+  .faixa-sup { border: 1px dashed var(--verde); background: var(--verde-fundo); border-radius: 14px; padding: 10px 14px; margin-top: 12px; font-size: 14px; }
+  .faixa-sup b { color: var(--verde); font-family: Syne, sans-serif; }
+  .abas { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 2px; scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .abas button { flex: 0 0 auto; padding: 8px 14px; font-size: 14px; border-radius: 99px; background: var(--painel); }
+  .abas button[aria-pressed="true"] { background: var(--verde); color: var(--navy); border-color: var(--verde); font-weight: 700; }
+
+  /* agentes */
+  .ag { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+  .ag.on { border-color: rgba(43,232,123,.45); }
+  .ag b.nome { font: 700 17px Syne, sans-serif; display: block; }
+  .ag .tipo { color: var(--suave); font-size: 13px; }
+  .ag .pend { color: var(--amarelo); font-size: 13px; margin-top: 4px; }
+  .ag .acoes { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; }
+  .vaga { border-style: dashed; text-align: center; }
+  .tipos { display: grid; gap: 10px; margin-top: 12px; }
+  .tipo-op { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; cursor: pointer; text-align: left; width: 100%; background: var(--navy); }
+  .tipo-op b { display: block; font-family: Syne, sans-serif; }
+  .tipo-op small { color: var(--suave); font-size: 13.5px; }
+  .tipo-op[aria-pressed="true"] { border-color: var(--verde); background: var(--verde-fundo); }
+  .tipo-op .ic { font-size: 22px; line-height: 1; }
+  .switch { flex: 0 0 auto; width: 56px; height: 32px; border-radius: 99px; padding: 0; border: 1px solid var(--linha); background: var(--navy); position: relative; }
+  .switch span { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--suave); transition: transform .18s, background .18s; }
+  .switch[aria-checked="true"] { background: var(--verde); border-color: var(--verde); }
+  .switch[aria-checked="true"] span { transform: translateX(24px); background: var(--navy); }
+  @media (prefers-reduced-motion: reduce) { .switch span { transition: none; } }
+
+  /* editor */
+  .passos { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 2px; scrollbar-width: none; }
+  .passos::-webkit-scrollbar { display: none; }
+  .passos button { flex: 0 0 auto; padding: 7px 12px; font-size: 13px; border-radius: 99px; background: var(--painel); }
+  .passos button[aria-current="step"] { background: var(--verde); color: var(--navy); border-color: var(--verde); font-weight: 700; }
+  .passo { display: none; } .passo.ativo { display: block; }
+  .ultima { font-size: 13px; color: var(--suave); margin-top: 4px; }
+  .opcoes { display: grid; gap: 8px; margin-top: 6px; }
+  .opcao { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; cursor: pointer; font-weight: 400; margin: 0; }
+  .opcao input { width: auto; margin-top: 3px; }
+  .opcao:has(input:checked) { border-color: var(--verde); background: var(--verde-fundo); }
+  .opcao span small { display: block; color: var(--suave); }
+  .linha-lista { border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px; margin-top: 10px; position: relative; background: var(--navy); }
+  .linha-lista .tirar { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: var(--suave); font-size: 20px; padding: 2px 8px; }
+  .linha-lista > div > label:first-child, .linha-lista > label:first-child { margin-top: 0; }
+  .linha-lista input, .linha-lista select, .linha-lista textarea { background: var(--painel); }
+  .check-lin { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 12px; }
+  .check-lin input { width: auto; }
+  .dia { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--linha); }
+  .dia:first-of-type { border-top: 0; }
+  .dia label { margin: 0; display: flex; gap: 8px; align-items: center; }
+  .dia input[type=checkbox] { width: 18px; height: 18px; }
+  .dia input[type=time]:disabled { opacity: .35; }
+  .conversa { background: #0b141a; border: 1px solid var(--linha); border-radius: 12px; padding: 14px; margin-top: 12px; }
+  .balao { background: #202c33; color: #e9edef; border-radius: 0 10px 10px 10px; padding: 9px 12px; max-width: 92%; font-size: 14.5px; white-space: pre-wrap; }
+  .resumo dt { font-weight: 500; margin-top: 10px; } .resumo dd { margin: 2px 0 0; color: var(--suave); }
+  .falta li { color: var(--amarelo); }
+  .barra { position: fixed; left: 0; right: 0; bottom: 0; background: var(--painel); border-top: 1px solid var(--linha); padding: 10px 16px; z-index: 5; }
+  .barra .in { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+  .barra .meio { color: var(--suave); font-size: 13px; text-align: center; flex: 1; }
+  .conflito { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* catálogo, materiais, pedidos */
+  .lista-topo { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .busca-lin { display: grid; grid-template-columns: 1fr 160px; gap: 8px; margin-top: 12px; }
+  @media (max-width: 460px) { .busca-lin { grid-template-columns: 1fr; } }
+  .item { display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); }
+  .item:first-child { border-top: 0; }
+  .item .capa { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; background: var(--navy); border: 1px solid var(--linha); display: grid; place-items: center; color: var(--suave); font-size: 11px; text-align: center; }
+  .item b { display: block; line-height: 1.25; overflow-wrap: anywhere; }
+  .item small { color: var(--suave); display: block; }
+  .item .preco { color: var(--verde); font-weight: 700; font-size: 14px; }
+  .st { display: inline-block; font-size: 11.5px; border-radius: 99px; padding: 1px 8px; margin-top: 4px; border: 1px solid var(--linha); color: var(--suave); }
+  .st.disponivel, .st.aprovado { color: var(--verde); border-color: rgba(43,232,123,.4); }
+  .st.reservado, .st.enviado, .st.rascunho { color: var(--amarelo); border-color: rgba(255,200,97,.4); }
+  .st.indisponivel, .st.cancelado { color: var(--erro); border-color: rgba(255,107,107,.4); }
+  .soltar { display: block; border: 2px dashed var(--linha); border-radius: var(--raio); padding: 18px 12px; text-align: center; margin-top: 8px; cursor: pointer; font-weight: 400; }
+  .soltar.sobre { border-color: var(--verde); background: var(--verde-fundo); }
+  .soltar input { display: none; }
+  .fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+  .foto { position: relative; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--navy); }
+  .foto img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  .foto .acoes { display: flex; justify-content: space-between; padding: 2px; }
+  .foto .acoes button { padding: 4px 9px; border: 0; font-size: 15px; }
+  .foto .acoes button:disabled { opacity: .25; }
+  .foto .capa-tag { position: absolute; top: 6px; left: 6px; background: var(--verde); color: var(--navy); font: 700 11px "DM Sans"; border-radius: 99px; padding: 1px 8px; }
+  .pedido { border-top: 1px solid var(--linha); padding: 12px 0; }
+  .pedido:first-child { border-top: 0; }
+  .pedido .cab { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .pedido ul { margin: 6px 0 0; padding-left: 18px; color: var(--suave); font-size: 14px; }
+  .pedido .botoes { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  dialog { background: var(--painel); color: var(--texto); border: 1px solid var(--linha); border-radius: 16px; padding: 0; width: min(640px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+  dialog::backdrop { background: rgba(3,6,14,.72); }
+  .modal { padding: 20px; overflow: auto; max-height: calc(100vh - 32px); }
+  .modal-topo { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+  .versao { border-top: 1px solid var(--linha); padding: 10px 0; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .versao:first-child { border-top: 0; }
+  .toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: var(--texto); color: var(--navy);
+    padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; max-width: calc(100vw - 32px); text-align: center; }
+  .toast.on { opacity: 1; } .toast.erro { background: var(--erro); color: #fff; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ ENTRADA ═══════════ -->
+<div id="telaPorta" class="porta">
+  <div class="card" id="cardLogin">
+    <div class="marca-lv">Lead<b>Vox</b></div>
+    <h1>Seus agentes de IA</h1>
+    <p class="muted sub" style="margin-top:6px">Entre com o e-mail cadastrado na LeadVox.</p>
+    <form onsubmit="return false">
+      <label for="lEmail">E-mail</label><input id="lEmail" type="email" autocomplete="username">
+      <label for="lSenha">Senha</label><input id="lSenha" type="password" autocomplete="current-password">
+      <label class="lembrar"><input type="checkbox" id="lLembrar" checked> Manter conectado neste aparelho</label>
+      <button class="principal" id="btLogin" type="submit" style="width:100%;margin-top:14px">Entrar</button>
+    </form>
+    <p id="erroLogin" class="erro" hidden></p>
+    <div style="display:flex;justify-content:space-between;margin-top:12px">
+      <button class="leve" type="button" id="btPrimeiro">Primeiro acesso</button>
+      <button class="leve" type="button" id="btEsqueci">Esqueci minha senha</button>
+    </div>
+  </div>
+  <div class="card" id="cardCodigo" hidden>
+    <div class="marca-lv">Lead<b>Vox</b></div>
+    <h1 id="tCodigo">Primeiro acesso</h1>
+    <p class="muted sub" style="margin-top:6px">Vamos mandar um código de 6 números no WhatsApp cadastrado.</p>
+    <form onsubmit="return false" id="formPedir">
+      <label for="cEmail">E-mail</label><input id="cEmail" type="email" autocomplete="username">
+      <button class="principal" id="btPedir" type="submit" style="width:100%;margin-top:14px">Receber código</button>
+    </form>
+    <form onsubmit="return false" id="formConfirmar" hidden>
+      <p class="ok-msg" id="msgPedir"></p>
+      <label for="cCodigo">Código</label><input id="cCodigo" class="codigo-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      <label for="cSenha">Crie sua senha <small>(mínimo 8 caracteres)</small></label><input id="cSenha" type="password" autocomplete="new-password">
+      <button class="principal" id="btConfirmar" type="submit" style="width:100%;margin-top:14px">Confirmar e entrar</button>
+      <button class="leve" type="button" id="btReenviar" style="margin-top:8px">Mandar outro código</button>
+    </form>
+    <p id="erroCodigo" class="erro" hidden></p>
+    <button class="leve" type="button" id="btVoltarLogin" style="margin-top:8px">← Voltar</button>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="telaApp" hidden>
+  <div class="wrap">
+    <div class="topo"><div class="marca-lv">Lead<b>Vox</b> · <span id="nomeConta" style="color:var(--texto)"></span></div>
+      <button class="leve" id="btSair" type="button">Sair</button></div>
+    <div id="faixaSup" class="faixa-sup" hidden></div>
+    <nav class="abas" id="abas" aria-label="Seções">
+      <button type="button" data-aba="agentes" aria-pressed="true">Agentes</button>
+      <button type="button" data-aba="catalogo" aria-pressed="false">Catálogo</button>
+      <button type="button" data-aba="materiais" aria-pressed="false">Materiais</button>
+      <button type="button" data-aba="pedidos" aria-pressed="false">Pedidos</button>
+    </nav>
+
+    <!-- agentes -->
+    <section id="vAgentes">
+      <div class="card" style="margin-top:14px"><h1>Seus agentes</h1>
+        <p class="muted" id="txtVagas" style="margin-top:4px"></p></div>
+      <div id="listaAgentes"></div>
+      <div class="card" id="cardNovo" hidden>
+        <h2>Criar agente</h2>
+        <p class="muted">Escolha o que ele vai fazer. <b>Depois de criado, o tipo não muda</b> (só a LeadVox troca).</p>
+        <div class="tipos" id="tiposNovo"></div>
+        <label for="novoNome">Nome do agente <small>(como ele se apresenta)</small></label>
+        <input id="novoNome" maxlength="40" placeholder="Ex.: Vivi">
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="principal" id="btCriarAg" type="button">Criar agente</button>
+          <button type="button" id="btCancelarNovo">Cancelar</button></div>
+        <p class="erro" id="erroNovo" hidden></p>
+      </div>
+    </section>
+
+    <!-- editor -->
+    <section id="vEditor" hidden>
+      <button class="leve" type="button" id="btVoltarAg" style="margin-top:12px">← Seus agentes</button>
+      <div class="card ag" id="cardLiga" style="margin-top:8px">
+        <div><b class="nome" id="edNome"></b><span class="tipo" id="edTipo"></span>
+          <p class="ultima" id="edUltima"></p><p class="pend" id="edPend"></p></div>
+        <div class="acoes"><button type="button" class="switch" id="edSwitch" role="switch" aria-checked="false" aria-label="Ligar ou desligar o agente"><span></span></button></div>
+      </div>
+      <nav class="passos" id="passos" aria-label="Etapas"></nav>
+      <div id="passosConteudo"></div>
+      <div id="caixaConflito" class="alerta" hidden></div>
+    </section>
+
+    <!-- catálogo -->
+    <section id="vCatalogo" hidden>
+      <div class="card"><div class="lista-topo"><div><h1>Catálogo</h1><p class="muted">Produtos e serviços que a IA pode mostrar, com foto e preço.</p></div>
+        <button class="principal" type="button" id="btNovoItem">+ Novo item</button></div>
+        <div class="busca-lin"><input id="buscaItem" type="search" placeholder="Buscar por nome, código ou categoria" aria-label="Buscar no catálogo">
+          <select id="filtroItem" aria-label="Situação"><option value="">Todos</option><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Indisponível</option></select></div>
+        <div id="listaItens" style="margin-top:10px"></div></div>
+    </section>
+
+    <!-- materiais -->
+    <section id="vMateriais" hidden>
+      <div class="card"><div class="lista-topo"><div><h1>Materiais</h1><p class="muted">PDFs, vídeos, imagens e links que a IA pode enviar na conversa.</p></div>
+        <button class="principal" type="button" id="btNovoMat">+ Novo material</button></div>
+        <div id="listaMat" style="margin-top:10px"></div></div>
+    </section>
+
+    <!-- pedidos -->
+    <section id="vPedidos" hidden>
+      <div class="card"><div class="lista-topo"><div><h1>Pedidos e orçamentos</h1><p class="muted">Montados pela IA durante as conversas.</p></div>
+        <select id="filtroPed" aria-label="Situação" style="width:auto"><option value="">Todos</option><option value="rascunho">Em andamento</option><option value="enviado">Enviados</option><option value="aprovado">Aprovados</option><option value="cancelado">Cancelados</option></select></div>
+        <div id="listaPed" style="margin-top:10px"></div></div>
+    </section>
+  </div>
+
+  <div class="barra" id="barra" hidden><div class="in">
+    <button type="button" id="btAnterior">Voltar</button>
+    <span class="meio" id="barraMeio"></span>
+    <button type="button" id="btSalvar">Salvar</button>
+    <button class="principal" type="button" id="btProximo">Próximo</button>
+  </div></div>
+</div>
+
+<!-- item do catálogo -->
+<dialog id="dlgItem" aria-labelledby="tItem"><div class="modal">
+  <div class="modal-topo"><h2 id="tItem">Item</h2><button class="leve" type="button" data-fechar style="font-size:22px;color:var(--suave)" aria-label="Fechar">×</button></div>
+  <form onsubmit="return false" id="formItem">
+    <div class="duas"><div><label for="iNome">Nome</label><input id="iNome" maxlength="160"></div>
+      <div><label for="iCodigo">Código <small>(opcional)</small></label><input id="iCodigo" maxlength="40"></div></div>
+    <div class="duas"><div><label for="iCat">Categoria</label><input id="iCat" maxlength="80" list="listaCats"><datalist id="listaCats"></datalist></div>
+      <div><label for="iStatus">Situação</label><select id="iStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Indisponível</option></select></div></div>
+    <label for="iDesc">Descrição <small>(o que a IA pode falar sobre o item)</small></label><textarea id="iDesc" maxlength="4000"></textarea>
+    <div class="tres"><div><label for="iPrecoTipo">Preço</label><select id="iPrecoTipo"><option value="fixo">Valor fixo</option><option value="a_partir">A partir de</option><option value="consulta">Sob consulta</option></select></div>
+      <div><label for="iPreco">Valor (R$)</label><input id="iPreco" inputmode="decimal" placeholder="12,90"></div>
+      <div><label for="iUnid">Unidade</label><input id="iUnid" maxlength="12" placeholder="un, cx, kg"></div></div>
+    <div class="duas"><div><label for="iMin">Quantidade mínima</label><input id="iMin" type="number" min="1" value="1"></div>
+      <div><label for="iMult">Vende de quantos em quantos</label><input id="iMult" type="number" min="1" value="1"></div></div>
+    <label class="check-lin"><input type="checkbox" id="iDestaque"> Destaque (a IA oferece primeiro)</label>
+    <label style="margin-top:16px">Fotos <small>(a primeira é a capa)</small></label>
+    <label class="soltar" id="soltarFotos">Toque para escolher fotos ou arraste aqui<input type="file" id="iFotos" accept="image/*" multiple></label>
+    <div class="fotos" id="iFotosLista"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button class="principal" id="btSalvarItem" type="submit" style="flex:1 1 180px">Salvar item</button>
+      <button class="perigo" id="btExcluirItem" type="button" hidden>Excluir</button></div>
+    <p class="erro" id="erroItem" hidden></p>
+  </form>
+</div></dialog>
+
+<!-- material -->
+<dialog id="dlgMat" aria-labelledby="tMat"><div class="modal">
+  <div class="modal-topo"><h2 id="tMat">Material</h2><button class="leve" type="button" data-fechar style="font-size:22px;color:var(--suave)" aria-label="Fechar">×</button></div>
+  <form onsubmit="return false">
+    <label for="mTitulo">Título</label><input id="mTitulo" maxlength="120" placeholder="Ex.: Catálogo completo 2026">
+    <label for="mTipo">Tipo</label><select id="mTipo"><option value="pdf">PDF</option><option value="video">Vídeo (MP4)</option><option value="imagem">Imagem</option><option value="audio">Áudio</option><option value="link">Link</option></select>
+    <div id="mArqBox"><label class="soltar" id="soltarMat">Toque para escolher o arquivo (até 10 MB)<input type="file" id="mArquivo"></label></div>
+    <label for="mUrl">Endereço do arquivo <small>(preenchido sozinho ao enviar, ou cole um link https://)</small></label><input id="mUrl" placeholder="https://">
+    <label for="mDesc">Descrição <small>(ajuda a IA a saber quando mandar)</small></label><textarea id="mDesc" maxlength="1000"></textarea>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button class="principal" id="btSalvarMat" type="submit" style="flex:1 1 180px">Salvar material</button>
+      <button class="perigo" id="btExcluirMat" type="button" hidden>Excluir</button></div>
+    <p class="erro" id="erroMat" hidden></p>
+  </form>
+</div></dialog>
+
+<!-- histórico -->
+<dialog id="dlgHist" aria-labelledby="tHist"><div class="modal">
+  <div class="modal-topo"><h2 id="tHist">Histórico de alterações</h2><button class="leve" type="button" data-fechar style="font-size:22px;color:var(--suave)" aria-label="Fechar">×</button></div>
+  <div id="listaHist" style="margin-top:8px"></div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Endereço do workflow "Motor IA · Plugin do cliente" no N8N
+   ═══════════════════════════════════════════════════════════════════ */
+const API = 'https://webhook.lv-mktdeconversa.com/webhook/iag-plugin';
+
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BRL = (n) => n == null || n === '' ? '' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dataBr = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+let TOKEN = '', MODO = 'cliente', PAINEL = null, AG = null, CAT = [], MATS = [], passoAtual = 0, sujo = false;
+
+/* ---------- armazenamento ---------- */
+const store = {
+  get(k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k) || ''; } catch (e) { return ''; } },
+  set(k, v, lembrar) { try { (lembrar ? localStorage : sessionStorage).setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
+};
+
+/* ---------- utilidades ---------- */
+let tT;
+function toast(msg, erro) { const t = $('#toast'); t.textContent = msg; t.className = 'toast on' + (erro ? ' erro' : ''); clearTimeout(tT); tT = setTimeout(() => t.className = 'toast', erro ? 5200 : 2400); }
+function mostrarErro(el, msg) { el.textContent = msg; el.hidden = !msg; }
+async function api(acao, dados = {}, semToken) {
+  let r, j;
+  try {
+    r = await fetch(API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ acao, ...(semToken ? {} : { token: TOKEN }), ...dados }) }) });
+    j = await r.json();
+  } catch (e) { const er = new Error('Sem conexão com o servidor. Confira sua internet e tente de novo.'); throw er; }
+  if (r.status === 401 && !semToken) { sairLocal(); }
+  if (!j || j.ok === false) { const er = new Error((j && j.erro) || 'Algo deu errado.'); er.resposta = j; throw er; }
+  return j;
+}
+document.addEventListener('click', (e) => { const f = e.target.closest('[data-fechar]'); if (f) f.closest('dialog').close(); });
+
+/* ═══════════ ENTRADA ═══════════ */
+let modoCodigo = 'primeiro';
+$('#btLogin').onclick = async () => {
+  const email = $('#lEmail').value.trim(), senha = $('#lSenha').value;
+  mostrarErro($('#erroLogin'), '');
+  if (!email || !senha) { mostrarErro($('#erroLogin'), 'Preencha e-mail e senha.'); return; }
+  $('#btLogin').disabled = true;
+  try { const j = await api('login', { email, senha }, true); entrar(j.token, $('#lLembrar').checked); }
+  catch (e) { mostrarErro($('#erroLogin'), e.message); }
+  finally { $('#btLogin').disabled = false; }
+};
+function abrirCodigo(modo) {
+  modoCodigo = modo; $('#cardLogin').hidden = true; $('#cardCodigo').hidden = false;
+  $('#tCodigo').textContent = modo === 'primeiro' ? 'Primeiro acesso' : 'Criar nova senha';
+  $('#cEmail').value = $('#lEmail').value.trim(); $('#formPedir').hidden = false; $('#formConfirmar').hidden = true; mostrarErro($('#erroCodigo'), '');
+}
+$('#btPrimeiro').onclick = () => abrirCodigo('primeiro');
+$('#btEsqueci').onclick = () => abrirCodigo('esqueci');
+$('#btVoltarLogin').onclick = () => { $('#cardCodigo').hidden = true; $('#cardLogin').hidden = false; };
+async function pedirCodigo() {
+  const email = $('#cEmail').value.trim(); mostrarErro($('#erroCodigo'), '');
+  if (!email) { mostrarErro($('#erroCodigo'), 'Digite seu e-mail.'); return; }
+  $('#btPedir').disabled = true;
+  try { const j = await api('pedirCodigo', { email }, true); $('#msgPedir').textContent = j.mensagem; $('#formPedir').hidden = true; $('#formConfirmar').hidden = false; $('#cCodigo').focus(); }
+  catch (e) { mostrarErro($('#erroCodigo'), e.message); }
+  finally { $('#btPedir').disabled = false; }
+}
+$('#btPedir').onclick = pedirCodigo;
+$('#btReenviar').onclick = () => { $('#formPedir').hidden = false; $('#formConfirmar').hidden = true; pedirCodigo(); };
+$('#btConfirmar').onclick = async () => {
+  mostrarErro($('#erroCodigo'), '');
+  $('#btConfirmar').disabled = true;
+  try { const j = await api('confirmarCodigo', { email: $('#cEmail').value.trim(), codigo: $('#cCodigo').value, senha: $('#cSenha').value }, true); entrar(j.token, true); }
+  catch (e) { mostrarErro($('#erroCodigo'), e.message); }
+  finally { $('#btConfirmar').disabled = false; }
+};
+function entrar(token, lembrar) {
+  TOKEN = token; MODO = 'cliente'; store.set('iagToken', token, lembrar);
+  iniciarApp();
+}
+function sairLocal() { store.del('iagToken'); TOKEN = ''; $('#telaApp').hidden = true; $('#telaPorta').hidden = false; $('#barra').hidden = true; }
+$('#btSair').onclick = async () => { if (MODO === 'cliente') { try { await api('sair'); } catch (e) {} } sairLocal(); if (MODO === 'suporte') location.hash = ''; };
+
+/* ═══════════ APP ═══════════ */
+async function iniciarApp() {
+  $('#telaPorta').hidden = true; $('#telaApp').hidden = false;
+  try { await carregarPainel(); } catch (e) { if (TOKEN) toast(e.message, true); return; }
+  irAba('agentes');
+}
+async function carregarPainel() {
+  PAINEL = await api('painel');
+  $('#nomeConta').textContent = PAINEL.conta.nome;
+  if (PAINEL.modo === 'suporte') {
+    $('#faixaSup').hidden = false;
+    $('#faixaSup').innerHTML = '<b>Modo suporte LeadVox</b> — você está editando como ' + esc(PAINEL.quem) + '. O acesso expira ' + esc(dataBr(PAINEL.expiraEm)) + '. Tudo o que salvar fica no histórico como suporte.';
+  }
+  desenharAgentes();
+}
+function irAba(aba) {
+  if (sujo && !confirm('Você tem alterações não salvas neste agente. Sair mesmo assim?')) return;
+  sujo = false;
+  $$('#abas button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.aba === aba)));
+  $('#vAgentes').hidden = aba !== 'agentes'; $('#vEditor').hidden = true; $('#vCatalogo').hidden = aba !== 'catalogo';
+  $('#vMateriais').hidden = aba !== 'materiais'; $('#vPedidos').hidden = aba !== 'pedidos'; $('#barra').hidden = true;
+  if (aba === 'catalogo') carregarCatalogo();
+  if (aba === 'materiais') carregarMateriais();
+  if (aba === 'pedidos') carregarPedidos();
+  if (aba === 'agentes') carregarPainel().catch(e => toast(e.message, true));
+}
+$$('#abas button').forEach(b => b.onclick = () => irAba(b.dataset.aba));
+
+/* ---------- agentes ---------- */
+const ICONES = { sdr: '🎯', recepcao: '🧭', suporte: '🛟', catalogo: '🛒', agendamento: '📅' };
+const PEND = { conta_suspensa: 'conta suspensa — fale com a LeadVox', arquivado: 'arquivado', nao_configurado: 'termine a configuração e clique em "Concluir"', sem_conexao: 'aguardando a LeadVox ligar o WhatsApp deste agente' };
+function desenharAgentes() {
+  const v = PAINEL.vagas;
+  $('#txtVagas').textContent = v.limite === 1 ? 'Seu plano tem 1 agente.' : 'Seu plano tem ' + v.limite + ' agentes · ' + v.emUso + ' em uso.';
+  const cards = PAINEL.agentes.map(a => {
+    const pend = (a.pendencias || []);
+    return `<div class="card ag ${a.ativo ? 'on' : ''}">
+      <div style="min-width:0"><b class="nome">${ICONES[a.tipo] || ''} ${esc(a.nome || 'Sem nome')}</b><span class="tipo">${esc(a.tipoNome)}${a.ativo ? ' · <span style="color:var(--verde)">atendendo</span>' : ' · desligado'}</span>
+        ${pend.length ? `<p class="pend">${pend.map(p => esc(PEND[p] || p)).join(' · ')}</p>` : ''}</div>
+      <div class="acoes"><button type="button" class="switch" role="switch" aria-checked="${a.ativo}" aria-label="Ligar ou desligar ${esc(a.nome)}" data-ligar="${a.chave}"><span></span></button>
+        <button class="principal sm" type="button" data-abrir="${a.chave}">Configurar</button></div></div>`;
+  });
+  for (let i = 0; i < v.livres; i++) cards.push(`<div class="card vaga"><p class="muted">Vaga livre para mais um agente.</p>
+    <button class="principal" type="button" data-novo style="margin-top:10px">+ Criar agente</button></div>`);
+  if (!v.limite) cards.push('<div class="card"><p class="muted">Seu plano ainda não tem agentes liberados. Fale com a LeadVox.</p></div>');
+  $('#listaAgentes').innerHTML = cards.join('');
+  $$('[data-abrir]').forEach(b => b.onclick = () => abrirAgente(b.dataset.abrir));
+  $$('[data-ligar]').forEach(b => b.onclick = () => ligar(b.dataset.ligar, b.getAttribute('aria-checked') !== 'true'));
+  $$('[data-novo]').forEach(b => b.onclick = abrirNovo);
+  $('#cardNovo').hidden = true;
+}
+let tipoNovo = null;
+function abrirNovo() {
+  tipoNovo = null;
+  $('#tiposNovo').innerHTML = PAINEL.tipos.map(t => `<button type="button" class="tipo-op" aria-pressed="false" data-tipo="${esc(t.codigo)}">
+    <span class="ic" aria-hidden="true">${ICONES[t.codigo] || '🤖'}</span><span><b>${esc(t.nome)}</b><small>${esc(t.descricao)}</small></span></button>`).join('');
+  $$('#tiposNovo .tipo-op').forEach(b => b.onclick = () => { tipoNovo = b.dataset.tipo; $$('#tiposNovo .tipo-op').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('#novoNome').value = ''; mostrarErro($('#erroNovo'), ''); $('#cardNovo').hidden = false; $('#cardNovo').scrollIntoView({ behavior: 'smooth' });
+}
+$('#btCancelarNovo').onclick = () => $('#cardNovo').hidden = true;
+$('#btCriarAg').onclick = async () => {
+  if (!tipoNovo) { mostrarErro($('#erroNovo'), 'Escolha o tipo do agente.'); return; }
+  const nome = $('#novoNome').value.trim();
+  if (!nome) { mostrarErro($('#erroNovo'), 'Dê um nome ao agente.'); return; }
+  $('#btCriarAg').disabled = true;
+  try { const j = await api('criarAgente', { tipo: tipoNovo, nome }); toast('Agente criado. Vamos configurar.'); await carregarPainel(); abrirAgente(j.agente.chave, true); }
+  catch (e) { mostrarErro($('#erroNovo'), e.message); }
+  finally { $('#btCriarAg').disabled = false; }
+};
+async function ligar(chave, ligarIA) {
+  try { await api('ativo', { agente: chave, ligar: ligarIA }); toast(ligarIA ? 'Agente ligado. Ele começa a responder em até 1 minuto.' : 'Agente desligado.'); }
+  catch (e) { toast(e.message, true); }
+  await carregarPainel();
+  if (AG && AG.agente.chave === chave && !$('#vEditor').hidden) { const a = PAINEL.agentes.find(x => x.chave === chave); if (a) { AG.agente = a; cabecalhoEditor(); } }
+}
+
+/* ═══════════ EDITOR ═══════════ */
+const TIPO_PASSOS = {
+  sdr:         ['identidade', 'empresa', 'horario', 'conhecimento', 'precos', 'catalogo', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
+  recepcao:    ['identidade', 'empresa', 'horario', 'conhecimento', 'setores', 'coleta', 'materiais', 'crm', 'revisar'],
+  suporte:     ['identidade', 'empresa', 'horario', 'conhecimento', 'materiais', 'setores', 'revisar'],
+  catalogo:    ['identidade', 'empresa', 'horario', 'catalogo', 'conhecimento', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
+  agendamento: ['identidade', 'empresa', 'horario', 'precos', 'conhecimento', 'coleta', 'setores', 'materiais', 'followup', 'crm', 'revisar']
+};
+const NOMES_PASSO = { identidade: 'Identidade', empresa: 'Empresa', horario: 'Horário', conhecimento: 'Conhecimento', precos: 'Preços',
+  catalogo: 'Catálogo', materiais: 'Materiais', coleta: 'Coleta de dados', setores: 'Setores', followup: 'Follow-up', crm: 'CRM', revisar: 'Revisar' };
+const CAMPOS_PADRAO = {
+  sdr: [['Nome', true], ['Cidade ou bairro', false], ['O que procura', true], ['Para quando precisa', false], ['Forma de pagamento', false]],
+  recepcao: [['Nome', true], ['Assunto', true]],
+  suporte: [['Nome', true], ['Descrição do problema', true], ['Nº do pedido ou contrato', false]],
+  catalogo: [['Nome', true], ['Nome da empresa ou CNPJ', false], ['Cidade', true], ['Itens de interesse', true]],
+  agendamento: [['Nome', true], ['Serviço desejado', true], ['Dia e turno de preferência', true]]
+};
+function configPadrao(tipo, nome) {
+  return {
+    identidade: { nome: nome || '', apresentacao: '', tom: 'amigavel', emojis: 'pouco', tratamento: 'voce' },
+    empresa: { nome: PAINEL.conta.nome, segmento: '', descricao: '', publico: '', diferenciais: '', site: '', instagram: '', linkCatalogo: '', unidades: [] },
+    horario: { dias: { seg: { abre: '08:00', fecha: '18:00' }, ter: { abre: '08:00', fecha: '18:00' }, qua: { abre: '08:00', fecha: '18:00' },
+      qui: { abre: '08:00', fecha: '18:00' }, sex: { abre: '08:00', fecha: '18:00' }, sab: { abre: '08:00', fecha: '12:00' }, dom: null }, foraDoHorario: 'responde_avisa' },
+    conhecimento: { faq: [], oficiais: [], proibido: [], extra: '' },
+    precos: { politica: tipo === 'suporte' ? 'nao_fala' : 'a_partir', lista: [] },
+    catalogo: { usar: tipo === 'catalogo', modo: tipo === 'catalogo' ? 'pedido' : 'vitrine', fotosPorVez: 1, pagamento: '', entrega: '', regras: '', pdfOrcamento: true },
+    materiais: [],
+    coleta: { campos: (CAMPOS_PADRAO[tipo] || []).map(([n, o]) => ({ nome: n, obrigatorio: o })), teto: tipo === 'recepcao' ? 3 : 5 },
+    setores: [], transferencia: { mensagem: '' },
+    followup: { ativo: false, toques: [{ minutos: 60, texto: '' }, { minutos: 1440, texto: '' }], janelaIni: '09:00', janelaFim: '20:00' },
+    crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true }
+  };
+}
+function mesclar(pad, cfg) {
+  const out = clone(pad);
+  for (const k of Object.keys(cfg || {})) {
+    if (cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]) && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k])) out[k] = { ...out[k], ...cfg[k] };
+    else if (cfg[k] !== undefined) out[k] = cfg[k];
+  }
+  return out;
+}
+
+async function abrirAgente(chave, novo) {
+  if (sujo && !confirm('Você tem alterações não salvas. Sair mesmo assim?')) return;
+  try {
+    const j = await api('carregar', { agente: chave });
+    const pad = configPadrao(j.agente.tipo, j.agente.nome);
+    const vazio = !j.config || !Object.keys(j.config).filter(k => k !== 'identidade').length;
+    AG = { agente: j.agente, versao: j.versao, config: vazio ? mesclar(pad, j.config) : mesclar(pad, j.config), lv: j.leadvox || { filas: [], usuarios: [], etapas: [] } };
+    if (!MATS.length) { try { MATS = (await api('materialListar')).materiais || []; } catch (e) {} }
+  } catch (e) { toast(e.message, true); return; }
+  $('#vAgentes').hidden = true; $('#vEditor').hidden = false; $('#barra').hidden = false; $('#caixaConflito').hidden = true;
+  passoAtual = 0; sujo = false; cabecalhoEditor(); montarPassos(); window.scrollTo(0, 0);
+}
+function cabecalhoEditor() {
+  const a = AG.agente;
+  $('#edNome').textContent = (ICONES[a.tipo] || '') + ' ' + (AG.config.identidade.nome || a.nome || 'Agente');
+  $('#edTipo').textContent = a.tipoNome + ' · versão ' + AG.versao;
+  $('#edUltima').textContent = a.ultima ? 'Última alteração: ' + dataBr(a.ultima.em) + (a.ultima.origem && a.ultima.origem.startsWith('suporte') ? ' (suporte LeadVox)' : '') : '';
+  const pend = (a.pendencias || []);
+  $('#edPend').textContent = pend.map(p => PEND[p] || p).join(' · ');
+  $('#edSwitch').setAttribute('aria-checked', String(a.ativo));
+  $('#cardLiga').classList.toggle('on', a.ativo);
+}
+$('#edSwitch').onclick = () => { if (sujo) { toast('Salve as alterações antes de ligar.', true); return; } ligar(AG.agente.chave, $('#edSwitch').getAttribute('aria-checked') !== 'true'); };
+$('#btVoltarAg').onclick = () => irAba('agentes');
+
+/* ---------- componentes de lista ---------- */
+function campoHtml(c, v, id) {
+  const val = v == null ? '' : v;
+  if (c.tipo === 'textarea') return `<label for="${id}">${c.rot}</label><textarea id="${id}" data-c="${c.k}" maxlength="${c.max || 1000}" placeholder="${esc(c.ph || '')}">${esc(val)}</textarea>`;
+  if (c.tipo === 'select') return `<label for="${id}">${c.rot}</label><select id="${id}" data-c="${c.k}">${c.opcoes.map(o => `<option value="${esc(o.v)}" ${String(o.v) === String(val) ? 'selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`;
+  if (c.tipo === 'check') return `<label class="check-lin"><input type="checkbox" id="${id}" data-c="${c.k}" ${val ? 'checked' : ''}> ${c.rot}</label>`;
+  return `<label for="${id}">${c.rot}</label><input id="${id}" data-c="${c.k}" type="${c.tipo || 'text'}" maxlength="${c.max || 200}" value="${esc(val)}" placeholder="${esc(c.ph || '')}">`;
+}
+let uid = 0;
+function lista(el, itens, campos, opts = {}) {
+  const novo = opts.novo || (() => ({}));
+  const desenhar = () => {
+    el.innerHTML = itens.map((it, i) => `<div class="linha-lista" data-i="${i}">
+      <button type="button" class="tirar" aria-label="Remover" data-tirar="${i}">×</button>
+      ${opts.grade ? `<div class="${opts.grade}">` : ''}${campos.map(c => `<div>${campoHtml(c, typeof it === 'object' ? it[c.k] : it, 'f' + (++uid))}</div>`).join('')}${opts.grade ? '</div>' : ''}
+    </div>`).join('') + (itens.length < (opts.max || 50) ? `<button type="button" class="leve" data-mais>+ ${opts.rotMais || 'Adicionar'}</button>` : '');
+    $$('[data-tirar]', el).forEach(b => b.onclick = () => { ler(); itens.splice(+b.dataset.tirar, 1); desenhar(); sujo = true; });
+    const m = $('[data-mais]', el); if (m) m.onclick = () => { ler(); itens.push(novo()); desenhar(); sujo = true; const u = el.querySelector('.linha-lista:last-of-type input, .linha-lista:last-of-type textarea, .linha-lista:last-of-type select'); if (u) u.focus(); };
+  };
+  const ler = () => {
+    $$('.linha-lista', el).forEach(row => {
+      const i = +row.dataset.i, obj = typeof itens[i] === 'object' ? itens[i] : {};
+      $$('[data-c]', row).forEach(inp => {
+        const k = inp.dataset.c;
+        obj[k] = inp.type === 'checkbox' ? inp.checked : (inp.type === 'number' ? Number(inp.value) : inp.value);
+      });
+      itens[i] = opts.simples ? obj[campos[0].k] : obj;
+    });
+    return itens;
+  };
+  desenhar();
+  el._ler = ler;
+  return { ler };
+}
+
+/* ---------- passos ---------- */
+const op = (v, t, d) => ({ v, t, d });
+function radios(nome, opcoes, atual) {
+  return `<div class="opcoes" role="radiogroup">${opcoes.map(o => `<label class="opcao"><input type="radio" name="${nome}" value="${esc(o.v)}" ${o.v === atual ? 'checked' : ''}><span>${esc(o.t)}${o.d ? `<small>${esc(o.d)}</small>` : ''}</span></label>`).join('')}</div>`;
+}
+const radioVal = (nome) => { const r = $(`input[name="${nome}"]:checked`); return r ? r.value : ''; };
+const PASSOS = {
+  identidade: {
+    html: (c) => `<div class="card"><h2>Identidade</h2><p class="muted">Como o agente se apresenta e conversa.</p>
+      <label for="pNome">Nome do agente</label><input id="pNome" maxlength="40" value="${esc(c.identidade.nome)}">
+      <label for="pApres">Como ele se apresenta <small>(1 ou 2 frases)</small></label><textarea id="pApres" maxlength="300" placeholder="Ex.: Sou a Vivi, do atendimento da GranRio. Posso te ajudar com orçamento de vassouras e rodos.">${esc(c.identidade.apresentacao)}</textarea>
+      <label>Jeito de falar</label>${radios('tom', [op('amigavel', 'Amigável', 'Próximo e simpático, sem exagero'), op('profissional', 'Profissional', 'Mais formal e direto'), op('descontraido', 'Descontraído', 'Leve, com gírias moderadas')], c.identidade.tom)}
+      <div class="duas"><div><label for="pEmoji">Emojis</label><select id="pEmoji">${[['nao', 'Não usar'], ['pouco', 'Poucos'], ['sim', 'À vontade']].map(([v, t]) => `<option value="${v}" ${c.identidade.emojis === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div><label for="pTrat">Trata o cliente por</label><select id="pTrat"><option value="voce" ${c.identidade.tratamento === 'voce' ? 'selected' : ''}>Você</option><option value="senhor" ${c.identidade.tratamento === 'senhor' ? 'selected' : ''}>Senhor / senhora</option></select></div></div>
+      <p class="muted" style="margin-top:14px">Prévia da primeira mensagem:</p><div class="conversa"><div class="balao" id="previa"></div></div></div>`,
+    depois: () => { const up = () => { const n = $('#pNome').value.trim() || 'sua assistente'; const ap = $('#pApres').value.trim(); const em = $('#pEmoji').value === 'nao' ? '' : ' 😊';
+      $('#previa').textContent = 'Olá, tudo bem?' + em + '\n' + (ap || ('Eu sou ' + n + ', do atendimento da ' + (AG.config.empresa.nome || 'empresa') + '.')) + '\nComo posso te ajudar?'; };
+      ['#pNome', '#pApres', '#pEmoji'].forEach(s => $(s).addEventListener('input', up)); up(); },
+    ler: (c) => { c.identidade = { nome: $('#pNome').value.trim(), apresentacao: $('#pApres').value.trim(), tom: radioVal('tom') || 'amigavel', emojis: $('#pEmoji').value, tratamento: $('#pTrat').value }; }
+  },
+  empresa: {
+    html: (c) => `<div class="card"><h2>Empresa</h2><p class="muted">O que a IA precisa saber sobre o negócio.</p>
+      <div class="duas"><div><label for="eNome">Nome da empresa</label><input id="eNome" maxlength="80" value="${esc(c.empresa.nome)}"></div>
+        <div><label for="eSeg">Segmento</label><input id="eSeg" maxlength="60" list="segmentos" value="${esc(c.empresa.segmento)}" placeholder="Ex.: atacado de limpeza">
+        <datalist id="segmentos">${['Loja de veículos', 'Locação', 'Atacado / distribuidora', 'Varejo', 'Clínica / saúde', 'Beleza e estética', 'Alimentação', 'Imobiliária', 'Educação', 'Serviços / manutenção', 'Eventos', 'Tecnologia', 'Igreja / associação'].map(s => `<option value="${s}">`).join('')}</datalist></div></div>
+      <label for="eDesc">O que a empresa faz</label><textarea id="eDesc" maxlength="1500" placeholder="Produtos, serviços, há quanto tempo, onde atende…">${esc(c.empresa.descricao)}</textarea>
+      <label for="ePub">Quem é o cliente <small>(ex.: mercados e lojas, pessoa física…)</small></label><input id="ePub" maxlength="300" value="${esc(c.empresa.publico)}">
+      <label for="eDif">Diferenciais <small>(a IA usa para convencer)</small></label><textarea id="eDif" maxlength="600" style="min-height:70px">${esc(c.empresa.diferenciais)}</textarea>
+      <div class="duas"><div><label for="eSite">Site</label><input id="eSite" maxlength="400" placeholder="https://" value="${esc(c.empresa.site)}"></div>
+        <div><label for="eInsta">Instagram</label><input id="eInsta" maxlength="120" placeholder="@empresa" value="${esc(c.empresa.instagram)}"></div></div>
+      <label for="eCatLink">Link de catálogo externo <small>(opcional — ex.: catálogo do WhatsApp)</small></label><input id="eCatLink" maxlength="400" placeholder="https://" value="${esc(c.empresa.linkCatalogo)}">
+      <h3 style="margin-top:20px">Endereços</h3><p class="muted">Lojas, unidades ou polos. A IA só informa os endereços daqui.</p><div id="lUnid"></div></div>`,
+    depois: (c) => { lista($('#lUnid'), c.empresa.unidades, [{ k: 'nome', rot: 'Nome', ph: 'Ex.: Matriz', max: 60 }, { k: 'endereco', rot: 'Endereço', max: 200 }, { k: 'mapa', rot: 'Link do Google Maps', ph: 'https://', max: 400 }], { rotMais: 'Adicionar endereço', max: 10 }); },
+    ler: (c) => { c.empresa = { nome: $('#eNome').value.trim(), segmento: $('#eSeg').value.trim(), descricao: $('#eDesc').value.trim(), publico: $('#ePub').value.trim(),
+      diferenciais: $('#eDif').value.trim(), site: $('#eSite').value.trim(), instagram: $('#eInsta').value.trim(), linkCatalogo: $('#eCatLink').value.trim(), unidades: $('#lUnid')._ler() }; }
+  },
+  horario: {
+    html: (c) => { const D = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
+      return `<div class="card"><h2>Horário da equipe</h2><p class="muted">A IA responde 24h. O horário define quando a equipe humana assume.</p>
+      <div style="margin-top:10px">${D.map(([k, n]) => { const d = c.horario.dias[k]; return `<div class="dia"><label><input type="checkbox" data-dia="${k}" ${d ? 'checked' : ''}> ${n}</label>
+        <input type="time" aria-label="${n} abre" data-abre="${k}" value="${d ? d.abre : '08:00'}" ${d ? '' : 'disabled'}><input type="time" aria-label="${n} fecha" data-fecha="${k}" value="${d ? d.fecha : '18:00'}" ${d ? '' : 'disabled'}></div>`; }).join('')}</div>
+      <label>Fora do horário</label>${radios('fora', [op('responde_avisa', 'A IA atende e avisa que a equipe retorna no próximo horário'), op('responde', 'A IA atende normalmente, sem falar de horário')], c.horario.foraDoHorario)}</div>`; },
+    depois: () => $$('[data-dia]').forEach(cb => cb.onchange = () => { const k = cb.dataset.dia; $(`[data-abre="${k}"]`).disabled = $(`[data-fecha="${k}"]`).disabled = !cb.checked; }),
+    ler: (c) => { const dias = {}; $$('[data-dia]').forEach(cb => { const k = cb.dataset.dia; dias[k] = cb.checked ? { abre: $(`[data-abre="${k}"]`).value, fecha: $(`[data-fecha="${k}"]`).value } : null; });
+      c.horario = { dias, foraDoHorario: radioVal('fora') || 'responde_avisa' }; }
+  },
+  conhecimento: {
+    html: () => `<div class="card"><h2>Perguntas frequentes</h2><p class="muted">Perguntas que os clientes sempre fazem, com a resposta certa.</p><div id="lFaq"></div></div>
+      <div class="card"><h2>Respostas oficiais</h2><p class="muted">Assuntos delicados em que a IA <b>não pode improvisar</b> (contrato, garantia, troca, prazo…). Ela responde exatamente isso.</p><div id="lOfi"></div></div>
+      <div class="card"><h2>O que a IA nunca pode falar</h2><p class="muted">Ex.: "não prometer prazo de entrega", "não dar desconto".</p><div id="lProib"></div></div>
+      <div class="card"><h2>Informações extras</h2><label for="kExtra">Tudo mais que a IA deve saber <small>(políticas, regras, observações)</small></label><textarea id="kExtra" maxlength="4000" style="min-height:140px">${esc(AG.config.conhecimento.extra)}</textarea></div>`,
+    depois: (c) => {
+      lista($('#lFaq'), c.conhecimento.faq, [{ k: 'p', rot: 'Pergunta', max: 200 }, { k: 'r', rot: 'Resposta', tipo: 'textarea', max: 1000 }], { rotMais: 'Adicionar pergunta', max: 60 });
+      lista($('#lOfi'), c.conhecimento.oficiais, [{ k: 'tema', rot: 'Assunto', max: 120, ph: 'Ex.: troca e devolução' }, { k: 'resposta', rot: 'Resposta oficial', tipo: 'textarea', max: 1500 }], { rotMais: 'Adicionar resposta oficial', max: 20 });
+      lista($('#lProib'), c.conhecimento.proibido, [{ k: 'v', rot: 'Proibido', max: 300 }], { rotMais: 'Adicionar regra', max: 20, simples: true, novo: () => '' });
+    },
+    ler: (c) => { c.conhecimento = { faq: $('#lFaq')._ler(), oficiais: $('#lOfi')._ler(), proibido: $('#lProib')._ler().map(x => typeof x === 'object' ? x.v : x), extra: $('#kExtra').value.trim() }; }
+  },
+  precos: {
+    html: (c) => `<div class="card"><h2>${AG.agente.tipo === 'agendamento' ? 'Serviços e preços' : 'Preços'}</h2>
+      <label>A IA pode falar preço?</label>${radios('pol', [op('livre', 'Sim, o valor exato'), op('a_partir', 'Só "a partir de"', 'O valor final a equipe confirma'), op('nao_fala', 'Não', 'Ela diz que a equipe passa o valor')], c.precos.politica)}
+      <p class="muted" style="margin-top:14px">${AG.agente.tipo === 'agendamento' ? 'Serviços que você oferece:' : 'Lista de preços (se não usar o catálogo):'}</p><div id="lPrec"></div></div>`,
+    depois: (c) => lista($('#lPrec'), c.precos.lista, [{ k: 'nome', rot: 'Produto ou serviço', max: 120 }, { k: 'preco', rot: 'Preço', max: 40, ph: 'R$ 0,00' }, { k: 'obs', rot: 'Observação', max: 200 }], { rotMais: 'Adicionar', max: 60, grade: 'tres' }),
+    ler: (c) => { c.precos = { politica: radioVal('pol') || 'a_partir', lista: $('#lPrec')._ler() }; }
+  },
+  catalogo: {
+    html: (c) => `<div class="card"><h2>Catálogo</h2><p class="muted">Os produtos ficam na aba <b>Catálogo</b> (${CAT.length || 'nenhum'} cadastrado${CAT.length === 1 ? '' : 's'}).</p>
+      <label class="check-lin"><input type="checkbox" id="cUsar" ${c.catalogo.usar ? 'checked' : ''}> A IA consulta o catálogo e manda fotos e preços</label>
+      <div id="cOpts">
+      <label>Como ela vende</label>${radios('cmodo', [op('vitrine', 'Vitrine', 'Mostra os itens e passa para a equipe fechar'), op('pedido', 'Pedido / orçamento', 'Monta o pedido na conversa (item e quantidade) e envia o orçamento pronto')], c.catalogo.modo)}
+      <label for="cFotos">Fotos por resposta</label><select id="cFotos">${[1, 2, 3].map(n => `<option value="${n}" ${c.catalogo.fotosPorVez == n ? 'selected' : ''}>${n === 1 ? '1 foto por vez (recomendado)' : n + ' fotos'}</option>`).join('')}</select>
+      <label for="cPag">Formas de pagamento</label><textarea id="cPag" maxlength="600" style="min-height:64px" placeholder="Ex.: PIX à vista com 5% de desconto, boleto 28 dias para CNPJ…">${esc(c.catalogo.pagamento)}</textarea>
+      <label for="cEnt">Entrega / retirada</label><textarea id="cEnt" maxlength="600" style="min-height:64px" placeholder="Ex.: entregamos na Baixada; retirada na loja…">${esc(c.catalogo.entrega)}</textarea>
+      <label for="cReg">Regras do pedido</label><textarea id="cReg" maxlength="1000" style="min-height:64px" placeholder="Ex.: pedido mínimo de R$ 300; preços com nota fiscal">${esc(c.catalogo.regras)}</textarea>
+      <label class="check-lin"><input type="checkbox" id="cPdf" ${c.catalogo.pdfOrcamento ? 'checked' : ''}> Enviar o orçamento em PDF no fim do pedido</label>
+      <p class="dica">Quantidade mínima e "de quantos em quantos" ficam em cada item do catálogo. O preço sempre vem do cadastro — a IA nunca inventa valor.</p></div></div>`,
+    depois: () => { const up = () => $('#cOpts').hidden = !$('#cUsar').checked; $('#cUsar').onchange = up; up(); },
+    ler: (c) => { c.catalogo = { usar: $('#cUsar').checked, modo: radioVal('cmodo') || 'vitrine', fotosPorVez: Number($('#cFotos').value), pagamento: $('#cPag').value.trim(),
+      entrega: $('#cEnt').value.trim(), regras: $('#cReg').value.trim(), pdfOrcamento: $('#cPdf').checked }; }
+  },
+  materiais: {
+    html: () => `<div class="card"><h2>Materiais</h2><p class="muted">Quais arquivos a IA envia e quando. Cadastre os arquivos na aba <b>Materiais</b>.</p>
+      ${MATS.length ? '<div id="lMat"></div>' : '<p class="alerta">Nenhum material cadastrado ainda. Vá na aba Materiais e suba seus PDFs e vídeos.</p>'}</div>`,
+    depois: (c) => { if (!MATS.length) return; const opMat = MATS.map(m => ({ v: m.id, t: m.titulo + ' (' + m.tipo + ')' }));
+      lista($('#lMat'), c.materiais, [{ k: 'id', rot: 'Material', tipo: 'select', opcoes: opMat },
+        { k: 'quando', rot: 'Quando enviar', tipo: 'select', opcoes: [{ v: 'pedir', t: 'Quando o cliente pedir' }, { v: 'tema', t: 'Quando falar de um assunto' }, { v: 'fim', t: 'No fim, antes de passar para a equipe' }] },
+        { k: 'tema', rot: 'Assunto (se for "quando falar de um assunto")', max: 200 }, { k: 'legenda', rot: 'Mensagem junto com o arquivo', max: 300 }],
+        { rotMais: 'Adicionar material', max: 20, novo: () => ({ id: MATS[0].id, quando: 'pedir', tema: '', legenda: '' }) }); },
+    ler: (c) => { if ($('#lMat')) c.materiais = $('#lMat')._ler().map(m => ({ ...m, id: Number(m.id) })); }
+  },
+  coleta: {
+    html: (c) => `<div class="card"><h2>Coleta de dados</h2><p class="muted">O que a IA pergunta antes de passar para a equipe. <b>Uma pergunta por vez.</b></p><div id="lCol"></div>
+      <label for="colTeto">Máximo de perguntas antes de transferir</label><input id="colTeto" type="number" min="1" max="12" value="${c.coleta.teto}">
+      <p class="dica">Campo que o cliente não responder não trava o atendimento: a IA anota "não informado" e segue.</p></div>`,
+    depois: (c) => lista($('#lCol'), c.coleta.campos, [{ k: 'nome', rot: 'Informação', max: 60 }, { k: 'obrigatorio', rot: 'Obrigatória', tipo: 'check' }], { rotMais: 'Adicionar informação', max: 12, novo: () => ({ nome: '', obrigatorio: false }) }),
+    ler: (c) => { c.coleta = { campos: $('#lCol')._ler(), teto: Number($('#colTeto').value) || 5 }; }
+  },
+  setores: {
+    html: (c) => { const temFilas = AG.lv.filas.length;
+      return `<div class="card"><h2>Setores e transferência</h2><p class="muted">Para onde a IA manda o atendimento e quando.</p>
+      ${temFilas ? '' : '<p class="alerta">Ainda não consegui ler as filas da LeadVox deste agente. A LeadVox precisa ligar o WhatsApp dele primeiro.</p>'}
+      <div id="lSet"></div>
+      <label for="trMsg">Mensagem ao passar para a equipe <small>(opcional)</small></label><textarea id="trMsg" maxlength="500" style="min-height:64px" placeholder="Ex.: Perfeito! Já passei seu pedido para nosso time comercial.">${esc(c.transferencia.mensagem)}</textarea></div>`; },
+    depois: (c) => { const opF = AG.lv.filas.map(f => ({ v: f.id, t: f.nome + ' (' + f.id + ')' }));
+      const campoFila = opF.length ? { k: 'filaId', rot: 'Fila da LeadVox', tipo: 'select', opcoes: [{ v: '', t: 'Escolha…' }, ...opF] } : { k: 'filaId', rot: 'ID da fila', tipo: 'number' };
+      lista($('#lSet'), c.setores, [{ k: 'nome', rot: 'Setor', max: 60, ph: 'Ex.: Vendas' }, campoFila,
+        { k: 'quando', rot: 'Quando mandar para este setor', tipo: 'textarea', max: 400, ph: 'Ex.: quem quer comprar ou pedir orçamento' },
+        { k: 'coletar', rot: 'O que coletar antes (além da coleta geral)', max: 300 }, { k: 'padrao', rot: 'Setor padrão (quando a IA não souber)', tipo: 'check' }],
+        { rotMais: 'Adicionar setor', max: 12, novo: () => ({ nome: '', filaId: '', quando: '', coletar: '', padrao: !c.setores.length }) }); },
+    ler: (c) => { c.setores = $('#lSet')._ler().map(s => ({ ...s, filaId: Number(s.filaId) || null })); c.transferencia = { mensagem: $('#trMsg').value.trim() }; }
+  },
+  followup: {
+    html: (c) => `<div class="card"><h2>Follow-up</h2><p class="muted">Se o cliente parar de responder antes de terminar, a IA chama de novo.</p>
+      <label class="check-lin"><input type="checkbox" id="fAtivo" ${c.followup.ativo ? 'checked' : ''}> Ligar follow-up</label>
+      <div id="fBox"><div id="lToq"></div>
+      <div class="duas"><div><label for="fIni">Só manda a partir de</label><input id="fIni" type="time" value="${c.followup.janelaIni}"></div>
+        <div><label for="fFim">Até</label><input id="fFim" type="time" value="${c.followup.janelaFim}"></div></div>
+      <p class="dica">No máximo 3 mensagens e nunca de madrugada, para proteger seu número de bloqueio.</p></div></div>`,
+    depois: (c) => { lista($('#lToq'), c.followup.toques, [{ k: 'minutos', rot: 'Depois de quanto tempo sem resposta', tipo: 'select',
+        opcoes: [[30, '30 minutos'], [60, '1 hora'], [180, '3 horas'], [1440, '1 dia'], [2880, '2 dias'], [4320, '3 dias'], [10080, '7 dias']].map(([v, t]) => ({ v, t })) },
+        { k: 'texto', rot: 'Mensagem (deixe vazio para a IA escrever)', max: 400 }], { rotMais: 'Adicionar mensagem', max: 3, novo: () => ({ minutos: 1440, texto: '' }) });
+      const up = () => $('#fBox').hidden = !$('#fAtivo').checked; $('#fAtivo').onchange = up; up(); },
+    ler: (c) => { c.followup = { ativo: $('#fAtivo').checked, toques: $('#lToq')._ler().map(t => ({ ...t, minutos: Number(t.minutos) })), janelaIni: $('#fIni').value, janelaFim: $('#fFim').value }; }
+  },
+  crm: {
+    html: (c) => `<div class="card"><h2>CRM</h2><p class="muted">O que a IA registra na LeadVox.</p>
+      <label class="check-lin"><input type="checkbox" id="crmOp" ${c.crm.oportunidade ? 'checked' : ''}> Criar oportunidade no funil para cada lead</label>
+      <label for="crmEt">Etapa em que a oportunidade entra</label>
+      ${AG.lv.etapas.length ? `<select id="crmEt"><option value="">Primeira etapa</option>${AG.lv.etapas.map(e => `<option value="${e.id}" ${c.crm.etapaId == e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}</select>`
+        : '<input id="crmEt" type="number" placeholder="Etapas aparecem quando a LeadVox ligar o WhatsApp" value="' + (c.crm.etapaId || '') + '">'}
+      <label class="check-lin"><input type="checkbox" id="crmEtq" ${c.crm.etiquetas ? 'checked' : ''}> Colocar etiquetas automáticas (assunto, setor)</label></div>`,
+    ler: (c) => { c.crm = { oportunidade: $('#crmOp').checked, etapaId: Number($('#crmEt').value) || null, etiquetas: $('#crmEtq').checked }; }
+  },
+  revisar: {
+    html: (c) => { const f = faltando(c);
+      return `<div class="card"><h2>Revisar e concluir</h2>
+      ${f.length ? `<p class="alerta">Antes de concluir, falta:</p><ul class="falta">${f.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="dica">Tudo certo. Clique em <b>Concluir</b> para liberar o agente.</p>'}
+      <dl class="resumo">
+        <dt>Agente</dt><dd>${esc(c.identidade.nome)} · ${esc(AG.agente.tipoNome)}</dd>
+        <dt>Empresa</dt><dd>${esc(c.empresa.nome)}${c.empresa.segmento ? ' · ' + esc(c.empresa.segmento) : ''}</dd>
+        <dt>Endereços</dt><dd>${c.empresa.unidades.length || 'nenhum'}</dd>
+        <dt>Perguntas frequentes / respostas oficiais</dt><dd>${c.conhecimento.faq.length} / ${c.conhecimento.oficiais.length}</dd>
+        ${TIPO_PASSOS[AG.agente.tipo].includes('catalogo') ? `<dt>Catálogo</dt><dd>${c.catalogo.usar ? (c.catalogo.modo === 'pedido' ? 'monta pedido e orçamento' : 'vitrine') + ' · ' + CAT.length + ' itens' : 'não usa'}</dd>` : ''}
+        <dt>Coleta</dt><dd>${c.coleta.campos.map(x => esc(x.nome) + (x.obrigatorio ? '*' : '')).join(', ') || 'nada'}</dd>
+        <dt>Setores</dt><dd>${c.setores.map(s => esc(s.nome) + (s.padrao ? ' (padrão)' : '')).join(', ') || 'nenhum'}</dd>
+        ${TIPO_PASSOS[AG.agente.tipo].includes('followup') ? `<dt>Follow-up</dt><dd>${c.followup.ativo ? c.followup.toques.length + ' mensagem(ns)' : 'desligado'}</dd>` : ''}
+      </dl>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="principal" type="button" id="btConcluir" ${f.length ? 'disabled' : ''}>Concluir</button>
+        <button type="button" id="btHist">Ver histórico</button></div></div>`; },
+    depois: () => { $('#btConcluir').onclick = () => salvar(true); $('#btHist').onclick = historico; },
+    ler: () => {}
+  }
+};
+function faltando(c) {
+  const f = [], t = AG.agente.tipo;
+  if (!c.identidade.nome) f.push('nome do agente (Identidade)');
+  if (!c.empresa.nome) f.push('nome da empresa (Empresa)');
+  if (!c.empresa.descricao) f.push('o que a empresa faz (Empresa)');
+  if (!c.setores.length) f.push('pelo menos 1 setor com fila (Setores)');
+  if (c.setores.some(s => !s.filaId)) f.push('fila de todos os setores (Setores)');
+  if (t === 'catalogo' && c.catalogo.usar && !CAT.length) f.push('itens no catálogo (aba Catálogo)');
+  if (t === 'suporte' && !c.conhecimento.faq.length && !c.conhecimento.extra) f.push('perguntas frequentes ou informações (Conhecimento)');
+  return f;
+}
+function lerPassoAtual() { const nome = TIPO_PASSOS[AG.agente.tipo][passoAtual]; PASSOS[nome].ler(AG.config); }
+function montarPassos() {
+  const nomes = TIPO_PASSOS[AG.agente.tipo];
+  $('#passos').innerHTML = nomes.map((n, i) => `<button type="button" data-p="${i}">${i + 1}. ${NOMES_PASSO[n]}</button>`).join('');
+  $$('#passos button').forEach(b => b.onclick = () => irPasso(+b.dataset.p));
+  irPasso(0, true);
+}
+async function irPasso(i, inicio) {
+  const nomes = TIPO_PASSOS[AG.agente.tipo];
+  if (!inicio) lerPassoAtual();
+  passoAtual = Math.max(0, Math.min(nomes.length - 1, i));
+  const nome = nomes[passoAtual];
+  if ((nome === 'catalogo' || nome === 'revisar') && !CAT.length) { try { CAT = (await api('catalogoListar')).itens || []; } catch (e) {} }
+  $('#passosConteudo').innerHTML = PASSOS[nome].html(AG.config);
+  if (PASSOS[nome].depois) PASSOS[nome].depois(AG.config);
+  $$('#passosConteudo input, #passosConteudo textarea, #passosConteudo select').forEach(el => el.addEventListener('input', () => sujo = true));
+  $$('#passos button').forEach((b, k) => k === passoAtual ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+  $$('#passos button')[passoAtual].scrollIntoView({ block: 'nearest', inline: 'center' });
+  $('#btAnterior').disabled = passoAtual === 0;
+  $('#btProximo').hidden = passoAtual === nomes.length - 1;
+  $('#barraMeio').textContent = (passoAtual + 1) + ' de ' + nomes.length;
+  if (!inicio) window.scrollTo(0, 0);
+}
+$('#btAnterior').onclick = () => irPasso(passoAtual - 1);
+$('#btProximo').onclick = () => irPasso(passoAtual + 1);
+$('#btSalvar').onclick = () => salvar(false);
+
+async function salvar(concluir, porCima) {
+  lerPassoAtual();
+  if (concluir && faltando(AG.config).length) { irPasso(TIPO_PASSOS[AG.agente.tipo].length - 1, true); return; }
+  $('#btSalvar').disabled = true;
+  try {
+    const j = await api('salvar', { agente: AG.agente.chave, config: AG.config, versaoBase: porCima ? null : AG.versao, concluir });
+    AG.versao = j.versao; AG.agente = j.agente || AG.agente; sujo = false; $('#caixaConflito').hidden = true;
+    cabecalhoEditor();
+    toast(concluir ? 'Concluído! Agora é só ligar o agente.' : 'Salvo.');
+    if (concluir) irPasso(passoAtual, true);
+  } catch (e) {
+    if (e.resposta && e.resposta.codigo === 'conflito') {
+      const c = e.resposta.conflito || {};
+      $('#caixaConflito').hidden = false;
+      $('#caixaConflito').innerHTML = `<b>Alguém salvou este agente depois que você abriu a tela</b> (${esc(dataBr(c.em))}${String(c.origem || '').startsWith('suporte') ? ', pela LeadVox' : ''}).
+        <div class="conflito"><button type="button" id="btRecarregar">Recarregar e perder minhas mudanças</button><button type="button" class="perigo" id="btPorCima">Salvar as minhas por cima</button></div>`;
+      $('#btRecarregar').onclick = () => { sujo = false; abrirAgente(AG.agente.chave); };
+      $('#btPorCima').onclick = () => salvar(concluir, true);
+      $('#caixaConflito').scrollIntoView({ behavior: 'smooth' });
+    } else toast(e.message, true);
+  } finally { $('#btSalvar').disabled = false; }
+}
+const ORIGEM = (o) => !o ? '' : o === 'plugin' ? 'você' : o.startsWith('suporte:') ? 'suporte LeadVox' : o.startsWith('restaurar:') ? 'restauração da versão ' + o.split(':')[1] : o.startsWith('admin') ? 'LeadVox' : o;
+async function historico() {
+  $('#listaHist').innerHTML = '<p class="muted">Carregando…</p>'; $('#dlgHist').showModal();
+  try {
+    const j = await api('historico', { agente: AG.agente.chave });
+    $('#listaHist').innerHTML = (j.versoes || []).map(v => `<div class="versao"><div><b>Versão ${v.versao}</b>${v.versao === j.atual ? ' · atual' : ''}<br><small class="muted">${esc(dataBr(v.em))} · ${esc(ORIGEM(v.origem))}</small></div>
+      ${v.versao !== j.atual ? `<button class="sm" type="button" data-rest="${v.versao}">Voltar para esta</button>` : ''}</div>`).join('');
+    $$('[data-rest]').forEach(b => b.onclick = async () => {
+      if (!confirm('Voltar para a versão ' + b.dataset.rest + '? A versão de agora continua no histórico.')) return;
+      try { await api('restaurar', { agente: AG.agente.chave, versao: +b.dataset.rest }); $('#dlgHist').close(); toast('Versão restaurada.'); sujo = false; abrirAgente(AG.agente.chave); } catch (e) { toast(e.message, true); }
+    });
+  } catch (e) { $('#listaHist').innerHTML = `<p class="erro">${esc(e.message)}</p>`; }
+}
+
+/* ═══════════ UPLOAD ═══════════ */
+function lerArquivo(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(file); }); }
+function comprimirImagem(file, max = 1600, q = 0.82) {
+  return new Promise((res) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { const s = Math.min(1, max / Math.max(img.width, img.height)); const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url); res(cv.toDataURL('image/jpeg', q).split(',')[1]); };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+async function enviarArquivo(file) {
+  const ehImg = file.type.startsWith('image/');
+  if (!ehImg && file.size > 10 * 1024 * 1024) throw new Error('Arquivo maior que 10 MB.');
+  const base64 = ehImg ? await comprimirImagem(file) : await lerArquivo(file);
+  if (!base64) throw new Error('Não consegui ler a imagem.');
+  const j = await api('upload', { mime: ehImg ? 'image/jpeg' : file.type, base64 });
+  return j.url;
+}
+function soltar(zona, input, aoEscolher) {
+  input.onchange = () => { aoEscolher([...input.files]); input.value = ''; };
+  zona.addEventListener('dragover', (e) => { e.preventDefault(); zona.classList.add('sobre'); });
+  zona.addEventListener('dragleave', () => zona.classList.remove('sobre'));
+  zona.addEventListener('drop', (e) => { e.preventDefault(); zona.classList.remove('sobre'); aoEscolher([...e.dataTransfer.files]); });
+}
+
+/* ═══════════ CATÁLOGO ═══════════ */
+async function carregarCatalogo() {
+  $('#listaItens').innerHTML = '<p class="muted">Carregando…</p>';
+  try { CAT = (await api('catalogoListar')).itens || []; desenharCatalogo(); } catch (e) { $('#listaItens').innerHTML = `<p class="erro">${esc(e.message)}</p>`; }
+}
+function desenharCatalogo() {
+  const q = $('#buscaItem').value.trim().toLowerCase(), st = $('#filtroItem').value;
+  const it = CAT.filter(i => (!st || i.status === st) && (!q || (i.nome + ' ' + i.codigo + ' ' + i.categoria).toLowerCase().includes(q)));
+  $('#listaCats').innerHTML = [...new Set(CAT.map(i => i.categoria).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
+  $('#listaItens').innerHTML = it.length ? it.map(i => `<div class="item">
+      ${i.fotos && i.fotos[0] ? `<img class="capa" src="${esc(i.fotos[0])}" alt="" loading="lazy">` : '<div class="capa">sem foto</div>'}
+      <div style="min-width:0"><b>${esc(i.nome)}</b><small>${esc([i.codigo, i.categoria].filter(Boolean).join(' · '))}</small>
+        <span class="preco">${i.preco_tipo === 'consulta' || i.preco == null ? 'sob consulta' : (i.preco_tipo === 'a_partir' ? 'a partir de ' : '') + BRL(i.preco)}${i.unidade && i.unidade !== 'un' ? ' / ' + esc(i.unidade) : ''}</span>
+        ${i.qtd_minima > 1 || i.multiplo > 1 ? `<small>mín. ${i.qtd_minima}${i.multiplo > 1 ? ', de ' + i.multiplo + ' em ' + i.multiplo : ''}</small>` : ''}
+        <span class="st ${i.status}">${{ disponivel: 'disponível', reservado: 'reservado', indisponivel: 'indisponível' }[i.status]}</span></div>
+      <button class="sm" type="button" data-item="${i.id}">Editar</button></div>`).join('')
+    : `<p class="muted" style="padding:16px 0">${CAT.length ? 'Nada encontrado.' : 'Nenhum item ainda. Clique em "+ Novo item".'}</p>`;
+  $$('[data-item]').forEach(b => b.onclick = () => abrirItem(CAT.find(x => x.id == b.dataset.item)));
+}
+$('#buscaItem').oninput = desenharCatalogo; $('#filtroItem').onchange = desenharCatalogo;
+let ITEM = null, FOTOS = [];
+function abrirItem(i) {
+  ITEM = i || null; FOTOS = i ? [...(i.fotos || [])] : [];
+  $('#tItem').textContent = i ? 'Editar item' : 'Novo item';
+  $('#iNome').value = i ? i.nome : ''; $('#iCodigo').value = i ? i.codigo : ''; $('#iCat').value = i ? i.categoria : '';
+  $('#iStatus').value = i ? i.status : 'disponivel'; $('#iDesc').value = i ? i.descricao : '';
+  $('#iPrecoTipo').value = i ? i.preco_tipo : 'fixo'; $('#iPreco').value = i && i.preco != null ? String(i.preco).replace('.', ',') : '';
+  $('#iUnid').value = i ? i.unidade : 'un'; $('#iMin').value = i ? i.qtd_minima : 1; $('#iMult').value = i ? i.multiplo : 1;
+  $('#iDestaque').checked = i ? i.destaque : false; $('#btExcluirItem').hidden = !i; mostrarErro($('#erroItem'), '');
+  desenharFotos(); $('#dlgItem').showModal();
+}
+$('#btNovoItem').onclick = () => abrirItem(null);
+function desenharFotos() {
+  $('#iFotosLista').innerHTML = FOTOS.map((u, k) => `<div class="foto ${u.startsWith('blob:') ? 'enviando' : ''}">${k === 0 ? '<span class="capa-tag">capa</span>' : ''}<img src="${esc(u)}" alt="Foto ${k + 1}">
+    <div class="acoes"><button type="button" aria-label="Mover para a esquerda" data-mv="${k}" data-d="-1" ${k === 0 ? 'disabled' : ''}>‹</button>
+    <button type="button" aria-label="Remover foto" data-rm="${k}">🗑</button>
+    <button type="button" aria-label="Mover para a direita" data-mv="${k}" data-d="1" ${k === FOTOS.length - 1 ? 'disabled' : ''}>›</button></div></div>`).join('');
+  $$('[data-rm]', $('#iFotosLista')).forEach(b => b.onclick = () => { FOTOS.splice(+b.dataset.rm, 1); desenharFotos(); });
+  $$('[data-mv]', $('#iFotosLista')).forEach(b => b.onclick = () => { const k = +b.dataset.mv, d = +b.dataset.d; [FOTOS[k], FOTOS[k + d]] = [FOTOS[k + d], FOTOS[k]]; desenharFotos(); });
+}
+soltar($('#soltarFotos'), $('#iFotos'), async (files) => {
+  for (const f of files.filter(f => f.type.startsWith('image/')).slice(0, 10 - FOTOS.length)) {
+    const tmp = URL.createObjectURL(f); FOTOS.push(tmp); desenharFotos();
+    try { const url = await enviarArquivo(f); FOTOS[FOTOS.indexOf(tmp)] = url; }
+    catch (e) { FOTOS.splice(FOTOS.indexOf(tmp), 1); toast(e.message, true); }
+    URL.revokeObjectURL(tmp); desenharFotos();
+  }
+});
+$('#btSalvarItem').onclick = async () => {
+  if (FOTOS.some(u => u.startsWith('blob:'))) { mostrarErro($('#erroItem'), 'Espere as fotos terminarem de enviar.'); return; }
+  const preco = $('#iPreco').value.trim().replace(/\./g, '').replace(',', '.');
+  const item = { id: ITEM ? ITEM.id : null, nome: $('#iNome').value.trim(), codigo: $('#iCodigo').value.trim(), categoria: $('#iCat').value.trim(),
+    status: $('#iStatus').value, descricao: $('#iDesc').value.trim(), precoTipo: $('#iPrecoTipo').value, preco: $('#iPrecoTipo').value === 'consulta' ? '' : preco,
+    unidade: $('#iUnid').value.trim() || 'un', qtdMinima: Number($('#iMin').value) || 1, multiplo: Number($('#iMult').value) || 1, destaque: $('#iDestaque').checked, fotos: FOTOS };
+  if (!item.nome) { mostrarErro($('#erroItem'), 'Dê um nome ao item.'); return; }
+  if (item.precoTipo !== 'consulta' && item.preco && isNaN(Number(item.preco))) { mostrarErro($('#erroItem'), 'Preço inválido. Use só números, ex.: 12,90'); return; }
+  $('#btSalvarItem').disabled = true;
+  try { await api('catalogoSalvar', { item }); $('#dlgItem').close(); toast('Item salvo.'); carregarCatalogo(); }
+  catch (e) { mostrarErro($('#erroItem'), e.message); }
+  finally { $('#btSalvarItem').disabled = false; }
+};
+$('#btExcluirItem').onclick = async () => {
+  if (!confirm('Excluir "' + ITEM.nome + '" do catálogo?')) return;
+  try { await api('catalogoExcluir', { id: ITEM.id }); $('#dlgItem').close(); toast('Item excluído.'); carregarCatalogo(); } catch (e) { mostrarErro($('#erroItem'), e.message); }
+};
+
+/* ═══════════ MATERIAIS ═══════════ */
+const TIPO_MAT = { pdf: 'PDF', video: 'Vídeo', imagem: 'Imagem', audio: 'Áudio', link: 'Link' };
+async function carregarMateriais() {
+  $('#listaMat').innerHTML = '<p class="muted">Carregando…</p>';
+  try { MATS = (await api('materialListar')).materiais || []; desenharMateriais(); } catch (e) { $('#listaMat').innerHTML = `<p class="erro">${esc(e.message)}</p>`; }
+}
+function desenharMateriais() {
+  $('#listaMat').innerHTML = MATS.length ? MATS.map(m => `<div class="item"><div class="capa">${TIPO_MAT[m.tipo]}</div>
+      <div style="min-width:0"><b>${esc(m.titulo)}</b><small>${esc(m.descricao || '')}</small><small><a href="${esc(m.url)}" target="_blank" rel="noopener" style="color:var(--verde)">abrir</a></small></div>
+      <button class="sm" type="button" data-mat="${m.id}">Editar</button></div>`).join('') : '<p class="muted" style="padding:16px 0">Nenhum material ainda.</p>';
+  $$('[data-mat]').forEach(b => b.onclick = () => abrirMat(MATS.find(x => x.id == b.dataset.mat)));
+}
+let MAT = null;
+function abrirMat(m) {
+  MAT = m || null; $('#tMat').textContent = m ? 'Editar material' : 'Novo material';
+  $('#mTitulo').value = m ? m.titulo : ''; $('#mTipo').value = m ? m.tipo : 'pdf'; $('#mUrl').value = m ? m.url : ''; $('#mDesc').value = m ? m.descricao : '';
+  $('#btExcluirMat').hidden = !m; mostrarErro($('#erroMat'), ''); tipoMat(); $('#dlgMat').showModal();
+}
+function tipoMat() { const t = $('#mTipo').value; $('#mArqBox').hidden = t === 'link';
+  $('#mArquivo').accept = { pdf: 'application/pdf', video: 'video/mp4', imagem: 'image/*', audio: 'audio/mpeg,audio/ogg' }[t] || ''; }
+$('#mTipo').onchange = tipoMat;
+$('#btNovoMat').onclick = () => abrirMat(null);
+soltar($('#soltarMat'), $('#mArquivo'), async (files) => {
+  const f = files[0]; if (!f) return;
+  $('#soltarMat').firstChild.textContent = 'Enviando ' + f.name + '…';
+  try { $('#mUrl').value = await enviarArquivo(f); if (!$('#mTitulo').value) $('#mTitulo').value = f.name.replace(/\.[^.]+$/, ''); toast('Arquivo enviado.'); }
+  catch (e) { toast(e.message, true); }
+  finally { $('#soltarMat').firstChild.textContent = 'Toque para escolher o arquivo (até 10 MB)'; }
+});
+$('#btSalvarMat').onclick = async () => {
+  const item = { id: MAT ? MAT.id : null, titulo: $('#mTitulo').value.trim(), tipo: $('#mTipo').value, url: $('#mUrl').value.trim(), descricao: $('#mDesc').value.trim() };
+  $('#btSalvarMat').disabled = true;
+  try { await api('materialSalvar', { item }); $('#dlgMat').close(); toast('Material salvo.'); carregarMateriais(); }
+  catch (e) { mostrarErro($('#erroMat'), e.message); }
+  finally { $('#btSalvarMat').disabled = false; }
+};
+$('#btExcluirMat').onclick = async () => {
+  if (!confirm('Excluir "' + MAT.titulo + '"? Agentes que usam este material deixam de enviá-lo.')) return;
+  try { await api('materialExcluir', { id: MAT.id }); $('#dlgMat').close(); toast('Material excluído.'); carregarMateriais(); } catch (e) { mostrarErro($('#erroMat'), e.message); }
+};
+
+/* ═══════════ PEDIDOS ═══════════ */
+const ST_PED = { rascunho: 'em andamento', enviado: 'enviado', aprovado: 'aprovado', cancelado: 'cancelado' };
+async function carregarPedidos() {
+  $('#listaPed').innerHTML = '<p class="muted">Carregando…</p>';
+  try {
+    const st = $('#filtroPed').value;
+    const ps = (await api('pedidoListar', st ? { status: st } : {})).pedidos || [];
+    $('#listaPed').innerHTML = ps.length ? ps.map(p => `<div class="pedido"><div class="cab">
+        <div><b>${p.numero ? 'Pedido nº ' + p.numero : 'Em andamento'}</b> <span class="st ${p.status}">${ST_PED[p.status]}</span>
+          <br><small class="muted">${esc(p.nomeCliente || 'cliente')} · ${esc(p.contato)} · ${esc(dataBr(p.atualizadoEm))}</small></div>
+        <div style="text-align:right"><b style="color:var(--verde)">${p.total != null ? BRL(p.total) : ''}</b>${p.sobConsulta ? '<br><small class="muted">+ itens sob consulta</small>' : ''}</div></div>
+      <ul>${(p.itens || []).map(i => `<li>${i.qtd} ${esc(i.unidade || '')} · ${esc(i.nome)}${i.subtotal != null ? ' — ' + BRL(i.subtotal) : ''}</li>`).join('')}</ul>
+      <div class="botoes">${p.pdfUrl ? `<a class="sm" href="${esc(p.pdfUrl)}" target="_blank" rel="noopener" style="color:var(--verde)">Ver orçamento (PDF)</a>` : ''}
+        ${p.status === 'enviado' ? `<button class="sm" type="button" data-ped="${p.id}" data-st="aprovado">Marcar como aprovado</button><button class="sm perigo" type="button" data-ped="${p.id}" data-st="cancelado">Cancelar</button>` : ''}</div></div>`).join('')
+      : '<p class="muted" style="padding:16px 0">Nenhum pedido ainda. Eles aparecem aqui quando a IA monta um orçamento na conversa.</p>';
+    $$('[data-ped]').forEach(b => b.onclick = async () => { try { await api('pedidoStatus', { id: +b.dataset.ped, status: b.dataset.st }); toast('Pedido atualizado.'); carregarPedidos(); } catch (e) { toast(e.message, true); } });
+  } catch (e) { $('#listaPed').innerHTML = `<p class="erro">${esc(e.message)}</p>`; }
+}
+$('#filtroPed').onchange = carregarPedidos;
+
+/* ═══════════ INÍCIO ═══════════ */
+window.addEventListener('beforeunload', (e) => { if (sujo) { e.preventDefault(); e.returnValue = ''; } });
+(function inicio() {
+  const m = location.hash.match(/suporte=([0-9a-f]{64})/);
+  if (m) { TOKEN = m[1]; MODO = 'suporte'; history.replaceState(null, '', location.pathname + location.search); $('#btSair').textContent = 'Fechar suporte'; iniciarApp(); return; }
+  const t = store.get('iagToken'); if (t) { TOKEN = t; iniciarApp(); }
+})();
+</script>
+</body>
+</html>
