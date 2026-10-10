@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- ═══════ SEO BÁSICO ═══════ -->
 <title>LeadVox | Plataforma de Atendimento com IA + CRM para WhatsApp</title>
-<meta name="description" content="Automatize seu atendimento e transforme conversas em vendas com a LeadVox. Plataforma omnichannel com IA, CRM integrado e chatbot para WhatsApp, Instagram e Facebook. Garantia de 7 dias e sem fidelidade.">
+<meta name="description" content="Automatize seu atendimento e transforme conversas em vendas com a LeadVox. Plataforma omnichannel com IA, CRM integrado e chatbot para WhatsApp, Instagram e Facebook. Garantia de 30 dias e sem fidelidade.">
 <meta name="keywords" content="plataforma whatsapp empresas, chatbot whatsapp, crm whatsapp, atendimento automatizado, omnichannel, chatbot ia, automação whatsapp, leadvox, marketing whatsapp, disparos em massa whatsapp">
 <meta name="author" content="LeadVox">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -130,7 +130,7 @@
         {
           "@type": "Question",
           "name": "E se eu não gostar? Tem garantia?",
-          "acceptedAnswer": {"@type": "Answer", "text": "Sim. Você tem 7 dias de garantia: se não gostar, devolvemos 100% do valor investido. Nossos planos são pré-pagos e não têm contrato de fidelidade — você cancela quando quiser. Antes disso, também fazemos uma demonstração gratuita pelo WhatsApp (21) 98769-6628."}
+          "acceptedAnswer": {"@type": "Answer", "text": "Sim. Você tem 30 dias de garantia: se nesse período não gostar e quiser cancelar, é só avisar, sem letra miúda e sem burocracia. Nossos planos são pré-pagos e não têm contrato de fidelidade — você cancela quando quiser. Antes disso, também fazemos uma demonstração gratuita pelo WhatsApp (21) 98769-6628."}
         }
       ]
     }
@@ -766,6 +766,8 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 @keyframes gatePulse{50%{box-shadow:0 0 0 4px rgba(43,232,123,.35)}}
 .sum-ok{display:none;margin-top:12px;padding:14px;border-radius:12px;border:1px solid rgba(43,232,123,.35);background:rgba(43,232,123,.08);font-size:.84rem;line-height:1.5}
 .sum-ok.on{display:block}
+.sum-call{margin:12px 0 0;padding:12px 14px;border-radius:10px;border:1px dashed rgba(43,232,123,.45);background:rgba(43,232,123,.05);font-size:.8rem;line-height:1.5;color:var(--light)}
+.sum-call[hidden]{display:none}
 .sum-ok strong{display:block;margin-bottom:4px}
 .sum-ok .acoes{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .sum-ok .acoes a{flex:1;text-align:center;padding:9px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.18);color:inherit;text-decoration:none;font-size:.8rem;font-weight:600}
@@ -851,7 +853,7 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
     <div class="mm-section-title">Navegação</div>
     <a class="mm-link" href="#canais" onclick="closeMobile()"><div class="mm-link-ic">📱</div><div><strong>Canais</strong><small>WhatsApp, Instagram e mais</small></div></a>
     <a class="mm-link" href="#integracoes" onclick="closeMobile()"><div class="mm-link-ic">🔗</div><div><strong>Integrações</strong><small>+50 integrações</small></div></a>
-    <a class="mm-link" href="#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>CRM a partir de R$ 397,90/mês</small></div></a>
+    <a class="mm-link" href="#planos" onclick="closeMobile()"><div class="mm-link-ic">💰</div><div><strong>Planos</strong><small>Ferramenta LeadVox R$ 397/mês</small></div></a>
     <a class="mm-link" href="#faq" onclick="closeMobile()"><div class="mm-link-ic">❓</div><div><strong>FAQ</strong><small>Dúvidas frequentes</small></div></a>
   </div>
   <div class="mm-btns">
@@ -900,30 +902,24 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 </main>
 <!-- TICKER -->
 <div class="ticker-wrap rv">
-  <div class="ticker-label">+1.000 empresas já usam a LeadVox</div>
+  <div class="ticker-label">Quem já vende com a LeadVox</div>
   <div style="overflow:hidden">
     <div class="ticker-track" id="ticker">
-      <div class="ticker-logo"><span>🏥</span>ClínicaVida</div>
-      <div class="ticker-logo"><span>🚗</span>AutoMax</div>
-      <div class="ticker-logo"><span>🛒</span>MegaStore</div>
-      <div class="ticker-logo"><span>⚖️</span>Advocacia Silva</div>
-      <div class="ticker-logo"><span>✈️</span>Viagens Dream</div>
-      <div class="ticker-logo"><span>🎓</span>Escola Futuro</div>
-      <div class="ticker-logo"><span>🏘️</span>ImóveisTop</div>
-      <div class="ticker-logo"><span>💊</span>FarmaRápida</div>
-      <div class="ticker-logo"><span>🏋️</span>AcademiaFit</div>
-      <div class="ticker-logo"><span>🍔</span>FoodTech</div>
+      <div class="ticker-logo"><span>🏍️</span>New Move Motors</div>
+      <div class="ticker-logo"><span>🏍️</span>P5 Motors</div>
+      <div class="ticker-logo"><span>🏍️</span>MotoLike</div>
+      <div class="ticker-logo"><span>🚲</span>Ultra Bike</div>
+      <div class="ticker-logo"><span>🏍️</span>PQD Motos</div>
+      <div class="ticker-logo"><span>🏠</span>RE/MAX Goldstar</div>
+      <div class="ticker-logo"><span>🏘️</span>G7 Negócios</div>
       <!-- duplicate for loop -->
-      <div class="ticker-logo"><span>🏥</span>ClínicaVida</div>
-      <div class="ticker-logo"><span>🚗</span>AutoMax</div>
-      <div class="ticker-logo"><span>🛒</span>MegaStore</div>
-      <div class="ticker-logo"><span>⚖️</span>Advocacia Silva</div>
-      <div class="ticker-logo"><span>✈️</span>Viagens Dream</div>
-      <div class="ticker-logo"><span>🎓</span>Escola Futuro</div>
-      <div class="ticker-logo"><span>🏘️</span>ImóveisTop</div>
-      <div class="ticker-logo"><span>💊</span>FarmaRápida</div>
-      <div class="ticker-logo"><span>🏋️</span>AcademiaFit</div>
-      <div class="ticker-logo"><span>🍔</span>FoodTech</div>
+      <div class="ticker-logo"><span>🏍️</span>New Move Motors</div>
+      <div class="ticker-logo"><span>🏍️</span>P5 Motors</div>
+      <div class="ticker-logo"><span>🏍️</span>MotoLike</div>
+      <div class="ticker-logo"><span>🚲</span>Ultra Bike</div>
+      <div class="ticker-logo"><span>🏍️</span>PQD Motos</div>
+      <div class="ticker-logo"><span>🏠</span>RE/MAX Goldstar</div>
+      <div class="ticker-logo"><span>🏘️</span>G7 Negócios</div>
     </div>
   </div>
 </div>
@@ -1141,109 +1137,47 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 <section class="sec pricing-sec" id="planos">
   <div class="inner">
     <div style="text-align:center;margin-bottom:48px">
-      <div class="tag" style="display:inline-block;margin-bottom:12px">Planos · CRM a partir de R$ 397,90/mês</div>
-      <h2>Monte o plano do tamanho<br>da sua operação</h2>
-      <p class="ssub" style="margin:12px auto 0">Você paga só pelo que usa. Tudo começa no Plano Base do CRM — e, escolhendo a IA, o CRM sai com 50% de desconto.</p>
+      <div class="tag" style="display:inline-block;margin-bottom:12px">Preços · Ferramenta LeadVox R$ 397/mês</div>
+      <h2>Você contrata a ferramenta<br>e adiciona só o que precisar</h2>
+      <p class="ssub" style="margin:12px auto 0">Sem pacote fechado: cada item é cobrado à parte. Tudo começa na ferramenta LeadVox e, contratando o agente de IA, o CRM sai com 50% de desconto.</p>
     </div>
 
     <div class="bld rv">
       <div class="bld-opts">
 
         <div class="bld-grp">
-          <div class="bld-grp-h"><h3>Plano Base</h3><span>já incluso</span></div>
+          <div class="bld-grp-h"><h3>Ferramenta LeadVox</h3><span>já incluso</span></div>
           <div class="bld-row fixo" id="baseRow">
             <span class="bld-mark">✓</span>
-            <span class="bld-info"><strong>CRM LeadVox · Plano Base</strong><small>Acesso ao sistema, com treinamento autônomo</small></span>
-            <span class="bld-preco" id="basePreco">R$ 397,90<small>/mês</small></span>
+            <span class="bld-info"><strong>Ferramenta LeadVox (CRM)</strong><small>Acesso ao sistema, com treinamento autônomo</small></span>
+            <span class="bld-preco" id="basePreco">R$ 397,00<small>/mês</small></span>
           </div>
         </div>
 
         <div class="bld-grp">
-          <div class="bld-grp-h"><h3>Inteligência Artificial</h3><span>opcional</span></div>
-          <p class="bld-promo">🎁 Escolhendo a IA, o CRM sai com <strong>50% de desconto</strong>.</p>
-          <button type="button" class="bld-row" data-ia="sdr" role="radio" aria-checked="false" onclick="escolherIA('sdr')">
-            <span class="bld-mark radio"></span>
-            <span class="bld-info"><strong>IA SDR LeadVox Pro</strong><small>Pré-atendimento e distribuição de leads 24h</small></span>
-            <span class="bld-preco">R$ 459,97<small>/mês</small></span>
-          </button>
-        </div>
-
-        <div class="bld-grp">
-          <div class="bld-grp-h"><h3>Plano sob medida</h3><span>escolha a quantidade de cada</span></div>
-          <div class="bld-row cnt-row" id="row_wa">
-            <span class="bld-info"><strong>WhatsApp</strong><small>Cada número de WhatsApp conectado</small></span>
-            <span class="bld-preco">R$ 169,90<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('wa',-1)" aria-label="Remover uma conexão de WhatsApp">−</button>
-              <output id="cn_wa" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('wa',1)" aria-label="Adicionar uma conexão de WhatsApp">+</button>
-            </span>
-          </div>
-          <div class="bld-row cnt-row" id="row_voip">
-            <span class="bld-info"><strong>VoIP</strong><small>Ligações feitas e recebidas direto da plataforma</small></span>
-            <span class="bld-preco">R$ 149,00<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('voip',-1)" aria-label="Remover uma conexão de VoIP">−</button>
-              <output id="cn_voip" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('voip',1)" aria-label="Adicionar uma conexão de VoIP">+</button>
-            </span>
-          </div>
-          <div class="bld-row cnt-row" id="row_ig">
-            <span class="bld-info"><strong>Instagram</strong><small>Direct do Instagram na mesma caixa de atendimento</small></span>
-            <span class="bld-preco">R$ 79,00<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('ig',-1)" aria-label="Remover uma conexão de Instagram">−</button>
-              <output id="cn_ig" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('ig',1)" aria-label="Adicionar uma conexão de Instagram">+</button>
-            </span>
-          </div>
-          <div class="bld-row cnt-row" id="row_fb">
-            <span class="bld-info"><strong>Facebook</strong><small>Messenger da sua página no mesmo atendimento</small></span>
-            <span class="bld-preco">R$ 79,00<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('fb',-1)" aria-label="Remover uma conexão de Facebook">−</button>
-              <output id="cn_fb" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('fb',1)" aria-label="Adicionar uma conexão de Facebook">+</button>
-            </span>
-          </div>
-          <div class="bld-row cnt-row" id="row_wc">
-            <span class="bld-info"><strong>Webchat</strong><small>Chat do seu site integrado à plataforma</small></span>
-            <span class="bld-preco">R$ 79,00<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('wc',-1)" aria-label="Remover uma conexão de Webchat">−</button>
-              <output id="cn_wc" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('wc',1)" aria-label="Adicionar uma conexão de Webchat">+</button>
-            </span>
-          </div>
-          <div class="bld-row cnt-row" id="row_em">
-            <span class="bld-info"><strong>E-mail</strong><small>Caixa de e-mail atendida na mesma plataforma</small></span>
-            <span class="bld-preco">R$ 79,00<small>/mês cada</small></span>
-            <span class="bld-cnt">
-              <button type="button" onclick="mudarConn('em',-1)" aria-label="Remover uma conexão de E-mail">−</button>
-              <output id="cn_em" aria-live="polite">0</output>
-              <button type="button" onclick="mudarConn('em',1)" aria-label="Adicionar uma conexão de E-mail">+</button>
-            </span>
-          </div>
-          <button type="button" class="bld-row" id="rowOutras" role="checkbox" aria-checked="false" onclick="toggleOutras(this)">
+          <div class="bld-grp-h"><h3>Agente de IA</h3><span>opcional</span></div>
+          <p class="bld-promo">🎁 Contratando a IA, o CRM sai com <strong>50% de desconto</strong>.</p>
+          <button type="button" class="bld-row" id="rowIA" role="checkbox" aria-checked="false" onclick="escolherIA()">
             <span class="bld-mark"></span>
-            <span class="bld-info"><strong>Outras conexões</strong><small>Outro canal que você precise integrar</small></span>
-            <span class="bld-preco">Sob consulta</span>
+            <span class="bld-info"><strong>IA SDR LeadVox Pro</strong><small>Pré-atendimento e distribuição de leads 24h. Implementação da IA: <span id="iaImpl">R$ 750,00</span> (pagamento único)</small></span>
+            <span class="bld-preco" id="iaPreco">R$ 459,97<small>/mês</small></span>
           </button>
         </div>
 
         <div class="bld-grp">
-          <div class="bld-grp-h"><h3>Implementação</h3><span>opcional · pagamento único</span></div>
+          <div class="bld-grp-h"><h3>Implementação do CRM</h3><span>opcional · pagamento único</span></div>
           <p style="margin:0 0 12px;font-size:.88rem;line-height:1.5;color:var(--muted)">Se preferir, nossa equipe faz toda a montagem da plataforma para você.</p>
-          <button type="button" class="bld-row" data-impl="impl" role="radio" aria-checked="false" onclick="escolherImpl('impl')">
-            <span class="bld-mark radio"></span>
+          <button type="button" class="bld-row" id="rowImpl" role="checkbox" aria-checked="false" onclick="escolherImpl()">
+            <span class="bld-mark"></span>
             <span class="bld-info"><strong>Implementação CRM Personalizada</strong><small>Configuração completa feita pela nossa equipe</small></span>
-            <span class="bld-preco">R$ 500,00<small>uma vez</small></span>
+            <span class="bld-preco" id="implPreco">R$ 500,00<small>uma vez</small></span>
           </button>
-          <button type="button" class="bld-row" data-impl="combo" role="radio" aria-checked="false" onclick="escolherImpl('combo')">
-            <span class="bld-mark radio"></span>
-            <span class="bld-info"><strong>Implementação CRM Personalizada + Combo API Oficial</strong><small>Configuração completa da plataforma e da API Oficial do WhatsApp</small></span>
-            <span class="bld-preco">R$ 950,00<small>uma vez</small></span>
-          </button>
+        </div>
+
+        <div class="bld-grp">
+          <div class="bld-grp-h"><h3>Adicionais</h3><span>valores na reunião</span></div>
+          <p style="margin:0 0 4px;font-size:.88rem;line-height:1.5;color:var(--muted)">Marque o que a sua operação precisa. Os valores dos adicionais são apresentados na reunião com nosso especialista.</p>
+          <div class="bld-chips" id="listaAdicionais" style="margin-bottom:14px"></div>
         </div>
       </div>
 
@@ -1252,19 +1186,20 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
         <ul class="sum-lista" id="sumLista"></ul>
         <div class="sum-gate" id="sumGate">
           <strong>🔒 Veja o valor do seu plano</strong>
-          <p>Informe seu nome e WhatsApp: liberamos o total e enviamos a proposta completa em PDF no seu WhatsApp.</p>
+          <p id="gateTxt">Informe seu nome e WhatsApp: liberamos o total e enviamos a proposta em PDF no seu WhatsApp.</p>
           <input type="text" id="pgNome" placeholder="Seu nome" autocomplete="name" maxlength="60">
           <input type="tel" id="pgWa" placeholder="WhatsApp com DDD" inputmode="numeric" autocomplete="tel" maxlength="16">
           <input type="text" id="pgHp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <p class="gate-aviso">📲 A proposta será enviada para este WhatsApp. Ao informar seu número, você autoriza a LeadVox a falar com você por lá, conforme a <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a> (LGPD).</p>
-          <button type="button" class="btn-primary" id="btnGate" onclick="liberarTotal()">Ver valor e receber proposta</button>
+          <p class="gate-aviso">📲 Ao informar seu número, você autoriza a LeadVox a falar com você pelo WhatsApp, conforme a <a href="/politica-de-privacidade" target="_blank">Política de Privacidade</a> (LGPD).</p>
+          <button type="button" class="btn-primary" id="btnGate" onclick="liberarTotal()">Ver valor</button>
         </div>
         <div class="sum-totais trancado" id="sumTotais" aria-hidden="true">
-        <div class="sum-linha sum-mensal"><span>Mensalidade</span><span class="v" id="sumMensal">R$ 397,90<small>/mês</small></span></div>
+        <div class="sum-linha sum-mensal"><span>Mensalidade</span><span class="v" id="sumMensal">R$ 397,00<small>/mês</small></span></div>
         <div class="sum-linha"><span>Implementação (única)</span><span id="sumTaxa">R$ 0,00</span></div>
-        <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 397,90</span></div>
+        <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 397,00</span></div>
         </div>
-        <p class="sum-obs">Pré-pago e sem fidelidade: o 1º pagamento soma a implementação à primeira mensalidade. Os serviços de IA funcionam de forma independente do CRM. Outras conexões sob consulta são orçadas pela equipe.</p>
+        <div class="sum-call" id="sumCall" hidden>📅 <strong>Você marcou adicionais.</strong> O total acima considera a ferramenta, a IA e as implementações. Os valores dos adicionais são apresentados na reunião com nosso especialista.</div>
+        <p class="sum-obs">Pré-pago e sem fidelidade: o 1º pagamento soma a implementação à primeira mensalidade. A IA funciona de forma independente do CRM.</p>
         <button type="button" class="btn-primary" id="btnPlano" onclick="enviarPlano()">
           <span style="display:flex;align-items:center;gap:8px">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.996 0C5.373 0 0 5.373 0 11.996c0 2.117.554 4.103 1.523 5.824L.044 23.956l6.334-1.456a11.96 11.96 0 005.618 1.396c6.623 0 11.996-5.373 11.996-11.996S18.619 0 11.996 0z"/></svg>
@@ -1272,14 +1207,14 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
           </span>
         </button>
         <div class="sum-ok" id="sumOk" aria-live="polite"></div>
-        <span class="sum-nota">🔒 Sem compromisso · Proposta em PDF na hora</span>
+        <span class="sum-nota" id="sumNota">🔒 Sem compromisso · Proposta em PDF na hora</span>
       </aside>
     </div>
     <div class="plans-guarantee rv" style="max-width:none;margin-top:28px">
       <div class="pg-ic">🛡️</div>
       <div>
-        <strong>Garantia de 7 dias · sem fidelidade</strong>
-        <p>Se em até 7 dias você não gostar, devolvemos 100% do valor investido. Nossos planos são pré-pagos e não têm contrato de fidelidade — preferimos prender o cliente pelo serviço, não por cláusula. Cancele quando quiser.</p>
+        <strong>Garantia de 30 dias · sem fidelidade</strong>
+        <p>Use a LeadVox por 30 dias. Se nesse período não gostar e quiser cancelar, é só avisar, sem letra miúda e sem burocracia. Nossos planos são pré-pagos e não têm contrato de fidelidade: preferimos prender o cliente pelo serviço, não por cláusula.</p>
       </div>
     </div>
   </div>
@@ -1328,9 +1263,9 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
     <h2 class="rv">Quando o atendimento evolui,<br>os resultados aparecem</h2>
     <p class="ssub rv">Se não acredita em nós, acredite neles:</p>
     <div class="testi-grid rv">
-      <div class="testi"><div class="stars">★★★★★</div><p>"A LeadVox é simplesmente fantástica! A velocidade do chatbot é impressionante. A personalização é incrível — parece que estou conversando com um assistente pessoal. Revolucionou a forma como interagimos com nossos clientes."</p><div class="t-auth"><div class="t-av">L</div><div><div class="t-name">Larissa Tertuliano</div><div class="t-role">Gestora Comercial</div></div></div></div>
-      <div class="testi"><div class="stars">★★★★★</div><p>"Desde que comecei a usar a LeadVox, minha empresa teve um aumento de 30% nas vendas! Além disso, percebi uma redução significativa na taxa de cancelamento. A plataforma foi fundamental nesses resultados."</p><div class="t-auth"><div class="t-av">F</div><div><div class="t-name">Fernando Bastos</div><div class="t-role">Diretor Comercial</div></div></div></div>
-      <div class="testi"><div class="stars">★★★★★</div><p>"Estou impressionado com a LeadVox! O CRM com IA é incrivelmente inovador. Respostas rápidas e precisas, design intuitivo. O sistema de Kanban organiza tudo de forma visual e prática. Recomendo para qualquer empresa!"</p><div class="t-auth"><div class="t-av">G</div><div><div class="t-name">Gabriel Alves</div><div class="t-role">Fundador & CEO</div></div></div></div>
+      <div class="testi"><div class="stars">★★★★★</div><p>"Eu perdia venda por desorganização, não por falta de cliente. Agora está tudo num funil: sei a etapa de cada um e o follow-up agendado retoma sozinho quem pediu pra chamar depois. Negócio que morria no esquecimento, hoje fecha."</p><div class="t-auth"><div class="t-av">F</div><div><div class="t-name">Francisco Salustiano</div><div class="t-role">Corretor · RE/MAX Goldstar · RJ</div></div></div></div>
+      <div class="testi"><div class="stars">★★★★★</div><p>"A New Move é de moto elétrica e o cliente chega cheio de dúvida. A IA responde tudo na hora, qualifica e já me passa o lead pronto. Parei de perder venda no fim de semana."</p><div class="t-auth"><div class="t-av">J</div><div><div class="t-name">João Pedro</div><div class="t-role">New Move Motors</div></div></div></div>
+      <div class="testi"><div class="stars">★★★★★</div><p>"Para a equipe comercial foi um divisor de águas. Todo lead centralizado, qualificado e com follow-up automático nos contatos frios. A agenda dos corretores passou a chegar cheia."</p><div class="t-auth"><div class="t-av">G</div><div><div class="t-name">Gerlane</div><div class="t-role">Diretora Comercial · G7 Negócios · RJ</div></div></div></div>
     </div>
   </div>
 </section>
@@ -1354,14 +1289,14 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 
 <!-- CTA BAND -->
 <div class="cta-band">
-  <div class="tag" style="display:inline-block;margin-bottom:12px">7 dias de garantia</div>
+  <div class="tag" style="display:inline-block;margin-bottom:12px">30 dias de garantia</div>
   <h2>Automatize conversas e veja<br>resultados antes de decidir</h2>
   <p class="cta-sub">Junte-se a +1.000 empresas que já usam a LeadVox para atender mais, vender mais e escalar sem contratar mais.</p>
   <div class="cta-row">
     <button class="btn-primary" onclick="openModal()">Agendar demonstração</button>
     <a href="https://wa.me/5521987696628?text=Ol%C3%A1!%20Estava%20no%20site%20e%20quero%20saber%20mais%20sobre%20a%20LeadVox." class="btn-outline" target="_blank">Falar no WhatsApp</a>
   </div>
-  <div class="cta-guarantee">Planos pré-pagos · sem fidelidade · 7 dias de garantia</div>
+  <div class="cta-guarantee">Planos pré-pagos · sem fidelidade · 30 dias de garantia</div>
 </div>
 
 <!-- FAQ -->
@@ -1378,7 +1313,7 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>A plataforma se integra com outros sistemas?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! A LeadVox utiliza tecnologia REST que permite integrações com CRMs, ERPs, plataformas de marketing e qualquer sistema com API. São mais de 50 integrações disponíveis incluindo RD Station, Pipedrive, HubSpot, Shopify, Zapier e outros.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Quantos atendentes posso cadastrar?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>A LeadVox não limita o número de atendentes. Toda a equipe pode atender pelo mesmo número de WhatsApp simultaneamente, com filas inteligentes e distribuição automática de conversas.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>Como funciona o chatbot com IA?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>O chatbot com IA entende o contexto das mensagens e responde automaticamente com linguagem natural. É capaz de qualificar leads, encaminhar conversas e oferecer suporte 24h sem intervenção humana — e passa para o atendente no momento certo.</p></div></div>
-      <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>E se eu não gostar? Tem garantia?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim. Você tem 7 dias de garantia: se não gostar, devolvemos 100% do valor investido. Nossos planos são pré-pagos e não têm contrato de fidelidade — você cancela quando quiser. Antes disso, também fazemos uma demonstração gratuita: chame no WhatsApp (21) 98769-6628.</p></div></div>
+      <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>E se eu não gostar? Tem garantia?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim. Você tem 30 dias de garantia: se nesse período não gostar e quiser cancelar, é só avisar, sem letra miúda e sem burocracia. Nossos planos são pré-pagos e não têm contrato de fidelidade — você cancela quando quiser. Antes disso, também fazemos uma demonstração gratuita: chame no WhatsApp (21) 98769-6628.</p></div></div>
       <div class="fq"><div class="fq-q" onclick="toggleFaq(this)"><span>A LeadVox funciona para qualquer segmento?</span><span class="fq-ic">+</span></div><div class="fq-a"><p>Sim! Atendemos saúde, varejo, concessionárias, clínicas, imobiliárias, advocacia, educação, e-commerce e muito mais. A plataforma é 100% customizável para qualquer fluxo de atendimento e venda.</p></div></div>
     </div>
   </div>
@@ -1550,6 +1485,7 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
 <button class="ck-manage" id="ckManage" onclick="ckReopen()">🍪 Preferências de cookies</button>
 
 
+<script src="/precos-leadvox.js"></script>
 <script>
 // ── CHAT ANIMATION
 const msgs=[
@@ -1582,65 +1518,36 @@ function showSeg(i){document.querySelectorAll(".seg-panel").forEach((p,idx)=>p.c
 // ── FAQ
 function toggleFaq(btn){const item=btn.closest(".fq");const open=item.classList.contains("open");document.querySelectorAll(".fq.open").forEach(i=>i.classList.remove("open"));if(!open)item.classList.add("open");}
 
-// ── MONTE SEU PLANO (tabela de preços LeadVox)
-const PRECO = { base:397.90, descontoIA:0.5, sdr:459.97, impl:500, combo:950 };
-const CONN  = [
-  { k:"wa",   nome:"WhatsApp",  preco:169.90 },
-  { k:"voip", nome:"VoIP",      preco:149.00 },
-  { k:"ig",   nome:"Instagram", preco:79.00  },
-  { k:"fb",   nome:"Facebook",  preco:79.00  },
-  { k:"wc",   nome:"Webchat",   preco:79.00  },
-  { k:"em",   nome:"E-mail",    preco:79.00  }
-];
-const NOME = { base:"CRM LeadVox · Plano Base", sdr:"IA SDR LeadVox Pro", impl:"Implementação CRM Personalizada", combo:"Implementação CRM Personalizada + Combo API Oficial" };
-const cfg = { ia:null, conn:{ wa:0, voip:0, ig:0, fb:0, wc:0, em:0 }, outras:false, impl:null };
+// ── MONTE SEU PLANO (preços em /precos-leadvox.js — altere lá)
+const P   = window.LV_PRECOS;
+const cfg = { ia:false, impl:false, add:{} };
 
 function brl(v){ return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
 
-function escolherIA(k){
-  cfg.ia = (cfg.ia === k) ? null : k;   // clicar de novo desmarca
-  document.querySelectorAll("[data-ia]").forEach(function(b){
-    const on = b.dataset.ia === cfg.ia;
-    b.classList.toggle("on", on);
-    b.setAttribute("aria-checked", on);
-  });
-  calcularPlano();
-}
-function mudarConn(k, d){
-  cfg.conn[k] = Math.max(0, Math.min(20, cfg.conn[k] + d));
-  document.getElementById("cn_" + k).textContent = cfg.conn[k];
-  document.getElementById("row_" + k).classList.toggle("on", cfg.conn[k] > 0);
-  calcularPlano();
-}
 function marcar(el, on){
   el.classList.toggle("on", on);
   el.setAttribute("aria-checked", on);
   el.querySelector(".bld-mark").textContent = on ? "✓" : "";
 }
-function toggleOutras(el){ cfg.outras = !cfg.outras; marcar(el, cfg.outras); calcularPlano(); }
-function escolherImpl(k){
-  cfg.impl = (cfg.impl === k) ? null : k;   // clicar de novo desmarca
-  document.querySelectorAll("[data-impl]").forEach(function(b){
-    const on = b.dataset.impl === cfg.impl;
-    b.classList.toggle("on", on);
-    b.setAttribute("aria-checked", on);
-  });
+function escolherIA(){   cfg.ia   = !cfg.ia;   marcar(document.getElementById("rowIA"), cfg.ia);     calcularPlano(); }
+function escolherImpl(){ cfg.impl = !cfg.impl; marcar(document.getElementById("rowImpl"), cfg.impl); calcularPlano(); }
+function toggleAdicional(btn){
+  const k = btn.dataset.add;
+  cfg.add[k] = !cfg.add[k];
+  btn.setAttribute("aria-pressed", cfg.add[k]);
   calcularPlano();
 }
+function adicionaisMarcados(){ return P.adicionais.filter(function(a){ return cfg.add[a.k]; }); }
+function temAdicionais(){ return adicionaisMarcados().length > 0; }
 
-/* Linhas do plano: [rótulo, valor, tipo]  tipo: "m" mensal, "u" única, "c" sob consulta */
-function baseComDesconto(){ return Math.round(PRECO.base * (1 - PRECO.descontoIA) * 100) / 100; }
+/* Linhas do plano: [rótulo, valor, tipo]  tipo: "m" mensal, "u" única, "c" adicional (valor na reunião) */
 function linhasPlano(){
   const l = [cfg.ia
-    ? [NOME.base + " (50% off com IA)", baseComDesconto(), "m"]
-    : [NOME.base, PRECO.base, "m"]];
-  if(cfg.ia) l.push([NOME[cfg.ia], PRECO[cfg.ia], "m"]);
-  CONN.forEach(function(c){
-    const q = cfg.conn[c.k];
-    if(q) l.push([q + "× " + c.nome, q * c.preco, "m"]);
-  });
-  if(cfg.impl)   l.push([NOME[cfg.impl], PRECO[cfg.impl], "u"]);
-  if(cfg.outras) l.push(["Outras conexões", 0, "c"]);
+    ? [P.nomes.crm + " · 50% off com IA", P.crmComIA, "m"]
+    : [P.nomes.crm, P.crm, "m"]];
+  if(cfg.ia)   l.push([P.nomes.ia, P.ia, "m"], [P.nomes.implIa, P.implIa, "u"]);
+  if(cfg.impl) l.push([P.nomes.implCrm, P.implCrm, "u"]);
+  adicionaisMarcados().forEach(function(a){ l.push([a.nome, 0, "c"]); });
   return l;
 }
 function totaisPlano(){
@@ -1650,49 +1557,60 @@ function totaisPlano(){
   taxa   = Math.round(taxa * 100) / 100;
   return { mensal:mensal, taxa:taxa, primeiro:Math.round((mensal + taxa) * 100) / 100 };
 }
-function valorLinha(x){ return x[2] === "m" ? brl(x[1]) + "/mês" : x[2] === "u" ? brl(x[1]) : "Sob consulta"; }
+function valorLinha(x){ return x[2] === "m" ? brl(x[1]) + "/mês" : x[2] === "u" ? brl(x[1]) : "Na reunião"; }
 function calcularPlano(){
   document.getElementById("sumLista").innerHTML = linhasPlano().map(function(x){
     return '<li class="' + (x[2] === "m" ? "" : "taxa") + '"><span>' + x[0] + '</span><span>' + valorLinha(x) + '</span></li>';
   }).join("");
-  const t = totaisPlano();
+  const t = totaisPlano(), add = temAdicionais();
   document.getElementById("basePreco").innerHTML = cfg.ia
-    ? '<s class="de">' + brl(PRECO.base) + '</s>' + brl(baseComDesconto()) + '<small>/mês · 50% off com IA</small>'
-    : brl(PRECO.base) + '<small>/mês</small>';
-  document.getElementById("baseRow").classList.toggle("promo", !!cfg.ia);
+    ? '<s class="de">' + brl(P.crm) + '</s>' + brl(P.crmComIA) + '<small>/mês · 50% off com IA</small>'
+    : brl(P.crm) + '<small>/mês</small>';
+  document.getElementById("baseRow").classList.toggle("promo", cfg.ia);
   document.getElementById("sumMensal").innerHTML     = brl(t.mensal) + "<small>/mês</small>";
   document.getElementById("sumTaxa").textContent     = brl(t.taxa);
   document.getElementById("sumPrimeiro").textContent = brl(t.primeiro);
+  document.getElementById("sumCall").hidden = !add;
+  document.getElementById("gateTxt").textContent = add
+    ? "Informe seu nome e WhatsApp: liberamos o total e agendamos sua reunião com nosso especialista."
+    : "Informe seu nome e WhatsApp: liberamos o total e enviamos a proposta em PDF no seu WhatsApp.";
+  document.getElementById("sumNota").textContent = add ? "🔒 Sem compromisso · Reunião pelo WhatsApp" : "🔒 Sem compromisso · Proposta em PDF na hora";
+  if(!PS.enviando) botaoPlano(add ? "Agendar reunião com especialista" : "Receber minha proposta no WhatsApp", false);
   if(PS.pronto) agendarSync();
 }
-/* Mensagem antiga (plano em texto para o WhatsApp da LeadVox) — usada como plano B */
+/* Preços e adicionais vêm da tabela central */
+function montarCalculadora(){
+  document.getElementById("iaPreco").innerHTML   = brl(P.ia) + "<small>/mês</small>";
+  document.getElementById("iaImpl").textContent  = brl(P.implIa);
+  document.getElementById("implPreco").innerHTML = brl(P.implCrm) + "<small>uma vez</small>";
+  document.getElementById("listaAdicionais").innerHTML = P.adicionais.map(function(a){
+    return '<button type="button" class="bld-chip" data-add="' + a.k + '" aria-pressed="false" title="' + a.desc + '" onclick="toggleAdicional(this)">' + a.nome + '</button>';
+  }).join("");
+}
+/* Plano em texto para o WhatsApp da LeadVox: pedido de reunião (com adicionais) ou plano B do PDF */
 function mensagemPlano(){
   const l = linhasPlano(), t = totaisPlano();
   const item = function(x){ return "  • " + x[0] + " — " + valorLinha(x); };
   let msg = "Olá! Montei meu plano no site da *LeadVox*."
           + "\n\n🧩 *Meu plano:*\n" + l.filter(function(x){ return x[2] === "m"; }).map(item).join("\n");
-  if(cfg.impl)   msg += "\n\n🛠️ *Implementação (pagamento único):*\n" + item([NOME[cfg.impl], PRECO[cfg.impl], "u"]);
-  const sob = l.filter(function(x){ return x[2] === "c"; });
-  if(sob.length) msg += "\n\n🔎 *Sob consulta:*\n" + sob.map(function(x){ return "  • " + x[0]; }).join("\n");
+  const impl = l.filter(function(x){ return x[2] === "u"; });
+  if(impl.length) msg += "\n\n🛠️ *Implementação (pagamento único):*\n" + impl.map(item).join("\n");
   msg += "\n\n💰 *Mensalidade:* " + brl(t.mensal) + "/mês";
   if(t.taxa) msg += "\n💳 *1º pagamento:* " + brl(t.primeiro) + " (implementação + 1ª mensalidade)";
+  const add = l.filter(function(x){ return x[2] === "c"; });
+  if(add.length) return msg + "\n\n➕ *Adicionais que me interessam:*\n" + add.map(function(x){ return "  • " + x[0]; }).join("\n")
+    + "\n\nQuero agendar a reunião para conhecer os valores dos adicionais.";
   return msg + "\n\nPoderia me passar os próximos passos?";
 }
-/* Descrição de cada item na proposta em PDF */
-const DESC = {
-  base:"Acesso ao sistema, com treinamento autônomo", sdr:"Pré-atendimento e distribuição de leads 24h",
-  impl:"Configuração completa feita pela nossa equipe", combo:"Configuração completa da plataforma e da API Oficial do WhatsApp",
-  wa:"Cada número de WhatsApp conectado", voip:"Ligações feitas e recebidas direto da plataforma", ig:"Direct do Instagram na mesma caixa de atendimento",
-  fb:"Messenger da sua página no mesmo atendimento", wc:"Chat do seu site integrado à plataforma", em:"Caixa de e-mail atendida na mesma plataforma",
-  outras:"Outro canal que você precise integrar"
-};
+/* Itens da proposta em PDF (só ferramenta, IA e implementações: com adicionais não há PDF) */
 function itensProposta(){
   const it = [];
-  it.push({ nome: cfg.ia ? NOME.base + " (50% off com IA)" : NOME.base, desc: DESC.base, valor: cfg.ia ? baseComDesconto() : PRECO.base, tipo:"m" });
-  if(cfg.ia) it.push({ nome: NOME[cfg.ia], desc: DESC[cfg.ia], valor: PRECO[cfg.ia], tipo:"m" });
-  CONN.forEach(function(c){ const q = cfg.conn[c.k]; if(q) it.push({ nome: q + "× " + c.nome, desc: DESC[c.k], valor: q * c.preco, tipo:"m" }); });
-  if(cfg.impl)   it.push({ nome: NOME[cfg.impl], desc: DESC[cfg.impl], valor: PRECO[cfg.impl], tipo:"u" });
-  if(cfg.outras) it.push({ nome: "Outras conexões", desc: DESC.outras, valor: 0, tipo:"c" });
+  it.push({ nome: cfg.ia ? P.nomes.crm + " · 50% off com IA" : P.nomes.crm, desc: P.desc.crm, valor: cfg.ia ? P.crmComIA : P.crm, tipo:"m" });
+  if(cfg.ia){
+    it.push({ nome: P.nomes.ia, desc: P.desc.ia, valor: P.ia, tipo:"m" });
+    it.push({ nome: P.nomes.implIa, desc: P.desc.implIa, valor: P.implIa, tipo:"u" });
+  }
+  if(cfg.impl) it.push({ nome: P.nomes.implCrm, desc: P.desc.implCrm, valor: P.implCrm, tipo:"u" });
   return it;
 }
 function tipoLoja(t){
@@ -1721,8 +1639,17 @@ async function enviarPlano(){
     setTimeout(function(){ document.getElementById("pgNome").focus(); }, 400);
     return;
   }
-  PS.enviando = true; clearTimeout(PS.timer); clearTimeout(PS.capTimer);
+  clearTimeout(PS.timer); clearTimeout(PS.capTimer);
   const ok = document.getElementById("sumOk"); ok.classList.remove("on");
+  if(temAdicionais()){   // com adicionais não há PDF: o cliente vai para a reunião com o closer
+    eventoPlano("reuniao");
+    abrirWhats(mensagemPlano());
+    ok.innerHTML = "<strong>✅ Pedido de reunião enviado!</strong>Abrimos o WhatsApp com o seu plano. Nosso especialista confirma o horário e apresenta os valores dos adicionais.";
+    ok.classList.add("on");
+    botaoPlano("Agendar reunião com especialista", false);
+    return;
+  }
+  PS.enviando = true;
   botaoPlano("Gerando sua proposta...", true);
   let pdf = null;
   try{
@@ -1764,14 +1691,14 @@ async function enviarPlano(){
 
 /* ── PROPOSTA + RESGATE
    1) O total fica desfocado até a pessoa informar nome e WhatsApp.
-   2) Ao clicar em "Ver valor e receber proposta", o total aparece e a proposta em PDF
+   2) Ao clicar em "Ver valor", o total aparece e a proposta em PDF
       vai para o WhatsApp dela (evento "enviado").
    3) Se ela digitar nome e WhatsApp e NÃO clicar, o site já guarda uma proposta de resgate
-      (com desconto na implementação) no N8N (evento "capturado"). Se em alguns minutos
-      ela não tiver enviado, o N8N manda o resgate no WhatsApp dela. */
+      (mesmos valores, sem desconto) no N8N (evento "capturado"). Se em alguns minutos
+      ela não tiver enviado, o N8N manda o resgate no WhatsApp dela.
+   4) Com adicionais marcados não há PDF: o evento vai sem proposta e o caminho é a reunião. */
 const RESGATE_URL = "https://webhook.lv-mktdeconversa.com/webhook/plano-site";
 const PROPOSTA_JS = "/proposta/proposta-leadvox.js";   // gerador do PDF (pasta /proposta do site)
-const RESGATE = { descontoImpl: 0.5, validadeHoras: 48 };   // condição do resgate
 const PS = { sid: Math.random().toString(36).slice(2, 10), liberado:false, pronto:false, nome:"", wa:"", loja:"", tipo:"carro",
              timer:null, capTimer:null, capturado:"", ultimoCap:"", enviando:false };
 
@@ -1813,38 +1740,22 @@ function eventoPlano(evento){   // evento leve, sem PDF
   }catch(e){}
 }
 
-/* Proposta de resgate: implementação com desconto + caixa de condição especial */
-function dataBR(d){ return d.toLocaleDateString("pt-BR"); }
+/* Proposta de resgate: os mesmos valores do plano montado, sem desconto */
 async function capturar(evento){
   if(PS.liberado || PS.enviando || !PS.wa) return;
+  PS.ultimoCap = JSON.stringify(payloadPlano("x").plano) + PS.wa;
+  if(temAdicionais()){ eventoPlano(evento); PS.capturado = PS.wa; return; }   // adicionais: sem PDF, vai para a reunião
   try{
     await carregarGerador();
-    const ate = dataBR(new Date(Date.now() + RESGATE.validadeHoras * 3600e3));
-    const pct = Math.round(RESGATE.descontoImpl * 100) + "%";
     const t = totaisPlano();
-    let taxa = 0, implDe = 0, implPor = 0;
-    const itens = itensProposta().map(function(it){
-      if(it.tipo !== "u") return it;
-      const por = Math.round(it.valor * (1 - RESGATE.descontoImpl) * 100) / 100;
-      implDe += it.valor; implPor += por; taxa += por;
-      return { nome: it.nome, desc: it.desc, valor: por, valorDe: it.valor, tipo: "u" };
-    });
-    const primeiro = Math.round((t.mensal + taxa) * 100) / 100;
-    if(!implDe){ implDe = PRECO.impl; implPor = Math.round(PRECO.impl * (1 - RESGATE.descontoImpl) * 100) / 100; }
-    const oferta = itens.some(function(i){ return i.valorDe; })
-      ? pct + " de desconto na implementação: de " + brl(implDe) + " por " + brl(implPor) + ". Condição válida até " + ate + "."
-      : "Se quiser que a nossa equipe monte tudo para você, a implementação sai com " + pct + " de desconto: de " + brl(implDe) + " por " + brl(implPor) + ". Condição válida até " + ate + ".";
     const pdf = await window.LeadVoxProposta.gerar({
       modo:"plano", tipo: PS.tipo === "moto" ? "moto" : "carro", cliente:{ nome: PS.nome, loja: PS.loja },
-      intro: "{nome}, você montou este plano no nosso site e separamos uma condição especial para a sua loja começar agora.",
-      plano:{ itens: itens, mensal: t.mensal, taxa: taxa, primeiro: primeiro },
-      oferta:{ titulo: "Condição especial para você", texto: oferta }
+      intro: "{nome}, você montou este plano no nosso site. Separamos a proposta para você começar quando quiser.",
+      plano:{ itens: itensProposta(), mensal: t.mensal, taxa: t.taxa, primeiro: t.primeiro }
     });
     if(PS.liberado) return;   // enviou a proposta normal enquanto gerava
     const corpo = payloadPlano(evento);
     corpo.pdfBase64 = pdf.base64; corpo.pdfNome = pdf.nome; corpo.numero = pdf.numero;
-    corpo.oferta = { pct: pct, ate: ate, implDe: implDe, implPor: implPor, primeiro: primeiro, taxa: taxa };
-    PS.ultimoCap = JSON.stringify(payloadPlano("x").plano) + PS.wa;
     fetch(RESGATE_URL, { method:"POST", mode:"cors", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(corpo) })
       .catch(function(e){ console.warn("Resgate:", e); });
     PS.capturado = PS.wa;
@@ -1878,6 +1789,7 @@ document.getElementById("pgWa").addEventListener("input", function(){
 });
 document.getElementById("pgNome").addEventListener("input", aoDigitar);
 
+montarCalculadora();
 calcularPlano();
 /* Quem já deixou nome e WhatsApp no site só encontra os campos preenchidos (o total continua travado) */
 (function(){

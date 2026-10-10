@@ -329,11 +329,18 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
     <span class="tag rv">Por que a LeadVox?</span>
     <h2 class="rv">A plataforma que cresce<br>com o seu negócio</h2>
     <div class="diff-grid rv">
-      <div class="diff-item"><div class="diff-ic">🤖</div><h3>IA avançada</h3><p>GPT-4 treinado para responder com naturalidade e converter leads automaticamente.</p></div>
+      <div class="diff-item"><div class="diff-ic">🤖</div><h3>IA avançada</h3><p>IA treinada com os dados do seu negócio para responder com naturalidade e converter leads automaticamente.</p></div>
       <div class="diff-item"><div class="diff-ic">📊</div><h3>CRM integrado</h3><p>Pipeline visual com todas as etapas do seu funil, atrelado às conversas reais.</p></div>
       <div class="diff-item"><div class="diff-ic">🔗</div><h3>+50 integrações</h3><p>Conecte com CRMs, ERPs e ferramentas que você já usa via API REST ou webhook.</p></div>
       <div class="diff-item"><div class="diff-ic">💬</div><h3>Suporte real</h3><p>Nossa equipe responde de verdade, pelo WhatsApp, sem robôs nem filas de espera.</p></div>
     </div>
+  </div>
+</section>
+
+<!-- QUANTO CUSTA (preços em /precos-leadvox.js) -->
+<section class="sec" id="precos">
+  <div class="inner">
+    <div data-lv-precos data-msg="Olá! Vi os valores na página de imobiliárias da LeadVox e quero conversar com um especialista."></div>
   </div>
 </section>
 
@@ -393,5 +400,6 @@ footer{position:relative;z-index:1;background:var(--navy2);border-top:1px solid 
 const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("show");obs.unobserve(e.target);}});},{threshold:.1});
 document.querySelectorAll(".rv").forEach(el=>obs.observe(el));
 </script>
+<script src="/precos-leadvox.js"></script>
 </body>
 </html>
