@@ -18,7 +18,7 @@
   // ─────────────── TEXTOS EDITÁVEIS ───────────────
   const CONFIG = {
     validadeDias: 7,
-    whatsapp: "(21) 98769-6628",
+    whatsapp: "(21) 98108-1044",
     email: "contato@leadvox.com.br",
     site: "leadvox.com.br",
     responsavel: "Leonardo Vasconcellos",
@@ -26,7 +26,7 @@
     condicoes: [
       "Pré-pago e sem fidelidade: cada pagamento libera 30 dias corridos de plataforma e serviços.",
       "O 1º pagamento soma a implementação (quando houver) à primeira mensalidade.",
-      "Garantia de 7 dias: se não gostar, devolvemos 100% do valor investido.",
+      "Garantia de 30 dias: se não gostar, devolvemos 100% da mensalidade. A implementação, quando contratada, não é devolvida, porque o serviço já foi entregue.",
       "Os serviços de IA funcionam de forma independente do CRM.",
     ],
     plano: {

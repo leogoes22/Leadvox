@@ -235,7 +235,7 @@ function condicoesTexto(p, t) {
   if (c.inicio) out.push('Início dos trabalhos: ' + c.inicio + '.');
   if ((p.itens || []).some(function (i) { return /api oficial/i.test(i.nome); })) out.push('A tarifa de conversa da Meta é cobrada pela própria Meta, por uso.');
   if ((p.itens || []).some(function (i) { return /tr[aá]fego/i.test(i.nome); })) out.push('A verba de mídia dos anúncios não está inclusa e é paga direto às plataformas.');
-  if (c.garantia) out.push('Garantia de 30 dias a partir da ativação.');
+  if (c.garantia) out.push('Garantia de 30 dias a partir da ativação: devolvemos 100% da mensalidade. A implementação, quando contratada, não é devolvida.');
   (c.extras || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (s) { out.push(s); });
   return out;
 }
