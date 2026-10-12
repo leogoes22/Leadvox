@@ -59,6 +59,22 @@
   .data.prox { border-color: var(--verde); }
   .data.prox b { color: var(--verde); }
   .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .largo { grid-column: 1 / -1; }
+  .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 4px; }
+  .form .cheio { grid-column: 1 / -1; }
+  .form label, .rotas legend { display: block; font-size: 14px; font-weight: 500; margin: 14px 0 6px; padding: 0; }
+  .form label small { color: var(--suave); font-weight: 400; }
+  .form input, select { width: 100%; padding: 10px 12px; border-radius: var(--raio); border: 1px solid var(--linha);
+    background: var(--navy); color: var(--texto); font: inherit; font-size: 15px; }
+  .rotas { border: 0; padding: 0; margin: 4px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .rotas legend { grid-column: 1 / -1; }
+  .rota { display: flex; gap: 10px; align-items: start; background: var(--navy); border: 1px solid var(--linha); border-radius: 12px; padding: 12px; cursor: pointer; }
+  .rota:has(input:checked) { border-color: var(--verde); }
+  .rota input { width: auto; margin-top: 4px; accent-color: var(--verde); }
+  .rota small { display: block; color: var(--suave); font-size: 13px; line-height: 1.4; margin-top: 2px; }
+  textarea { width: 100%; min-height: 150px; margin-top: 14px; padding: 12px; border-radius: var(--raio); border: 1px solid var(--linha);
+    background: var(--navy); color: var(--texto); font: 14px/1.5 "DM Sans", sans-serif; resize: vertical; }
+  @media (max-width: 760px) { .form, .rotas { grid-template-columns: 1fr; } }
   @media (max-width: 560px) { header, .novo, nav, .acao { padding-left: 16px; padding-right: 16px; } .datas { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -115,6 +131,46 @@
       <p class="sub">Cada relatório compara com o anterior.</p>
       <div class="datas" id="datas"></div>
     </section>
+
+    <section class="largo">
+      <h2>Pedir o relatório ao Claude</h2>
+      <p class="sub">Um dia antes do checkpoint. Escolha como os dados chegam, copie o pedido e cole na conversa.</p>
+      <div class="form">
+        <div><label for="pCli">Cliente</label><input id="pCli" placeholder="Ex.: Grupo LT"></div>
+        <div><label for="pPer">Período</label><select id="pPer"></select></div>
+        <div class="cheio"><label for="pSet">Setores e campanhas <small>(opcional)</small></label><input id="pSet" placeholder="Ex.: Locação, Investidor, Moto Peças"></div>
+      </div>
+      <fieldset class="rotas">
+        <legend>Como os dados chegam</legend>
+        <label class="rota"><input type="radio" name="rota" value="hibrido" checked><span><b>Híbrido</b> (recomendado)<small>Claude lê direto das telas. O que não conseguir ler, ele pede o arquivo do plano B.</small></span></label>
+        <label class="rota"><input type="radio" name="rota" value="direto"><span><b>Só pelas telas</b><small>Chrome aberto e logado no Meta e na LeadVox do cliente.</small></span></label>
+        <label class="rota"><input type="radio" name="rota" value="arquivos"><span><b>Só por arquivos</b><small>Você anexa as exportações do plano B junto com o pedido.</small></span></label>
+      </fieldset>
+      <textarea id="pTxt" readonly aria-label="Pedido pronto"></textarea>
+      <div class="links"><button class="principal" type="button" id="pCopiar">Copiar pedido</button></div>
+    </section>
+
+    <section>
+      <h2>Antes de pedir (padrão: telas)</h2>
+      <ul>
+        <li>Chrome aberto e <b>na tela</b>, sem minimizar. Minimizado, eu não consigo ler.</li>
+        <li>Gerenciador de Anúncios logado na <b>conta de anúncio do cliente</b>.</li>
+        <li>LeadVox logada <b>na conta do cliente</b>, com acesso aos dashboards.</li>
+      </ul>
+      <p class="sub" style="margin-top:12px">Se um acesso falhar, eu digo qual arquivo do plano B falta e sigo com o resto.</p>
+    </section>
+
+    <section>
+      <h2>Plano B: arquivos para anexar</h2>
+      <p class="sub">Sempre no período do relatório.</p>
+      <ol>
+        <li><b>Meta, campanhas:</b> Gerenciador de Anúncios, aba Campanhas, com as colunas valor usado, conversas por mensagem iniciadas e custo por conversa. Exportar a tabela (planilha).</li>
+        <li><b>Meta, por dia:</b> a mesma tabela com o detalhamento por dia, para eu ver o ritmo de cada campanha.</li>
+        <li><b>Meta, público:</b> a mesma tabela com o detalhamento por idade e gênero.</li>
+        <li><b>LeadVox, relatório avançado</b> do período em PDF.</li>
+        <li><b>LeadVox, prints:</b> Dash Atendimento por departamento (1ª resposta, TMA, pendentes), atendimentos por atendente e por hora, motivos de fechamento, Dash Oportunidades e Pipeline.</li>
+      </ol>
+    </section>
   </div>
 </div>
 
@@ -158,6 +214,38 @@ $('#btEntrar').onclick = aplicarChave;
   const pontos = [[10, 'do dia 1 ao 10'], [20, 'do dia 10 ao 20'], [ultimo, 'do dia 20 ao ' + ultimo]];
   const prox = pontos.findIndex(p => hoje.getDate() <= p[0]);
   $('#datas').innerHTML = pontos.map((p, i) => `<div class="data ${i === prox ? 'prox' : ''}"><b>${String(p[0]).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}</b><span>${p[1]}${i === prox ? ' · próximo' : ''}</span></div>`).join('');
+
+  /* pedido do relatório: período do checkpoint + plano seguinte */
+  const dd = (d, mes) => String(d).padStart(2, '0') + '/' + String(mes + 1).padStart(2, '0');
+  const mProx = (m + 1) % 12;
+  const periodos = [
+    { txt: `${dd(1, m)} a ${dd(10, m)}`, plano: dd(20, m) },
+    { txt: `${dd(10, m)} a ${dd(20, m)}`, plano: dd(ultimo, m) },
+    { txt: `${dd(20, m)} a ${dd(ultimo, m)}`, plano: dd(10, mProx) }
+  ];
+  $('#pPer').innerHTML = periodos.map((p, i) => `<option value="${i}" ${i === Math.max(prox, 0) ? 'selected' : ''}>${p.txt} (plano até ${p.plano})</option>`).join('');
+  function pedido() {
+    const cli = $('#pCli').value.trim() || '[cliente]', p = periodos[$('#pPer').value], set = $('#pSet').value.trim();
+    const rota = document.querySelector('input[name="rota"]:checked').value;
+    const como = {
+      hibrido: 'Leia direto do Chrome: o Gerenciador de Anúncios e a LeadVox já estão logados na conta do cliente. O que não conseguir ler, me diga qual arquivo do plano B falta que eu exporto e anexo.',
+      direto: 'Leia direto do Chrome: o Gerenciador de Anúncios e a LeadVox já estão logados na conta do cliente.',
+      arquivos: 'Use os arquivos que estou anexando: exportações do Meta (campanhas, por dia, por idade e gênero), relatório avançado da LeadVox e os prints dos dashboards.'
+    }[rota];
+    $('#pTxt').value = `Monte o Relatório de Ação Comercial do ${cli}, período de ${p.txt}, com o plano até ${p.plano}.\n\n`
+      + `Use o modelo "Modelo — Relatório de Ação Comercial (10 dias)": https://claude.ai/artifact/49yWrALwR6Tsd2Ut2XRnA3\n`
+      + `Compare com o relatório anterior do cliente, se houver.\n\n`
+      + (set ? `Setores e campanhas: ${set}.\n\n` : '')
+      + `Dados: ${como}`;
+  }
+  ['#pCli', '#pPer', '#pSet'].forEach(s => $(s).addEventListener('input', pedido));
+  document.querySelectorAll('input[name="rota"]').forEach(r => r.addEventListener('change', pedido));
+  $('#pCopiar').onclick = async () => {
+    try { await navigator.clipboard.writeText($('#pTxt').value); $('#pCopiar').textContent = 'Copiado'; }
+    catch (e) { $('#pTxt').select(); $('#pCopiar').textContent = 'Selecionado: copie com Ctrl+C'; }
+    setTimeout(() => $('#pCopiar').textContent = 'Copiar pedido', 2200);
+  };
+  pedido();
 })();
 
 const k = ler('iagAdminKey') || ler('sdrAdminKey');
