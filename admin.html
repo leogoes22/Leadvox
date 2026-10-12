@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin LeadVox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #070d1c; --painel: #0e1730; --painel2: #121d3a; --linha: #1f2b4a; --texto: #e8edf7;
+    --suave: #8b97b3; --verde: #2be87b; --erro: #ff6b6b; --amarelo: #f5c451; --raio: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--navy); }
+  body { margin: 0; color: var(--texto); font: 16px/1.55 "DM Sans", system-ui, sans-serif; }
+  header { max-width: 1240px; margin: 0 auto; padding: 24px 24px 0;
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+  h1 { font: 700 28px/1.1 Syne, sans-serif; margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--suave); font-weight: 600; }
+  h2 { font: 600 19px/1.2 Syne, sans-serif; margin: 0 0 6px; }
+  .sub { color: var(--suave); margin: 0; font-size: 15px; }
+  .chave { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .chave label { font-size: 14px; font-weight: 500; }
+  input { padding: 10px 12px; border-radius: var(--raio); border: 1px solid var(--linha); background: var(--navy);
+    color: var(--texto); font: inherit; font-size: 15px; width: 240px; max-width: 100%; }
+  button, a.bt { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 10px 16px; text-decoration: none;
+    border: 1px solid var(--linha); background: transparent; color: var(--texto); cursor: pointer; display: inline-block; }
+  button:hover, a.bt:hover { border-color: var(--suave); }
+  .principal { background: var(--verde) !important; border-color: var(--verde) !important; color: var(--navy) !important; font-weight: 700; }
+  :focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+  details.outra { font-size: 13px; color: var(--suave); width: 100%; text-align: right; }
+  details.outra summary { cursor: pointer; }
+  details.outra input { width: 240px; margin-top: 6px; }
+  .novo { max-width: 1240px; margin: 18px auto 0; padding: 0 24px; }
+  .novo-caixa { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 16px 18px;
+    display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+  .novo-caixa p { margin: 0; flex: 1 1 260px; }
+  .novo-caixa p small { display: block; color: var(--suave); font-size: 13px; }
+  nav { max-width: 1240px; margin: 18px auto 0; padding: 0 24px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--linha); }
+  nav button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 10px 14px; color: var(--suave); }
+  nav button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--verde); }
+  nav button small { display: block; font-size: 12px; color: var(--suave); font-weight: 400; }
+  .aba { display: none; }
+  .aba.on { display: block; }
+  iframe { display: block; width: 100%; height: calc(100vh - 210px); min-height: 520px; border: 0; background: var(--navy); }
+  .acao { max-width: 1240px; margin: 0 auto; padding: 20px 24px 64px; display: grid; gap: 18px; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); }
+  @media (max-width: 900px) { .acao { grid-template-columns: 1fr; } iframe { height: calc(100vh - 260px); } }
+  section { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 22px; }
+  ol, ul { margin: 10px 0 0; padding-left: 20px; }
+  li { margin: 6px 0; }
+  li b { font-weight: 600; }
+  .datas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .data { background: var(--navy); border: 1px solid var(--linha); border-radius: 12px; padding: 12px; }
+  .data b { display: block; font: 700 20px/1.1 Syne, sans-serif; }
+  .data span { color: var(--suave); font-size: 13px; }
+  .data.prox { border-color: var(--verde); }
+  .data.prox b { color: var(--verde); }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  @media (max-width: 560px) { header, .novo, nav, .acao { padding-left: 16px; padding-right: 16px; } .datas { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Admin LeadVox <span>clientes e agentes</span></h1>
+  <form class="chave" id="formChave" onsubmit="return false">
+    <label for="chave">Chave de admin</label>
+    <input id="chave" type="password" autocomplete="off" placeholder="a mesma do n8n">
+    <button class="principal" id="btEntrar" type="submit">Entrar</button>
+    <details class="outra"><summary>O Motor SDR usa outra chave?</summary>
+      <label class="sr" for="chaveSdr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Chave do Motor SDR</label>
+      <input id="chaveSdr" type="password" autocomplete="off" placeholder="chave do Motor SDR"></details>
+  </form>
+</header>
+
+<div class="novo">
+  <div class="novo-caixa">
+    <p><b>Novo cliente</b><small>Loja de carro ou moto vai para o Motor SDR, que já atende as lojas ativas. Qualquer outro nicho vai para o Motor IA.</small></p>
+    <button type="button" data-ir="sdr">Loja de veículos (carro, moto)</button>
+    <button type="button" data-ir="ia">Outro nicho</button>
+  </div>
+</div>
+
+<nav role="tablist" aria-label="Áreas do admin">
+  <button role="tab" id="t-sdr" aria-controls="a-sdr" aria-selected="false" data-aba="sdr">Motor SDR<small>Automotivo</small></button>
+  <button role="tab" id="t-ia" aria-controls="a-ia" aria-selected="false" data-aba="ia">Motor IA<small>Outros nichos</small></button>
+  <button role="tab" id="t-acao" aria-controls="a-acao" aria-selected="false" data-aba="acao">Ação comercial<small>Relatório de 10 dias</small></button>
+</nav>
+
+<div class="aba" id="a-sdr" role="tabpanel" aria-labelledby="t-sdr"><iframe title="Motor SDR" data-src="admin-motor-sdr.html?embed=1"></iframe></div>
+<div class="aba" id="a-ia" role="tabpanel" aria-labelledby="t-ia"><iframe title="Motor IA" data-src="admin-motor-ia.html?embed=1"></iframe></div>
+
+<div class="aba" id="a-acao" role="tabpanel" aria-labelledby="t-acao">
+  <div class="acao">
+    <section>
+      <h2>Relatório de Ação Comercial</h2>
+      <p class="sub">Só você vê. Tráfego e atendimento de cada cliente a cada 10 dias, com o plano dos 10 dias seguintes. O modelo segue o relatório do Grupo LT.</p>
+      <ol>
+        <li><b>Duplique o modelo</b> e troque o que está entre colchetes.</li>
+        <li><b>Meta Ads do cliente:</b> gasto, conversas e custo por conversa por campanha, público, ritmo diário e recomendações pendentes.</li>
+        <li><b>LeadVox do cliente:</b> Dash Atendimento por departamento (1ª resposta, TMA, pendentes), horários de pico, carga por atendente, motivos de fechamento e atendimentos sem departamento.</li>
+        <li><b>Funil:</b> negócios criados, ganhos e perdidos no período.</li>
+        <li><b>Cruze</b> conversas pagas de cada campanha com os atendimentos que chegaram ao setor. A diferença é o lead que vazou.</li>
+        <li><b>Feche</b> com o diagnóstico, um plano por setor com data e responsável, a tabela de metas do próximo checkpoint e 10 minutos só com o dono.</li>
+      </ol>
+      <div class="links">
+        <a class="bt principal" href="https://claude.ai/artifact/49yWrALwR6Tsd2Ut2XRnA3" target="_blank" rel="noopener">Abrir o modelo</a>
+        <a class="bt" href="https://claude.ai/artifact/LRhzKwoWxs2mSaeaCkMG4j" target="_blank" rel="noopener">Exemplo: Grupo LT</a>
+      </div>
+    </section>
+    <section>
+      <h2>Checkpoints deste mês</h2>
+      <p class="sub">Cada relatório compara com o anterior.</p>
+      <div class="datas" id="datas"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+function ler(k, loc) { try { return (loc ? localStorage : sessionStorage).getItem(k) || ''; } catch (e) { return ''; } }
+function guardar(k, v, loc) { try { (loc ? localStorage : sessionStorage).setItem(k, v); } catch (e) {} }
+
+/* As duas telas leem a chave do sessionStorage desta aba (mesmo domínio). */
+function aplicarChave() {
+  const k = $('#chave').value.trim(); if (!k) { $('#chave').focus(); return; }
+  guardar('iagAdminKey', k);
+  guardar('sdrAdminKey', $('#chaveSdr').value.trim() || k);
+  document.querySelectorAll('iframe').forEach(f => { if (f.src) f.src = f.dataset.src; });
+  abrir(ler('lvAdminAba', true) || 'sdr');
+}
+function abrir(aba) {
+  document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === aba)));
+  document.querySelectorAll('.aba').forEach(a => a.classList.toggle('on', a.id === 'a-' + aba));
+  const f = document.querySelector('#a-' + aba + ' iframe');
+  if (f && !f.src) f.src = f.dataset.src;
+  guardar('lvAdminAba', aba, true);
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-aba]'); if (t) abrir(t.dataset.aba);
+  const n = e.target.closest('[data-ir]');
+  if (n) {
+    abrir(n.dataset.ir);
+    // leva direto ao formulário de cadastro da tela escolhida
+    const f = document.querySelector('#a-' + n.dataset.ir + ' iframe');
+    const foco = () => { try { const d = f.contentDocument; const el = d.getElementById(n.dataset.ir === 'sdr' ? 'nome' : 'cNome'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } } catch (x) {} };
+    if (f.contentDocument && f.contentDocument.readyState === 'complete' && f.contentDocument.URL !== 'about:blank') foco(); else f.addEventListener('load', foco, { once: true });
+  }
+});
+$('#btEntrar').onclick = aplicarChave;
+
+/* checkpoints: dia 10, dia 20 e último dia do mês */
+(function () {
+  const hoje = new Date(), a = hoje.getFullYear(), m = hoje.getMonth();
+  const ultimo = new Date(a, m + 1, 0).getDate();
+  const pontos = [[10, 'do dia 1 ao 10'], [20, 'do dia 10 ao 20'], [ultimo, 'do dia 20 ao ' + ultimo]];
+  const prox = pontos.findIndex(p => hoje.getDate() <= p[0]);
+  $('#datas').innerHTML = pontos.map((p, i) => `<div class="data ${i === prox ? 'prox' : ''}"><b>${String(p[0]).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}</b><span>${p[1]}${i === prox ? ' · próximo' : ''}</span></div>`).join('');
+})();
+
+const k = ler('iagAdminKey') || ler('sdrAdminKey');
+if (k) { $('#chave').value = k; abrir(ler('lvAdminAba', true) || 'sdr'); }
+else abrir('acao');
+</script>
+</body>
+</html>

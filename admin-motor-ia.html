@@ -124,7 +124,14 @@
   .toast.erro { background: var(--erro); color: #fff; }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ends .rot { font-size: 13px; color: var(--suave); margin: 6px 0 0; }
+  .ends .rot b { color: var(--texto); font-weight: 500; }
+  details.antigo summary { cursor: pointer; color: var(--suave); font-size: 13px; }
+  /* dentro do admin unificado (admin.html) */
+  .embed header { display: none; }
+  .embed main { padding-top: 8px; }
 </style>
+<script>if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');</script>
 </head>
 <body>
 <header>
@@ -245,6 +252,8 @@
    Endereço do workflow "Motor IA · Admin" no N8N
    ═══════════════════════════════════════════════════════════════════ */
 const API = 'https://webhook.lv-mktdeconversa.com/webhook/iag-admin';
+// plugin do cliente (agentes e catálogo): o mesmo link para todos, o login separa as contas
+const PLUGIN_IA = 'https://leadvox.com.br/agente-ia.html';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -337,9 +346,23 @@ function htmlConexao(c) {
     <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Conectar LeadVox</button></div>`;
   return `<div class="acesso" style="border:0;padding:0"><span>📱 <b>${esc(x.nomeCanal || 'Canal')}</b> <small>${esc(x.numero || '')} · tenant ${esc(x.tenantId)} · sessão ${esc(x.sessionId)} · ${(x.filas || []).length} departamentos</small></span>
       <button class="sm" type="button" onclick="abrirConexao('${c.chave}')">Trocar / testar de novo</button></div>
-    <div class="ends" style="margin-top:8px">
-      <div class="copia"><span>Chatflow</span><code title="${esc(end.motor)}">${esc(end.motor)}</code><button class="sm" type="button" data-copiar="${esc(end.motor)}">Copiar</button></div>
-      <div class="copia"><span>Eventos</span><code title="${esc(end.sentinela)}">${esc(end.sentinela)}</code><button class="sm" type="button" data-copiar="${esc(end.sentinela)}">Copiar</button></div>
+    ${blocoLinks(c.nome, end)}`;
+}
+/* Links da conta. Sem Chatflow: o sentinela recebe as mensagens pela API e repassa ao motor. */
+function linhaCopia(rot, valor) {
+  return `<div class="copia"><span>${esc(rot)}</span><code title="${esc(valor)}">${esc(valor)}</code><button class="sm" type="button" data-copiar="${esc(valor)}">Copiar</button></div>`;
+}
+function blocoLinks(nome, end) {
+  const tudo = 'Configuração da IA — ' + nome + '\n\n' +
+    '1) Plugin da IA: agentes e catálogo (LeadVox → Configurações → Plug-in → Nova Integração, com "Permitir transferência de dados" ligado):\n' + PLUGIN_IA + '\n\n' +
+    '2) Configuração da API → URL Webhook (evento "Mensagem criada"):\n' + end.sentinela;
+  return `<div class="ends" style="margin-top:8px">
+      <p class="rot"><b>Eventos</b> · Configuração da API → URL Webhook · evento "Mensagem criada"</p>
+      ${linhaCopia('Eventos', end.sentinela)}
+      <p class="rot"><b>Plugin da IA</b> · agentes e catálogo · Configurações → Plug-in → Nova Integração, com "Permitir transferência de dados"</p>
+      ${linhaCopia('Plugin IA', PLUGIN_IA)}
+      <div class="acoes" style="margin-top:6px"><button class="sm" type="button" data-copiar="${esc(tudo)}">Copiar tudo para o cliente</button></div>
+      <details class="antigo"><summary>Modo antigo, com Chatflow</summary>${linhaCopia('Chatflow', end.motor)}</details>
     </div>`;
 }
 function htmlConta(c) {
@@ -457,10 +480,7 @@ async function testarConexao(salvar) {
       <p class="sub" style="margin:8px 0 0">Tenant ${esc(j.leadvox.tenantId)} · sessão ${esc(j.leadvox.sessionId)} · ${esc(j.leadvox.canal)}</p>
       <ul class="msgs">${(j.mensagens || []).map(m => `<li>${esc(m)}</li>`).join('')}</ul>
       ${filas ? `<table><thead><tr><th>ID da fila</th><th>Setor</th></tr></thead><tbody>${filas}</tbody></table>` : ''}
-      ${j.salvo ? `<div class="ends" style="margin-top:14px">
-        <p class="sub" style="margin:0">Cole na LeadVox desta conexão:</p>
-        <div class="copia"><span>Chatflow</span><code>${esc(j.enderecos.motor)}</code><button class="sm" type="button" data-copiar="${esc(j.enderecos.motor)}">Copiar</button></div>
-        <div class="copia"><span>Eventos</span><code>${esc(j.enderecos.sentinela)}</code><button class="sm" type="button" data-copiar="${esc(j.enderecos.sentinela)}">Copiar</button></div></div>` : ''}`;
+      ${j.salvo ? `<p class="sub" style="margin:14px 0 0">Cole na LeadVox desta conexão:</p>${blocoLinks(DADOS.contas.find(x => x.chave === conConta)?.nome || '', j.enderecos)}` : ''}`;
     if (j.salvo) carregar();
   } catch (e) {
     const r = e.resposta;

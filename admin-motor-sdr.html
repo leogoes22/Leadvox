@@ -101,7 +101,11 @@
     padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.on { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  /* dentro do admin unificado (admin.html) */
+  .embed header { display: none; }
+  .embed main { padding-top: 8px; }
 </style>
+<script>if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');</script>
 </head>
 <body>
 <header>
@@ -506,6 +510,8 @@ async function restaurar(versao, bt) {
 }
 
 $('btListar').addEventListener('click', listar);
+// no admin unificado a chave vem de lá: já abre com a lista
+if (document.documentElement.classList.contains('embed') && $('adminKey').value) listar();
 $('btCancelar').addEventListener('click', () => modoEdicao(null));
 
 document.addEventListener('click', async (ev) => {
