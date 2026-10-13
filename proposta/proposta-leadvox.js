@@ -76,6 +76,29 @@
       Math.random().toString(16).slice(2, 6).toUpperCase();
   }
 
+  // A base do Canva traz o WhatsApp antigo no botão final da 2ª página (bloco de texto marcado como
+  // MCID 60). Apaga esse texto para nenhum leitor de PDF achar ou transformar em link o número antigo;
+  // o número atual é escrito por cima na montagem.
+  function tirarWhatsAntigo(pdf) {
+    const { PDFRawStream, PDFName, PDFNumber, decodePDFRawStream } = window.PDFLib;
+    const N = (s) => PDFName.of(s);
+    for (const [ref, obj] of pdf.context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFRawStream) || obj.dict.get(N("Subtype")) !== N("Form")) continue;
+      let txt = "";
+      try { const u = decodePDFRawStream(obj).decode(); for (let i = 0; i < u.length; i += 0x8000) txt += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); }
+      catch (e) { continue; }
+      const i = txt.indexOf("/H3<</MCID 60>>"); if (i < 0) continue;
+      const bt = txt.indexOf("BT", i), et = txt.indexOf("ET", bt);
+      if (bt < 0 || et < 0) continue;
+      const bloco = txt.slice(bt, et + 2);
+      if (!bloco.startsWith("BT/F8 10.5 Tf") || (bloco.match(/Tj/g) || []).length !== 15) continue;   // não é o botão: não mexe
+      const novo = txt.slice(0, bt) + txt.slice(et + 2), b = new Uint8Array(novo.length);
+      for (let k = 0; k < novo.length; k++) b[k] = novo.charCodeAt(k);
+      obj.dict.delete(N("Filter")); obj.dict.delete(N("DecodeParms")); obj.dict.set(N("Length"), PDFNumber.of(b.length));
+      pdf.context.assign(ref, PDFRawStream.of(obj.dict, b));
+    }
+  }
+
   async function gerar(o) {
     for (const [n, u] of LIBS) await carregar(n, u);
     const { PDFDocument, rgb } = window.PDFLib;
@@ -92,6 +115,7 @@
     doc.registerFontkit(window.fontkit);
     const F = { r: await doc.embedFont(fR, { subset: true }), m: await doc.embedFont(fM, { subset: true }), b: await doc.embedFont(fB, { subset: true }) };
     const base = await PDFDocument.load(baseB), modelo = await PDFDocument.load(modeloB);
+    tirarWhatsAntigo(base);
 
     const C = {
       branco: rgb(1, 1, 1), verde: rgb(0.482, 0.89, 0.353), verdeSelo: rgb(0.561, 0.89, 0.435), teal: rgb(0.204, 0.827, 0.6),
@@ -298,6 +322,13 @@
 
     // ═════════════ MONTAGEM ═════════════
     const fixas = await doc.copyPages(base, base.getPageIndices());
+    // A 2ª página fixa veio do Canva com o WhatsApp antigo no botão "Vamos colocar sua Central de Vendas
+    // para rodar?". Cobre o número com o branco do botão e escreve o atual no mesmo lugar e tamanho.
+    if (fixas[1]) {
+      const antigo = "(21) 98769-6628", larg = 64.9, size = larg / F.b.widthOfTextAtSize(antigo, 1);
+      fixas[1].drawRectangle({ x: 459.5, y: 66.5, width: 69, height: 12.5, color: C.branco });
+      fixas[1].drawText(limpa(CONFIG.whatsapp), { x: 460.8, y: 70.2, size, font: F.b, color: C.escuro });
+    }
     if (modo === "diagnostico") { await paginaDiagnostico(); fixas.forEach((p) => doc.addPage(p)); }
     else { fixas.forEach((p) => doc.addPage(p)); await paginaPlano(); }
 
