@@ -1,0 +1,1433 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Sua IA de atendimento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #070d1c; --painel: #0e1730; --painel2: #121d3a; --linha: #1f2b4a; --texto: #e8edf7; --suave: #8b97b3;
+    --verde: #2be87b; --verde-fundo: rgba(43,232,123,.10); --erro: #ff6b6b; --raio: 10px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--navy); color: var(--texto); font: 15px/1.5 "DM Sans", system-ui, sans-serif; }
+  h1, h2 { font-family: Syne, sans-serif; letter-spacing: -.01em; margin: 0; }
+  h1 { font-size: 22px; line-height: 1.15; }
+  h2 { font-size: 18px; margin-bottom: 4px; }
+  p { margin: 0; }
+  .muted { color: var(--suave); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 18px 16px 110px; }
+  .card { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 18px; margin-top: 14px; }
+  label { display: block; font-weight: 500; font-size: 14px; margin: 14px 0 6px; }
+  label small { color: var(--suave); font-weight: 400; }
+  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--linha); border-radius: var(--raio);
+    font: inherit; color: var(--texto); background: var(--navy); color-scheme: dark; }
+  option { background: var(--navy); color: var(--texto); }
+  input::placeholder, textarea::placeholder { color: #56627f; }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .tres { display: grid; grid-template-columns: 2fr 1fr; gap: 0 12px; }
+  @media (max-width: 420px) { .duas, .tres { grid-template-columns: 1fr; } }
+  .tres3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 560px) { .tres3 { grid-template-columns: 1fr; } }
+  button { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--linha); background: transparent; color: var(--texto); }
+  button.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); font-weight: 700; }
+  button.leve { border: 0; background: none; color: var(--verde); padding: 6px 0; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .erro { color: var(--erro); font-size: 14px; margin-top: 10px; }
+  .liga-lin { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+  .liga-lin b { font: 700 17px Syne, sans-serif; display: block; }
+  .ponto-st { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--suave); margin-right: 8px; vertical-align: middle; }
+  .liga.on .ponto-st { background: var(--verde); box-shadow: 0 0 0 4px rgba(43,232,123,.18); }
+  .liga.on { border-color: rgba(43,232,123,.45); }
+  .switch { flex: 0 0 auto; width: 56px; height: 32px; border-radius: 99px; padding: 0; border: 1px solid var(--linha); background: var(--navy); position: relative; }
+  .switch span { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--suave); transition: transform .18s, background .18s; }
+  .switch[aria-checked="true"] { background: var(--verde); border-color: var(--verde); }
+  .switch[aria-checked="true"] span { transform: translateX(24px); background: var(--navy); }
+  @media (prefers-reduced-motion: reduce) { .switch span { transition: none; } }
+  .selo { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--verde); border: 1px solid rgba(43,232,123,.35); border-radius: 99px; padding: 3px 10px; margin-top: 8px; }
+
+/* entrada com PIN */
+  .porta { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .porta .card { width: 100%; max-width: 380px; text-align: center; padding: 28px 22px; }
+  .marca-lv { font: 700 15px Syne, sans-serif; color: var(--suave); margin-bottom: 18px; }
+  .marca-lv b { color: var(--verde); }
+  .ok-check { width: 64px; height: 64px; border-radius: 50%; background: var(--verde-fundo); border: 2px solid var(--verde); display: grid; place-items: center; margin: 8px auto 12px; }
+  .ok-check svg { width: 30px; height: 30px; stroke: var(--verde); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; stroke-dashoffset: 0; }
+  @media (prefers-reduced-motion: no-preference) { .ok-check svg { animation: tracar .45s ease-out both; } @keyframes tracar { from { stroke-dashoffset: 30; } } }
+  .porta .card.login { text-align: left; }
+  .porta .card.login h1, .porta .card.login .marca-lv, .porta .card.login .sub { text-align: center; }
+  .lembrar { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 12px; }
+  .lembrar input { width: auto; }
+  .ok-msg { color: var(--verde); font-size: 14px; margin-top: 10px; }
+  .topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .pin-in { font: 700 28px Syne, sans-serif; letter-spacing: .4em; text-align: center; padding: 12px; margin-top: 18px; }
+
+  /* passos */
+  .passos { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 2px; scrollbar-width: none; }
+  .passos::-webkit-scrollbar { display: none; }
+  .passos button { flex: 0 0 auto; padding: 7px 12px; font-size: 13px; border-radius: 99px; background: var(--painel); }
+  .passos button[aria-current="step"] { background: var(--verde); color: var(--navy); border-color: var(--verde); font-weight: 700; }
+  .passos button.feito { border-color: rgba(43,232,123,.5); color: var(--verde); }
+  .passo { display: none; } .passo.ativo { display: block; }
+
+  /* balão de prévia */
+  .conversa { background: #0b141a; border: 1px solid var(--linha); border-radius: 12px; padding: 14px; margin-top: 12px; }
+  .balao { background: #202c33; color: #e9edef; border-radius: 0 10px 10px 10px; padding: 9px 12px; max-width: 92%; font-size: 14.5px; }
+  .balao b { font-weight: 700; }
+  .balao .hora { display: block; text-align: right; font-size: 11px; color: var(--suave); margin-top: 2px; }
+
+  /* horário */
+  .dia { display: grid; grid-template-columns: 92px 1fr 1fr; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--linha); }
+  .dia:first-of-type { border-top: 0; }
+  .dia label { margin: 0; display: flex; gap: 8px; align-items: center; font-weight: 500; }
+  .dia input[type=checkbox] { width: 18px; height: 18px; }
+  .dia input[type=time]:disabled { opacity: .4; }
+
+  .opcoes { display: grid; gap: 8px; margin-top: 6px; }
+  .opcao { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; cursor: pointer; }
+  .opcao input { width: auto; margin-top: 3px; }
+  .opcao:has(input:checked) { border-color: var(--verde); background: var(--verde-fundo); }
+  .opcao span small { display: block; color: var(--suave); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chips label { margin: 0; display: flex; gap: 6px; align-items: center; border: 1px solid var(--linha); border-radius: 99px; padding: 6px 12px; font-weight: 400; cursor: pointer; }
+  .chips label:has(input:checked) { border-color: var(--verde); background: var(--verde-fundo); }
+  .chips input { width: auto; }
+
+  .linha-lista { border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px; margin-top: 10px; position: relative; }
+  .linha-lista .tirar { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: var(--suave); font-size: 20px; padding: 2px 6px; }
+  .linha-lista label:first-of-type { margin-top: 0; }
+  .dica { background: var(--verde-fundo); border: 1px solid rgba(43,232,123,.25); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+
+  /* linha do tempo */
+  .tempo { list-style: none; margin: 14px 0 0; padding: 0; }
+  .tempo li { display: grid; grid-template-columns: 64px 14px 1fr; gap: 10px; align-items: start; padding-bottom: 14px; position: relative; }
+  .tempo li::before { content: ""; position: absolute; left: 80px; top: 16px; bottom: -2px; width: 2px; background: var(--linha); }
+  .tempo li:last-child::before { display: none; }
+  .tempo .quando { font-weight: 700; text-align: right; font-size: 14px; }
+  .tempo .marca { width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; background: var(--verde); position: relative; z-index: 1; }
+  .tempo .nota .marca { background: var(--painel); border: 2px solid var(--suave); }
+  .tempo .transf .marca { background: var(--texto); }
+  .tempo small { display: block; color: var(--suave); }
+
+  .resumo dt { font-weight: 500; margin-top: 10px; }
+  .resumo dd { margin: 2px 0 0; color: var(--suave); }
+
+  .barra { position: fixed; left: 0; right: 0; bottom: 0; background: var(--painel); border-top: 1px solid var(--linha); padding: 10px 16px; }
+  .barra .in { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+  .salvo { background: var(--verde-fundo); border: 1px solid var(--verde); color: var(--verde); border-radius: 14px; padding: 16px; margin-top: 14px; }
+
+  /* IA × Estoque */
+  .vistas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--painel); border: 1px solid var(--linha); border-radius: 99px; padding: 4px; margin-top: 14px; }
+  .vistas button { border: 0; border-radius: 99px; padding: 8px 10px; font-size: 14px; }
+  .vistas button[aria-pressed="true"] { background: var(--verde); color: var(--navy); font-weight: 700; }
+  #vistaEstoque { display: none; }
+  .modo-estoque #vistaEstoque { display: block; }
+  .modo-estoque #cardLiga, .modo-estoque #passos, .modo-estoque .passo, .modo-estoque .barra { display: none !important; }
+
+  /* estoque */
+  .est-topo { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .est-filtros { display: grid; grid-template-columns: 1fr 150px; gap: 8px; margin-top: 12px; }
+  @media (max-width: 420px) { .est-filtros { grid-template-columns: 1fr; } }
+  .veic { display: grid; grid-template-columns: 84px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); }
+  .veic:first-child { border-top: 0; }
+  .veic .capa { width: 84px; height: 63px; border-radius: 8px; object-fit: cover; background: var(--navy); border: 1px solid var(--linha); display: grid; place-items: center; color: var(--suave); font-size: 11px; }
+  .veic b { display: block; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+  .veic small { color: var(--suave); display: block; }
+  .veic .preco { color: var(--verde); font-weight: 700; font-size: 14px; }
+  .st { display: inline-block; font-size: 11.5px; border-radius: 99px; padding: 1px 8px; margin-top: 4px; border: 1px solid var(--linha); color: var(--suave); }
+  .st.disponivel { color: var(--verde); border-color: rgba(43,232,123,.4); }
+  .st.reservado { color: #ffc861; border-color: rgba(255,200,97,.4); }
+  .st.vendido { color: var(--erro); border-color: rgba(255,107,107,.4); }
+  .soltar { display: block; border: 2px dashed var(--linha); border-radius: var(--raio); padding: 18px 12px; text-align: center; margin-top: 8px; cursor: pointer; font-weight: 400; }
+  .soltar.sobre { border-color: var(--verde); background: var(--verde-fundo); }
+  .soltar input { display: none; }
+  .fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-top: 10px; }
+  .foto { position: relative; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--navy); }
+  .foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+  .foto .acoes { display: flex; justify-content: space-between; padding: 2px; }
+  .foto .acoes button { padding: 4px 9px; border: 0; font-size: 15px; color: var(--texto); }
+  .foto .acoes button:disabled { opacity: .25; }
+  .foto .capa-tag { position: absolute; top: 6px; left: 6px; background: var(--verde); color: var(--navy); font: 700 11px "DM Sans"; border-radius: 99px; padding: 1px 8px; }
+  .foto.enviando img { opacity: .35; }
+  .foto.enviando::after { content: "Enviando…"; position: absolute; inset: 0 0 32px; display: grid; place-items: center; font-size: 12px; }
+  .est-botoes { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .est-botoes .principal { flex: 1 1 180px; }
+  button.perigo { color: var(--erro); border-color: rgba(255,107,107,.4); }
+  .check-lin { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+  .check-lin input { width: auto; }
+  /* modo suporte LeadVox */
+  .faixa-sup { display: flex; gap: 12px; align-items: flex-start; border: 1px dashed var(--verde); background: var(--verde-fundo);
+    border-radius: 14px; padding: 12px 14px; margin: 10px 0 12px; font-size: 14px; }
+  .faixa-sup svg { flex: 0 0 auto; width: 22px; height: 22px; stroke: var(--verde); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+  .faixa-sup b { display: block; color: var(--verde); font-family: Syne, sans-serif; font-size: 15px; }
+  .ultima { font-size: 13px; color: var(--suave); margin-top: 4px; }
+  .ultima b { color: var(--texto); font-weight: 500; }
+  .conflito { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .conflito button { flex: 1 1 160px; }
+  /* perguntas frequentes */
+  .etq-previa { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .etq-previa span { font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--linha); background: var(--navy); white-space: nowrap; }
+  .etq-previa span i { font-style: normal; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .faq-item { border: 1px solid var(--linha); border-radius: var(--raio); padding: 4px 12px 12px; margin-top: 10px; background: var(--navy); }
+  .faq-item .faq-topo { display: flex; justify-content: space-between; align-items: center; }
+  .faq-item textarea { min-height: 60px; }
+  #faqSugestoes button { font-size: 13px; padding: 6px 12px; border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<div id="telaPorta" class="porta">
+  <div class="card" id="cardPorta">
+    <div class="marca-lv">Lead<b>Vox</b></div>
+    <h1>Sua IA de atendimento</h1>
+    <p class="muted" style="margin-top:6px">Digite o PIN de 6 números que a LeadVox passou para você.</p>
+    <input id="pin" class="pin-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code" aria-label="PIN">
+    <button id="btEntrar" class="principal" style="width:100%;margin-top:14px">Entrar</button>
+    <p id="erroPorta" class="erro" hidden></p>
+  </div>
+</div>
+
+<div id="telaApp" hidden>
+  <div class="wrap">
+    <div class="topo"><h1 id="titulo">Configuração da IA</h1><button class="leve" id="btSair" type="button" hidden>Sair</button></div>
+    <div id="faixaSuporte" class="faixa-sup" role="status" hidden></div>
+    <p class="muted" id="subtitulo"></p>
+    <p class="ultima" id="ultimaAlt" hidden></p>
+    <span class="selo" id="selo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Acesso liberado</span>
+    <div class="vistas" id="vistas" role="group" aria-label="Escolha o que editar" hidden>
+      <button type="button" data-vista="ia" aria-pressed="true">Configurar IA</button>
+      <button type="button" data-vista="estoque" aria-pressed="false">Estoque</button>
+    </div>
+    <div class="card liga" id="cardLiga">
+      <div class="liga-lin">
+        <div><b><span class="ponto-st"></span><span id="ligaTitulo">Sua IA</span></b><p class="muted" id="ligaTexto" style="margin-top:4px"></p></div>
+        <button type="button" id="btLiga" class="switch" role="switch" aria-checked="false" aria-label="Ligar ou desligar a IA"><span></span></button>
+      </div>
+      <p class="erro" id="erroLiga" hidden></p>
+    </div>
+    <nav class="passos" id="passos" aria-label="Etapas"></nav>
+
+    <!-- ESTOQUE LEADVOX -->
+    <div id="vistaEstoque">
+      <div class="card" id="estLista">
+        <div class="est-topo">
+          <div><h2>Seu estoque</h2><p class="muted" id="estResumo">Carregando…</p></div>
+          <button class="principal" type="button" id="btNovoVeic">+ Cadastrar veículo</button>
+        </div>
+        <div class="est-filtros">
+          <input id="estBusca" type="search" placeholder="Buscar marca, modelo ou ano" aria-label="Buscar no estoque">
+          <select id="estFiltro" aria-label="Filtrar por situação">
+            <option value="">Todos</option><option value="disponivel">Disponíveis</option><option value="reservado">Reservados</option>
+            <option value="pausado">Pausados</option><option value="vendido">Vendidos</option>
+          </select>
+        </div>
+        <div id="estItens" style="margin-top:8px"></div>
+        <p class="erro" id="estErro" hidden></p>
+        <p class="muted" style="font-size:13px;margin-top:12px">A IA só oferece os veículos <b>disponíveis</b>. Reservados, pausados e vendidos ficam guardados aqui, mas ela não mostra para o cliente.</p>
+      </div>
+
+      <form class="card" id="estForm" hidden novalidate>
+        <div class="est-topo"><h2 id="estFormTitulo">Cadastrar veículo</h2><button class="leve" type="button" id="btVoltarLista">← Voltar para a lista</button></div>
+        <div class="chips" style="margin-top:12px" role="radiogroup" aria-label="Tipo">
+          <label><input type="radio" name="vTipo" value="moto" checked> Moto</label>
+          <label><input type="radio" name="vTipo" value="carro"> Carro</label>
+        </div>
+        <div class="duas">
+          <div><label for="vMarca">Marca *</label><input id="vMarca" list="listaMarcas" maxlength="40" autocomplete="off"></div>
+          <div><label for="vModelo">Modelo *</label><input id="vModelo" maxlength="80" placeholder="Ex.: CG 160 Fan"></div>
+        </div>
+        <label for="vVersao">Versão <small>(opcional)</small></label><input id="vVersao" maxlength="80" placeholder="Ex.: Start, EX, Flex One">
+        <datalist id="listaMarcas"></datalist>
+        <div class="duas">
+          <div><label for="vAnoFab">Ano de fabricação</label><input id="vAnoFab" inputmode="numeric" maxlength="4"></div>
+          <div><label for="vAnoMod">Ano do modelo</label><input id="vAnoMod" inputmode="numeric" maxlength="4"></div>
+        </div>
+        <div class="duas">
+          <div><label for="vKm">Quilometragem</label><input id="vKm" inputmode="numeric" placeholder="Ex.: 12.500"></div>
+          <div><label for="vPreco">Preço (R$)</label><input id="vPreco" inputmode="decimal" placeholder="Ex.: 18.900"></div>
+        </div>
+        <div class="duas">
+          <div><label for="vCor">Cor</label><input id="vCor" maxlength="30" list="listaCores"></div>
+          <div><label for="vCategoria">Categoria</label><select id="vCategoria"></select></div>
+        </div>
+        <datalist id="listaCores"><option>Preta</option><option>Branca</option><option>Prata</option><option>Cinza</option><option>Vermelha</option><option>Azul</option><option>Verde</option><option>Amarela</option><option>Laranja</option><option>Marrom</option><option>Bege</option><option>Vinho</option></datalist>
+        <div class="duas">
+          <div><label for="vCambio">Câmbio</label><select id="vCambio"><option value="">—</option><option>Manual</option><option>Automático</option><option>CVT</option><option>Automatizado</option></select></div>
+          <div><label for="vComb">Combustível</label><select id="vComb"><option value="">—</option><option>Flex</option><option>Gasolina</option><option>Etanol</option><option>Diesel</option><option>Elétrico</option><option>Híbrido</option></select></div>
+        </div>
+        <div class="duas">
+          <div><label for="vStatus">Situação</label><select id="vStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="pausado">Pausado (não mostrar)</option><option value="vendido">Vendido</option></select></div>
+          <div><label for="vPlaca">Final da placa <small>(opcional)</small></label><input id="vPlaca" inputmode="numeric" maxlength="1"></div>
+        </div>
+        <label for="vOpc">Opcionais <small>(separe por vírgula)</small></label><input id="vOpc" maxlength="1000" placeholder="Ex.: ABS, partida elétrica, painel digital">
+        <label for="vDesc">Descrição <small>(a IA usa esse texto para falar do veículo)</small></label><textarea id="vDesc" maxlength="2000" placeholder="Ex.: Único dono, revisões na concessionária, pneus novos."></textarea>
+        <label class="check-lin" style="margin-top:12px"><input type="checkbox" id="vDestaque"> Destaque (aparece primeiro para a IA)</label>
+
+        <p style="font-weight:500;font-size:14px;margin:18px 0 0">Fotos <small class="muted" style="font-weight:400">(até 20 · a primeira é a capa)</small></p>
+        <label class="soltar" id="soltar" tabindex="0">
+          <input type="file" id="vArquivos" accept="image/jpeg,image/png,image/webp" multiple>
+          <b style="color:var(--verde)">Escolher fotos</b> <span class="muted">ou arraste aqui</span>
+          <small class="muted" style="display:block;margin-top:4px">As fotos são reduzidas automaticamente antes de enviar.</small>
+        </label>
+        <div class="fotos" id="vFotos"></div>
+
+        <p class="erro" id="estFormErro" hidden></p>
+        <div class="est-botoes">
+          <button class="principal" type="submit" id="btSalvarVeic">Salvar veículo</button>
+          <button type="button" class="perigo" id="btExcluirVeic" hidden>Excluir</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 1 IA -->
+    <section class="passo" data-passo="Sua IA">
+      <div class="card">
+        <h2>Quem atende o seu cliente</h2>
+        <p class="muted">É assim que a IA se apresenta no WhatsApp.</p>
+        <div class="duas">
+          <div><label for="iaNome">Nome da IA</label><input id="iaNome" maxlength="30" placeholder="Ex.: Megui"></div>
+          <div><label for="iaGenero">Ela ou ele?</label>
+            <select id="iaGenero"><option value="feminino">Ela (feminino)</option><option value="masculino">Ele (masculino)</option></select></div>
+        </div>
+        <label>Jeito de falar</label>
+        <div class="opcoes" id="iaTom">
+          <label class="opcao"><input type="radio" name="tom" value="acolhedor"><span>Acolhedor<small>Simpático e próximo, sem exagero.</small></span></label>
+          <label class="opcao"><input type="radio" name="tom" value="descontraido"><span>Descontraído<small>Leve, com a linguagem do dia a dia.</small></span></label>
+          <label class="opcao"><input type="radio" name="tom" value="formal"><span>Mais formal<small>Educado e direto, sem gírias.</small></span></label>
+        </div>
+        <label>Tamanho das mensagens</label>
+        <div class="chips" id="iaTamanho">
+          <label><input type="radio" name="tamanho" value="curta"> Curtas, estilo WhatsApp</label>
+          <label><input type="radio" name="tamanho" value="media"> Um pouco mais explicativas</label>
+        </div>
+        <label>Emojis</label>
+        <div class="chips" id="iaEmojis">
+          <label><input type="radio" name="emojis" value="nenhum"> Nenhum</label>
+          <label><input type="radio" name="emojis" value="poucos"> Poucos</label>
+          <label><input type="radio" name="emojis" value="mais"> À vontade</label>
+        </div>
+        <label>Como a IA chama o cliente</label>
+        <div class="chips" id="iaTrat">
+          <label><input type="radio" name="tratamento" value="voce"> Você</label>
+          <label><input type="radio" name="tratamento" value="senhor"> Senhor / senhora</label>
+        </div>
+        <label for="iaDif">Diferenciais da loja <small>(um por linha, até 6)</small></label>
+        <textarea id="iaDif" placeholder="Financiamento facilitado&#10;Avaliamos sua moto na troca"></textarea>
+        <div class="conversa" aria-label="Prévia da apresentação">
+          <div class="balao" id="previa"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 Loja -->
+    <section class="passo" data-passo="A loja">
+      <div class="card">
+        <h2>Dados da loja</h2>
+        <p class="muted">A IA usa isso para passar endereço, contato e convidar para a visita.</p>
+        <label for="ljNome">Nome da loja</label><input id="ljNome" maxlength="60">
+        <label>A loja vende</label>
+        <div class="chips" id="ljTipo">
+          <label><input type="radio" name="tipo" value="moto"> Motos</label>
+          <label><input type="radio" name="tipo" value="carro"> Carros</label>
+          <label><input type="radio" name="tipo" value="ambos"> Motos e carros</label>
+        </div>
+        <label for="ljEnd">Endereço completo</label><input id="ljEnd" maxlength="160" placeholder="Rua, número, bairro, cidade - UF, CEP">
+        <div class="tres">
+          <div><label for="ljCidade">Cidade</label><input id="ljCidade" maxlength="60"></div>
+          <div><label for="ljUf">UF</label><input id="ljUf" maxlength="2"></div>
+        </div>
+        <label for="ljBairro">Bairro</label><input id="ljBairro" maxlength="60">
+        <label for="ljMapa">Link do Google Maps</label><input id="ljMapa" placeholder="https://maps.app.goo.gl/…">
+        <div class="duas">
+          <div><label for="ljSite">Site</label><input id="ljSite" placeholder="https://…"></div>
+          <div><label for="ljInsta">Instagram</label><input id="ljInsta" placeholder="@sualoja"></div>
+        </div>
+        <label for="ljTel">Telefone da loja</label><input id="ljTel" maxlength="20">
+      </div>
+    </section>
+
+    <!-- 3 Horário -->
+    <section class="passo" data-passo="Horário">
+      <div class="card">
+        <h2>Horário da equipe</h2>
+        <p class="muted">A IA atende a qualquer hora. Este é o horário em que tem gente da loja para assumir o cliente, e os follow-ups só saem dentro dele.</p>
+        <div id="dias" style="margin-top:10px"></div>
+        <label for="feriados">Feriados em que a loja fecha <small>(dia-mês, separados por vírgula)</small></label>
+        <input id="feriados" placeholder="01-01, 04-21, 12-25">
+      </div>
+    </section>
+
+    <!-- 4 Regras -->
+    <section class="passo" data-passo="Regras">
+      <div class="card">
+        <h2>Regras de atendimento</h2>
+        <label>Quando a IA fala o preço?</label>
+        <div class="opcoes">
+          <label class="opcao"><input type="radio" name="precoModo" value="nunca"><span>Nunca, quem passa valor é o consultor<small>Ela nunca fala preço, nem aproximado.</small></span></label>
+          <label class="opcao"><input type="radio" name="precoModo" value="quando_perguntar"><span>Só se o cliente perguntar<small>Ela apresenta o veículo e só dá o valor quando pedirem.</small></span></label>
+          <label class="opcao"><input type="radio" name="precoModo" value="com_foto"><span>Junto com a foto<small>O preço vai na legenda da foto, com a ficha do veículo.</small></span></label>
+          <label class="opcao"><input type="radio" name="precoModo" value="primeira_mencao"><span>Já na primeira vez que mostra o veículo<small>Ela fala o valor ao apresentar, e ele vai também na legenda da foto.</small></span></label>
+        </div>
+        <div id="blocoPrecoOpc">
+          <label>Como o valor aparece</label>
+          <div class="chips">
+            <label><input type="radio" name="precoFormato" value="exato"> Valor exato (R$ 72.900)</label>
+            <label><input type="radio" name="precoFormato" value="a_partir"> "A partir de R$ 72.900"</label>
+          </div>
+          <label>Depois de falar o valor, a IA</label>
+          <div class="chips">
+            <label><input type="radio" name="precoDepois" value="pagamento"> Pergunta a forma de pagamento</label>
+            <label><input type="radio" name="precoDepois" value="visita"> Convida para vir ver de perto</label>
+          </div>
+          <label for="respDesc">Quando pedirem desconto, a IA responde <small>(opcional)</small></label>
+          <input id="respDesc" maxlength="160" placeholder="Ex.: Condição especial à vista quem passa é o nosso consultor">
+        </div>
+        <label>No horário da equipe, a IA</label>
+        <div class="opcoes">
+          <label class="opcao"><input type="radio" name="modo" value="completo"><span>Faz o atendimento completo<small>Mostra o veículo, manda foto, qualifica e passa para o consultor.</small></span></label>
+          <label class="opcao"><input type="radio" name="modo" value="abertura_curta"><span>Só recebe e passa rápido<small>Pega o nome, confirma o interesse e já transfere.</small></span></label>
+        </div>
+        <label class="opcao" style="margin-top:14px"><input type="checkbox" id="jaAtendido"><span>Perguntar se o cliente já fala com alguém da equipe<small>Se sim, ela passa direto para esse vendedor.</small></span></label>
+      </div>
+    </section>
+
+    <!-- 5 Pagamento e troca -->
+    <section class="passo" data-passo="Pagamento">
+      <div class="card">
+        <h2>Pagamento e troca</h2>
+        <p class="muted">A IA usa isso para responder dúvidas de pagamento e para saber o que perguntar ao cliente.</p>
+        <label>A loja trabalha com financiamento?</label>
+        <div class="chips">
+          <label><input type="radio" name="financia" value="sim"> Sim</label>
+          <label><input type="radio" name="financia" value="nao"> Não</label>
+        </div>
+        <div id="blocoFinancia">
+          <label for="bancos">Bancos e financeiras parceiros <small>(separe por vírgula, opcional)</small></label>
+          <input id="bancos" maxlength="240" placeholder="Ex.: BV, Santander, Itaú">
+          <label for="entradaMin">O que dizer sobre entrada <small>(opcional)</small></label>
+          <input id="entradaMin" maxlength="80" placeholder="Ex.: a partir de 20% ou sem entrada para alguns perfis">
+          <p class="dica">A IA só fala dos bancos e da entrada se o cliente perguntar, com essas palavras.</p>
+          <label>No financiamento, a IA coleta</label>
+          <div class="chips" id="coleta">
+            <label><input type="checkbox" value="entrada"> Entrada</label>
+            <label data-troca><input type="checkbox" value="troca"> Veículo na troca</label>
+            <label><input type="checkbox" value="cpf"> CPF</label>
+            <label><input type="checkbox" value="nascimento"> Data de nascimento</label>
+            <label><input type="checkbox" value="cnh"> CNH</label>
+          </div>
+        </div>
+        <label>A loja também aceita</label>
+        <div class="chips">
+          <label><input type="checkbox" id="pgCartao"> Cartão de crédito</label>
+          <label><input type="checkbox" id="pgConsorcio"> Consórcio</label>
+        </div>
+        <label>A loja aceita veículo na troca?</label>
+        <div class="chips">
+          <label><input type="radio" name="troca" value="sim"> Sim</label>
+          <label><input type="radio" name="troca" value="nao"> Não</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 Equipe -->
+    <section class="passo" data-passo="Equipe">
+      <div class="card">
+        <h2>Departamentos</h2>
+        <p class="muted">Crie um departamento para cada fila da loja. Os de <b>Venda</b> recebem quem quer comprar: diga se atendem carro, moto ou os dois. Se houver mais de um para o mesmo tipo (ex.: duas lojas de moto), a IA alterna um cliente para cada. Os de <b>Outro assunto</b> recebem documentação, pós-venda etc.: diga o que vai para cada um.</p>
+        <div id="listaDeps"></div>
+        <button class="leve" id="addDep">Adicionar departamento</button>
+        <button class="leve" id="importDeps" style="margin-left:16px" hidden>Trazer os departamentos da LeadVox</button>
+        <p class="muted" id="dicaDeps" style="font-size:13px;margin-top:4px"></p>
+        <div class="dica" id="dicaTicket" hidden></div>
+      </div>
+      <div class="card">
+        <h2>Atendentes</h2>
+        <p class="muted">Até 20. Nos departamentos em <b>rodízio</b>, cada cliente vai para o próximo atendente daquele setor, na ordem desta lista. Também são usados quando o cliente diz que já fala com alguém.</p>
+        <div id="listaVend"></div>
+        <button class="leve" id="addVend">Adicionar atendente</button>
+        <button class="leve" id="importVend" style="margin-left:16px" hidden>Trazer os usuários da LeadVox</button>
+        <label for="respConsig">Quem cuida de cliente que quer vender ou consignar</label>
+        <select id="respConsig"></select>
+        <p class="muted" id="dicaResp" style="font-size:13px;margin-top:6px"></p>
+      </div>
+    </section>
+
+    <!-- 6 Lead -->
+    <section class="passo" data-passo="Destino do lead">
+      <div class="card">
+        <h2>Para onde vai o lead</h2>
+        <div id="blocoEnvioAC">
+          <label class="opcao" style="margin-top:12px"><input type="checkbox" id="enviarAC"><span>Enviar o lead para o AutoCerto<small>A IA cadastra o cliente no AutoCerto e avisa o gerente no WhatsApp.</small></span></label>
+          <div id="blocoGerente">
+            <label for="gerente">WhatsApp do gerente <small>(com 55 e DDD)</small></label>
+            <input id="gerente" inputmode="numeric" placeholder="5521999999999">
+          </div>
+        </div>
+        <p class="muted" style="margin-top:12px" id="textoDestino"></p>
+      </div>
+      <div class="card">
+        <h2>Funil de vendas (CRM)</h2>
+        <p class="muted">Quando a IA passa um cliente para o Comercial, ela também cria a oportunidade no funil da LeadVox, com o veículo, o valor e o resumo da conversa.</p>
+        <label class="opcao" style="margin-top:12px"><input type="checkbox" id="crmAtivo"><span>Lançar os leads no funil<small>Se o cliente já tiver uma oportunidade aberta, ela é atualizada, sem duplicar.</small></span></label>
+        <div id="blocoCrm">
+          <label for="crmEtapa">Etapa em que o lead entra</label>
+          <select id="crmEtapa"></select>
+          <p class="muted" id="dicaCrm" style="font-size:13px;margin-top:6px"></p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Etiquetas automáticas</h2>
+        <p class="muted">Enquanto conversa, a IA marca o cliente com etiquetas na LeadVox: de onde ele veio, o tipo de veículo que procura, como quer pagar e a faixa de entrada. A equipe vê tudo no card e filtra os contatos, sem abrir a conversa.</p>
+        <label class="opcao" style="margin-top:12px"><input type="checkbox" id="etqAtivo"><span>Marcar etiquetas automaticamente<small>As etiquetas que ainda não existem na sua conta são criadas na hora. As que a equipe marcou à mão nunca são apagadas.</small></span></label>
+        <div id="blocoEtq">
+          <label>O que a IA marca</label>
+          <div class="chips" id="etqGrupos">
+            <label><input type="checkbox" value="origem"> Origem do lead</label>
+            <label><input type="checkbox" value="interesse"> Tipo de veículo</label>
+            <label><input type="checkbox" value="pagamento"> Pagamento</label>
+            <label><input type="checkbox" value="entrada"> Faixa de entrada</label>
+            <label><input type="checkbox" value="qualificacao"> Troca, CNH e visita</label>
+          </div>
+          <div class="duas" id="blocoEtqFaixa">
+            <div><label for="etqAlta">Entrada alta a partir de</label><input id="etqAlta" inputmode="numeric" placeholder="R$ 5.000"></div>
+            <div><label for="etqBaixa">Entrada baixa até</label><input id="etqBaixa" inputmode="numeric" placeholder="R$ 1.000"></div>
+          </div>
+          <p class="muted" id="dicaEtq" style="font-size:13px;margin-top:6px"></p>
+          <div class="etq-previa" id="etqPrevia" aria-label="Etiquetas que a IA pode marcar"></div>
+          <p class="muted" style="font-size:13px;margin-top:10px">Origem: só quando o cliente chega por anúncio ou pelo site. Se ele mandar mensagem direto, o vendedor marca. A IA só troca as etiquetas dela (por exemplo, de Entrada baixa para Entrada alta).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 Follow-up -->
+    <section class="passo" data-passo="Follow-up">
+      <div class="card">
+        <h2>Quando o cliente para de responder</h2>
+        <div class="duas">
+          <div><label for="fu1">1ª mensagem depois de</label>
+            <select id="fu1"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option></select></div>
+          <div><label for="fu2">2ª mensagem depois de</label>
+            <select id="fu2"><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60">1 hora</option><option value="120">2 horas</option></select></div>
+        </div>
+        <label for="transf">Passar o cliente para o Comercial</label>
+        <select id="transf">
+          <option value="apos_primeiro">Se não responder a 1ª mensagem</option>
+          <option value="apos_segundo">Se não responder a 2ª mensagem</option>
+          <option value="apos_terceiro">Se não responder a 3ª mensagem (24 horas)</option>
+          <option value="personalizado">Depois de um tempo que eu escolher</option>
+        </select>
+        <div id="blocoPers" hidden>
+          <div class="duas">
+            <div><label for="persN">Tempo</label><input id="persN" type="number" min="1" value="3"></div>
+            <div><label for="persU">&nbsp;</label><select id="persU"><option value="1">minutos</option><option value="60" selected>horas</option><option value="1440">dias</option></select></div>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:14px">Tudo conta a partir da última mensagem do cliente e respeita o horário da equipe: se cair com a loja fechada, sai na abertura.</p>
+        <ol class="tempo" id="linhaTempo"></ol>
+      </div>
+    </section>
+
+    <!-- Perguntas frequentes -->
+    <section class="passo" data-passo="Perguntas">
+      <div class="card">
+        <h2>Perguntas frequentes</h2>
+        <p class="muted">Cadastre as dúvidas que seus clientes sempre fazem. A IA responde com a resposta da loja, sem precisar chamar o vendedor. Até 15.</p>
+        <p style="font-size:13px;margin:14px 0 6px">Começar por uma destas:</p>
+        <div class="chips" id="faqSugestoes"></div>
+        <div id="faqLista" style="margin-top:12px"></div>
+        <button type="button" id="btAddFaq" style="margin-top:10px">+ Adicionar pergunta</button>
+      </div>
+    </section>
+
+    <!-- 8 Revisar -->
+    <section class="passo" data-passo="Revisar">
+      <div class="card">
+        <h2>Revise e salve</h2>
+        <dl class="resumo" id="resumo"></dl>
+        <p id="erroSalvar" class="erro" hidden></p>
+        <div id="conflitoAcoes" class="conflito" hidden>
+          <button type="button" id="btVerNova">Ver a versão nova</button>
+          <button type="button" id="btPorCima" class="perigo">Salvar por cima</button>
+        </div>
+        <button id="btSalvar" class="principal" style="width:100%;margin-top:16px">Salvar configuração</button>
+      </div>
+      <div id="salvo" class="salvo" hidden></div>
+    </section>
+  </div>
+
+  <div class="barra"><div class="in">
+    <button id="btVoltar">Voltar</button>
+    <span class="muted" id="contador" style="font-size:13px"></span>
+    <button id="btProximo" class="principal">Próximo</button>
+  </div></div>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const CHAVE = q.get('k') || '';
+const API_PADRAO = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-plugin';
+const LOGIN_API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-login';
+const API = q.get('api') || API_PADRAO;
+// Login com e-mail e senha é o padrão, mesmo quando o plugin abre com ?k= (link da loja).
+// Com ?k=, aparece também a opção "Entrar com o PIN da loja" (jeito antigo).
+let MODO = 'login';
+let TOKEN = '';
+// Modo suporte: o admin da LeadVox abre o link com #suporte=<código>. O código fica só nesta aba
+// (sessionStorage) e sai da barra de endereço na hora.
+let TOKEN_SUP = '', SUPORTE = null, VERSAO = null, ULTIMA = null;
+(function () {
+  const m = /(?:^|[#&])suporte=([0-9a-f]{64})(?:&|$)/.exec(location.hash || '');
+  try {
+    if (m) {
+      TOKEN_SUP = m[1];
+      if (CHAVE) sessionStorage.setItem('sdr_suporte_' + CHAVE, TOKEN_SUP);
+      history.replaceState(null, '', location.pathname + location.search);
+    } else if (CHAVE) TOKEN_SUP = sessionStorage.getItem('sdr_suporte_' + CHAVE) || '';
+  } catch (e) {}
+  if (TOKEN_SUP) MODO = 'suporte';
+})();
+const guardar = { ler() { try { return localStorage.getItem('sdr_token') || sessionStorage.getItem('sdr_token') || ''; } catch (e) { return ''; } },
+  salvar(t, lembrar) { try { (lembrar ? localStorage : sessionStorage).setItem('sdr_token', t); } catch (e) {} },
+  limpar() { try { localStorage.removeItem('sdr_token'); sessionStorage.removeItem('sdr_token'); } catch (e) {} } };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let PIN = '', CFG = null, CANAL = '', FONTE = '', passoAtual = 0, ticket = null;
+let ATIVO = false, BLOQ = false, CONFIGURADA = false;
+let LV = { usuarios: [], etapas: [], filas: [] };   // usuários e funil da conta LeadVox (vem do servidor)
+function renderLiga() {
+  const card = $('cardLiga'), bt = $('btLiga');
+  card.classList.toggle('on', ATIVO && !BLOQ);
+  bt.setAttribute('aria-checked', String(ATIVO && !BLOQ));
+  if (BLOQ) { $('ligaTitulo').textContent = 'IA suspensa'; $('ligaTexto').textContent = 'A LeadVox suspendeu a IA desta loja. Fale com o suporte para reativar.'; bt.disabled = true; return; }
+  $('ligaTitulo').textContent = ATIVO ? 'Sua IA está ligada' : 'Sua IA está desligada';
+  $('ligaTexto').textContent = ATIVO ? 'Ela está respondendo os clientes no WhatsApp.'
+    : (CONFIGURADA ? 'Os clientes não recebem resposta automática. Ligue quando quiser.' : 'Salve a configuração abaixo para poder ligar.');
+  bt.disabled = !ATIVO && !CONFIGURADA;
+}
+
+const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
+const PADRAO = {
+  ia: { nome: '', genero: 'feminino', tom: 'acolhedor', diferenciais: [], tamanho: 'curta', emojis: 'poucos', tratamento: 'voce' },
+  loja: { nome: '', tipo: null, endereco: '', bairro: '', cidade: '', uf: '', mapa: '', site: '', instagram: '', telefone: '' },
+  horario: { seg: ['09:00', '18:00'], ter: ['09:00', '18:00'], qua: ['09:00', '18:00'], qui: ['09:00', '18:00'], sex: ['09:00', '18:00'], sab: ['09:00', '13:00'], dom: null,
+    feriados: ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'] },
+  regras: { informaPreco: false, atendimentoNoHorarioDaEquipe: 'completo', perguntaSeJaEAtendido: true, coletaFinanciamento: ['entrada', 'troca', 'cpf', 'nascimento', 'cnh'],
+    precoFormato: 'exato', precoDepois: 'pagamento', respostaDesconto: '' },   // precoModo fica de fora: config antiga deduz pelo informaPreco
+  vendas: { financia: true, cartao: false, consorcio: false, bancos: [], entradaMinima: '', troca: 'sim' },
+  faq: [],
+  departamentos: [{ nome: 'Comercial', queueId: '', finalidade: 'compra, troca, financiamento, visita' }],
+  distribuicao: { modo: 'departamento', vendedores: [], responsavelVendaConsignacao: null },
+  lead: { enviarAutoCerto: false, codigoMidia: 12, interesse: 2, whatsappGerente: '' },
+  followup: { primeiroMin: 10, segundoMin: 45, transferir: { quando: 'apos_primeiro', personalizadoMin: null } },
+  crm: { ativo: true, etapaInicialId: null },
+  etiquetas: { ativo: true, grupos: ['origem', 'interesse', 'pagamento', 'entrada', 'qualificacao'], entradaAlta: 5000, entradaBaixa: 1000 }
+};
+
+// ── etiquetas: os MESMOS nomes que o motor usa (nó "ETQ Calcular") ──
+const ETQ = {
+  origem: { cor: '#8B5CF6', nomes: ['📍 Instagram', '📍 Facebook', '📍 Site', '📍 Anúncio'] },
+  interesse: { cor: '#3B82F6', moto: ['🏍️ Street', '🏍️ Trail', '🏍️ Crossover', '🏍️ Scooter', '🏍️ Esportiva', '🏍️ Custom', '🏍️ Off-road'],
+    carro: ['🚗 Hatch', '🚗 Sedan', '🚗 SUV', '🚗 Picape'] },
+  pagamento: { cor: '#06B6D4', nomes: ['💳 Financiamento', '💵 À vista'] },
+  entrada: { cor: '#22C55E', nomes: ['💰 Entrada alta', '💰 Entrada média', '💰 Entrada baixa', '💰 Sem entrada'] },
+  qualificacao: { cor: '#F59E0B', nomes: ['🔁 Tem troca', '🪪 Sem CNH', '📅 Visita agendada'] }
+};
+const reais = (n) => n ? 'R$ ' + Number(n).toLocaleString('pt-BR') : '';
+const digitos = (v) => { const n = parseInt(String(v || '').replace(/\D/g, ''), 10); return Number.isFinite(n) ? n : 0; };
+
+// ── dados do atendimento que a LeadVox manda para o plugin (só leitura) ──
+window.addEventListener('message', (ev) => {
+  let host = ''; try { host = new URL(ev.origin).hostname; } catch (e) { return; }
+  if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
+  const d = ev.data && ev.data.type === 'DEFAULT_DATA' ? ev.data.data : null;
+  if (d && d.ticket) { ticket = d.ticket; mostrarDicaTicket(); }
+});
+
+async function chamar(corpo) {
+  if (!/^https:\/\/webhook\.lv-mktdeconversa\.com\//.test(API) || (MODO === 'pin' && !CHAVE)) throw new Error('Link do plugin incompleto. Peça um link novo para a LeadVox.');
+  const ident = MODO === 'login' ? { token: TOKEN } : MODO === 'suporte' ? { token: TOKEN_SUP, tipoSessao: 'suporte' } : { chave: CHAVE, pin: PIN };
+  const r = await fetch(API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ ...ident, ...corpo }) }) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (MODO === 'login' && j.sessao === false) { guardar.limpar(); TOKEN = ''; mostrarLogin('Sua sessão expirou. Entre de novo.'); throw new Error(j.erro); }
+  if (MODO === 'suporte' && j.sessao === false) { fimSuporte(j.erro); throw new Error(j.erro); }
+  if (!r.ok || j.ok === false) { const er = new Error(j.erro || ('Não consegui falar com o servidor (HTTP ' + r.status + ').')); er.dados = j; throw er; }
+  return j;
+}
+function fimSuporte(msg) {
+  try { sessionStorage.removeItem('sdr_suporte_' + CHAVE); } catch (e) {}
+  TOKEN_SUP = '';
+  $('telaApp').hidden = true; $('telaPorta').hidden = false;
+  const card = $('cardPorta'); card.className = 'card';
+  card.innerHTML = '<div class="marca-lv">Lead<b>Vox</b></div><h1>Modo suporte encerrado</h1>' +
+    '<p class="muted" style="margin-top:8px">' + esc(msg || 'O acesso de suporte acabou.') + '</p>' +
+    '<p class="muted" style="margin-top:8px">Para editar de novo, use "Editar IA" no painel de admin.</p>';
+}
+const quandoTxt = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : ' em ' + d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às'); };
+function renderSuporte() {
+  const f = $('faixaSuporte');
+  $('selo').hidden = MODO === 'suporte';
+  if (MODO !== 'suporte') { f.hidden = true; }
+  else {
+    const ate = SUPORTE && SUPORTE.expiraEm ? new Date(SUPORTE.expiraEm) : null;
+    f.hidden = false;
+    f.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/></svg>' +
+      '<div><b>Modo suporte LeadVox</b>Você está editando a IA desta loja pelo acesso de suporte. O que salvar aqui entra no histórico como alteração da LeadVox' +
+      (ate && !isNaN(ate) ? ', e o acesso vale até as ' + esc(ate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })) : '') + '.</div>';
+  }
+  const u = $('ultimaAlt');
+  if (!ULTIMA || !ULTIMA.origem) { u.hidden = true; return; }
+  const o = String(ULTIMA.origem);
+  const quem = o === 'plugin' ? (MODO === 'suporte' ? 'pelo dono da loja' : 'por você')
+    : o.startsWith('suporte') ? 'pela equipe LeadVox'
+    : o.startsWith('restaurar') ? 'pela LeadVox, que restaurou a versão ' + (o.split(':')[1] || '') : '';
+  if (!quem) { u.hidden = true; return; }
+  u.hidden = false;
+  u.innerHTML = 'Última alteração <b>' + esc(quem) + '</b>' + esc(ULTIMA.em ? quandoTxt(ULTIMA.em) : '') + '.';
+}
+async function chamarLogin(corpo) {
+  const r = await fetch(LOGIN_API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify(corpo) }) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || j.ok === false) throw new Error(j.erro || ('Não consegui falar com o servidor (HTTP ' + r.status + ').'));
+  return j;
+}
+
+// ── entrada ──
+function aplicarCarregado(j) {
+  CANAL = j.canal || ''; FONTE = j.fonte || '';
+  if (j.config && j.config.estoque && j.config.estoque.fonte === 'leadvox') FONTE = 'leadvox';
+  LV = { usuarios: (j.leadvox && Array.isArray(j.leadvox.usuarios)) ? j.leadvox.usuarios : [], etapas: (j.leadvox && Array.isArray(j.leadvox.etapas)) ? j.leadvox.etapas : [], filas: (j.leadvox && Array.isArray(j.leadvox.filas)) ? j.leadvox.filas : [] };
+  const cc = j.config || {}; ATIVO = cc.ativo === true; BLOQ = cc.bloqueado === true; CONFIGURADA = cc.configurada === true;
+  VERSAO = Number(j.versao) || null; ULTIMA = j.ultima || null; SUPORTE = j.suporte || null;
+  CFG = mesclar(j.config || {});
+}
+if (CHAVE) { try { PIN = sessionStorage.getItem('pin_' + CHAVE) || ''; } catch (e) {} }
+const PORTA_PIN = $('cardPorta').innerHTML;
+function ligarPortaPin() {
+  $('pin').addEventListener('input', () => { $('pin').value = $('pin').value.replace(/\D/g, '').slice(0, 6); if ($('pin').value.length === 6) entrar(); });
+  $('btEntrar').addEventListener('click', entrar);
+}
+ligarPortaPin();
+function mostrarPin() {
+  $('telaApp').hidden = true; $('telaPorta').hidden = false;
+  const card = $('cardPorta'); card.className = 'card'; card.innerHTML = PORTA_PIN +
+    '<p style="margin-top:14px"><button class="leve" type="button" id="btUsarLogin">Entrar com e-mail e senha</button></p>';
+  ligarPortaPin();
+  $('btUsarLogin').addEventListener('click', () => mostrarLogin(''));
+  $('pin').focus();
+}
+async function entrar() {
+  MODO = 'pin';
+  const p = PIN && !$('pin').value ? PIN : $('pin').value;
+  if (!/^\d{6}$/.test(p)) { mostrarErroPorta('O PIN tem 6 números.'); return; }
+  PIN = p; $('btEntrar').disabled = true; $('btEntrar').textContent = 'Entrando…';
+  try {
+    const j = await chamar({ acao: 'carregar' });
+    try { sessionStorage.setItem('pin_' + CHAVE, PIN); } catch (e) {}
+    aplicarCarregado(j);
+    if ($('pin').value) {
+      $('cardPorta').innerHTML = '<div class="marca-lv">Lead<b>Vox</b></div><div class="ok-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h1>Acesso liberado</h1><p class="muted" style="margin-top:6px">Abrindo a configuração da sua IA…</p>';
+      await new Promise(r => setTimeout(r, 1100));
+    }
+    abrirApp();
+  } catch (e) { PIN = ''; try { sessionStorage.removeItem('pin_' + CHAVE); } catch (x) {} mostrarErroPorta(e.message); }
+  if ($('btEntrar')) { $('btEntrar').disabled = false; $('btEntrar').textContent = 'Entrar'; }
+}
+function mostrarErroPorta(m) { $('erroPorta').hidden = false; $('erroPorta').textContent = m; }
+function mesclar(c) {
+  const o = JSON.parse(JSON.stringify(PADRAO));
+  for (const k of Object.keys(o)) if (c[k] !== undefined && c[k] !== null) o[k] = Array.isArray(o[k]) ? c[k] : { ...o[k], ...c[k] };
+  if (c.loja && c.loja.nome) o.loja.nome = c.loja.nome;
+  if (c.horario) for (const [d] of DIAS) o.horario[d] = c.horario[d] ?? null;
+  return o;
+}
+if (MODO !== 'suporte' && CHAVE && PIN && !guardar.ler()) { MODO = 'pin'; entrar(); }
+
+// ── login com e-mail e senha ──
+const marca = '<div class="marca-lv">Lead<b>Vox</b></div>';
+function mostrarLogin(msg, email) {
+  $('telaApp').hidden = true; $('telaPorta').hidden = false;
+  const card = $('cardPorta'); card.className = 'card login';
+  card.innerHTML = marca + `<h1>Sua IA de atendimento</h1><p class="muted sub" style="margin-top:6px">Entre com o e-mail e a senha do painel.</p>
+    <form id="fLogin" novalidate>
+      <label for="lgEmail">E-mail</label><input id="lgEmail" type="email" autocomplete="username" inputmode="email" value="${esc(email || '')}">
+      <label for="lgSenha">Senha</label><input id="lgSenha" type="password" autocomplete="current-password">
+      <label class="lembrar"><input type="checkbox" id="lgLembrar" checked> Manter conectado neste aparelho (30 dias)</label>
+      <button class="principal" id="btLogin" style="width:100%;margin-top:14px">Entrar</button>
+    </form>
+    <p class="erro" id="erroLogin" ${msg ? '' : 'hidden'}>${esc(msg || '')}</p>
+    <p style="margin-top:14px;text-align:center"><button class="leve" type="button" id="btPrimeiro">Primeiro acesso ou esqueci minha senha</button></p>
+    ${CHAVE ? '<p style="margin-top:4px;text-align:center"><button class="leve" type="button" id="btUsarPin" style="color:var(--suave)">Entrar com o PIN da loja</button></p>' : ''}`;
+  $('fLogin').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const email = $('lgEmail').value.trim(), senha = $('lgSenha').value, bt = $('btLogin');
+    if (!email || !senha) return erroLogin('Preencha e-mail e senha.');
+    bt.disabled = true; bt.textContent = 'Entrando…';
+    try { const j = await chamarLogin({ acao: 'login', email, senha }); await abrirComToken(j.token, $('lgLembrar').checked); }
+    catch (e) { erroLogin(e.message); }
+    if ($('btLogin')) { $('btLogin').disabled = false; $('btLogin').textContent = 'Entrar'; }
+  });
+  $('btPrimeiro').addEventListener('click', () => mostrarCodigo($('lgEmail').value.trim()));
+  if ($('btUsarPin')) $('btUsarPin').addEventListener('click', mostrarPin);
+  (email ? $('lgSenha') : $('lgEmail')).focus();
+}
+function erroLogin(m) { const e = $('erroLogin'); if (e) { e.hidden = false; e.textContent = m; } }
+function mostrarCodigo(email) {
+  const card = $('cardPorta'); card.className = 'card login';
+  card.innerHTML = marca + `<h1>Criar ou trocar a senha</h1><p class="muted sub" style="margin-top:6px">Enviamos um código para o WhatsApp cadastrado na LeadVox.</p>
+    <label for="cdEmail">E-mail do painel</label><input id="cdEmail" type="email" autocomplete="username" value="${esc(email || '')}">
+    <button class="principal" type="button" id="btEnviarCod" style="width:100%;margin-top:14px">Receber código no WhatsApp</button>
+    <div id="blocoCod" hidden>
+      <p class="ok-msg" id="msgCod"></p>
+      <label for="cdCodigo">Código de 6 números</label><input id="cdCodigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      <label for="cdSenha">Nova senha <small>(mínimo 8 caracteres)</small></label><input id="cdSenha" type="password" autocomplete="new-password">
+      <label for="cdSenha2">Repita a nova senha</label><input id="cdSenha2" type="password" autocomplete="new-password">
+      <button class="principal" type="button" id="btSalvarSenha" style="width:100%;margin-top:14px">Salvar senha e entrar</button>
+    </div>
+    <p class="erro" id="erroLogin" hidden></p>
+    <p style="margin-top:14px;text-align:center"><button class="leve" type="button" id="btVoltarLogin">Voltar para o login</button></p>`;
+  $('btVoltarLogin').addEventListener('click', () => mostrarLogin('', $('cdEmail').value.trim()));
+  $('btEnviarCod').addEventListener('click', async () => {
+    const em = $('cdEmail').value.trim(), bt = $('btEnviarCod'); $('erroLogin').hidden = true;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return erroLogin('Digite o e-mail do painel.');
+    bt.disabled = true; bt.textContent = 'Enviando…';
+    try { const j = await chamarLogin({ acao: 'pedirCodigo', email: em }); $('blocoCod').hidden = false; $('msgCod').textContent = j.mensagem || 'Código enviado.'; bt.textContent = 'Reenviar código'; $('cdCodigo').focus(); }
+    catch (e) { erroLogin(e.message); bt.textContent = 'Receber código no WhatsApp'; }
+    setTimeout(() => { if ($('btEnviarCod')) $('btEnviarCod').disabled = false; }, 60000);
+  });
+  $('cdCodigo').addEventListener('input', () => { $('cdCodigo').value = $('cdCodigo').value.replace(/\D/g, '').slice(0, 6); });
+  $('btSalvarSenha').addEventListener('click', async () => {
+    const em = $('cdEmail').value.trim(), codigo = $('cdCodigo').value, s1 = $('cdSenha').value, s2 = $('cdSenha2').value, bt = $('btSalvarSenha');
+    $('erroLogin').hidden = true;
+    if (codigo.length !== 6) return erroLogin('O código tem 6 números.');
+    if (s1.length < 8) return erroLogin('A senha precisa ter pelo menos 8 caracteres.');
+    if (s1 !== s2) return erroLogin('As duas senhas não são iguais.');
+    bt.disabled = true; bt.textContent = 'Salvando…';
+    try { const j = await chamarLogin({ acao: 'confirmarCodigo', email: em, codigo, senha: s1 }); await abrirComToken(j.token, true); }
+    catch (e) { erroLogin(e.message); }
+    if ($('btSalvarSenha')) { $('btSalvarSenha').disabled = false; $('btSalvarSenha').textContent = 'Salvar senha e entrar'; }
+  });
+  $('cdEmail').focus();
+}
+async function abrirComToken(t, lembrar) {
+  MODO = 'login'; TOKEN = t; guardar.limpar(); guardar.salvar(t, lembrar);
+  const j = await chamar({ acao: 'carregar' });
+  aplicarCarregado(j); abrirApp();
+}
+$('btSair').addEventListener('click', async () => {
+  if (MODO === 'suporte') { fimSuporte('Você saiu do modo suporte neste navegador.'); return; }
+  try { await chamarLogin({ acao: 'sair', token: TOKEN }); } catch (e) {}
+  guardar.limpar(); TOKEN = ''; mostrarLogin('');
+});
+if (MODO === 'suporte') {
+  $('cardPorta').innerHTML = marca + '<h1>Modo suporte</h1><p class="muted" style="margin-top:10px">Abrindo a configuração da IA da loja…</p>';
+  chamar({ acao: 'carregar' }).then(j => { aplicarCarregado(j); abrirApp(); })
+    .catch(e => { if (TOKEN_SUP) fimSuporte(e.message); });
+} else if (MODO === 'login') {
+  TOKEN = guardar.ler();
+  if (TOKEN) {
+    $('cardPorta').innerHTML = marca + '<h1>Sua IA de atendimento</h1><p class="muted" style="margin-top:10px">Abrindo o painel…</p>';
+    chamar({ acao: 'carregar' }).then(j => { aplicarCarregado(j); abrirApp(); })
+      .catch(e => { if (!$('telaPorta').hidden && !$('fLogin')) mostrarLogin(e.message); });
+  } else mostrarLogin('');
+}
+
+// ── montar a tela a partir da configuração ──
+function abrirApp() {
+  $('telaPorta').hidden = true; $('telaApp').hidden = false; $('btSair').hidden = MODO !== 'login' && MODO !== 'suporte';
+  $('btSair').textContent = MODO === 'suporte' ? 'Sair do modo suporte' : 'Sair';
+  $('conflitoAcoes').hidden = true; $('erroSalvar').hidden = true; $('salvo').hidden = true;
+  renderSuporte();
+  $('titulo').textContent = CFG.loja.nome || 'Configuração da IA';
+  $('subtitulo').textContent = 'Estoque ' + (FONTE === 'leadvox' ? 'LeadVox' : 'pelo ' + (FONTE === 'revendamais' ? 'Revenda Mais' : 'AutoCerto')) + ', WhatsApp ' + (CANAL === 'waba' ? 'oficial' : 'conectado por QR code') + '.';
+  const c = CFG;
+  $('iaNome').value = c.ia.nome; $('iaGenero').value = c.ia.genero; marcar('tom', c.ia.tom); $('iaDif').value = (c.ia.diferenciais || []).join('\n');
+  $('ljNome').value = c.loja.nome; marcar('tipo', c.loja.tipo); $('ljEnd').value = c.loja.endereco; $('ljCidade').value = c.loja.cidade; $('ljUf').value = c.loja.uf;
+  $('ljBairro').value = c.loja.bairro; $('ljMapa').value = c.loja.mapa; $('ljSite').value = c.loja.site; $('ljInsta').value = c.loja.instagram; $('ljTel').value = c.loja.telefone;
+  $('dias').innerHTML = DIAS.map(([d, n]) => { const h = c.horario[d];
+    return `<div class="dia"><label><input type="checkbox" data-dia="${d}" ${h ? 'checked' : ''}> ${n}</label>
+      <input type="time" data-ini="${d}" value="${h ? h[0] : '09:00'}" ${h ? '' : 'disabled'} aria-label="${n}, abre">
+      <input type="time" data-fim="${d}" value="${h ? h[1] : '18:00'}" ${h ? '' : 'disabled'} aria-label="${n}, fecha"></div>`; }).join('');
+  $('feriados').value = (c.horario.feriados || []).join(', ');
+  marcar('precoModo', c.regras.precoModo || (c.regras.informaPreco ? 'quando_perguntar' : 'nunca'));
+  marcar('precoFormato', c.regras.precoFormato || 'exato'); marcar('precoDepois', c.regras.precoDepois || 'pagamento');
+  $('respDesc').value = c.regras.respostaDesconto || '';
+  marcar('tamanho', c.ia.tamanho || 'curta'); marcar('emojis', c.ia.emojis || 'poucos'); marcar('tratamento', c.ia.tratamento || 'voce');
+  marcar('financia', c.vendas.financia === false ? 'nao' : 'sim'); marcar('troca', c.vendas.troca === 'nao' ? 'nao' : 'sim');
+  $('bancos').value = (c.vendas.bancos || []).join(', '); $('entradaMin').value = c.vendas.entradaMinima || '';
+  $('pgCartao').checked = !!c.vendas.cartao; $('pgConsorcio').checked = !!c.vendas.consorcio;
+  renderFaq(c.faq || []);
+  marcar('modo', c.regras.atendimentoNoHorarioDaEquipe);
+  $('jaAtendido').checked = c.regras.perguntaSeJaEAtendido !== false;
+  document.querySelectorAll('#coleta input').forEach(i => i.checked = (c.regras.coletaFinanciamento || []).includes(i.value));
+  renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores);
+  $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
+  $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
+  $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
+  $('transf').value = c.followup.transferir.quando;
+  const pm = c.followup.transferir.personalizadoMin;
+  if (pm) { const u = pm % 1440 === 0 ? 1440 : pm % 60 === 0 ? 60 : 1; $('persU').value = String(u); $('persN').value = pm / u; }
+  $('passos').innerHTML = [...document.querySelectorAll('.passo')].map((s, i) => `<button type="button" data-ir="${i}">${i + 1}. ${s.dataset.passo}</button>`).join('');
+  $('crmAtivo').checked = c.crm.ativo !== false;
+  $('crmEtapa').innerHTML = '<option value="">Primeira etapa do funil</option>' +
+    LV.etapas.map(e => `<option value="${esc(e.id)}" ${String(e.id) === String(c.crm.etapaInicialId || '') ? 'selected' : ''}>${esc(e.nome)}</option>`).join('') +
+    (c.crm.etapaInicialId && !LV.etapas.some(e => String(e.id) === String(c.crm.etapaInicialId)) ? `<option value="${esc(c.crm.etapaInicialId)}" selected>Etapa ID ${esc(c.crm.etapaInicialId)}</option>` : '');
+  $('dicaCrm').textContent = LV.etapas.length ? '' : 'Não encontrei etapas no seu funil. Crie as etapas no CRM da LeadVox para os leads aparecerem lá.';
+  $('etqAtivo').checked = c.etiquetas.ativo === true;
+  document.querySelectorAll('#etqGrupos input').forEach(i => { i.checked = (c.etiquetas.grupos || []).includes(i.value); });
+  $('etqAlta').value = reais(c.etiquetas.entradaAlta || 5000); $('etqBaixa').value = reais(c.etiquetas.entradaBaixa || 1000);
+  $('importVend').hidden = !LV.usuarios.length;
+  $('importDeps').hidden = !LV.filas.length;
+  irPara(0); atualizar(); mostrarDicaTicket(); renderLiga(); prepararEstoque();
+}
+function marcar(nome, valor) { document.querySelectorAll(`input[name="${nome}"]`).forEach(i => i.checked = i.value === valor); }
+function valor(nome) { const i = document.querySelector(`input[name="${nome}"]:checked`); return i ? i.value : null; }
+
+// ── listas de departamentos e vendedores ──
+function renderDeps(lista) {
+  $('listaDeps').innerHTML = (lista.length ? lista : [{}]).map((d, i) => `
+    <div class="linha-lista" data-dep>
+      ${i > 0 ? '<button class="tirar" type="button" data-tirar aria-label="Remover departamento">×</button>' : ''}
+      <div class="tres">
+        <div><label>Nome do departamento</label><input data-f="nome" maxlength="40" value="${esc(d.nome || '')}" placeholder="${i === 0 ? 'Ex.: Venda Carro' : 'Ex.: Venda Moto ou Documentação'}"></div>
+        <div><label>${LV.filas.length ? 'Fila na LeadVox' : 'ID da fila'}</label>${campoFila(d.queueId)}</div>
+      </div>
+      <div class="tres3">
+        <div><label>Tipo</label><select data-f="tipo"><option value="venda" ${tipoDe(d, i) === 'venda' ? 'selected' : ''}>Venda</option><option value="outro" ${tipoDe(d, i) === 'outro' ? 'selected' : ''}>Outro assunto</option></select></div>
+        <div data-bloco-atende ${tipoDe(d, i) === 'outro' ? 'hidden' : ''}><label>Atende</label><select data-f="atende"><option value="ambos" ${!d.atende || d.atende === 'ambos' ? 'selected' : ''}>Carro e moto</option><option value="carro" ${d.atende === 'carro' ? 'selected' : ''}>Carro</option><option value="moto" ${d.atende === 'moto' ? 'selected' : ''}>Moto</option></select></div>
+        <div><label>Distribuição</label><select data-f="distribuicao"><option value="fila" ${distDe(d) === 'fila' ? 'selected' : ''}>Fila (quem estiver livre)</option><option value="rodizio" ${distDe(d) === 'rodizio' ? 'selected' : ''}>Rodízio de atendentes</option></select></div>
+      </div>
+      <label>O que vai para ele</label><input data-f="finalidade" maxlength="160" value="${esc(d.finalidade || '')}" placeholder="${tipoDe(d, i) === 'venda' ? 'Compra, troca, financiamento, visita' : 'Ex.: transferência, recibo, IPVA, multa'}">
+    </div>`).join('');
+}
+function campoFila(id) {
+  if (!LV.filas.length) return `<input data-f="queueId" inputmode="numeric" value="${esc(id || '')}">`;
+  const achou = LV.filas.some(f => String(f.id) === String(id));
+  return `<select data-f="queueId"><option value="">Escolha…</option>` +
+    LV.filas.map(f => `<option value="${esc(f.id)}" ${String(f.id) === String(id) ? 'selected' : ''}>${esc(f.nome)} (ID ${esc(f.id)})</option>`).join('') +
+    (id && !achou ? `<option value="${esc(id)}" selected>ID ${esc(id)} (não está mais na LeadVox)</option>` : '') + `</select>`;
+}
+function palpiteDep(nome) {
+  const n = String(nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const venda = /vend|comercial|consult|loja|novos|seminovo/.test(n);
+  return { tipo: venda ? 'venda' : 'outro', atende: /moto/.test(n) ? 'moto' : /carro|auto/.test(n) ? 'carro' : 'ambos',
+    finalidade: venda ? 'Compra, troca, financiamento, visita' : '' };
+}
+function tipoDe(d, i) { return d.tipo === 'venda' || d.tipo === 'outro' ? d.tipo : (i === 0 ? 'venda' : 'outro'); }
+function distDe(d) { return d.distribuicao === 'rodizio' || d.distribuicao === 'fila' ? d.distribuicao : ((CFG && CFG.distribuicao && CFG.distribuicao.modo === 'rodizio') ? 'rodizio' : 'fila'); }
+const CAMPOS_DEP = ['nome', 'queueId', 'finalidade', 'tipo', 'atende', 'distribuicao'];
+document.addEventListener('change', (ev) => { if (ev.target.matches('[data-dep] [data-f="tipo"]')) { const b = ev.target.closest('[data-dep]').querySelector('[data-bloco-atende]'); if (b) b.hidden = ev.target.value === 'outro'; } });
+function nomesDeps() { return lerLista('[data-dep]', ['nome']).map(d => d.nome).filter(Boolean); }
+function renderVend(lista) {
+  const deps = nomesDeps(); const d0 = deps[0] || 'Comercial';
+  $('listaVend').innerHTML = lista.map(v => `
+    <div class="linha-lista" data-vend>
+      <button class="tirar" type="button" data-tirar aria-label="Remover vendedor">×</button>
+      <div class="tres">
+        <div><label>Nome</label><input data-f="nome" maxlength="40" value="${esc(v.nome || '')}"></div>
+        <div><label>${LV.usuarios.length ? 'Usuário na LeadVox' : 'ID do usuário'}</label>${campoUsuario(v.userId)}</div>
+      </div>
+      <div class="duas">
+        <div><label>Setor</label><select data-f="departamento">${(deps.length ? deps : [d0]).map(n => `<option ${String(v.departamento || d0) === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+        <div><label>Apelidos <small>(vírgula)</small></label><input data-f="apelidos" value="${esc((v.apelidos || []).join(', '))}" placeholder="Bia, Beatriz"></div>
+      </div>
+    </div>`).join('') || '<p class="muted" style="margin-top:10px">Nenhum atendente cadastrado.</p>';
+  $('addVend').disabled = lista.length >= 20;
+  atualizarResp();
+}
+function campoUsuario(id) {
+  if (!LV.usuarios.length) return `<input data-f="userId" inputmode="numeric" value="${esc(id || '')}">`;
+  const achou = LV.usuarios.some(u => String(u.id) === String(id));
+  return `<select data-f="userId"><option value="">Escolha…</option>` +
+    LV.usuarios.map(u => `<option value="${esc(u.id)}" ${String(u.id) === String(id) ? 'selected' : ''}>${esc(u.nome)} (ID ${esc(u.id)})</option>`).join('') +
+    (id && !achou ? `<option value="${esc(id)}" selected>ID ${esc(id)} (não está mais na LeadVox)</option>` : '') + `</select>`;
+}
+function lerLista(sel, campos) {
+  return [...document.querySelectorAll(sel)].map(el => { const o = {}; campos.forEach(f => o[f] = el.querySelector(`[data-f="${f}"]`).value.trim()); return o; });
+}
+function lerVend() { return lerLista('[data-vend]', ['nome', 'userId', 'departamento', 'apelidos']).filter(v => v.nome || v.userId).map(v => ({ ...v, apelidos: v.apelidos.split(',').map(a => a.trim()).filter(Boolean) })); }
+function atualizarResp() {
+  const salvo = CFG.distribuicao.setorVendaConsignacao ? 'setor:' + CFG.distribuicao.setorVendaConsignacao : String(CFG.distribuicao.responsavelVendaConsignacao || '');
+  const atual = $('respConsig').value || salvo;
+  const vs = lerVend().filter(v => v.nome && v.userId);
+  const ss = nomesDeps();
+  $('respConsig').innerHTML = '<option value="">Ninguém em especial (vai para o setor principal)</option>' +
+    (ss.length ? '<optgroup label="Um setor">' + ss.map(s => `<option value="setor:${esc(s)}">${esc(s)}</option>`).join('') + '</optgroup>' : '') +
+    (vs.length ? '<optgroup label="Um atendente">' + vs.map(v => `<option value="${esc(v.userId)}">${esc(v.nome)}</option>`).join('') + '</optgroup>' : '');
+  const opcoes = [...$('respConsig').options].map(o => o.value);
+  $('respConsig').value = opcoes.includes(atual) ? atual : '';
+  $('dicaResp').textContent = vs.length ? 'Escolha um setor (a fila dele, com rodízio se estiver ligado) ou uma pessoa.' : 'Para escolher uma pessoa, cadastre o atendente com nome e ID acima. Setores já aparecem na lista.';
+}
+$('importDeps').addEventListener('click', () => {
+  const l = lerLista('[data-dep]', CAMPOS_DEP).filter(d => d.nome || d.queueId);
+  let novos = 0;
+  LV.filas.forEach(f => { if (l.length < 15 && !l.some(d => String(d.queueId) === String(f.id))) { l.push({ nome: f.nome.slice(0, 40), queueId: f.id, distribuicao: 'fila', ...palpiteDep(f.nome) }); novos++; } });
+  renderDeps(l); renderVend(lerVend()); atualizar();
+  $('dicaDeps').textContent = novos ? `Trouxe ${novos} departamento(s). Confira o Tipo (venda ou outro assunto) e o que vai para cada um.` : 'Todos os departamentos da LeadVox já estão na lista.';
+});
+document.addEventListener('change', (ev) => {
+  if (!ev.target.matches('[data-dep] select[data-f="queueId"]')) return;
+  const box = ev.target.closest('[data-dep]'), nome = box.querySelector('[data-f="nome"]'), f = LV.filas.find(x => String(x.id) === ev.target.value);
+  if (f && !nome.value.trim()) { nome.value = f.nome.slice(0, 40); renderVend(lerVend()); atualizarResp(); }
+});
+$('addDep').addEventListener('click', () => { const l = lerLista('[data-dep]', CAMPOS_DEP); if (l.length >= 15) return; l.push({ tipo: 'venda' }); renderDeps(l); renderVend(lerVend()); });
+document.addEventListener('change', (ev) => { if (ev.target.closest('[data-dep]') && ev.target.dataset.f === 'nome') { renderVend(lerVend()); atualizarResp(); } });
+$('addVend').addEventListener('click', () => { const l = lerVend(); if (l.length >= 20) return; l.push({}); renderVend(l); });
+$('importVend').addEventListener('click', () => {
+  const l = lerVend();
+  LV.usuarios.forEach(u => { if (l.length < 20 && !l.some(v => String(v.userId) === String(u.id))) l.push({ nome: u.nome || '', userId: u.id, apelidos: [] }); });
+  renderVend(l); atualizar();
+});
+document.addEventListener('change', (ev) => {
+  const s = ev.target.closest('[data-vend] select[data-f="userId"]'); if (!s) return;
+  const u = LV.usuarios.find(x => String(x.id) === s.value), nome = s.closest('[data-vend]').querySelector('[data-f="nome"]');
+  if (u && nome && !nome.value.trim()) nome.value = u.nome || '';
+  atualizarResp();
+});
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('[data-tirar]');
+  if (t) { const emVend = !!t.closest('#listaVend'); t.parentElement.remove(); if (emVend && !document.querySelector('[data-vend]')) renderVend([]); atualizarResp(); atualizar(); return; }
+  const ir = ev.target.closest('[data-ir]'); if (ir) irPara(+ir.dataset.ir);
+  const eu = ev.target.closest('[data-eu]');
+  if (eu && ticket && ticket.user) { const l = lerVend(); if (!l.some(v => String(v.userId) === String(ticket.user.id))) l.push({ nome: ticket.user.name || '', userId: ticket.user.id, apelidos: [] }); renderVend(l); atualizar(); }
+  const fila = ev.target.closest('[data-fila]');
+  if (fila) { const f = document.querySelector('[data-dep] [data-f="queueId"]'); if (f && !f.value) f.value = fila.dataset.fila; }
+});
+function mostrarDicaTicket() {
+  if (!ticket || $('telaApp').hidden) return;
+  const u = ticket.user || {}; const fila = ticket.queueId || (ticket.queue && ticket.queue.id) || (ticket.contact && ticket.contact.queueId);
+  const partes = [];
+  if (u.id) partes.push(`Você está logado como <b>${esc(u.name || 'usuário')}</b>, ID ${esc(u.id)}. <button class="leve" type="button" data-eu>Me adicionar como vendedor</button>`);
+  if (fila) partes.push(`Este atendimento está na fila de ID <b>${esc(fila)}</b>. <button class="leve" type="button" data-fila="${esc(fila)}">Usar no Comercial</button>`);
+  if (partes.length) { $('dicaTicket').hidden = false; $('dicaTicket').innerHTML = partes.join('<br>'); }
+}
+
+// ── horário ──
+document.addEventListener('change', (ev) => {
+  const d = ev.target.dataset && ev.target.dataset.dia;
+  if (d) { document.querySelector(`[data-ini="${d}"]`).disabled = !ev.target.checked; document.querySelector(`[data-fim="${d}"]`).disabled = !ev.target.checked; }
+  atualizar();
+});
+document.addEventListener('input', (ev) => { if (!$('telaApp').hidden) atualizar(); if (ev.target.closest('[data-vend]') || ev.target.closest('[data-dep]')) atualizarResp(); });
+
+// ── ler tudo da tela ──
+// ── perguntas frequentes ──
+const FAQ_SUGESTOES = ['Aceita cartão?', 'Faz entrega?', 'Tem garantia?', 'A documentação está inclusa?', 'Financia para quem tem nome sujo?',
+  'Aceita moto na troca?', 'Tem estacionamento?', 'Abre no domingo?'];
+function linhaFaq(x) {
+  return `<div class="faq-item" data-faq>
+    <div class="faq-topo"><label style="margin-top:10px">Pergunta</label><button type="button" class="leve" data-rmfaq style="color:var(--erro)">Remover</button></div>
+    <input data-faq-p maxlength="120" value="${esc(x.p || '')}" placeholder="Ex.: Faz entrega?">
+    <label>Resposta da loja</label>
+    <textarea data-faq-r maxlength="400" placeholder="Ex.: Entregamos em todo o RJ, com custo combinado com o consultor.">${esc(x.r || '')}</textarea>
+  </div>`;
+}
+function renderFaq(lista) {
+  $('faqLista').innerHTML = (lista || []).slice(0, 15).map(linhaFaq).join('');
+  renderSugestoesFaq();
+}
+function renderSugestoesFaq() {
+  const ja = new Set([...document.querySelectorAll('[data-faq-p]')].map(i => i.value.trim().toLowerCase()));
+  $('faqSugestoes').innerHTML = FAQ_SUGESTOES.filter(s => !ja.has(s.toLowerCase()))
+    .map(s => `<button type="button" data-sugfaq="${esc(s)}">${esc(s)}</button>`).join('');
+}
+function lerFaq() {
+  return [...document.querySelectorAll('[data-faq]')].map(d => ({ p: d.querySelector('[data-faq-p]').value.trim(), r: d.querySelector('[data-faq-r]').value.trim() }))
+    .filter(x => x.p && x.r).slice(0, 15);
+}
+function addFaq(p) {
+  if (document.querySelectorAll('[data-faq]').length >= 15) return;
+  $('faqLista').insertAdjacentHTML('beforeend', linhaFaq({ p: p || '' }));
+  const ult = [...document.querySelectorAll('[data-faq]')].pop();
+  (p ? ult.querySelector('[data-faq-r]') : ult.querySelector('[data-faq-p]')).focus();
+  renderSugestoesFaq(); atualizar();
+}
+$('btAddFaq').addEventListener('click', () => addFaq(''));
+document.addEventListener('click', (ev) => {
+  const s = ev.target.closest('[data-sugfaq]'); if (s) { addFaq(s.dataset.sugfaq); return; }
+  const r = ev.target.closest('[data-rmfaq]'); if (r) { r.closest('[data-faq]').remove(); renderSugestoesFaq(); atualizar(); }
+});
+
+function coletar() {
+  const horario = {};
+  DIAS.forEach(([d]) => { const on = document.querySelector(`[data-dia="${d}"]`).checked;
+    horario[d] = on ? [document.querySelector(`[data-ini="${d}"]`).value, document.querySelector(`[data-fim="${d}"]`).value] : null; });
+  horario.feriados = $('feriados').value.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+  const quando = $('transf').value;
+  return {
+    ia: { nome: $('iaNome').value.trim(), genero: $('iaGenero').value, tom: valor('tom') || 'acolhedor',
+      diferenciais: $('iaDif').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6),
+      tamanho: valor('tamanho') || 'curta', emojis: valor('emojis') || 'poucos', tratamento: valor('tratamento') || 'voce' },
+    loja: { nome: $('ljNome').value.trim(), tipo: valor('tipo'), endereco: $('ljEnd').value.trim(), bairro: $('ljBairro').value.trim(),
+      cidade: $('ljCidade').value.trim(), uf: $('ljUf').value.trim(), mapa: $('ljMapa').value.trim(), site: $('ljSite').value.trim(),
+      instagram: $('ljInsta').value.trim(), telefone: $('ljTel').value.trim() },
+    horario,
+    regras: { informaPreco: (valor('precoModo') || 'nunca') !== 'nunca', precoModo: valor('precoModo') || 'nunca',
+      precoFormato: valor('precoFormato') || 'exato', precoDepois: valor('precoDepois') || 'pagamento', respostaDesconto: $('respDesc').value.trim(),
+      atendimentoNoHorarioDaEquipe: valor('modo') || 'completo',
+      perguntaSeJaEAtendido: $('jaAtendido').checked, coletaFinanciamento: [...document.querySelectorAll('#coleta input:checked')].map(i => i.value)
+        .filter(v => v !== 'troca' || valor('troca') !== 'nao') },
+    vendas: { financia: valor('financia') !== 'nao', cartao: $('pgCartao').checked, consorcio: $('pgConsorcio').checked,
+      bancos: $('bancos').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 6), entradaMinima: $('entradaMin').value.trim(),
+      troca: valor('troca') === 'nao' ? 'nao' : 'sim' },
+    faq: lerFaq(),
+    departamentos: lerLista('[data-dep]', CAMPOS_DEP).filter(d => d.nome || d.queueId),
+    distribuicao: { modo: lerLista('[data-dep]', CAMPOS_DEP).some(d => d.distribuicao === 'rodizio') ? 'rodizio' : 'departamento', vendedores: lerVend(),
+      responsavelVendaConsignacao: /^\d+$/.test($('respConsig').value) ? $('respConsig').value : null,
+      setorVendaConsignacao: $('respConsig').value.startsWith('setor:') ? $('respConsig').value.slice(6) : null },
+    lead: { enviarAutoCerto: FONTE === 'autocerto' && $('enviarAC').checked, codigoMidia: CFG.lead.codigoMidia || 12, interesse: CFG.lead.interesse || 2,
+      whatsappGerente: $('gerente').value.replace(/\D/g, '') },
+    followup: { primeiroMin: +$('fu1').value, segundoMin: +$('fu2').value,
+      transferir: { quando, personalizadoMin: quando === 'personalizado' ? Math.round(+$('persN').value * +$('persU').value) : null } },
+    crm: { ativo: $('crmAtivo').checked, etapaInicialId: $('crmEtapa').value ? +$('crmEtapa').value : null },
+    etiquetas: { ativo: $('etqAtivo').checked, grupos: [...document.querySelectorAll('#etqGrupos input:checked')].map(i => i.value),
+      entradaAlta: digitos($('etqAlta').value) || 5000, entradaBaixa: digitos($('etqBaixa').value) || 1000 }
+  };
+}
+
+// ── prévia, linha do tempo e textos que mudam ──
+const fmt = (m) => m < 60 ? m + ' min' : m < 1440 ? (m / 60).toFixed(m % 60 ? 1 : 0).replace('.', ',') + ' h' : Math.round(m / 1440) + (m >= 2880 ? ' dias' : ' dia');
+function atualizar() {
+  if (!CFG || $('telaApp').hidden) return;
+  const c = coletar();
+  const nome = c.ia.nome || 'sua IA', loja = c.loja.nome || 'sua loja', tipo = c.loja.tipo === 'carro' ? 'carro' : c.loja.tipo === 'ambos' ? 'veículo' : 'moto';
+  const abre = { acolhedor: 'Boa tarde! Tudo bem?', descontraido: 'Opa, boa tarde! Tudo certo?', formal: 'Boa tarde, tudo bem?' }[c.ia.tom];
+  const art = c.ia.genero === 'masculino' ? 'seu assistente virtual' : 'sua assistente virtual';
+  $('previa').innerHTML = `${abre} Me chamo <b>${esc(nome)}</b>, ${art} aqui da <b>${esc(loja)}</b>. Como posso te chamar?<span class="hora">14:32</span>`;
+
+  $('blocoPrecoOpc').hidden = c.regras.precoModo === 'nunca';
+  $('blocoFinancia').hidden = !c.vendas.financia;
+  const lt = document.querySelector('#coleta [data-troca]'); if (lt) lt.hidden = c.vendas.troca === 'nao';
+  $('btAddFaq').disabled = document.querySelectorAll('[data-faq]').length >= 15;
+  $('blocoGerente').hidden = !$('enviarAC').checked;
+  $('blocoCrm').hidden = !$('crmAtivo').checked;
+  renderEtiquetas(c);
+  $('textoDestino').textContent = (FONTE === 'autocerto' && c.lead.enviarAutoCerto)
+    ? 'Quando o cliente estiver qualificado, a IA cadastra o lead no AutoCerto, avisa o gerente e passa o atendimento para a equipe.'
+    : 'Quando o cliente estiver qualificado, a IA passa o atendimento para o departamento Comercial com um resumo da conversa.' + (FONTE !== 'autocerto' ? ' O envio para o AutoCerto só existe para lojas com estoque no AutoCerto.' : '');
+
+  $('blocoPers').hidden = c.followup.transferir.quando !== 'personalizado';
+  const f = c.followup, t = f.transferir;
+  const tr = t.quando === 'apos_primeiro' ? f.segundoMin : t.quando === 'apos_segundo' ? 23 * 60 : t.quando === 'apos_terceiro' ? 24 * 60 : (t.personalizadoMin || 0);
+  const ev = [
+    { m: f.primeiroMin, txt: '1ª mensagem da IA para o cliente' },
+    { m: f.segundoMin, txt: '2ª mensagem da IA para o cliente' },
+    { m: 23 * 60, txt: '3ª mensagem da IA para o cliente' },
+    ...(CANAL === 'waba' ? [{ m: 7 * 1440, txt: 'Lembrete de 7 dias', longo: true }] : [7, 15, 30].map(d => ({ m: d * 1440, txt: 'Lembrete de ' + d + ' dias', longo: true })))
+  ].filter(e => !(e.m === tr && !e.longo));
+  const itens = ev.map(e => ({ ...e, nota: e.m > tr || (CANAL === 'waba' && e.m > 24 * 60) }));
+  if (tr) itens.push({ m: tr, txt: 'Passa o cliente para o Comercial, com o resumo da conversa', transf: true });
+  itens.sort((a, b) => a.m - b.m || (a.transf ? -1 : 1));
+  $('linhaTempo').innerHTML = itens.map(e => `<li class="${e.transf ? 'transf' : e.nota ? 'nota' : ''}"><span class="quando">${fmt(e.m)}</span><span class="marca"></span>
+    <span>${e.transf ? e.txt : e.nota ? e.txt.replace(' da IA para o cliente', '') + '<small>Vira nota interna para o vendedor, e reabre o ticket se estiver fechado</small>' : e.txt}</span></li>`).join('');
+}
+['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.id === 'transf') atualizar(); }));
+
+// ── navegação entre etapas ──
+function irPara(i) {
+  const secs = [...document.querySelectorAll('.passo')];
+  passoAtual = Math.max(0, Math.min(i, secs.length - 1));
+  secs.forEach((s, k) => s.classList.toggle('ativo', k === passoAtual));
+  [...$('passos').children].forEach((b, k) => { if (k === passoAtual) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); b.classList.toggle('feito', k < passoAtual); });
+  $('btVoltar').disabled = passoAtual === 0;
+  $('btProximo').hidden = passoAtual === secs.length - 1;
+  $('contador').textContent = (passoAtual + 1) + ' de ' + secs.length;
+  if (passoAtual === secs.length - 1) montarResumo();
+  const b = $('passos').children[passoAtual]; if (b) b.scrollIntoView({ inline: 'center', block: 'nearest' });
+  window.scrollTo(0, 0);
+}
+$('btVoltar').addEventListener('click', () => irPara(passoAtual - 1));
+$('btProximo').addEventListener('click', () => irPara(passoAtual + 1));
+
+function renderEtiquetas(c) {
+  const e = c.etiquetas;
+  $('blocoEtq').hidden = !e.ativo;
+  $('blocoEtqFaixa').hidden = !e.grupos.includes('entrada');
+  const tipo = c.loja.tipo;
+  const lista = [];
+  e.grupos.forEach(g => {
+    const def = ETQ[g]; if (!def) return;
+    const nomes = g === 'interesse' ? (tipo === 'carro' ? def.carro : tipo === 'moto' ? def.moto : def.moto.concat(def.carro)) : def.nomes;
+    nomes.forEach(n => lista.push([n, def.cor]));
+  });
+  $('etqPrevia').innerHTML = lista.map(([n, cor]) => `<span><i style="background:${cor}"></i>${esc(n)}</span>`).join('');
+  const faixaRuim = e.grupos.includes('entrada') && e.entradaBaixa >= e.entradaAlta;
+  $('dicaEtq').style.color = faixaRuim ? 'var(--erro)' : '';
+  $('dicaEtq').textContent = !e.grupos.includes('entrada') ? '' : faixaRuim
+    ? 'A entrada baixa precisa ser menor que a entrada alta.'
+    : 'Entre ' + reais(e.entradaBaixa) + ' e ' + reais(e.entradaAlta) + ', a etiqueta é "Entrada média".';
+}
+['etqAlta', 'etqBaixa'].forEach(id => $(id).addEventListener('blur', () => { const n = digitos($(id).value); $(id).value = n ? reais(n) : ''; }));
+function montarResumo() {
+  const c = coletar();
+  const dias = DIAS.filter(([d]) => c.horario[d]).map(([d, n]) => n.slice(0, 3) + ' ' + c.horario[d].join('–')).join(', ') || 'nenhum dia marcado';
+  const ROT = { carro: 'carro', moto: 'moto', ambos: 'carro e moto' };
+  const deps = c.departamentos.map(d => d.nome + (d.queueId ? ' (fila ' + d.queueId + ')' : ' (sem ID da fila)') + ' — ' + (d.tipo === 'outro' ? 'outro assunto' : 'venda de ' + ROT[d.atende || 'ambos']) + ', ' + (d.distribuicao === 'rodizio' ? 'rodízio' : 'fila')).join('; ') || 'nenhum';
+  const tQ = { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas',
+    personalizado: 'depois de ' + fmt(c.followup.transferir.personalizadoMin || 0) }[c.followup.transferir.quando];
+  const linhas = [
+    ['IA', (c.ia.nome || 'sem nome') + ', tom ' + { acolhedor: 'acolhedor', descontraido: 'descontraído', formal: 'formal' }[c.ia.tom]],
+    ['Loja', (c.loja.nome || 'sem nome') + (c.loja.tipo ? ', vende ' + { moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[c.loja.tipo] : ', tipo não escolhido')],
+    ['Horário da equipe', dias],
+    ['Preço', { nunca: 'Só o consultor informa', quando_perguntar: 'A IA informa quando o cliente perguntar', com_foto: 'Vai na legenda da foto',
+      primeira_mencao: 'A IA fala ao apresentar o veículo' }[c.regras.precoModo] + (c.regras.precoModo !== 'nunca' && c.regras.precoFormato === 'a_partir' ? ', como "a partir de"' : '')],
+    ['Jeito de escrever', ({ curta: 'Mensagens curtas', media: 'Mensagens mais explicativas' }[c.ia.tamanho]) + ', ' + ({ nenhum: 'sem emoji', poucos: 'poucos emojis', mais: 'emojis à vontade' }[c.ia.emojis]) + ', chama de ' + (c.ia.tratamento === 'senhor' ? 'senhor/senhora' : 'você')],
+    ['Pagamento', (c.vendas.financia ? 'Financia' + (c.vendas.bancos.length ? ' (' + c.vendas.bancos.join(', ') + ')' : '') : 'Não financia') +
+      (c.vendas.cartao ? ', cartão' : '') + (c.vendas.consorcio ? ', consórcio' : '') + (c.vendas.troca === 'nao' ? ', sem troca' : ', aceita troca')],
+    ['Perguntas frequentes', c.faq.length ? c.faq.length + ' cadastrada(s)' : 'nenhuma'],
+    ['Departamentos', deps],
+    ['Atendentes', c.distribuicao.vendedores.length + ' cadastrado(s)'],
+    ['Lead', c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e avisa o gerente' : 'Transferido para o Comercial'],
+    ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
+    ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
+    ['Follow-up', fmt(c.followup.primeiroMin) + ' e ' + fmt(c.followup.segundoMin) + ', transfere ' + tQ]
+  ];
+  $('resumo').innerHTML = linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('');
+}
+
+$('btLiga').addEventListener('click', async () => {
+  const ligar = !ATIVO;
+  if (!ligar && !confirm('Desligar a IA? Os clientes deixam de receber resposta automática até você ligar de novo.')) return;
+  const bt = $('btLiga'); bt.disabled = true; $('erroLiga').hidden = true;
+  try { const j = await chamar({ acao: 'ativo', ligar }); ATIVO = j.ativo === true; }
+  catch (e) { $('erroLiga').hidden = false; $('erroLiga').textContent = e.message; }
+  renderLiga();
+});
+
+$('btSalvar').addEventListener('click', async () => {
+  const bt = $('btSalvar'); bt.disabled = true; bt.textContent = 'Salvando…'; $('erroSalvar').hidden = true; $('salvo').hidden = true; $('conflitoAcoes').hidden = true;
+  try {
+    const cfg = coletar();
+    const j = await chamar({ acao: 'salvar', config: cfg, versaoBase: VERSAO });
+    CFG = mesclar({ ...CFG, ...cfg });
+    CONFIGURADA = true; renderLiga();
+    VERSAO = Number(j.versao) || VERSAO;
+    ULTIMA = { origem: MODO === 'suporte' ? 'suporte:' + ((SUPORTE && SUPORTE.autor) || 'LeadVox') : 'plugin', em: new Date().toISOString() };
+    renderSuporte();
+    $('salvo').hidden = false;
+    $('salvo').innerHTML = `<b>Configuração salva.</b> Esta é a versão ${esc(j.versao)}. Você pode voltar aqui e mudar o que quiser quando precisar.${ATIVO || BLOQ ? '' : ' Para a IA começar a responder, ligue a chave lá no topo.'}`;
+  } catch (e) {
+    $('erroSalvar').hidden = false; $('erroSalvar').textContent = e.message;
+    if (e.dados && e.dados.conflito) { CONFLITO = e.dados; $('conflitoAcoes').hidden = false; }
+  }
+  bt.disabled = false; bt.textContent = 'Salvar configuração';
+});
+// ── trava de edição simultânea: outra pessoa salvou depois que esta tela abriu ──
+let CONFLITO = null;
+$('btVerNova').addEventListener('click', async () => {
+  if (!confirm('Carregar a versão nova? O que você mudou nesta tela e ainda não salvou vai se perder.')) return;
+  const bt = $('btVerNova'); bt.disabled = true;
+  try { const j = await chamar({ acao: 'carregar' }); aplicarCarregado(j); abrirApp(); CONFLITO = null; }
+  catch (e) { $('erroSalvar').hidden = false; $('erroSalvar').textContent = e.message; }
+  bt.disabled = false;
+});
+$('btPorCima').addEventListener('click', () => {
+  if (!CONFLITO || !confirm('Salvar a sua versão por cima da alteração feita pela outra pessoa? A versão dela continua no histórico.')) return;
+  VERSAO = Number(CONFLITO.versao) || VERSAO; CONFLITO = null;
+  $('btSalvar').click();
+});
+
+// ═══════════════ ESTOQUE LEADVOX (adicional contratado na LeadVox) ═══════════════
+const ESTOQUE_API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-estoque';
+const FOTO_PREFIXO = 'https://qpcwqrkxzajekqoxklus.supabase.co/storage/v1/object/public/sdr-estoque/';
+const MARCAS = {
+  moto: ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'BMW', 'Triumph', 'Harley-Davidson', 'Ducati', 'KTM', 'Royal Enfield', 'Dafra', 'Shineray', 'Haojue', 'Kasinski', 'Mottu', 'Voltz', 'Bajaj', 'Avelloz'],
+  carro: ['Chevrolet', 'Fiat', 'Volkswagen', 'Ford', 'Toyota', 'Hyundai', 'Renault', 'Honda', 'Jeep', 'Nissan', 'Peugeot', 'Citroën', 'Mitsubishi', 'Kia', 'BYD', 'Caoa Chery', 'GWM', 'BMW', 'Mercedes-Benz', 'Audi', 'Volvo', 'Ram', 'Land Rover']
+};
+const CATEGORIAS = {
+  moto: ['Street', 'Trail', 'Big Trail', 'Scooter', 'Custom', 'Esportiva', 'Naked', 'Touring', 'Ciclomotor', 'Elétrica', 'Quadriciclo'],
+  carro: ['Hatch', 'Sedã', 'SUV', 'Picape', 'Utilitário', 'Minivan', 'Perua', 'Esportivo', 'Conversível', 'Van']
+};
+const ST_NOME = { disponivel: 'Disponível', reservado: 'Reservado', pausado: 'Pausado', vendido: 'Vendido' };
+let ESTOQUE = [], ESTOQUE_OK = false, EDITANDO = null, FOTOS = [], SUJO = false;
+
+async function chamarEstoque(corpo) {
+  const ident = MODO === 'login' ? { token: TOKEN } : { chave: CHAVE, pin: PIN };
+  const r = await fetch(ESTOQUE_API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ ...ident, ...corpo }) }) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (MODO === 'login' && j.sessao === false) { guardar.limpar(); TOKEN = ''; mostrarLogin('Sua sessão expirou. Entre de novo.'); throw new Error(j.erro || 'Sessão expirada.'); }
+  if (!r.ok || j.ok === false) throw new Error(j.erro || ('Não consegui falar com o servidor (HTTP ' + r.status + ').'));
+  return j;
+}
+function prepararEstoque() {
+  $('vistas').hidden = FONTE !== 'leadvox' || MODO === 'suporte';   // estoque continua só com o acesso do dono
+  ESTOQUE_OK = false; SUJO = false;
+  trocarVista('ia', true);
+}
+function trocarVista(v, silencioso) {
+  if (v === 'ia' && !silencioso && SUJO && !$('estForm').hidden && !confirm('Sair sem salvar o veículo?')) return;
+  document.body.classList.toggle('modo-estoque', v === 'estoque');
+  $('vistas').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vista === v)));
+  if (v === 'estoque') {
+    mostrarListaEst();
+    $('btNovoVeic').disabled = false;
+    if (!ESTOQUE_OK) carregarEstoque();
+  }
+  window.scrollTo(0, 0);
+}
+$('vistas').addEventListener('click', (ev) => { const b = ev.target.closest('[data-vista]'); if (b) trocarVista(b.dataset.vista); });
+
+function erroEst(m) { $('estErro').hidden = !m; $('estErro').textContent = m || ''; }
+async function carregarEstoque() {
+  erroEst(''); $('estResumo').textContent = 'Carregando…'; $('estItens').innerHTML = '';
+  try { const j = await chamarEstoque({ acao: 'listar' }); ESTOQUE = Array.isArray(j.veiculos) ? j.veiculos : []; ESTOQUE_OK = true; }
+  catch (e) { erroEst(e.message); $('estResumo').textContent = ''; return; }
+  renderEstoque();
+}
+const brl = (n) => n == null || n === '' ? '' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: Number(n) % 1 ? 2 : 0 });
+const milhar = (n) => n == null || n === '' ? '' : Number(n).toLocaleString('pt-BR');
+const tituloV = (v) => [v.marca, v.modelo, v.versao].filter(Boolean).join(' ');
+const anoV = (v) => v.ano_fab && v.ano_mod && v.ano_fab !== v.ano_mod ? v.ano_fab + '/' + v.ano_mod : (v.ano_mod || v.ano_fab || '');
+function fotoSegura(u) { return typeof u === 'string' && u.startsWith(FOTO_PREFIXO) ? u : ''; }
+function renderEstoque() {
+  const disp = ESTOQUE.filter(v => v.status === 'disponivel').length;
+  $('estResumo').textContent = ESTOQUE.length ? `${ESTOQUE.length} veículo(s) · ${disp} disponível(is) para a IA` : 'Nenhum veículo cadastrado ainda.';
+  const busca = $('estBusca').value.trim().toLowerCase(), filtro = $('estFiltro').value;
+  const lista = ESTOQUE.filter(v => (!filtro || v.status === filtro) && (!busca || (tituloV(v) + ' ' + anoV(v) + ' ' + (v.cor || '')).toLowerCase().includes(busca)));
+  $('estItens').innerHTML = lista.map(v => {
+    const capa = fotoSegura((v.fotos || [])[0]);
+    return `<div class="veic">
+      ${capa ? `<img class="capa" src="${esc(capa)}" alt="" loading="lazy">` : '<div class="capa">sem foto</div>'}
+      <div><b>${v.destaque ? '★ ' : ''}${esc(tituloV(v))}</b>
+        <small>${esc([anoV(v), v.km != null ? milhar(v.km) + ' km' : '', v.cor].filter(Boolean).join(' · '))}</small>
+        ${v.preco ? `<span class="preco">${esc(brl(v.preco))}</span> ` : ''}<span class="st ${esc(v.status)}">${esc(ST_NOME[v.status] || v.status)}</span></div>
+      <button type="button" data-editar="${esc(v.id)}">Editar</button>
+    </div>`;
+  }).join('') || (ESTOQUE.length ? '<p class="muted" style="margin-top:10px">Nada encontrado com esse filtro.</p>'
+    : '<p class="muted" style="margin-top:10px">Clique em <b>+ Cadastrar veículo</b> para colocar o primeiro. Assim que salvar, a IA já passa a oferecer.</p>');
+}
+$('estBusca').addEventListener('input', renderEstoque);
+$('estFiltro').addEventListener('change', renderEstoque);
+$('estItens').addEventListener('click', (ev) => { const b = ev.target.closest('[data-editar]'); if (b) abrirForm(ESTOQUE.find(v => String(v.id) === b.dataset.editar)); });
+$('btNovoVeic').addEventListener('click', () => abrirForm(null));
+$('btVoltarLista').addEventListener('click', () => { if (SUJO && !confirm('Sair sem salvar o veículo?')) return; mostrarListaEst(); });
+function mostrarListaEst() { $('estForm').hidden = true; $('estLista').hidden = false; SUJO = false; }
+
+function preencherOpcoes(tipo, catAtual) {
+  $('listaMarcas').innerHTML = MARCAS[tipo].map(m => `<option value="${esc(m)}">`).join('');
+  const cats = CATEGORIAS[tipo];
+  $('vCategoria').innerHTML = '<option value="">—</option>' + cats.map(c => `<option ${c === catAtual ? 'selected' : ''}>${esc(c)}</option>`).join('') +
+    (catAtual && !cats.includes(catAtual) ? `<option selected>${esc(catAtual)}</option>` : '');
+}
+function abrirForm(v) {
+  EDITANDO = v ? v.id : null; const x = v || { tipo: CFG && CFG.loja.tipo === 'carro' ? 'carro' : 'moto', status: 'disponivel' };
+  $('estFormTitulo').textContent = v ? 'Editar veículo' : 'Cadastrar veículo';
+  marcar('vTipo', x.tipo === 'carro' ? 'carro' : 'moto'); preencherOpcoes(x.tipo === 'carro' ? 'carro' : 'moto', x.categoria || '');
+  $('vMarca').value = x.marca || ''; $('vModelo').value = x.modelo || ''; $('vVersao').value = x.versao || '';
+  $('vAnoFab').value = x.ano_fab || ''; $('vAnoMod').value = x.ano_mod || ''; $('vKm').value = x.km != null ? milhar(x.km) : '';
+  $('vPreco').value = x.preco ? Number(x.preco).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '';
+  $('vCor').value = x.cor || ''; $('vCambio').value = x.cambio || ''; $('vComb').value = x.combustivel || '';
+  $('vStatus').value = x.status || 'disponivel'; $('vPlaca').value = x.placa_final || '';
+  $('vOpc').value = x.opcionais || ''; $('vDesc').value = x.descricao || ''; $('vDestaque').checked = !!x.destaque;
+  FOTOS = (x.fotos || []).map(fotoSegura).filter(Boolean).map(url => ({ url, previa: url, enviando: false }));
+  renderFotos();
+  $('btExcluirVeic').hidden = !v; $('estFormErro').hidden = true;
+  $('estLista').hidden = true; $('estForm').hidden = false; SUJO = false;
+  window.scrollTo(0, 0); $('vMarca').focus();
+}
+document.addEventListener('change', (ev) => { if (ev.target.name === 'vTipo') preencherOpcoes(ev.target.value, $('vCategoria').value); });
+$('estForm').addEventListener('input', () => { SUJO = true; });
+['vAnoFab', 'vAnoMod', 'vPlaca'].forEach(id => $(id).addEventListener('input', () => { $(id).value = $(id).value.replace(/\D/g, ''); }));
+$('vKm').addEventListener('input', () => { const d = $('vKm').value.replace(/\D/g, '').slice(0, 7); $('vKm').value = d ? Number(d).toLocaleString('pt-BR') : ''; });
+$('vPreco').addEventListener('blur', () => { const n = numPreco($('vPreco').value); $('vPreco').value = n ? n.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : ''; });
+function numPreco(s) { const t = String(s || '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'); const n = Number(t); return t && n > 0 ? n : null; }
+
+// ── fotos: reduz no navegador (1600px, JPEG) e envia uma por vez ──
+function renderFotos() {
+  $('vFotos').innerHTML = FOTOS.map((f, i) => `<div class="foto ${f.enviando ? 'enviando' : ''}">
+    <img src="${esc(f.previa)}" alt="Foto ${i + 1}">${i === 0 ? '<span class="capa-tag">Capa</span>' : ''}
+    <div class="acoes">
+      <button type="button" data-mover="${i}" data-dir="-1" aria-label="Mover para a esquerda" ${i === 0 || f.enviando ? 'disabled' : ''}>◀</button>
+      <button type="button" data-tirarfoto="${i}" aria-label="Remover foto" ${f.enviando ? 'disabled' : ''}>×</button>
+      <button type="button" data-mover="${i}" data-dir="1" aria-label="Mover para a direita" ${i === FOTOS.length - 1 || f.enviando ? 'disabled' : ''}>▶</button>
+    </div></div>`).join('');
+  const enviando = FOTOS.some(f => f.enviando);
+  $('btSalvarVeic').disabled = enviando; $('btSalvarVeic').textContent = enviando ? 'Aguarde as fotos…' : 'Salvar veículo';
+}
+$('vFotos').addEventListener('click', (ev) => {
+  const m = ev.target.closest('[data-mover]'), t = ev.target.closest('[data-tirarfoto]');
+  if (m) { const i = +m.dataset.mover, j = i + +m.dataset.dir; if (j < 0 || j >= FOTOS.length) return; [FOTOS[i], FOTOS[j]] = [FOTOS[j], FOTOS[i]]; SUJO = true; renderFotos(); }
+  if (t) { FOTOS.splice(+t.dataset.tirarfoto, 1); SUJO = true; renderFotos(); }
+});
+async function reduzir(arquivo) {
+  let img;
+  try { img = await createImageBitmap(arquivo, { imageOrientation: 'from-image' }); }
+  catch (e) { img = await new Promise((ok, falha) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => falha(new Error('Não consegui abrir a foto ' + arquivo.name + '.')); i.src = URL.createObjectURL(arquivo); }); }
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight, k = Math.min(1, 1600 / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+  let q = 0.82, d = c.toDataURL('image/jpeg', q);
+  while (d.length > 3500000 && q > 0.5) { q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+  return d;
+}
+async function adicionarFotos(arquivos) {
+  $('estFormErro').hidden = true;
+  const lista = [...arquivos].filter(a => /^image\//.test(a.type));
+  const vagas = 20 - FOTOS.length;
+  if (!lista.length) return;
+  if (lista.length > vagas) { $('estFormErro').hidden = false; $('estFormErro').textContent = vagas > 0 ? `Cabem mais ${vagas} foto(s). As outras ficaram de fora.` : 'Já tem 20 fotos neste veículo.'; }
+  SUJO = true;
+  for (const arq of lista.slice(0, Math.max(0, vagas))) {
+    const item = { url: '', previa: '', enviando: true };
+    try { item.previa = await reduzir(arq); } catch (e) { $('estFormErro').hidden = false; $('estFormErro').textContent = e.message; continue; }
+    FOTOS.push(item); renderFotos();
+    try { const j = await chamarEstoque({ acao: 'foto', imagem: item.previa }); item.url = fotoSegura(j.url); if (!item.url) throw new Error('o servidor não devolveu o endereço da foto.'); item.enviando = false; }
+    catch (e) { FOTOS.splice(FOTOS.indexOf(item), 1); $('estFormErro').hidden = false; $('estFormErro').textContent = 'Uma foto não foi enviada: ' + e.message; if (MODO === 'login' && !TOKEN) return; }
+    renderFotos();
+  }
+}
+$('vArquivos').addEventListener('change', () => { adicionarFotos($('vArquivos').files); $('vArquivos').value = ''; });
+$('soltar').addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('vArquivos').click(); } });
+['dragenter', 'dragover'].forEach(n => $('soltar').addEventListener(n, (ev) => { ev.preventDefault(); $('soltar').classList.add('sobre'); }));
+['dragleave', 'drop'].forEach(n => $('soltar').addEventListener(n, (ev) => { ev.preventDefault(); $('soltar').classList.remove('sobre'); }));
+$('soltar').addEventListener('drop', (ev) => { if (ev.dataTransfer && ev.dataTransfer.files) adicionarFotos(ev.dataTransfer.files); });
+
+// ── salvar / excluir ──
+$('estForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const erro = (m) => { $('estFormErro').hidden = false; $('estFormErro').textContent = m; };
+  $('estFormErro').hidden = true;
+  if (FOTOS.some(f => f.enviando)) return erro('Espere as fotos terminarem de enviar.');
+  const veiculo = {
+    id: EDITANDO, tipo: valor('vTipo') || 'moto',
+    marca: $('vMarca').value.trim(), modelo: $('vModelo').value.trim(), versao: $('vVersao').value.trim(),
+    ano_fab: $('vAnoFab').value, ano_mod: $('vAnoMod').value, km: $('vKm').value.replace(/\D/g, ''),
+    cor: $('vCor').value.trim(), cambio: $('vCambio').value, combustivel: $('vComb').value, categoria: $('vCategoria').value,
+    preco: numPreco($('vPreco').value), descricao: $('vDesc').value.trim(), opcionais: $('vOpc').value.trim(),
+    placa_final: $('vPlaca').value, status: $('vStatus').value, destaque: $('vDestaque').checked,
+    fotos: FOTOS.map(f => f.url).filter(Boolean)
+  };
+  if (!veiculo.marca || !veiculo.modelo) return erro('Preencha a marca e o modelo.');
+  const ano = new Date().getFullYear();
+  for (const [k, n] of [['ano_fab', 'fabricação'], ['ano_mod', 'modelo']]) if (veiculo[k] && (+veiculo[k] < 1950 || +veiculo[k] > ano + 1)) return erro('Confira o ano de ' + n + '.');
+  if (veiculo.ano_fab && veiculo.ano_mod && +veiculo.ano_mod < +veiculo.ano_fab) return erro('O ano do modelo não pode ser menor que o de fabricação.');
+  if (veiculo.status === 'disponivel' && !veiculo.fotos.length && !confirm('Salvar sem fotos? A IA não vai conseguir mandar foto desse veículo para o cliente.')) return;
+  const bt = $('btSalvarVeic'); bt.disabled = true; bt.textContent = 'Salvando…';
+  try {
+    const j = await chamarEstoque({ acao: 'salvar', veiculo });
+    const salvo = { ...veiculo, id: j.id || EDITANDO, ano_fab: +veiculo.ano_fab || null, ano_mod: +veiculo.ano_mod || null, km: veiculo.km === '' ? null : +veiculo.km, atualizado_em: new Date().toISOString() };
+    const i = ESTOQUE.findIndex(v => String(v.id) === String(salvo.id));
+    if (i >= 0) ESTOQUE[i] = salvo; else ESTOQUE.unshift(salvo);
+    ESTOQUE.sort((a, b) => (b.destaque === true) - (a.destaque === true));
+    mostrarListaEst(); renderEstoque();
+    $('estResumo').textContent = 'Veículo salvo. ' + $('estResumo').textContent;
+  } catch (e) { erro(e.message); }
+  renderFotos();
+});
+$('btExcluirVeic').addEventListener('click', async () => {
+  if (!EDITANDO || !confirm('Excluir este veículo e as fotos dele? Não dá para desfazer. Se ele só foi vendido, prefira mudar a situação para "Vendido".')) return;
+  const bt = $('btExcluirVeic'); bt.disabled = true;
+  try { await chamarEstoque({ acao: 'excluir', id: EDITANDO }); ESTOQUE = ESTOQUE.filter(v => String(v.id) !== String(EDITANDO)); mostrarListaEst(); renderEstoque(); }
+  catch (e) { $('estFormErro').hidden = false; $('estFormErro').textContent = e.message; }
+  bt.disabled = false;
+});
+</script>
+</body>
+</html>

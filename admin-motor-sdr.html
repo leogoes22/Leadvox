@@ -228,7 +228,7 @@ function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValu
 function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
 const BASE_WH = API.replace(/\/sdr-admin\/?$/, '/');
 // plugin do vendedor (estoque): mesma chave da loja, serve AutoCerto, Revenda Mais e Estoque LeadVox
-const PLUGIN_VENDEDOR_PADRAO = 'https://leogoes22.github.io/iasdr/plugin/';
+const PLUGIN_VENDEDOR_PADRAO = 'https://leadvox.com.br/sdr/plugin/';
 function linkVendedor(l) {
   const ch = l.chave || ''; if (!ch) return '';
   let base = PLUGIN_VENDEDOR_PADRAO;

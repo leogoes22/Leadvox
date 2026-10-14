@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Estoque LeadVox · Plugin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#070d1c;--painel:#0e1730;--painel2:#131e3b;--linha:#1f2b4a;--texto:#e8edf7;
+  --suave:#8b97b3;--verde:#2be87b;--verde-escuro:#0b3d24;--erro:#ff6b6b;--ambar:#ffc457;--raio:10px
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--navy);color:var(--texto);font:14px/1.45 "DM Sans",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--verde);outline-offset:2px;border-radius:6px}
+
+/* ---- topo ---- */
+.atendendo{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--painel);border-bottom:1px solid var(--linha)}
+.avatar{width:30px;height:30px;border-radius:50%;flex:none;background:var(--verde);color:var(--navy);font:700 13px/30px Syne,sans-serif;text-align:center}
+.quem{flex:1;min-width:0}
+.quem small{display:block;color:var(--suave);font-size:11.5px}
+.quem b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marca{font:700 12px/1 Syne,sans-serif;color:var(--suave);white-space:nowrap}
+.marca span{color:var(--verde)}
+.demo{flex:none;background:var(--ambar);color:#2a1d00;font-size:12px;padding:7px 14px;font-weight:500}
+
+.busca{flex:none;padding:12px 14px 8px;background:var(--navy)}
+.busca input{width:100%;height:40px;border-radius:var(--raio);border:1px solid var(--linha);background:var(--painel);padding:0 12px 0 36px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b97b3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-size:16px;background-position:12px center}
+.busca input::placeholder{color:var(--suave)}
+.busca input:focus{outline:none;border-color:var(--verde)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-top:9px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--linha);color:var(--suave);font-size:12.5px;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--verde);border-color:var(--verde);color:var(--navy);font-weight:700}
+
+/* ---- lista ---- */
+.lista{flex:1;overflow-y:auto;padding:4px 14px 14px}
+.contagem{color:var(--suave);font-size:12px;padding:4px 2px 8px}
+.card{background:var(--painel);border:1px solid var(--linha);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.card.ativo{border-color:var(--verde)}
+.corpo{display:flex;gap:11px;padding:11px;cursor:pointer;text-align:left;width:100%}
+.thumb{position:relative;flex:none;width:92px;height:69px;border-radius:8px;overflow:hidden;background:var(--painel2);display:grid;place-items:center;color:var(--suave)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb svg{width:34px;height:34px}
+.thumb .qtd{position:absolute;right:4px;bottom:4px;background:rgba(7,13,28,.82);color:#fff;font-size:10.5px;font-weight:700;padding:2px 5px;border-radius:4px}
+.info{flex:1;min-width:0}
+.titulo{font:700 14px/1.2 Syne,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{color:var(--suave);font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linha-preco{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.preco{color:var(--verde);font-weight:700}
+.preco.sem{color:var(--suave);font-weight:500;font-size:12px}
+.tag{font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--painel2);color:var(--suave)}
+.tag.dest{background:var(--verde-escuro);color:var(--verde)}
+.acoes{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--linha)}
+.acoes button{height:38px;font-size:12.5px;font-weight:700;color:var(--texto);display:flex;align-items:center;justify-content:center;gap:5px}
+.acoes button+button{border-left:1px solid var(--linha)}
+.acoes button:hover{background:var(--painel2)}
+.acoes svg{width:15px;height:15px;color:var(--verde)}
+.acoes button:disabled{color:#4c5873;cursor:not-allowed}
+.acoes button:disabled svg{color:#4c5873}
+.aviso{border:1px dashed var(--linha);border-radius:12px;padding:22px 16px;text-align:center;color:var(--suave)}
+.aviso strong{display:block;color:var(--texto);font:700 15px Syne,sans-serif;margin-bottom:4px}
+.aviso button{margin-top:12px;height:36px;padding:0 14px;border-radius:var(--raio);border:1px solid var(--linha);font-weight:700}
+.esq{height:122px;border-radius:12px;margin-bottom:10px;background:linear-gradient(90deg,var(--painel) 0,var(--painel2) 40%,var(--painel) 80%);background-size:300% 100%;animation:br 1.3s linear infinite}
+@keyframes br{to{background-position:-100% 0}}
+
+.rodape{flex:none;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid var(--linha);background:var(--painel);color:var(--suave);font-size:12px}
+.rodape button{color:var(--verde);font-weight:700;font-size:12px}
+
+/* ---- folha (painel que sobe) ---- */
+.fundo{position:fixed;inset:0;background:rgba(3,6,14,.6);opacity:0;pointer-events:none;transition:opacity .18s;z-index:20}
+.fundo.on{opacity:1;pointer-events:auto}
+.folha{position:fixed;left:0;right:0;bottom:0;max-height:92%;display:flex;flex-direction:column;background:var(--painel);border-top:1px solid var(--linha);border-radius:16px 16px 0 0;transform:translateY(102%);transition:transform .22s ease-out;z-index:21}
+.folha.on{transform:none}
+@media (prefers-reduced-motion:reduce){.folha,.fundo{transition:none}}
+.folha-topo{flex:none;display:flex;align-items:center;gap:10px;padding:14px 14px 10px}
+.folha-topo h2{flex:1;font:700 16px/1.2 Syne,sans-serif}
+.fechar{width:32px;height:32px;border-radius:50%;background:var(--painel2);display:grid;place-items:center}
+.fechar svg{width:16px;height:16px}
+.folha-meio{flex:1;overflow-y:auto;padding:0 14px 14px}
+.folha-pe{flex:none;display:flex;gap:8px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--linha)}
+.btn{flex:1;height:42px;border-radius:var(--raio);border:1px solid var(--linha);font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn.principal{background:var(--verde);border-color:var(--verde);color:var(--navy)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+
+.galeria{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.foto{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:var(--painel2);border:2px solid transparent}
+.foto img{width:100%;height:100%;object-fit:cover}
+.foto[aria-pressed="true"]{border-color:var(--verde)}
+.foto .marcar{position:absolute;right:4px;top:4px;width:20px;height:20px;border-radius:50%;background:rgba(7,13,28,.75);border:2px solid #fff;display:grid;place-items:center}
+.foto[aria-pressed="true"] .marcar{background:var(--verde);border-color:var(--verde)}
+.foto .marcar svg{width:11px;height:11px;color:var(--navy);opacity:0}
+.foto[aria-pressed="true"] .marcar svg{opacity:1}
+.foto .num{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:700;background:rgba(7,13,28,.75);padding:1px 5px;border-radius:4px}
+.sel{display:flex;justify-content:space-between;align-items:center;color:var(--suave);font-size:12px;margin:2px 0 8px}
+.sel button{color:var(--verde);font-weight:700;font-size:12px}
+.secao{margin-top:16px}
+.secao h3{font:700 13px Syne,sans-serif;color:var(--suave);margin-bottom:6px}
+.ficha-l{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--linha);font-size:13px}
+.ficha-l span:first-child{color:var(--suave)}
+.ficha-l span:last-child{text-align:right;font-weight:500}
+.ops{display:flex;flex-wrap:wrap;gap:5px}
+.ops span{background:var(--painel2);border-radius:5px;padding:3px 7px;font-size:12px}
+.obs{white-space:pre-line;font-size:13px;color:#c9d2e6}
+.video-box{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--linha);border-radius:10px;font-size:13px}
+.video-box svg{width:22px;height:22px;color:var(--verde);flex:none}
+.video-box a{color:var(--verde);word-break:break-all}
+
+.previa-rot{color:var(--suave);font-size:12px;margin-bottom:6px}
+.anexo{display:flex;align-items:center;gap:8px;background:var(--painel2);border-radius:10px 10px 0 0;padding:8px 10px;font-size:12.5px;font-weight:500}
+.anexo img{width:44px;height:33px;object-fit:cover;border-radius:5px}
+.anexo svg{width:18px;height:18px;color:var(--verde)}
+textarea.texto{width:100%;min-height:150px;resize:vertical;background:var(--navy);border:1px solid var(--linha);border-top:0;border-radius:0 0 10px 10px;padding:10px;font-size:13px;line-height:1.5}
+textarea.texto:focus{outline:none;border-color:var(--verde)}
+.opcao{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;cursor:pointer}
+.opcao input{width:18px;height:18px;accent-color:var(--verde)}
+.dica{color:var(--suave);font-size:12px;margin-top:8px}
+.progresso{height:4px;border-radius:2px;background:var(--linha);overflow:hidden;margin-top:12px}
+.progresso i{display:block;height:100%;width:0;background:var(--verde);transition:width .3s}
+
+.toast{position:fixed;left:50%;bottom:58px;transform:translate(-50%,20px);background:var(--texto);color:var(--navy);padding:9px 14px;border-radius:999px;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:30;max-width:92%;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.erro{background:var(--erro);color:#2b0000}
+</style>
+</head>
+<body>
+
+<header class="atendendo">
+  <div class="avatar" id="avatar" aria-hidden="true">–</div>
+  <div class="quem"><small>Enviando para</small><b id="nomeContato">Abra um ticket</b></div>
+  <div class="marca">Estoque <span>LeadVox</span></div>
+</header>
+<div class="demo" id="faixaDemo" hidden>Modo demonstração: abra pelo link do plugin da loja para ver o estoque real.</div>
+
+<div class="busca">
+  <label class="sr" for="campoBusca" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Buscar veículo</label>
+  <input id="campoBusca" type="search" placeholder="Buscar marca, modelo, cor ou ano" autocomplete="off">
+  <div class="chips" id="chips" role="group" aria-label="Filtrar"></div>
+</div>
+
+<main class="lista" id="lista" aria-live="polite"></main>
+
+<footer class="rodape">
+  <span id="statusEstoque">Carregando estoque…</span>
+  <button type="button" id="btnAtualizar">Atualizar</button>
+</footer>
+
+<div class="fundo" id="fundo"></div>
+<section class="folha" id="folha" role="dialog" aria-modal="true" aria-labelledby="folhaTitulo">
+  <div class="folha-topo">
+    <h2 id="folhaTitulo"></h2>
+    <button class="fechar" type="button" data-fechar aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="folha-meio" id="folhaMeio"></div>
+  <div class="folha-pe" id="folhaPe"></div>
+</section>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+'use strict';
+var P = new URLSearchParams(location.search);
+var CFG = {
+  API: P.get('api') || 'https://webhook.lv-mktdeconversa.com/webhook/plugin-estoque-leadvox',
+  CHAVE: P.get('k') || ''
+};
+var demo = !CFG.CHAVE;
+var MAX_FOTOS = 10, INTERVALO = 1800;
+
+var ESTOQUE = [], filtro = 'todos', termo = '', aberto = null, enviando = false;
+var ctx = { nome: '', numero: '', ticketId: null, tenantId: null, atendente: '' };
+var $ = function (i) { return document.getElementById(i); };
+
+/* ---------- utilidades ---------- */
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function moeda(n) { return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function km(n) { return n === null || n === undefined ? '' : Number(n) === 0 ? '0 km' : Number(n).toLocaleString('pt-BR') + ' km'; }
+function titulo(v) { return [v.marca, v.modelo, v.versao].filter(Boolean).join(' '); }
+function curto(v) { return [v.marca, v.modelo].filter(Boolean).join(' '); }
+function achar(c) { return ESTOQUE.filter(function (v) { return String(v.codigo) === String(c); })[0]; }
+function semAcento(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function primeiroNome() { return (ctx.nome || '').trim().split(' ')[0] || 'o cliente'; }
+var PREFIXO = 'https://qpcwqrkxzajekqoxklus.supabase.co/storage/v1/object/public/sdr-estoque/';
+function videoArquivo(v) { return !!v.video && v.video.indexOf(PREFIXO) === 0 && /\.(mp4|mov|webm|m4v)(\?|$)/i.test(v.video); }
+
+var IC = {
+  carro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M9.5 17h5M5 12h14"/></svg>',
+  ficha: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  fotos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>',
+  video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  enviar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3 3 10.5l7 2.5 2.5 7L21 3z"/><path d="m10 13 4-4"/></svg>'
+};
+
+/* ---------- comunicação com o n8n ---------- */
+function api(rota, extra) {
+  var carga = { k: CFG.CHAVE, rota: rota, tenantId: ctx.tenantId };
+  for (var x in extra) if (Object.prototype.hasOwnProperty.call(extra, x)) carga[x] = extra[x];
+  if (demo) {
+    return new Promise(function (ok) { setTimeout(function () { ok(rota === 'estoque' ? { ok: true, loja: 'Loja demonstração', total: DEMO.length, veiculos: DEMO } : { ok: true }); }, rota === 'estoque' ? 500 : 400); });
+  }
+  // formulário simples: não dispara a checagem extra (preflight) do navegador
+  return fetch(CFG.API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify(carga) }) })
+    .then(function (r) { return r.json().catch(function () { return { ok: false, erro: 'Resposta inválida do servidor (HTTP ' + r.status + ').' }; }); });
+}
+
+/* ---------- mensagens (mesmo padrão da IA) ---------- */
+function linhaPreco(v, com) { return com && v.preco ? '\n◽ *' + moeda(v.preco) + '*' : ''; }
+function fichaCurta(v, com) {
+  return '🚗 *' + titulo(v) + '*' +
+    (v.ano ? '\n◽ ' + v.ano : '') + (v.cor ? '\n◽ Cor: ' + v.cor : '') + (v.km !== null && v.km !== undefined ? '\n◽ ' + km(v.km) : '') +
+    linhaPreco(v, com);
+}
+function fichaCompleta(v, com) {
+  var t = fichaCurta(v, false) + (v.cambio ? '\n◽ Câmbio: ' + v.cambio : '') + (v.combustivel ? '\n◽ Combustível: ' + v.combustivel : '') +
+    linhaPreco(v, com);
+  if (v.opcionais && v.opcionais.length) t += '\n\n*Itens do veículo:*\n' + v.opcionais.map(function (o) { return '• ' + o; }).join('\n');
+  if (v.obs) t += '\n\n' + v.obs;
+  if (v.video && !videoArquivo(v)) t += '\n\n🎥 Vídeo: ' + v.video;
+  return t;
+}
+function textoVideo(v) {
+  return videoArquivo(v) ? '🎥 *' + titulo(v) + '*' + (v.ano ? ' ' + v.ano : '') : '🎥 Vídeo do *' + titulo(v) + '*: ' + v.video;
+}
+
+/* ---------- contexto do ticket (vem da LeadVox) ---------- */
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
+  if (!d || d.type !== 'DEFAULT_DATA' || !d.data || !d.data.ticket) return;
+  var t = d.data.ticket, c = t.contact || {};
+  var tenantAntes = ctx.tenantId;
+  ctx.nome = c.name || ''; ctx.numero = c.number || ''; ctx.ticketId = t.id || null;
+  ctx.tenantId = t.tenantId || null; ctx.atendente = (t.user && t.user.name) || '';
+  var p = (ctx.nome || '').trim().split(' ')[0];
+  $('nomeContato').textContent = ctx.nome || (ctx.numero ? '+' + ctx.numero : 'Cliente sem nome');
+  $('avatar').textContent = p ? p.charAt(0).toUpperCase() : '–';
+  if (p) $('campoBusca').placeholder = 'Buscar veículo para ' + p;
+  if (!tenantAntes && ctx.tenantId && !ESTOQUE.length) carregar(false);
+});
+
+/* ---------- estoque ---------- */
+var carregou = false;
+function carregar(manual) {
+  carregou = true;
+  if (!ESTOQUE.length) $('lista').innerHTML = '<div class="esq"></div><div class="esq"></div><div class="esq"></div>';
+  $('statusEstoque').textContent = 'Buscando o estoque…';
+  api('estoque').then(function (r) {
+    if (!r || r.ok === false) throw new Error((r && r.erro) || 'Não consegui ler o estoque.');
+    ESTOQUE = r.veiculos || [];
+    $('statusEstoque').textContent = (r.loja ? r.loja + ': ' : '') + ESTOQUE.length + (ESTOQUE.length === 1 ? ' veículo' : ' veículos');
+    montarChips(); desenhar();
+    if (manual) avisar('Estoque atualizado');
+  }).catch(function (e) {
+    $('statusEstoque').textContent = 'Estoque indisponível';
+    if (!ESTOQUE.length) $('lista').innerHTML = '<div class="aviso"><strong>Não consegui carregar o estoque</strong>' + esc(e.message) +
+      '<br><button type="button" data-recarregar>Tentar de novo</button></div>';
+    else avisar(e.message, true);
+  });
+}
+
+function montarChips() {
+  var cats = {}, tipos = {};
+  ESTOQUE.forEach(function (v) { if (v.categoria) cats[v.categoria] = (cats[v.categoria] || 0) + 1; tipos[v.tipo] = 1; });
+  var op = [['todos', 'Todos']];
+  if (ESTOQUE.some(function (v) { return v.destaque; })) op.push(['destaque', 'Destaques']);
+  if (Object.keys(tipos).length > 1) { op.push(['tipo:carro', 'Carros']); op.push(['tipo:moto', 'Motos']); }
+  if (ESTOQUE.some(function (v) { return v.video; })) op.push(['video', 'Com vídeo']);
+  Object.keys(cats).sort(function (a, b) { return cats[b] - cats[a]; }).slice(0, 6).forEach(function (c) { op.push(['cat:' + c, c]); });
+  if (!op.some(function (o) { return o[0] === filtro; })) filtro = 'todos';
+  $('chips').innerHTML = op.map(function (o) { return '<button type="button" class="chip" data-f="' + esc(o[0]) + '" aria-pressed="' + (o[0] === filtro) + '">' + esc(o[1]) + '</button>'; }).join('');
+}
+
+function filtrados() {
+  var termos = semAcento(termo).split(/\s+/).filter(Boolean);
+  return ESTOQUE.filter(function (v) {
+    if (filtro === 'destaque' && !v.destaque) return false;
+    if (filtro === 'video' && !v.video) return false;
+    if (filtro.indexOf('tipo:') === 0 && v.tipo !== filtro.slice(5)) return false;
+    if (filtro.indexOf('cat:') === 0 && v.categoria !== filtro.slice(4)) return false;
+    if (!termos.length) return true;
+    var alvo = semAcento([v.marca, v.modelo, v.versao, v.cor, v.ano, v.categoria, v.codigo].join(' '));
+    return termos.every(function (t) { return alvo.indexOf(t) > -1; });
+  });
+}
+
+function desenhar() {
+  if (!ESTOQUE.length) {
+    $('lista').innerHTML = '<div class="aviso"><strong>Nenhum veículo no estoque</strong>Os veículos aparecem aqui assim que a loja cadastra no painel do Estoque LeadVox.</div>';
+    return;
+  }
+  var itens = filtrados();
+  if (!itens.length) {
+    $('lista').innerHTML = '<div class="aviso"><strong>Nenhum veículo encontrado</strong>Tente outra marca ou modelo, ou toque em Todos.</div>';
+    return;
+  }
+  $('lista').innerHTML = '<div class="contagem">' + itens.length + (itens.length === 1 ? ' veículo' : ' veículos') + '</div>' + itens.map(function (v) {
+    var thumb = v.capa ? '<img src="' + esc(v.capa) + '" alt="" loading="lazy" onerror="this.remove()">' : IC.carro;
+    return '<article class="card">' +
+      '<button type="button" class="corpo" data-abrir="' + esc(v.codigo) + '" aria-label="Ver detalhes de ' + esc(titulo(v)) + '">' +
+      '<span class="thumb">' + thumb + (v.fotos > 1 ? '<span class="qtd">' + v.fotos + ' fotos</span>' : '') + '</span>' +
+      '<span class="info"><span class="titulo">' + esc(titulo(v)) + '</span>' +
+      '<span class="meta" style="display:block">' + esc([v.ano, km(v.km), v.cor].filter(Boolean).join(' · ')) + '</span>' +
+      '<span class="linha-preco">' + (v.preco ? '<span class="preco">' + moeda(v.preco) + '</span>' : '<span class="preco sem">Sem preço</span>') +
+      (v.destaque ? '<span class="tag dest">Destaque</span>' : '') + (v.video ? '<span class="tag">Vídeo</span>' : '') +
+      '<span class="tag">Cód. ' + esc(v.codigo) + '</span></span></span></button>' +
+      '<div class="acoes">' +
+      '<button type="button" data-ficha="' + esc(v.codigo) + '">' + IC.ficha + 'Ficha</button>' +
+      '<button type="button" data-fotos="' + esc(v.codigo) + '"' + (v.fotos ? '' : ' disabled') + '>' + IC.fotos + 'Fotos' + (v.fotos ? ' (' + v.fotos + ')' : '') + '</button>' +
+      '<button type="button" data-video="' + esc(v.codigo) + '"' + (v.video ? '' : ' disabled title="Este veículo não tem vídeo"') + '>' + IC.video + 'Vídeo</button>' +
+      '</div></article>';
+  }).join('');
+}
+
+/* ---------- folha ---------- */
+var focoAntes = null;
+function abrirFolha(t, meio, pe) {
+  focoAntes = document.activeElement;
+  $('folhaTitulo').textContent = t; $('folhaMeio').innerHTML = meio; $('folhaPe').innerHTML = pe;
+  $('folhaMeio').scrollTop = 0;
+  $('folha').classList.add('on'); $('fundo').classList.add('on');
+  setTimeout(function () { var f = $('folha').querySelector('.fechar'); if (f) f.focus(); }, 60);
+}
+function fecharFolha() {
+  if (enviando) return;
+  $('folha').classList.remove('on'); $('fundo').classList.remove('on'); aberto = null;
+  if (focoAntes && focoAntes.focus) try { focoAntes.focus(); } catch (e) {}
+}
+function lin(k, v) { return v || v === 0 ? '<div class="ficha-l"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>' : ''; }
+
+// Detalhe: galeria com seleção de fotos + ficha técnica
+function detalhe(cod) {
+  var v = achar(cod); if (!v) return;
+  aberto = { v: v, sel: v.galeria.slice(0, MAX_FOTOS).map(function (_, i) { return i; }) };
+  var gal = v.galeria.length
+    ? '<div class="sel"><span id="contaSel"></span><button type="button" data-todas>Marcar todas</button></div><div class="galeria">' +
+      v.galeria.map(function (f, i) {
+        return '<button type="button" class="foto" data-foto="' + i + '" aria-pressed="' + (i < MAX_FOTOS) + '" aria-label="Foto ' + (i + 1) + '">' +
+          '<img src="' + esc(f) + '" alt="" loading="lazy"><span class="marcar">' + IC.check + '</span><span class="num">' + (i + 1) + '</span></button>';
+      }).join('') + '</div>'
+    : '<div class="aviso"><strong>Sem fotos</strong>A loja ainda não colocou fotos deste veículo.</div>';
+  var video = v.video ? '<div class="secao"><h3>Vídeo</h3><div class="video-box">' + IC.video +
+    (videoArquivo(v) ? '<span>Vídeo enviado pela loja</span>' : '<a href="' + esc(v.video) + '" target="_blank" rel="noopener">' + esc(v.video) + '</a>') + '</div></div>' : '';
+  var ficha = '<div class="secao"><h3>Ficha técnica</h3>' + lin('Ano', v.ano) + lin('Quilometragem', km(v.km)) + lin('Cor', v.cor) + lin('Câmbio', v.cambio) +
+    lin('Combustível', v.combustivel) + lin('Categoria', v.categoria) + lin('Final da placa', v.placaFinal) +
+    lin('Preço', v.preco ? moeda(v.preco) : 'Sem preço no estoque') + lin('Código', v.codigo) + '</div>';
+  var ops = v.opcionais && v.opcionais.length ? '<div class="secao"><h3>Itens e opcionais</h3><div class="ops">' + v.opcionais.map(function (o) { return '<span>' + esc(o) + '</span>'; }).join('') + '</div></div>' : '';
+  var obs = v.obs ? '<div class="secao"><h3>Observações</h3><p class="obs">' + esc(v.obs) + '</p></div>' : '';
+  abrirFolha(titulo(v), gal + video + ficha + ops + obs,
+    '<button type="button" class="btn" data-ficha-completa="' + esc(v.codigo) + '">' + IC.ficha + 'Ficha completa</button>' +
+    (v.galeria.length ? '<button type="button" class="btn principal" id="btnEnviarFotos" data-enviar-fotos>' + IC.fotos + 'Enviar fotos</button>' : ''));
+  contarSel();
+}
+function contarSel() {
+  if (!aberto || !$('contaSel')) return;
+  var n = aberto.sel.length;
+  $('contaSel').textContent = n + (n === 1 ? ' foto marcada' : ' fotos marcadas') + (n >= MAX_FOTOS ? ' (máximo ' + MAX_FOTOS + ')' : '');
+  var b = $('btnEnviarFotos'); if (b) { b.disabled = !n; b.innerHTML = IC.fotos + (n ? 'Enviar ' + n + (n === 1 ? ' foto' : ' fotos') : 'Marque as fotos'); }
+}
+function marcarFoto(i) {
+  var k = aberto.sel.indexOf(i);
+  if (k > -1) aberto.sel.splice(k, 1);
+  else { if (aberto.sel.length >= MAX_FOTOS) return avisar('Máximo de ' + MAX_FOTOS + ' fotos por envio', true); aberto.sel.push(i); aberto.sel.sort(function (a, b) { return a - b; }); }
+  document.querySelectorAll('.foto').forEach(function (el) { el.setAttribute('aria-pressed', String(aberto.sel.indexOf(Number(el.getAttribute('data-foto'))) > -1)); });
+  contarSel();
+}
+
+// Confirmação: mostra como chega, texto editável, preço opcional
+function confirmar(v, modo, fotos) {
+  var plano = { v: v, modo: modo, fotos: fotos || [] };
+  var temPreco = !!v.preco && modo !== 'video';
+  var texto = modo === 'video' ? textoVideo(v) : modo === 'completa' ? fichaCompleta(v, false) : fichaCurta(v, false);
+  var anexo;
+  if (modo === 'galeria') anexo = '<img src="' + esc(plano.fotos[0]) + '" alt="">' + plano.fotos.length + (plano.fotos.length === 1 ? ' foto' : ' fotos') + ', o texto vai na primeira';
+  else if (modo === 'video') anexo = IC.video + (videoArquivo(v) ? 'Vídeo do veículo' : 'Link do vídeo no texto');
+  else anexo = v.capa ? '<img src="' + esc(v.capa) + '" alt="">Foto de capa + texto' : IC.ficha + 'Só texto (veículo sem foto)';
+  var nome = modo === 'galeria' ? 'Enviar fotos' : modo === 'video' ? 'Enviar vídeo' : modo === 'completa' ? 'Enviar ficha completa' : 'Enviar ficha';
+  abrirFolha(nome,
+    '<p class="previa-rot">Vai chegar assim para <b>' + esc(primeiroNome()) + '</b>. Você pode editar o texto.</p>' +
+    '<div class="anexo">' + anexo + '</div>' +
+    '<textarea class="texto" id="textoEnvio" aria-label="Texto da mensagem">' + esc(texto) + '</textarea>' +
+    (temPreco ? '<label class="opcao"><input type="checkbox" id="comPreco"> Incluir o preço (' + moeda(v.preco) + ')</label>' : '') +
+    (!v.preco && modo !== 'video' ? '<p class="dica">Este veículo está sem preço no estoque.</p>' : '') +
+    '<div class="progresso" id="progresso" hidden><i id="barra"></i></div>',
+    '<button type="button" class="btn" data-voltar>Voltar</button><button type="button" class="btn principal" data-confirmar>' + IC.enviar + 'Enviar agora</button>');
+  $('folha').plano = plano;
+  var cp = $('comPreco');
+  if (cp) cp.addEventListener('change', function () {
+    var t = $('textoEnvio'), base = plano.modo === 'completa' ? fichaCompleta(v, cp.checked) : fichaCurta(v, cp.checked);
+    var antes = plano.modo === 'completa' ? fichaCompleta(v, !cp.checked) : fichaCurta(v, !cp.checked);
+    t.value = t.value === antes ? base : (cp.checked ? t.value + '\n◽ *' + moeda(v.preco) + '*' : t.value.replace('\n◽ *' + moeda(v.preco) + '*', ''));
+  });
+}
+
+function enviar() {
+  var plano = $('folha').plano; if (!plano || enviando) return;
+  if (!demo && (!ctx.numero || !ctx.tenantId)) return avisar('Abra o plugin dentro de um ticket para enviar', true);
+  var v = plano.v, texto = ($('textoEnvio').value || '').trim();
+  var itens = [];
+  if (plano.restante) itens = plano.restante;
+  else if (plano.modo === 'galeria') plano.fotos.forEach(function (f, i) { itens.push({ mediaUrl: f, body: i === 0 ? texto : '' }); });
+  else if (plano.modo === 'video') itens.push(videoArquivo(v) ? { mediaUrl: v.video, body: texto } : { body: texto });
+  else itens.push(v.capa ? { mediaUrl: v.capa, body: texto } : { body: texto });
+  if (!itens.some(function (x) { return x.mediaUrl || x.body; })) return avisar('Escreva o texto da mensagem', true);
+
+  enviando = true;
+  var pe = $('folhaPe'); pe.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+  $('progresso').hidden = itens.length < 2;
+  var i = 0;
+  (function proximo() {
+    if (i >= itens.length) {
+      enviando = false; fecharFolha();
+      return avisar(itens.length > 1 ? itens.length + ' fotos enviadas para ' + primeiroNome() : 'Enviado para ' + primeiroNome());
+    }
+    pe.querySelector('[data-confirmar]').innerHTML = itens.length > 1 ? 'Enviando ' + (i + 1) + ' de ' + itens.length + '…' : 'Enviando…';
+    api('enviar', { number: ctx.numero, ticketId: ctx.ticketId, body: itens[i].body, mediaUrl: itens[i].mediaUrl || '', codigo: v.codigo })
+      .then(function (r) {
+        if (!r || r.ok === false) throw new Error((r && r.erro) || 'Não foi possível enviar.');
+        i++; $('barra').style.width = Math.round(i / itens.length * 100) + '%';
+        setTimeout(proximo, i < itens.length ? INTERVALO : 0);
+      })
+      .catch(function (e) {
+        enviando = false; pe.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+        pe.querySelector('[data-confirmar]').innerHTML = IC.enviar + (i ? 'Enviar o resto' : 'Tentar de novo');
+        plano.restante = itens.slice(i);
+        avisar(e.message + (i ? ' (' + i + ' de ' + itens.length + ' já foram)' : ''), true);
+      });
+  })();
+}
+
+var tt;
+function avisar(m, erro) { var t = $('toast'); t.textContent = m; t.className = 'toast on' + (erro ? ' erro' : ''); clearTimeout(tt); tt = setTimeout(function () { t.className = 'toast'; }, 3200); }
+
+/* ---------- eventos ---------- */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('button, [data-abrir]'); if (!a) return;
+  var d = function (n) { return a.getAttribute(n); };
+  if (d('data-abrir')) return detalhe(d('data-abrir'));
+  if (d('data-ficha')) { var v = achar(d('data-ficha')); return v && confirmar(v, 'capa'); }
+  if (d('data-fotos')) return detalhe(d('data-fotos'));
+  if (d('data-video')) { var w = achar(d('data-video')); return w && confirmar(w, 'video'); }
+  if (d('data-ficha-completa')) { var z = achar(d('data-ficha-completa')); return z && confirmar(z, 'completa'); }
+  if (a.hasAttribute('data-foto')) return marcarFoto(Number(d('data-foto')));
+  if (a.hasAttribute('data-todas')) { aberto.sel = aberto.v.galeria.slice(0, MAX_FOTOS).map(function (_, i) { return i; }); document.querySelectorAll('.foto').forEach(function (el) { el.setAttribute('aria-pressed', String(Number(el.getAttribute('data-foto')) < MAX_FOTOS)); }); return contarSel(); }
+  if (a.hasAttribute('data-enviar-fotos')) { var g = aberto.v; return confirmar(g, 'galeria', aberto.sel.map(function (i) { return g.galeria[i]; })); }
+  if (a.hasAttribute('data-voltar')) { var p = $('folha').plano; if (p && (p.modo === 'galeria' || p.modo === 'completa')) return detalhe(p.v.codigo); return fecharFolha(); }
+  if (a.hasAttribute('data-confirmar')) return enviar();
+  if (a.hasAttribute('data-fechar')) return fecharFolha();
+  if (a.hasAttribute('data-recarregar')) return carregar(true);
+  if (a.classList.contains('chip')) {
+    filtro = d('data-f');
+    document.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c === a)); });
+    return desenhar();
+  }
+});
+$('fundo').addEventListener('click', fecharFolha);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecharFolha(); });
+var tb; $('campoBusca').addEventListener('input', function () { termo = this.value; clearTimeout(tb); tb = setTimeout(desenhar, 140); });
+$('btnAtualizar').addEventListener('click', function () { carregar(true); });
+
+/* ---------- dados de demonstração ---------- */
+var DEMO = [
+  { codigo: 101, tipo: 'carro', marca: 'Fiat', modelo: 'Toro', versao: '1.3 Turbo Freedom AT6', categoria: 'Picape', ano: '2022/2023', cor: 'Branco', km: 41230, cambio: 'Automático', combustivel: 'Flex', placaFinal: '7', preco: 118900, destaque: true, capa: '', galeria: [], fotos: 0, video: 'https://youtu.be/exemplo1234', obs: 'Único dono, revisões em dia.', opcionais: ['Multimídia', 'Câmera de ré', 'Sensor de estacionamento'] },
+  { codigo: 102, tipo: 'carro', marca: 'Chevrolet', modelo: 'Onix', versao: '1.0 LT Turbo', categoria: 'Hatch', ano: '2020', cor: 'Prata', km: 62100, cambio: 'Manual', combustivel: 'Flex', placaFinal: '2', preco: 69900, destaque: false, capa: '', galeria: [], fotos: 0, video: '', obs: '', opcionais: [] },
+  { codigo: 103, tipo: 'moto', marca: 'Honda', modelo: 'CG 160', versao: 'Titan', categoria: 'Street', ano: '2023', cor: 'Vermelha', km: 8000, cambio: 'Manual', combustivel: 'Flex', placaFinal: '', preco: null, destaque: false, capa: '', galeria: [], fotos: 0, video: '', obs: '', opcionais: [] }
+];
+
+if (demo) { $('faixaDemo').hidden = false; ctx.nome = 'Cliente de teste'; $('nomeContato').textContent = ctx.nome; $('avatar').textContent = 'C'; }
+carregar(false);
+try { window.parent.postMessage({ type: 'ready', from: 'estoque-leadvox' }, '*'); } catch (e) {}
+})();
+</script>
+</body>
+</html>
