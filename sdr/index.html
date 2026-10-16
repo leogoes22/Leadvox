@@ -351,6 +351,16 @@
           <div><label for="ljInsta">Instagram</label><input id="ljInsta" placeholder="@sualoja"></div>
         </div>
         <label for="ljTel">Telefone da loja</label><input id="ljTel" maxlength="20">
+        <label class="opcao" style="margin-top:16px"><input type="checkbox" id="multiUnid"><span>A loja tem mais de um endereço<small>Uma IA só atende todas as unidades e manda cada cliente para o departamento da unidade certa.</small></span></label>
+        <div id="blocoUnid" hidden>
+          <div class="duas">
+            <div><label for="ljUnidNome">Nome desta unidade <small>(o endereço acima)</small></label><input id="ljUnidNome" maxlength="40" placeholder="Ex.: Loja Centro"></div>
+            <div><label for="ljUnidDep">Departamento desta unidade</label><select id="ljUnidDep"></select></div>
+          </div>
+          <div id="listaUnid"></div>
+          <button class="leve" type="button" id="addUnid">Adicionar outro endereço</button>
+          <p class="muted" style="font-size:13px;margin-top:4px">Até 5 unidades além desta. Os departamentos são criados na etapa Equipe.</p>
+        </div>
       </div>
     </section>
 
@@ -616,7 +626,7 @@ function renderLiga() {
 const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
 const PADRAO = {
   ia: { nome: '', genero: 'feminino', tom: 'acolhedor', diferenciais: [], tamanho: 'curta', emojis: 'poucos', tratamento: 'voce' },
-  loja: { nome: '', tipo: null, endereco: '', bairro: '', cidade: '', uf: '', mapa: '', site: '', instagram: '', telefone: '' },
+  loja: { nome: '', tipo: null, endereco: '', bairro: '', cidade: '', uf: '', mapa: '', site: '', instagram: '', telefone: '', unidadeNome: '', unidadeDepartamento: '', unidades: [] },
   horario: { seg: ['09:00', '18:00'], ter: ['09:00', '18:00'], qua: ['09:00', '18:00'], qui: ['09:00', '18:00'], sex: ['09:00', '18:00'], sab: ['09:00', '13:00'], dom: null,
     feriados: ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'] },
   regras: { informaPreco: false, atendimentoNoHorarioDaEquipe: 'completo', perguntaSeJaEAtendido: true, coletaFinanciamento: ['entrada', 'troca', 'cpf', 'nascimento', 'cnh'],
@@ -851,6 +861,9 @@ function abrirApp() {
   $('iaNome').value = c.ia.nome; $('iaGenero').value = c.ia.genero; marcar('tom', c.ia.tom); $('iaDif').value = (c.ia.diferenciais || []).join('\n');
   $('ljNome').value = c.loja.nome; marcar('tipo', c.loja.tipo); $('ljEnd').value = c.loja.endereco; $('ljCidade').value = c.loja.cidade; $('ljUf').value = c.loja.uf;
   $('ljBairro').value = c.loja.bairro; $('ljMapa').value = c.loja.mapa; $('ljSite').value = c.loja.site; $('ljInsta').value = c.loja.instagram; $('ljTel').value = c.loja.telefone;
+  const unids = Array.isArray(c.loja.unidades) ? c.loja.unidades : [];
+  $('multiUnid').checked = unids.length > 0; $('blocoUnid').hidden = !unids.length; $('ljUnidNome').value = c.loja.unidadeNome || '';
+  UNID_DEP_SALVO = c.loja.unidadeDepartamento || ''; $('ljUnidDep').innerHTML = '';
   $('dias').innerHTML = DIAS.map(([d, n]) => { const h = c.horario[d];
     return `<div class="dia"><label><input type="checkbox" data-dia="${d}" ${h ? 'checked' : ''}> ${n}</label>
       <input type="time" data-ini="${d}" value="${h ? h[0] : '09:00'}" ${h ? '' : 'disabled'} aria-label="${n}, abre">
@@ -867,7 +880,7 @@ function abrirApp() {
   marcar('modo', c.regras.atendimentoNoHorarioDaEquipe);
   $('jaAtendido').checked = c.regras.perguntaSeJaEAtendido !== false;
   document.querySelectorAll('#coleta input').forEach(i => i.checked = (c.regras.coletaFinanciamento || []).includes(i.value));
-  renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores);
+  renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); renderUnid(unids);
   $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
   $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
@@ -941,6 +954,7 @@ function renderVend(lista) {
     </div>`).join('') || '<p class="muted" style="margin-top:10px">Nenhum atendente cadastrado.</p>';
   $('addVend').disabled = lista.length >= 20;
   atualizarResp();
+  if (document.getElementById('listaUnid')) renderUnid(lerUnid());
 }
 function campoUsuario(id) {
   if (!LV.usuarios.length) return `<input data-f="userId" inputmode="numeric" value="${esc(id || '')}">`;
@@ -952,6 +966,47 @@ function campoUsuario(id) {
 function lerLista(sel, campos) {
   return [...document.querySelectorAll(sel)].map(el => { const o = {}; campos.forEach(f => o[f] = el.querySelector(`[data-f="${f}"]`).value.trim()); return o; });
 }
+// ── unidades (lojas com mais de um endereço) ──
+let UNID_DEP_SALVO = '';
+const CAMPOS_UNID = ['nome', 'endereco', 'bairro', 'cidade', 'uf', 'mapa', 'telefone', 'horario', 'departamento'];
+function opcoesDep(sel) {
+  const deps = nomesDeps();
+  return '<option value="">Departamento de venda padrão</option>' + deps.map(n => `<option ${n === sel ? 'selected' : ''}>${esc(n)}</option>`).join('') +
+    (sel && !deps.includes(sel) ? `<option selected>${esc(sel)}</option>` : '');
+}
+function renderUnid(lista) {
+  const atual = $('ljUnidDep').value || UNID_DEP_SALVO; UNID_DEP_SALVO = atual;
+  $('ljUnidDep').innerHTML = opcoesDep(atual);
+  $('listaUnid').innerHTML = lista.map(u => `
+    <div class="linha-lista" data-unid>
+      <button class="tirar" type="button" data-tirar aria-label="Remover endereço">×</button>
+      <label>Nome da unidade</label><input data-f="nome" maxlength="40" value="${esc(u.nome || '')}" placeholder="Ex.: Loja Austin">
+      <label>Endereço completo</label><input data-f="endereco" maxlength="160" value="${esc(u.endereco || '')}" placeholder="Rua, número, bairro, cidade - UF, CEP">
+      <div class="tres">
+        <div><label>Cidade</label><input data-f="cidade" maxlength="60" value="${esc(u.cidade || '')}"></div>
+        <div><label>UF</label><input data-f="uf" maxlength="2" value="${esc(u.uf || '')}"></div>
+      </div>
+      <div class="duas">
+        <div><label>Bairro</label><input data-f="bairro" maxlength="60" value="${esc(u.bairro || '')}"></div>
+        <div><label>Telefone <small>(opcional)</small></label><input data-f="telefone" maxlength="20" value="${esc(u.telefone || '')}"></div>
+      </div>
+      <label>Link do Google Maps</label><input data-f="mapa" value="${esc(u.mapa || '')}" placeholder="https://maps.app.goo.gl/…">
+      <div class="duas">
+        <div><label>Horário <small>(se for diferente)</small></label><input data-f="horario" maxlength="80" value="${esc(u.horario || '')}" placeholder="Ex.: seg a sex 9h–18h, sáb 9h–13h"></div>
+        <div><label>Departamento da unidade</label><select data-f="departamento">${opcoesDep(u.departamento || '')}</select></div>
+      </div>
+    </div>`).join('');
+  $('addUnid').disabled = lista.length >= 5;
+}
+function lerUnid() {
+  return [...document.querySelectorAll('[data-unid]')].map(el => { const o = {}; CAMPOS_UNID.forEach(f => o[f] = el.querySelector(`[data-f="${f}"]`).value.trim()); return o; })
+    .filter(u => u.nome || u.endereco).map(u => ({ ...u, uf: u.uf.toUpperCase() }));
+}
+$('multiUnid').addEventListener('change', () => {
+  const on = $('multiUnid').checked; $('blocoUnid').hidden = !on;
+  if (on && !document.querySelector('[data-unid]')) renderUnid([{}]);
+});
+$('addUnid').addEventListener('click', () => { const l = [...document.querySelectorAll('[data-unid]')].map(el => { const o = {}; CAMPOS_UNID.forEach(f => o[f] = el.querySelector(`[data-f="${f}"]`).value); return o; }); if (l.length >= 5) return; l.push({}); renderUnid(l); });
 function lerVend() { return lerLista('[data-vend]', ['nome', 'userId', 'departamento', 'apelidos']).filter(v => v.nome || v.userId).map(v => ({ ...v, apelidos: v.apelidos.split(',').map(a => a.trim()).filter(Boolean) })); }
 function atualizarResp() {
   const salvo = CFG.distribuicao.setorVendaConsignacao ? 'setor:' + CFG.distribuicao.setorVendaConsignacao : String(CFG.distribuicao.responsavelVendaConsignacao || '');
@@ -993,7 +1048,7 @@ document.addEventListener('change', (ev) => {
 });
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('[data-tirar]');
-  if (t) { const emVend = !!t.closest('#listaVend'); t.parentElement.remove(); if (emVend && !document.querySelector('[data-vend]')) renderVend([]); atualizarResp(); atualizar(); return; }
+  if (t) { const emVend = !!t.closest('#listaVend'); const emUnid = !!t.closest('#listaUnid'); t.parentElement.remove(); if (emUnid) { $('addUnid').disabled = document.querySelectorAll('[data-unid]').length >= 5; return; } if (emVend && !document.querySelector('[data-vend]')) renderVend([]); atualizarResp(); atualizar(); return; }
   const ir = ev.target.closest('[data-ir]'); if (ir) irPara(+ir.dataset.ir);
   const eu = ev.target.closest('[data-eu]');
   if (eu && ticket && ticket.user) { const l = lerVend(); if (!l.some(v => String(v.userId) === String(ticket.user.id))) l.push({ nome: ticket.user.name || '', userId: ticket.user.id, apelidos: [] }); renderVend(l); atualizar(); }
@@ -1067,7 +1122,9 @@ function coletar() {
       tamanho: valor('tamanho') || 'curta', emojis: valor('emojis') || 'poucos', tratamento: valor('tratamento') || 'voce' },
     loja: { nome: $('ljNome').value.trim(), tipo: valor('tipo'), endereco: $('ljEnd').value.trim(), bairro: $('ljBairro').value.trim(),
       cidade: $('ljCidade').value.trim(), uf: $('ljUf').value.trim(), mapa: $('ljMapa').value.trim(), site: $('ljSite').value.trim(),
-      instagram: $('ljInsta').value.trim(), telefone: $('ljTel').value.trim() },
+      instagram: $('ljInsta').value.trim(), telefone: $('ljTel').value.trim(),
+      unidadeNome: $('multiUnid').checked ? $('ljUnidNome').value.trim() : '', unidadeDepartamento: $('multiUnid').checked ? $('ljUnidDep').value : '',
+      unidades: $('multiUnid').checked ? lerUnid() : [] },
     horario,
     regras: { informaPreco: (valor('precoModo') || 'nunca') !== 'nunca', precoModo: valor('precoModo') || 'nunca',
       precoFormato: valor('precoFormato') || 'exato', precoDepois: valor('precoDepois') || 'pagamento', respostaDesconto: $('respDesc').value.trim(),
@@ -1175,6 +1232,7 @@ function montarResumo() {
   const linhas = [
     ['IA', (c.ia.nome || 'sem nome') + ', tom ' + { acolhedor: 'acolhedor', descontraido: 'descontraído', formal: 'formal' }[c.ia.tom]],
     ['Loja', (c.loja.nome || 'sem nome') + (c.loja.tipo ? ', vende ' + { moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[c.loja.tipo] : ', tipo não escolhido')],
+    ...(c.loja.unidades.length ? [['Unidades', [(c.loja.unidadeNome || 'Endereço principal') + (c.loja.unidadeDepartamento ? ' → ' + c.loja.unidadeDepartamento : '')].concat(c.loja.unidades.map(u => (u.nome || u.endereco) + (u.departamento ? ' → ' + u.departamento : ''))).join('; ')]] : []),
     ['Horário da equipe', dias],
     ['Preço', { nunca: 'Só o consultor informa', quando_perguntar: 'A IA informa quando o cliente perguntar', com_foto: 'Vai na legenda da foto',
       primeira_mencao: 'A IA fala ao apresentar o veículo' }[c.regras.precoModo] + (c.regras.precoModo !== 'nunca' && c.regras.precoFormato === 'a_partir' ? ', como "a partir de"' : '')],
