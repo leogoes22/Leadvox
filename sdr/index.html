@@ -180,6 +180,39 @@
   .faq-item .faq-topo { display: flex; justify-content: space-between; align-items: center; }
   .faq-item textarea { min-height: 60px; }
   #faqSugestoes button { font-size: 13px; padding: 6px 12px; border-radius: 99px; }
+
+  /* ── Equipe V2: departamentos e vendedores puxados da LeadVox ── */
+  .eq-sync { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 14px; border: 1px solid rgba(43,232,123,.35); border-radius: 12px; background: var(--verde-fundo); }
+  .eq-sync b { display: block; font-size: 14px; } .eq-sync span { font-size: 12.5px; color: var(--suave); }
+  .eq-sync button { font: 700 13px "DM Sans", sans-serif; background: var(--verde); color: var(--navy); border: 0; border-radius: 9px; padding: 9px 14px; white-space: nowrap; }
+  .eq-mud { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--painel2); border: 1px solid var(--linha); font-size: 13px; }
+  .eq-mud ul { margin: 4px 0 0 18px; padding: 0; } .eq-mud li { margin: 3px 0; }
+  .eq-card.off { opacity: .55; } .eq-card.sumiu { border-color: rgba(255,107,107,.45); }
+  .eq-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .eq-acoes { display: flex; gap: 10px; align-items: center; }
+  .eq-id { font-size: 12px; color: var(--suave); border: 1px solid var(--linha); border-radius: 99px; padding: 2px 9px; white-space: nowrap; }
+  .eq-novo { font: 700 10px "DM Sans", sans-serif; background: #f5c451; color: var(--navy); border-radius: 99px; padding: 1px 7px; margin-left: 8px; vertical-align: middle; }
+  .eq-sw { width: 46px; height: 26px; border-radius: 99px; border: 1px solid var(--linha); background: var(--navy); position: relative; padding: 0; flex: 0 0 auto; }
+  .eq-sw span { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--suave); transition: transform .15s; }
+  .eq-sw[aria-checked="true"] { background: var(--verde); border-color: var(--verde); } .eq-sw[aria-checked="true"] span { transform: translateX(20px); background: var(--navy); }
+  .eq-rot { font-size: 13px; font-weight: 500; margin: 14px 0 6px; color: var(--suave); }
+  .eq-seg { display: flex; border: 1px solid var(--linha); border-radius: var(--raio); overflow: hidden; }
+  .eq-seg button { flex: 1; font-size: 13px; border: 0; border-radius: 0; background: transparent; padding: 9px 10px; }
+  .eq-seg button + button { border-left: 1px solid var(--linha); }
+  .eq-seg button[aria-pressed="true"] { background: var(--verde-fundo); color: var(--verde); box-shadow: inset 0 0 0 1px rgba(43,232,123,.5); }
+  .eq-seg button small { display: block; font-weight: 400; font-size: 11.5px; color: var(--suave); margin-top: 2px; }
+  @media (max-width: 480px) { .eq-seg { flex-direction: column; } .eq-seg button + button { border-left: 0; border-top: 1px solid var(--linha); } }
+  .eq-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .eq-chip { font-size: 13px; border: 1px solid var(--linha); background: var(--navy); border-radius: 99px; padding: 6px 12px; display: inline-flex; gap: 6px; align-items: center; }
+  .eq-chip[aria-pressed="true"] { border-color: var(--verde); color: var(--verde); background: var(--verde-fundo); }
+  .eq-chip .n { font-size: 11px; background: var(--verde); color: var(--navy); border-radius: 99px; width: 18px; height: 18px; display: none; place-items: center; font-weight: 700; }
+  .eq-chip[aria-pressed="true"] .n { display: inline-grid; }
+  .eq-chip.saiu { border-color: rgba(255,107,107,.5); color: var(--erro); text-decoration: line-through; background: rgba(255,107,107,.06); }
+  .eq-chip.novo::after { content: "novo"; font-size: 10px; font-weight: 700; background: #f5c451; color: var(--navy); border-radius: 99px; padding: 0 6px; }
+  .eq-vend { padding: 12px; border-radius: var(--raio); background: var(--painel2); border: 1px solid var(--linha); }
+  .eq-msg { font-size: 12.5px; margin-top: 8px; } .eq-msg.aviso { color: #f5c451; } .eq-msg.erro { color: var(--erro); }
+  .eq-resumo { margin-top: 14px; padding: 10px 12px; border-radius: var(--raio); background: var(--navy); border: 1px dashed var(--linha); font-size: 13.5px; }
+  .eq-resumo b { color: var(--verde); } .eq-resumo .am { color: #f5c451; }
 </style>
 </head>
 <body>
@@ -449,6 +482,21 @@
 
     <!-- 5 Equipe -->
     <section class="passo" data-passo="Equipe">
+      <!-- V2 — com acesso à LeadVox: departamentos e vendedores vêm da plataforma -->
+      <div id="equipeNova" hidden>
+        <div class="card">
+          <h2>Quem recebe o cliente</h2>
+          <p class="muted">Os departamentos e os vendedores vêm da sua LeadVox. Ligue os departamentos para onde a IA pode mandar clientes e diga como cada um recebe.</p>
+          <div class="eq-sync">
+            <div><b>Departamentos e vendedores da LeadVox</b><span id="eqInfo"></span></div>
+            <button type="button" id="eqSync">↻ Atualizar da LeadVox</button>
+          </div>
+          <div id="eqMud"></div>
+        </div>
+        <div id="eqCartoes"></div>
+      </div>
+      <!-- modo antigo — só aparece se não der para buscar os dados da LeadVox -->
+      <div id="equipeAntiga">
       <div class="card">
         <h2>Departamentos</h2>
         <p class="muted">Crie um departamento para cada fila da loja. Os de <b>Venda</b> recebem quem quer comprar: diga se atendem carro, moto ou os dois. Se houver mais de um para o mesmo tipo (ex.: duas lojas de moto), a IA alterna um cliente para cada. Os de <b>Outro assunto</b> recebem documentação, pós-venda etc.: diga o que vai para cada um.</p>
@@ -464,7 +512,11 @@
         <div id="listaVend"></div>
         <button class="leve" id="addVend">Adicionar atendente</button>
         <button class="leve" id="importVend" style="margin-left:16px" hidden>Trazer os usuários da LeadVox</button>
-        <label for="respConsig">Quem cuida de cliente que quer vender ou consignar</label>
+      </div>
+      </div>
+      <div class="card">
+        <h2>Situações especiais</h2>
+        <label for="respConsig">Quem cuida de cliente que quer vender ou consignar o veículo dele</label>
         <select id="respConsig"></select>
         <p class="muted" id="dicaResp" style="font-size:13px;margin-top:6px"></p>
       </div>
@@ -880,7 +932,7 @@ function abrirApp() {
   marcar('modo', c.regras.atendimentoNoHorarioDaEquipe);
   $('jaAtendido').checked = c.regras.perguntaSeJaEAtendido !== false;
   document.querySelectorAll('#coleta input').forEach(i => i.checked = (c.regras.coletaFinanciamento || []).includes(i.value));
-  renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); renderUnid(unids);
+  montarEquipe(c); renderUnid(unids);
   $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
   $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
@@ -937,7 +989,7 @@ function tipoDe(d, i) { return d.tipo === 'venda' || d.tipo === 'outro' ? d.tipo
 function distDe(d) { return d.distribuicao === 'rodizio' || d.distribuicao === 'fila' ? d.distribuicao : ((CFG && CFG.distribuicao && CFG.distribuicao.modo === 'rodizio') ? 'rodizio' : 'fila'); }
 const CAMPOS_DEP = ['nome', 'queueId', 'finalidade', 'tipo', 'atende', 'distribuicao'];
 document.addEventListener('change', (ev) => { if (ev.target.matches('[data-dep] [data-f="tipo"]')) { const b = ev.target.closest('[data-dep]').querySelector('[data-bloco-atende]'); if (b) b.hidden = ev.target.value === 'outro'; } });
-function nomesDeps() { return lerLista('[data-dep]', ['nome']).map(d => d.nome).filter(Boolean); }
+function nomesDeps() { if (EQ) return EQ.deps.filter(d => d.usa && !d.sumiu).map(d => d.nome); return lerLista('[data-dep]', ['nome']).map(d => d.nome).filter(Boolean); }
 function renderVend(lista) {
   const deps = nomesDeps(); const d0 = deps[0] || 'Comercial';
   $('listaVend').innerHTML = lista.map(v => `
@@ -1007,18 +1059,18 @@ $('multiUnid').addEventListener('change', () => {
   if (on && !document.querySelector('[data-unid]')) renderUnid([{}]);
 });
 $('addUnid').addEventListener('click', () => { const l = [...document.querySelectorAll('[data-unid]')].map(el => { const o = {}; CAMPOS_UNID.forEach(f => o[f] = el.querySelector(`[data-f="${f}"]`).value); return o; }); if (l.length >= 5) return; l.push({}); renderUnid(l); });
-function lerVend() { return lerLista('[data-vend]', ['nome', 'userId', 'departamento', 'apelidos']).filter(v => v.nome || v.userId).map(v => ({ ...v, apelidos: v.apelidos.split(',').map(a => a.trim()).filter(Boolean) })); }
+function lerVend() { if (EQ) return vendedoresEQ(); return lerLista('[data-vend]', ['nome', 'userId', 'departamento', 'apelidos']).filter(v => v.nome || v.userId).map(v => ({ ...v, apelidos: v.apelidos.split(',').map(a => a.trim()).filter(Boolean) })); }
 function atualizarResp() {
   const salvo = CFG.distribuicao.setorVendaConsignacao ? 'setor:' + CFG.distribuicao.setorVendaConsignacao : String(CFG.distribuicao.responsavelVendaConsignacao || '');
   const atual = $('respConsig').value || salvo;
-  const vs = lerVend().filter(v => v.nome && v.userId);
+  const vs = EQ ? LV.usuarios.map(u => ({ nome: u.nome || ('ID ' + u.id), userId: String(u.id) })) : lerVend().filter(v => v.nome && v.userId);
   const ss = nomesDeps();
   $('respConsig').innerHTML = '<option value="">Ninguém em especial (vai para o setor principal)</option>' +
     (ss.length ? '<optgroup label="Um setor">' + ss.map(s => `<option value="setor:${esc(s)}">${esc(s)}</option>`).join('') + '</optgroup>' : '') +
     (vs.length ? '<optgroup label="Um atendente">' + vs.map(v => `<option value="${esc(v.userId)}">${esc(v.nome)}</option>`).join('') + '</optgroup>' : '');
   const opcoes = [...$('respConsig').options].map(o => o.value);
   $('respConsig').value = opcoes.includes(atual) ? atual : '';
-  $('dicaResp').textContent = vs.length ? 'Escolha um setor (a fila dele, com rodízio se estiver ligado) ou uma pessoa.' : 'Para escolher uma pessoa, cadastre o atendente com nome e ID acima. Setores já aparecem na lista.';
+  $('dicaResp').textContent = EQ ? 'Escolha um departamento (pendente nele, ou rodízio se estiver ligado) ou uma pessoa da LeadVox.' : vs.length ? 'Escolha um setor (a fila dele, com rodízio se estiver ligado) ou uma pessoa.' : 'Para escolher uma pessoa, cadastre o atendente com nome e ID acima. Setores já aparecem na lista.';
 }
 $('importDeps').addEventListener('click', () => {
   const l = lerLista('[data-dep]', CAMPOS_DEP).filter(d => d.nome || d.queueId);
@@ -1055,8 +1107,164 @@ document.addEventListener('click', (ev) => {
   const fila = ev.target.closest('[data-fila]');
   if (fila) { const f = document.querySelector('[data-dep] [data-f="queueId"]'); if (f && !f.value) f.value = fila.dataset.fila; }
 });
+// ═══════════════════════════════════════════════════════════════════════════
+// EQUIPE V2 — departamentos e vendedores vêm da LeadVox (LV.filas / LV.usuarios).
+// Cada departamento: a IA usa ou não · o que recebe · "Pendente no <depto>" ou
+// rodízio. Vendedores só aparecem no rodízio, marcados na ordem do toque.
+// "Atualizar da LeadVox" busca de novo e mostra o que entrou/saiu/mudou.
+// O formato salvo é o MESMO de antes (departamentos[] + distribuicao.vendedores[]),
+// então o Motor SDR lê sem mudança. Sem dados da LeadVox: volta a tela antiga.
+// ═══════════════════════════════════════════════════════════════════════════
+var EQ = null;   // var: pode ser lido antes desta linha rodar
+const EQ_ASSUNTOS = ['Documentação', 'Boleto / pagamento', 'Garantia', 'Pós-venda', 'Revisão', 'Transferência', 'IPVA / multa'];
+const EQ_RECEBE = [['carro', 'Venda de carro'], ['moto', 'Venda de moto'], ['ambos', 'Carro e moto'], ['outro', 'Outro assunto']];
+const eqSa = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const eqNomeU = (id) => { const u = LV.usuarios.find(x => String(x.id) === String(id)); return u ? (u.nome || 'ID ' + u.id) : ''; };
+function montarEquipe(c) {
+  const usar = LV.filas.length > 0;
+  $('equipeNova').hidden = !usar; $('equipeAntiga').hidden = usar;
+  if (!usar) { EQ = null; renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); return; }
+  const salvos = Array.isArray(c.departamentos) ? c.departamentos : [];
+  const vends = Array.isArray(c.distribuicao.vendedores) ? c.distribuicao.vendedores : [];
+  const ignorados = (c.distribuicao.departamentosIgnorados || []).map(String);
+  const primeiraVez = !salvos.some(d => d.queueId);
+  EQ = { deps: [], removidos: {}, novosU: new Set(), apelidos: {}, nomesVend: {} };
+  vends.forEach(v => { if (!v.userId) return; EQ.nomesVend[String(v.userId)] = v.nome; if (Array.isArray(v.apelidos) && v.apelidos.length) EQ.apelidos[String(v.userId)] = v.apelidos; });
+  const doSalvo = (q, d, i) => {
+    const tipo = tipoDe(d, i);
+    return { id: String(q.id), nome: q.nome || d.nome || ('ID ' + q.id), usa: true,
+      recebe: tipo === 'outro' ? 'outro' : (['carro', 'moto', 'ambos'].includes(d.atende) ? d.atende : 'ambos'),
+      assuntos: tipo === 'outro' ? String(d.finalidade || '').split(',').map(x => x.trim()).filter(Boolean) : [],
+      finalidadeVenda: tipo === 'venda' ? String(d.finalidade || '') : '',
+      modo: distDe(d) === 'rodizio' ? 'rodizio' : 'pendente',
+      ordem: vends.filter(v => v.userId && eqSa(v.departamento) === eqSa(d.nome)).map(v => String(v.userId)) };
+  };
+  LV.filas.forEach(q => {
+    const i = salvos.findIndex(d => String(d.queueId) === String(q.id));
+    if (i >= 0) { EQ.deps.push(doSalvo(q, salvos[i], i)); return; }
+    const p = palpiteDep(q.nome);
+    EQ.deps.push({ id: String(q.id), nome: q.nome, usa: primeiraVez && p.tipo === 'venda', recebe: p.tipo === 'outro' ? 'outro' : p.atende,
+      assuntos: [], finalidadeVenda: '', modo: 'pendente', ordem: [], novo: !primeiraVez && !ignorados.includes(String(q.id)) });
+  });
+  salvos.forEach((d, i) => { if (d.queueId && !LV.filas.some(q => String(q.id) === String(d.queueId))) EQ.deps.push({ ...doSalvo({ id: d.queueId, nome: d.nome }, d, i), usa: false, sumiu: true }); });
+  EQ.deps.forEach(d => { const fora = d.ordem.filter(id => !eqNomeU(id)); if (fora.length) { EQ.removidos[d.id] = fora.map(id => EQ.nomesVend[id] || 'ID ' + id); d.ordem = d.ordem.filter(id => !fora.includes(id)); } });
+  $('eqInfo').textContent = LV.filas.length + ' departamento(s) e ' + LV.usuarios.length + ' vendedor(es) na sua LeadVox';
+  $('eqMud').innerHTML = '';
+  renderEquipe();
+}
+function eqFrase(d) {
+  const ass = d.assuntos.length ? d.assuntos.join(', ') : 'Os assuntos deste departamento';
+  const quem = { carro: 'Quem quer comprar carro', moto: 'Quem quer comprar moto', ambos: 'Quem quer comprar', outro: ass }[d.recebe];
+  if (d.modo === 'pendente') return quem + ' → fica <b>pendente no ' + esc(d.nome) + '</b>; quem estiver online no departamento pega.';
+  const nomes = d.ordem.map(eqNomeU).filter(Boolean);
+  if (!nomes.length) return quem + ' → <span class="am">rodízio sem vendedor marcado — enquanto isso, fica pendente no ' + esc(d.nome) + '.</span>';
+  return quem + ' → <b>' + esc(d.nome) + '</b>, um cliente para cada: <b>' + nomes.map(esc).join(' → ') + '</b>.';
+}
+function renderEquipe() {
+  if (!EQ) return;
+  $('eqCartoes').innerHTML = EQ.deps.map((d, i) => d.sumiu ? `
+    <div class="card eq-card sumiu off" data-eqi="${i}"><div class="eq-topo"><h2>${esc(d.nome)}</h2><span class="eq-id">ID ${esc(d.id)}</span></div>
+      <p class="eq-msg erro">Este departamento não existe mais na LeadVox. A IA não manda mais clientes para ele. <button class="leve" type="button" data-eq="tirar">Tirar da lista</button></p></div>` : `
+    <div class="card eq-card ${d.usa ? '' : 'off'}" data-eqi="${i}">
+      <div class="eq-topo"><h2>${esc(d.nome)}${d.novo ? '<span class="eq-novo">novo</span>' : ''}</h2>
+        <div class="eq-acoes"><span class="eq-id">ID ${esc(d.id)}</span><button type="button" class="eq-sw" role="switch" aria-checked="${d.usa}" aria-label="A IA manda clientes para o ${esc(d.nome)}" data-eq="usa"><span></span></button></div></div>
+      ${!d.usa ? '<p class="muted" style="font-size:13px;margin-top:6px">A IA não manda cliente para este departamento.</p>' : `
+      <div class="eq-rot">O que vai para cá</div>
+      <div class="eq-seg">${EQ_RECEBE.map(([k, t]) => `<button type="button" aria-pressed="${d.recebe === k}" data-eq="recebe" data-v="${k}">${t}</button>`).join('')}</div>
+      ${d.recebe === 'outro' ? `<div class="eq-rot">Quais assuntos</div>
+        <div class="eq-chips">${[...new Set(EQ_ASSUNTOS.concat(d.assuntos))].map(a => `<button type="button" class="eq-chip" aria-pressed="${d.assuntos.includes(a)}" data-eq="assunto" data-v="${esc(a)}">${esc(a)}</button>`).join('')}</div>
+        <input data-eq="novoAssunto" maxlength="40" placeholder="Outro assunto? Escreva e aperte Enter" style="margin-top:8px">` : ''}
+      <div class="eq-rot">Como o cliente chega no vendedor</div>
+      <div class="eq-seg">
+        <button type="button" aria-pressed="${d.modo === 'pendente'}" data-eq="modo" data-v="pendente">Pendente no ${esc(d.nome)}<small>quem estiver online no departamento pega</small></button>
+        <button type="button" aria-pressed="${d.modo === 'rodizio'}" data-eq="modo" data-v="rodizio">Rodízio<small>um cliente para cada, na ordem</small></button>
+      </div>
+      ${d.modo === 'rodizio' ? `<div class="eq-rot">Vendedores do rodízio <small>(toque na ordem em que vão receber)</small></div>
+      <div class="eq-vend">
+        <div class="eq-chips">${LV.usuarios.map(u => { const p = d.ordem.indexOf(String(u.id)); return `<button type="button" class="eq-chip ${EQ.novosU.has(String(u.id)) ? 'novo' : ''}" aria-pressed="${p >= 0}" data-eq="vend" data-v="${esc(u.id)}"><span class="n">${p >= 0 ? p + 1 : ''}</span>${esc(u.nome || 'ID ' + u.id)}</button>`; }).join('') || '<span class="muted" style="font-size:13px">Nenhum usuário na LeadVox.</span>'}
+          ${(EQ.removidos[d.id] || []).map(n => `<span class="eq-chip saiu" title="Não está mais na LeadVox">${esc(n)}</span>`).join('')}</div>
+        ${(EQ.removidos[d.id] || []).length ? `<p class="eq-msg erro">${EQ.removidos[d.id].map(esc).join(', ')} não está mais na LeadVox — saiu do rodízio e não recebe mais clientes.</p>` : ''}
+        ${!d.ordem.length ? `<p class="eq-msg aviso">Marque pelo menos um vendedor. Sem ninguém, o cliente fica pendente no ${esc(d.nome)}.</p>` : ''}
+      </div>` : ''}
+      <div class="eq-resumo">${eqFrase(d)}</div>`}
+    </div>`).join('');
+  atualizarResp();
+  if (document.getElementById('listaUnid')) renderUnid(lerUnid());
+  atualizar();
+}
+// formato que o Motor SDR já lê: venda primeiro (o 1º é o principal), depois outros assuntos
+function departamentosEQ() {
+  if (!EQ) return [];
+  const usados = EQ.deps.filter(d => d.usa && !d.sumiu);
+  const venda = usados.filter(d => d.recebe !== 'outro'), outros = usados.filter(d => d.recebe === 'outro');
+  return venda.concat(outros).map(d => ({ nome: d.nome.slice(0, 40), queueId: d.id,
+    tipo: d.recebe === 'outro' ? 'outro' : 'venda', atende: d.recebe === 'outro' ? 'ambos' : d.recebe,
+    distribuicao: d.modo === 'rodizio' && d.ordem.length ? 'rodizio' : 'fila',
+    finalidade: d.recebe === 'outro' ? d.assuntos.join(', ').slice(0, 160) : (d.finalidadeVenda || 'Compra, troca, financiamento, visita') }));
+}
+function vendedoresEQ() {
+  const out = [];
+  EQ.deps.filter(d => d.usa && !d.sumiu && d.modo === 'rodizio').forEach(d => d.ordem.forEach(id => {
+    const nome = eqNomeU(id); if (nome) out.push({ nome, userId: id, departamento: d.nome.slice(0, 40), apelidos: EQ.apelidos[id] || [] });
+  }));
+  // responsável por venda/consignação precisa estar na lista para o motor achar pelo ID
+  const r = $('respConsig') ? $('respConsig').value : '';
+  if (/^\d+$/.test(r) && !out.some(v => v.userId === r) && eqNomeU(r)) out.push({ nome: eqNomeU(r), userId: r, departamento: '—', apelidos: EQ.apelidos[r] || [] });
+  return out.slice(0, 40);
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('#eqCartoes [data-eq]'); if (!b || !EQ) return;
+  const d = EQ.deps[+b.closest('[data-eqi]').dataset.eqi]; const a = b.dataset.eq;
+  if (a === 'usa') { d.usa = !d.usa; d.novo = false; }
+  else if (a === 'recebe') d.recebe = b.dataset.v;
+  else if (a === 'modo') d.modo = b.dataset.v;
+  else if (a === 'assunto') { const k = d.assuntos.indexOf(b.dataset.v); k >= 0 ? d.assuntos.splice(k, 1) : d.assuntos.push(b.dataset.v); }
+  else if (a === 'vend') { const id = String(b.dataset.v), k = d.ordem.indexOf(id); k >= 0 ? d.ordem.splice(k, 1) : d.ordem.push(id); }
+  else if (a === 'tirar') EQ.deps.splice(EQ.deps.indexOf(d), 1);
+  else return;
+  renderEquipe();
+});
+document.addEventListener('keydown', (ev) => {
+  const i = ev.target.closest && ev.target.closest('#eqCartoes [data-eq="novoAssunto"]'); if (!i || ev.key !== 'Enter') return;
+  ev.preventDefault(); const v = i.value.trim().slice(0, 40); if (!v) return;
+  const d = EQ.deps[+i.closest('[data-eqi]').dataset.eqi]; if (!d.assuntos.includes(v)) d.assuntos.push(v); renderEquipe();
+});
+$('eqSync').addEventListener('click', async () => {
+  const b = $('eqSync'); b.disabled = true; b.textContent = 'Buscando…';
+  try {
+    const j = await chamar({ acao: 'carregar' });
+    const lv = j.leadvox || {};
+    const filas = Array.isArray(lv.filas) ? lv.filas : [], users = Array.isArray(lv.usuarios) ? lv.usuarios : [];
+    if (!filas.length) throw new Error('A LeadVox não devolveu nenhum departamento agora. Tente de novo em instantes.');
+    const log = [];
+    filas.forEach(q => {
+      const d = EQ.deps.find(x => x.id === String(q.id));
+      if (d) { if (d.nome !== q.nome && q.nome) { log.push('Departamento <b>' + esc(d.nome) + '</b> agora se chama <b>' + esc(q.nome) + '</b>.'); d.nome = q.nome; } d.sumiu = false; return; }
+      const p = palpiteDep(q.nome);
+      EQ.deps.push({ id: String(q.id), nome: q.nome, usa: false, recebe: p.tipo === 'outro' ? 'outro' : p.atende, assuntos: [], finalidadeVenda: '', modo: 'pendente', ordem: [], novo: true });
+      log.push('Departamento novo: <b>' + esc(q.nome) + '</b> (ID ' + esc(q.id) + ') — chegou desligado; ligue se a IA deve mandar clientes para lá.');
+    });
+    EQ.deps.forEach(d => { if (!d.sumiu && !filas.some(q => String(q.id) === d.id)) { d.sumiu = true; d.usa = false; log.push('<b>' + esc(d.nome) + '</b> não existe mais na LeadVox — a IA parou de mandar clientes para lá.'); } });
+    const saiu = LV.usuarios.filter(u => !users.some(x => String(x.id) === String(u.id)));
+    const entrou = users.filter(u => !LV.usuarios.some(x => String(x.id) === String(u.id)));
+    saiu.forEach(u => {
+      const id = String(u.id);
+      EQ.deps.forEach(d => { if (d.ordem.includes(id)) { d.ordem = d.ordem.filter(x => x !== id); (EQ.removidos[d.id] = EQ.removidos[d.id] || []).push(u.nome || 'ID ' + id); } });
+      log.push('Vendedor <b>' + esc(u.nome || 'ID ' + id) + '</b> saiu da LeadVox — tirado dos rodízios.');
+    });
+    entrou.forEach(u => { EQ.novosU.add(String(u.id)); log.push('Vendedor novo: <b>' + esc(u.nome || 'ID ' + u.id) + '</b> — marque nos rodízios em que ele deve entrar.'); });
+    LV.filas = filas; LV.usuarios = users; if (Array.isArray(lv.etapas)) LV.etapas = lv.etapas;
+    $('eqInfo').textContent = filas.length + ' departamento(s) e ' + users.length + ' vendedor(es) · atualizado agora';
+    $('eqMud').innerHTML = '<div class="eq-mud">' + (log.length ? '<b>O que mudou na LeadVox</b><ul>' + log.map(l => '<li>' + l + '</li>').join('') + '</ul><p class="muted" style="margin-top:6px">Confira e clique em Salvar para valer.</p>' : 'Tudo igual à LeadVox — nada mudou.') + '</div>';
+    renderEquipe();
+  } catch (e) {
+    $('eqMud').innerHTML = '<div class="eq-mud" style="color:var(--erro)">' + esc(e.message || 'Não consegui falar com a LeadVox agora.') + '</div>';
+  }
+  b.disabled = false; b.textContent = '↻ Atualizar da LeadVox';
+});
+
 function mostrarDicaTicket() {
-  if (!ticket || $('telaApp').hidden) return;
+  if (!ticket || $('telaApp').hidden || EQ) return;
   const u = ticket.user || {}; const fila = ticket.queueId || (ticket.queue && ticket.queue.id) || (ticket.contact && ticket.contact.queueId);
   const partes = [];
   if (u.id) partes.push(`Você está logado como <b>${esc(u.name || 'usuário')}</b>, ID ${esc(u.id)}. <button class="leve" type="button" data-eu>Me adicionar como vendedor</button>`);
@@ -1135,8 +1343,9 @@ function coletar() {
       bancos: $('bancos').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 6), entradaMinima: $('entradaMin').value.trim(),
       troca: valor('troca') === 'nao' ? 'nao' : 'sim' },
     faq: lerFaq(),
-    departamentos: lerLista('[data-dep]', CAMPOS_DEP).filter(d => d.nome || d.queueId),
-    distribuicao: { modo: lerLista('[data-dep]', CAMPOS_DEP).some(d => d.distribuicao === 'rodizio') ? 'rodizio' : 'departamento', vendedores: lerVend(),
+    departamentos: EQ ? departamentosEQ() : lerLista('[data-dep]', CAMPOS_DEP).filter(d => d.nome || d.queueId),
+    distribuicao: { modo: (EQ ? departamentosEQ() : lerLista('[data-dep]', CAMPOS_DEP)).some(d => d.distribuicao === 'rodizio') ? 'rodizio' : 'departamento', vendedores: lerVend(),
+      ...(EQ ? { departamentosIgnorados: EQ.deps.filter(d => !d.usa && !d.sumiu).map(d => d.id) } : {}),
       responsavelVendaConsignacao: /^\d+$/.test($('respConsig').value) ? $('respConsig').value : null,
       setorVendaConsignacao: $('respConsig').value.startsWith('setor:') ? $('respConsig').value.slice(6) : null },
     lead: { enviarAutoCerto: FONTE === 'autocerto' && $('enviarAC').checked, codigoMidia: CFG.lead.codigoMidia || 12, interesse: CFG.lead.interesse || 2,
@@ -1226,7 +1435,7 @@ function montarResumo() {
   const c = coletar();
   const dias = DIAS.filter(([d]) => c.horario[d]).map(([d, n]) => n.slice(0, 3) + ' ' + c.horario[d].join('–')).join(', ') || 'nenhum dia marcado';
   const ROT = { carro: 'carro', moto: 'moto', ambos: 'carro e moto' };
-  const deps = c.departamentos.map(d => d.nome + (d.queueId ? ' (fila ' + d.queueId + ')' : ' (sem ID da fila)') + ' — ' + (d.tipo === 'outro' ? 'outro assunto' : 'venda de ' + ROT[d.atende || 'ambos']) + ', ' + (d.distribuicao === 'rodizio' ? 'rodízio' : 'fila')).join('; ') || 'nenhum';
+  const deps = c.departamentos.map(d => d.nome + (d.queueId ? ' (ID ' + d.queueId + ')' : ' (sem ID)') + ' — ' + (d.tipo === 'outro' ? 'outro assunto' : 'venda de ' + ROT[d.atende || 'ambos']) + ', ' + (d.distribuicao === 'rodizio' ? 'rodízio' : 'pendente no departamento')).join('; ') || 'nenhum';
   const tQ = { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas',
     personalizado: 'depois de ' + fmt(c.followup.transferir.personalizadoMin || 0) }[c.followup.transferir.quando];
   const linhas = [
@@ -1241,7 +1450,7 @@ function montarResumo() {
       (c.vendas.cartao ? ', cartão' : '') + (c.vendas.consorcio ? ', consórcio' : '') + (c.vendas.troca === 'nao' ? ', sem troca' : ', aceita troca')],
     ['Perguntas frequentes', c.faq.length ? c.faq.length + ' cadastrada(s)' : 'nenhuma'],
     ['Departamentos', deps],
-    ['Atendentes', c.distribuicao.vendedores.length + ' cadastrado(s)'],
+    ['Atendentes', new Set(c.distribuicao.vendedores.map(v => String(v.userId || v.nome))).size + ' no rodízio / cadastrado(s)'],
     ['Lead', c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e avisa o gerente' : 'Transferido para o Comercial'],
     ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
