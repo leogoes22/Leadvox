@@ -121,6 +121,13 @@
   .fu-tent { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); }
   .fu-tent:first-of-type { border-top: 0; }
   .fu-tent select { width: auto; }
+  .fu-on { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; cursor: pointer; }
+  .fu-on input { width: auto; margin: 0; accent-color: var(--verde); }
+  .fu-tent.off select, .fu-tent.off .fu-fixo { opacity: .4; }
+  .fu-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .fu-chips label { display: inline-flex; align-items: center; gap: 6px; margin: 0; border: 1px solid var(--linha); border-radius: 99px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .fu-chips label:has(input:checked) { border-color: #7aa7ff; color: #7aa7ff; background: rgba(122,167,255,.10); }
+  .fu-chips input { width: auto; margin: 0; accent-color: #7aa7ff; }
   .fu-fixo { font-size: 14px; color: var(--suave); }
   .fu-hm { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
   .fu-hm input { width: 72px; }
@@ -601,11 +608,11 @@
         <h2><span class="fu-num">1</span>A IA chama o cliente de novo</h2>
         <p class="muted" style="font-size:13.5px">Contando da última mensagem do cliente. Só sai no horário da equipe: se cair com a loja fechada, sai na abertura.</p>
         <div style="margin-top:8px">
-          <div class="fu-tent"><label for="fu1" style="margin:0">1ª tentativa</label>
+          <div class="fu-tent" id="fuRow1"><label class="fu-on"><input type="checkbox" id="fuOn1"> 1ª tentativa</label>
             <select id="fu1"><option value="5">5 min depois</option><option value="10">10 min depois</option><option value="15">15 min depois</option></select></div>
-          <div class="fu-tent"><label for="fu2" style="margin:0">2ª tentativa</label>
+          <div class="fu-tent" id="fuRow2"><label class="fu-on"><input type="checkbox" id="fuOn2"> 2ª tentativa</label>
             <select id="fu2"><option value="30">30 min depois</option><option value="45">45 min depois</option><option value="60">1 hora depois</option><option value="120">2 horas depois</option></select></div>
-          <div class="fu-tent"><span>3ª tentativa</span><span class="fu-fixo">no dia seguinte (≈ 23 h)</span></div>
+          <div class="fu-tent" id="fuRow3"><label class="fu-on"><input type="checkbox" id="fuOn3"> 3ª tentativa</label><span class="fu-fixo">no dia seguinte (≈ 23 h)</span></div>
         </div>
         <p class="fu-aviso" id="fuAvisoWaba" hidden>WhatsApp oficial: depois de 24 h sem resposta, a Meta só deixa mandar mensagem modelo (template). Por isso a 3ª tentativa sai no máximo 23 h depois.</p>
       </div>
@@ -624,6 +631,11 @@
       <div class="card">
         <h2><span class="fu-num">3</span>Lembretes para o vendedor</h2>
         <p class="muted" style="font-size:13.5px">Se o cliente continuar sumido depois de transferido, o vendedor recebe uma <b>nota interna</b> no ticket (o cliente não vê). Se o ticket estiver fechado, ele é reaberto.</p>
+        <div class="fu-chips" id="fuLemb">
+          <label><input type="checkbox" value="7"> 7 dias</label>
+          <label id="fuLemb15"><input type="checkbox" value="15"> 15 dias</label>
+          <label id="fuLemb30"><input type="checkbox" value="30"> 30 dias</label>
+        </div>
         <p class="fu-fixo" id="fuLembretes" style="margin-top:8px"></p>
       </div>
       <div class="card">
@@ -631,6 +643,22 @@
         <div class="fu-leg"><span><i style="background:var(--verde)"></i>mensagem da IA para o cliente</span><span><i style="background:var(--texto)"></i>passa para o vendedor</span><span><i style="background:#7aa7ff"></i>nota interna para o vendedor</span></div>
         <ol class="tempo fu" id="linhaTempo"></ol>
         <div class="fu-frase" id="fuFrase"></div>
+      </div>
+      <div class="card">
+        <h2>Avisos automáticos</h2>
+        <p class="muted" style="font-size:13.5px">Mensagens que a IA manda sozinha, além do atendimento.</p>
+        <div class="opcoes">
+          <label class="opcao"><input type="checkbox" id="avLembrete"><span>Lembrar o cliente da visita<small>Quando a IA marca uma visita com dia, ela confirma na véspera (a partir das 18h) e, se o cliente disse a hora, lembra 2 horas antes com o endereço da loja.</small></span></label>
+          <label class="opcao"><input type="checkbox" id="avRetomada"><span>Retomar a conversa parada no dia seguinte<small>Se o cliente já está com um vendedor e os dois ficaram quietos, a IA manda uma mensagem só, perto de 24 h depois da última fala do cliente: "E aí, conseguiu resolver? Sigo à disposição". Não manda se o atendimento foi finalizado e não repete.</small></span></label>
+          <label class="opcao"><input type="checkbox" id="avResumo"><span>Resumo do dia no WhatsApp<small>Todo dia a IA manda quantos clientes atendeu, de onde vieram, quantas visitas marcou e para quem passou.</small></span></label>
+        </div>
+        <div id="blocoResumo" hidden>
+          <div class="duas">
+            <div><label for="avResumoTel">WhatsApp que recebe o resumo</label><input id="avResumoTel" inputmode="numeric" placeholder="5521999999999"></div>
+            <div><label for="avResumoHora">Horário</label><select id="avResumoHora"><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option></select></div>
+          </div>
+          <p class="muted" style="font-size:13px;margin-top:6px">Com 55 e DDD. O resumo sai pelo WhatsApp da loja.</p>
+        </div>
       </div>
     </section>
 
@@ -725,6 +753,7 @@ const PADRAO = {
   departamentos: [{ nome: 'Comercial', queueId: '', finalidade: 'compra, troca, financiamento, visita' }],
   distribuicao: { modo: 'departamento', vendedores: [], responsavelVendaConsignacao: null },
   lead: { enviarAutoCerto: false, codigoMidia: 12, interesse: 2, whatsappGerente: '' },
+  avisos: { lembreteVisita: true, retomada: false, resumo: { ativo: false, whatsapp: '', hora: 19 } },
   followup: { primeiroMin: 10, segundoMin: 45, transferir: { quando: 'apos_primeiro', personalizadoMin: null } },
   crm: { ativo: true, etapaInicialId: null },
   etiquetas: { ativo: true, grupos: ['origem', 'interesse', 'pagamento', 'entrada', 'qualificacao'], entradaAlta: 5000, entradaBaixa: 1000 }
@@ -974,6 +1003,12 @@ function abrirApp() {
   $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
   $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
+  { const av = c.avisos || {}, rs = av.resumo || {};
+    $('avLembrete').checked = av.lembreteVisita !== false; $('avRetomada').checked = av.retomada === true; $('avResumo').checked = rs.ativo === true;
+    $('avResumoTel').value = rs.whatsapp || c.lead.whatsappGerente || ''; $('avResumoHora').value = String(rs.hora || 19); }
+  { const at = c.followup.ativas || {}; [1, 2, 3].forEach(n => { $('fuOn' + n).checked = at['s' + n] !== false; });
+    const ld = Array.isArray(c.followup.lembretesDias) ? c.followup.lembretesDias.map(Number) : [7, 15, 30];
+    document.querySelectorAll('#fuLemb input').forEach(i => { i.checked = ld.includes(+i.value); }); }
   { const q = document.querySelector(`input[name="fuTr"][value="${c.followup.transferir.quando}"]`) || document.querySelector('input[name="fuTr"][value="apos_primeiro"]'); q.checked = true; }
   const pm = c.followup.transferir.personalizadoMin;
   if (pm) { FU_MAX = Math.max(72 * 60, pm); $('persH').max = String(Math.floor(FU_MAX / 60)); $('persH').value = Math.floor(pm / 60); $('persM').value = pm % 60; }
@@ -1406,8 +1441,12 @@ function coletar() {
     lead: { enviarAutoCerto: FONTE === 'autocerto' && $('enviarAC').checked, codigoMidia: CFG.lead.codigoMidia || 12, interesse: CFG.lead.interesse || 2,
       whatsappGerente: $('gerente').value.replace(/\D/g, '') },
     followup: { primeiroMin: +$('fu1').value, segundoMin: +$('fu2').value,
+      ativas: { s1: $('fuOn1').checked, s2: $('fuOn2').checked, s3: $('fuOn3').checked },
+      lembretesDias: [...document.querySelectorAll('#fuLemb input:checked')].map(i => +i.value).filter(d => CANAL !== 'waba' || d === 7),
       transferir: { quando, personalizadoMin: quando === 'personalizado' ? persMin() : null } },
     crm: { ativo: $('crmAtivo').checked, etapaInicialId: $('crmEtapa').value ? +$('crmEtapa').value : null },
+    avisos: { lembreteVisita: $('avLembrete').checked, retomada: $('avRetomada').checked,
+      resumo: { ativo: $('avResumo').checked, whatsapp: $('avResumoTel').value.replace(/\D/g, ''), hora: +$('avResumoHora').value || 19 } },
     etiquetas: { ativo: $('etqAtivo').checked, grupos: [...document.querySelectorAll('#etqGrupos input:checked')].map(i => i.value),
       entradaAlta: digitos($('etqAlta').value) || 5000, entradaBaixa: digitos($('etqBaixa').value) || 1000 }
   };
@@ -1443,11 +1482,20 @@ function atualizar() {
     : 'Quando o cliente estiver qualificado, a IA passa o atendimento para o departamento Comercial com um resumo da conversa.' + (FONTE !== 'autocerto' ? ' O envio para o AutoCerto só existe para lojas com estoque no AutoCerto.' : '');
 
   renderFollowup(c);
+  $('blocoResumo').hidden = !$('avResumo').checked;
 }
 // Follow-up: a transferência acontece na hora em que a PRÓXIMA tentativa sairia (o cliente não respondeu a anterior).
 // Mesmos valores que o Vigia já lê: apos_primeiro = 2ª tentativa, apos_segundo = 23 h, apos_terceiro = 24 h, personalizado = minutos.
 function renderFollowup(c) {
-  const f = c.followup, tq = f.transferir.quando;
+  const f = c.followup;
+  const at = f.ativas || { s1: true, s2: true, s3: true };
+  const on = (n) => at['s' + n] !== false;
+  // a transferência "depois da Nª tentativa" só faz sentido com ela ligada
+  [1, 2, 3].forEach(n => { $('fuRow' + n).classList.toggle('off', !on(n));
+    const r = document.querySelector('input[name="fuTr"][value="' + ['', 'apos_primeiro', 'apos_segundo', 'apos_terceiro'][n] + '"]'); r.disabled = !on(n);
+    if (r.checked && !on(n)) { r.checked = false; const ok = [...document.querySelectorAll('input[name="fuTr"]')].find(i => !i.disabled); if (ok) ok.checked = true; } });
+  const tq = valor('fuTr') || 'personalizado'; f.transferir.quando = tq;
+  if (tq === 'personalizado' && !f.transferir.personalizadoMin) f.transferir.personalizadoMin = persMin();
   const t = { 1: f.primeiroMin, 2: f.segundoMin, 3: 23 * 60 };
   const trDe = { apos_primeiro: t[2], apos_segundo: t[3], apos_terceiro: 24 * 60 };
   const trMin = tq === 'personalizado' ? (f.transferir.personalizadoMin || 5) : trDe[tq];
@@ -1455,10 +1503,12 @@ function renderFollowup(c) {
   $('fuLb2').textContent = 'passa ' + fmt(t[3]) + ' depois da última mensagem do cliente (no lugar da 3ª tentativa)';
   $('fuLb3').textContent = 'passa 24 h depois da última mensagem do cliente';
   $('fuAvisoWaba').hidden = CANAL !== 'waba';
-  const dias = CANAL === 'waba' ? [7] : [7, 15, 30];
-  $('fuLembretes').textContent = 'Lembretes em ' + dias.map(d => d + ' dias').join(', ') + (CANAL === 'waba' ? ' (no WhatsApp oficial, só o de 7 dias).' : '.');
+  $('fuLemb15').hidden = $('fuLemb30').hidden = CANAL === 'waba';
+  const escolhidos = Array.isArray(f.lembretesDias) ? f.lembretesDias : [7, 15, 30];
+  const dias = (CANAL === 'waba' ? [7] : [7, 15, 30]).filter(d => escolhidos.includes(d));
+  $('fuLembretes').textContent = (dias.length ? 'Lembretes em ' + dias.map(d => d + ' dias').join(', ') + '.' : 'Sem lembretes para o vendedor.') + (CANAL === 'waba' ? ' No WhatsApp oficial só existe o de 7 dias.' : '');
   const it = [{ m: 0, c: 'ini', txt: 'Última mensagem do cliente' }];
-  [1, 2, 3].forEach(n => { if (t[n] < trMin) it.push({ m: t[n], c: '', txt: n + 'ª tentativa da IA' }); });
+  [1, 2, 3].forEach(n => { if (on(n) && t[n] < trMin) it.push({ m: t[n], c: '', txt: n + 'ª tentativa da IA' }); });
   it.push({ m: trMin, c: 'transf', txt: '<b>Passa para o vendedor</b>: o ticket vai para o Comercial com o resumo. A IA para de falar com o cliente.' });
   dias.forEach(d => { if (d * 1440 > trMin) it.push({ m: d * 1440, c: 'ven', txt: 'Lembrete de ' + d + ' dias para o vendedor<small>nota interna no ticket, reabre se estiver fechado</small>' }); });
   it.sort((a, b) => a.m - b.m);
@@ -1470,7 +1520,7 @@ function renderFollowup(c) {
     (ven.length ? 'Depois disso o vendedor recebe lembretes em ' + ven.map(e => fmt(e.m)).join(', ') + '.' : 'Sem lembretes depois.') +
     ' <small class="muted">(Horário de exemplo, sem contar loja fechada.)</small>';
 }
-['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2') atualizar();
+['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2' || e.target.id === 'avResumo' || /^fuOn\d$/.test(e.target.id) || e.target.closest('#fuLemb')) atualizar();
   if (e.target.id === 'persH' || e.target.id === 'persM') { const r = document.querySelector('input[name="fuTr"][value="personalizado"]'); if (!r.checked) r.checked = true; atualizar(); } }));
 
 // ── navegação entre etapas ──
@@ -1531,6 +1581,8 @@ function montarResumo() {
     ['Lead', c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e avisa o gerente' : 'Transferido para o Comercial'],
     ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
+    ['Avisos', [c.avisos.lembreteVisita ? 'Lembra o cliente da visita' : 'Sem lembrete de visita', c.avisos.retomada ? 'retoma conversa parada no dia seguinte' : 'sem retomada',
+      c.avisos.resumo.ativo ? 'resumo do dia às ' + c.avisos.resumo.hora + 'h para ' + (c.avisos.resumo.whatsapp || '(sem número)') : 'sem resumo do dia'].join('; ')],
     ['Follow-up', 'Tentativas com ' + fmt(c.followup.primeiroMin) + ', ' + fmt(c.followup.segundoMin) + ' e 23 h; passa para o vendedor ' + tQ]
   ];
   $('resumo').innerHTML = linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('');
