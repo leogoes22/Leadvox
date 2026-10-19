@@ -116,6 +116,24 @@
   .tempo .nota .marca { background: var(--painel); border: 2px solid var(--suave); }
   .tempo .transf .marca { background: var(--texto); }
   .tempo small { display: block; color: var(--suave); }
+  /* follow-up em 3 perguntas */
+  .fu-num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--verde); color: var(--navy); font-size: 12px; font-weight: 700; margin-right: 8px; vertical-align: 2px; }
+  .fu-tent { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); }
+  .fu-tent:first-of-type { border-top: 0; }
+  .fu-tent select { width: auto; }
+  .fu-fixo { font-size: 14px; color: var(--suave); }
+  .fu-hm { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+  .fu-hm input { width: 72px; }
+  .fu-hm b { font-weight: 500; color: var(--suave); margin-right: 6px; }
+  .fu-aviso { font-size: 13px; color: var(--amarelo, #f5c451); margin-top: 10px; }
+  .fu-leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--suave); margin-top: 10px; }
+  .fu-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .tempo.fu li { grid-template-columns: 92px 14px 1fr; }
+  .tempo.fu li::before { left: 108px; }
+  .tempo.fu .quando small { font-weight: 400; }
+  .tempo.fu .ini .marca { background: var(--suave); }
+  .tempo.fu .ven .marca { background: #7aa7ff; }
+  .fu-frase { margin-top: 12px; padding: 10px 12px; border-radius: var(--raio); background: var(--navy); border: 1px solid var(--linha); font-size: 13.5px; }
 
   .resumo dt { font-weight: 500; margin-top: 10px; }
   .resumo dd { margin: 2px 0 0; color: var(--suave); }
@@ -573,27 +591,42 @@
     <section class="passo" data-passo="Follow-up">
       <div class="card">
         <h2>Quando o cliente para de responder</h2>
-        <div class="duas">
-          <div><label for="fu1">1ª mensagem depois de</label>
-            <select id="fu1"><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option></select></div>
-          <div><label for="fu2">2ª mensagem depois de</label>
-            <select id="fu2"><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60">1 hora</option><option value="120">2 horas</option></select></div>
+        <p class="muted">Três perguntas, na ordem em que as coisas acontecem. Embaixo, a linha do tempo mostra o que sai e para quem.</p>
+      </div>
+      <div class="card">
+        <h2><span class="fu-num">1</span>A IA chama o cliente de novo</h2>
+        <p class="muted" style="font-size:13.5px">Contando da última mensagem do cliente. Só sai no horário da equipe: se cair com a loja fechada, sai na abertura.</p>
+        <div style="margin-top:8px">
+          <div class="fu-tent"><label for="fu1" style="margin:0">1ª tentativa</label>
+            <select id="fu1"><option value="5">5 min depois</option><option value="10">10 min depois</option><option value="15">15 min depois</option></select></div>
+          <div class="fu-tent"><label for="fu2" style="margin:0">2ª tentativa</label>
+            <select id="fu2"><option value="30">30 min depois</option><option value="45">45 min depois</option><option value="60">1 hora depois</option><option value="120">2 horas depois</option></select></div>
+          <div class="fu-tent"><span>3ª tentativa</span><span class="fu-fixo">no dia seguinte (≈ 23 h)</span></div>
         </div>
-        <label for="transf">Passar o cliente para o Comercial</label>
-        <select id="transf">
-          <option value="apos_primeiro">Se não responder a 1ª mensagem</option>
-          <option value="apos_segundo">Se não responder a 2ª mensagem</option>
-          <option value="apos_terceiro">Se não responder a 3ª mensagem (24 horas)</option>
-          <option value="personalizado">Depois de um tempo que eu escolher</option>
-        </select>
-        <div id="blocoPers" hidden>
-          <div class="duas">
-            <div><label for="persN">Tempo</label><input id="persN" type="number" min="1" value="3"></div>
-            <div><label for="persU">&nbsp;</label><select id="persU"><option value="1">minutos</option><option value="60" selected>horas</option><option value="1440">dias</option></select></div>
-          </div>
+        <p class="fu-aviso" id="fuAvisoWaba" hidden>WhatsApp oficial: depois de 24 h sem resposta, a Meta só deixa mandar mensagem modelo (template). Por isso a 3ª tentativa sai no máximo 23 h depois.</p>
+      </div>
+      <div class="card">
+        <h2><span class="fu-num">2</span>Quando o vendedor assume</h2>
+        <p class="muted" style="font-size:13.5px">A partir daqui a IA para de falar com o cliente. O ticket vai para o Comercial com o resumo da conversa.</p>
+        <div class="opcoes">
+          <label class="opcao"><input type="radio" name="fuTr" value="apos_primeiro"><span>Se ele não responder a <b>1ª tentativa</b><small id="fuLb1"></small></span></label>
+          <label class="opcao"><input type="radio" name="fuTr" value="apos_segundo"><span>Se ele não responder a <b>2ª tentativa</b><small id="fuLb2"></small></span></label>
+          <label class="opcao"><input type="radio" name="fuTr" value="apos_terceiro"><span>Se ele não responder a <b>3ª tentativa</b><small id="fuLb3"></small></span></label>
+          <label class="opcao"><input type="radio" name="fuTr" value="personalizado"><span style="flex:1">Depois de um tempo que eu escolher
+            <span class="fu-hm"><input id="persH" type="number" min="0" max="72" value="3" inputmode="numeric" aria-label="Horas"><b>h</b><input id="persM" type="number" min="0" max="59" step="5" value="0" inputmode="numeric" aria-label="Minutos"><b>min</b></span>
+            <small>conta da última mensagem do cliente · de 5 min até 72 h</small></span></label>
         </div>
-        <p class="muted" style="margin-top:14px">Tudo conta a partir da última mensagem do cliente e respeita o horário da equipe: se cair com a loja fechada, sai na abertura.</p>
-        <ol class="tempo" id="linhaTempo"></ol>
+      </div>
+      <div class="card">
+        <h2><span class="fu-num">3</span>Lembretes para o vendedor</h2>
+        <p class="muted" style="font-size:13.5px">Se o cliente continuar sumido depois de transferido, o vendedor recebe uma <b>nota interna</b> no ticket (o cliente não vê). Se o ticket estiver fechado, ele é reaberto.</p>
+        <p class="fu-fixo" id="fuLembretes" style="margin-top:8px"></p>
+      </div>
+      <div class="card">
+        <h2>Como vai ficar</h2>
+        <div class="fu-leg"><span><i style="background:var(--verde)"></i>mensagem da IA para o cliente</span><span><i style="background:var(--texto)"></i>passa para o vendedor</span><span><i style="background:#7aa7ff"></i>nota interna para o vendedor</span></div>
+        <ol class="tempo fu" id="linhaTempo"></ol>
+        <div class="fu-frase" id="fuFrase"></div>
       </div>
     </section>
 
@@ -936,9 +969,9 @@ function abrirApp() {
   $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
   $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
-  $('transf').value = c.followup.transferir.quando;
+  { const q = document.querySelector(`input[name="fuTr"][value="${c.followup.transferir.quando}"]`) || document.querySelector('input[name="fuTr"][value="apos_primeiro"]'); q.checked = true; }
   const pm = c.followup.transferir.personalizadoMin;
-  if (pm) { const u = pm % 1440 === 0 ? 1440 : pm % 60 === 0 ? 60 : 1; $('persU').value = String(u); $('persN').value = pm / u; }
+  if (pm) { FU_MAX = Math.max(72 * 60, pm); $('persH').max = String(Math.floor(FU_MAX / 60)); $('persH').value = Math.floor(pm / 60); $('persM').value = pm % 60; }
   $('passos').innerHTML = [...document.querySelectorAll('.passo')].map((s, i) => `<button type="button" data-ir="${i}">${i + 1}. ${s.dataset.passo}</button>`).join('');
   $('crmAtivo').checked = c.crm.ativo !== false;
   $('crmEtapa').innerHTML = '<option value="">Primeira etapa do funil</option>' +
@@ -1323,7 +1356,7 @@ function coletar() {
   DIAS.forEach(([d]) => { const on = document.querySelector(`[data-dia="${d}"]`).checked;
     horario[d] = on ? [document.querySelector(`[data-ini="${d}"]`).value, document.querySelector(`[data-fim="${d}"]`).value] : null; });
   horario.feriados = $('feriados').value.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
-  const quando = $('transf').value;
+  const quando = valor('fuTr') || 'apos_primeiro';
   return {
     ia: { nome: $('iaNome').value.trim(), genero: $('iaGenero').value, tom: valor('tom') || 'acolhedor',
       diferenciais: $('iaDif').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6),
@@ -1351,7 +1384,7 @@ function coletar() {
     lead: { enviarAutoCerto: FONTE === 'autocerto' && $('enviarAC').checked, codigoMidia: CFG.lead.codigoMidia || 12, interesse: CFG.lead.interesse || 2,
       whatsappGerente: $('gerente').value.replace(/\D/g, '') },
     followup: { primeiroMin: +$('fu1').value, segundoMin: +$('fu2').value,
-      transferir: { quando, personalizadoMin: quando === 'personalizado' ? Math.round(+$('persN').value * +$('persU').value) : null } },
+      transferir: { quando, personalizadoMin: quando === 'personalizado' ? persMin() : null } },
     crm: { ativo: $('crmAtivo').checked, etapaInicialId: $('crmEtapa').value ? +$('crmEtapa').value : null },
     etiquetas: { ativo: $('etqAtivo').checked, grupos: [...document.querySelectorAll('#etqGrupos input:checked')].map(i => i.value),
       entradaAlta: digitos($('etqAlta').value) || 5000, entradaBaixa: digitos($('etqBaixa').value) || 1000 }
@@ -1359,7 +1392,15 @@ function coletar() {
 }
 
 // ── prévia, linha do tempo e textos que mudam ──
-const fmt = (m) => m < 60 ? m + ' min' : m < 1440 ? (m / 60).toFixed(m % 60 ? 1 : 0).replace('.', ',') + ' h' : Math.round(m / 1440) + (m >= 2880 ? ' dias' : ' dia');
+const fmt = (m) => { m = Math.round(m); const hm = Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+  return m < 60 ? m + ' min' : m < 1440 || m % 1440 ? hm : Math.round(m / 1440) + (m >= 2880 ? ' dias' : ' dia'); };
+// tempo personalizado do follow-up: horas + minutos, de 5 min até 72 h (ou o que já estava salvo, se for maior)
+let FU_MAX = 72 * 60;
+const persMin = () => { const h = Math.max(parseInt($('persH').value, 10) || 0, 0), m = Math.min(Math.max(parseInt($('persM').value, 10) || 0, 0), 59); return Math.min(Math.max(h * 60 + m, 5), FU_MAX); };
+// relógio de exemplo: cliente sumiu às 14h
+const fuRelogio = (m) => { const t = 14 * 60 + m, dia = Math.floor(t / 1440), hm = t % 1440;
+  const h = String(Math.floor(hm / 60)).padStart(2, '0') + 'h' + String(hm % 60).padStart(2, '0');
+  return dia === 0 ? 'hoje, ' + h : dia === 1 ? 'amanhã, ' + h : 'daqui a ' + dia + ' dias'; };
 function atualizar() {
   if (!CFG || $('telaApp').hidden) return;
   const c = coletar();
@@ -1379,22 +1420,36 @@ function atualizar() {
     ? 'Quando o cliente estiver qualificado, a IA cadastra o lead no AutoCerto, avisa o gerente e passa o atendimento para a equipe.'
     : 'Quando o cliente estiver qualificado, a IA passa o atendimento para o departamento Comercial com um resumo da conversa.' + (FONTE !== 'autocerto' ? ' O envio para o AutoCerto só existe para lojas com estoque no AutoCerto.' : '');
 
-  $('blocoPers').hidden = c.followup.transferir.quando !== 'personalizado';
-  const f = c.followup, t = f.transferir;
-  const tr = t.quando === 'apos_primeiro' ? f.segundoMin : t.quando === 'apos_segundo' ? 23 * 60 : t.quando === 'apos_terceiro' ? 24 * 60 : (t.personalizadoMin || 0);
-  const ev = [
-    { m: f.primeiroMin, txt: '1ª mensagem da IA para o cliente' },
-    { m: f.segundoMin, txt: '2ª mensagem da IA para o cliente' },
-    { m: 23 * 60, txt: '3ª mensagem da IA para o cliente' },
-    ...(CANAL === 'waba' ? [{ m: 7 * 1440, txt: 'Lembrete de 7 dias', longo: true }] : [7, 15, 30].map(d => ({ m: d * 1440, txt: 'Lembrete de ' + d + ' dias', longo: true })))
-  ].filter(e => !(e.m === tr && !e.longo));
-  const itens = ev.map(e => ({ ...e, nota: e.m > tr || (CANAL === 'waba' && e.m > 24 * 60) }));
-  if (tr) itens.push({ m: tr, txt: 'Passa o cliente para o Comercial, com o resumo da conversa', transf: true });
-  itens.sort((a, b) => a.m - b.m || (a.transf ? -1 : 1));
-  $('linhaTempo').innerHTML = itens.map(e => `<li class="${e.transf ? 'transf' : e.nota ? 'nota' : ''}"><span class="quando">${fmt(e.m)}</span><span class="marca"></span>
-    <span>${e.transf ? e.txt : e.nota ? e.txt.replace(' da IA para o cliente', '') + '<small>Vira nota interna para o vendedor, e reabre o ticket se estiver fechado</small>' : e.txt}</span></li>`).join('');
+  renderFollowup(c);
 }
-['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.id === 'transf') atualizar(); }));
+// Follow-up: a transferência acontece na hora em que a PRÓXIMA tentativa sairia (o cliente não respondeu a anterior).
+// Mesmos valores que o Vigia já lê: apos_primeiro = 2ª tentativa, apos_segundo = 23 h, apos_terceiro = 24 h, personalizado = minutos.
+function renderFollowup(c) {
+  const f = c.followup, tq = f.transferir.quando;
+  const t = { 1: f.primeiroMin, 2: f.segundoMin, 3: 23 * 60 };
+  const trDe = { apos_primeiro: t[2], apos_segundo: t[3], apos_terceiro: 24 * 60 };
+  const trMin = tq === 'personalizado' ? (f.transferir.personalizadoMin || 5) : trDe[tq];
+  $('fuLb1').textContent = 'passa ' + fmt(t[2]) + ' depois da última mensagem do cliente (no lugar da 2ª tentativa)';
+  $('fuLb2').textContent = 'passa ' + fmt(t[3]) + ' depois da última mensagem do cliente (no lugar da 3ª tentativa)';
+  $('fuLb3').textContent = 'passa 24 h depois da última mensagem do cliente';
+  $('fuAvisoWaba').hidden = CANAL !== 'waba';
+  const dias = CANAL === 'waba' ? [7] : [7, 15, 30];
+  $('fuLembretes').textContent = 'Lembretes em ' + dias.map(d => d + ' dias').join(', ') + (CANAL === 'waba' ? ' (no WhatsApp oficial, só o de 7 dias).' : '.');
+  const it = [{ m: 0, c: 'ini', txt: 'Última mensagem do cliente' }];
+  [1, 2, 3].forEach(n => { if (t[n] < trMin) it.push({ m: t[n], c: '', txt: n + 'ª tentativa da IA' }); });
+  it.push({ m: trMin, c: 'transf', txt: '<b>Passa para o vendedor</b>: o ticket vai para o Comercial com o resumo. A IA para de falar com o cliente.' });
+  dias.forEach(d => { if (d * 1440 > trMin) it.push({ m: d * 1440, c: 'ven', txt: 'Lembrete de ' + d + ' dias para o vendedor<small>nota interna no ticket, reabre se estiver fechado</small>' }); });
+  it.sort((a, b) => a.m - b.m);
+  $('linhaTempo').innerHTML = it.map(e => `<li class="${e.c}"><span class="quando">${e.m ? '+' + fmt(e.m) : 'agora'}<small>${fuRelogio(e.m)}</small></span><span class="marca"></span><span>${e.txt}</span></li>`).join('');
+  const cli = it.filter(e => e.c === ''), ven = it.filter(e => e.c === 'ven');
+  const trTxt = tq === 'personalizado' ? 'depois de ' + fmt(trMin) + ' sem resposta' : 'se não responder a ' + { apos_primeiro: 1, apos_segundo: 2, apos_terceiro: 3 }[tq] + 'ª tentativa';
+  $('fuFrase').innerHTML = 'Se o cliente sumir às 14h, ' + (cli.length ? 'a IA tenta falar com ele <b>' + cli.length + (cli.length > 1 ? ' vezes' : ' vez') + '</b> (' + cli.map(e => '+' + fmt(e.m)).join(', ') + ')' : 'a IA <b>não chega a chamar o cliente de novo</b>') +
+    ' e, ' + trTxt + ', <b>passa para o vendedor</b> (' + fuRelogio(trMin) + '). ' +
+    (ven.length ? 'Depois disso o vendedor recebe lembretes em ' + ven.map(e => fmt(e.m)).join(', ') + '.' : 'Sem lembretes depois.') +
+    ' <small class="muted">(Horário de exemplo, sem contar loja fechada.)</small>';
+}
+['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2') atualizar();
+  if (e.target.id === 'persH' || e.target.id === 'persM') { const r = document.querySelector('input[name="fuTr"][value="personalizado"]'); if (!r.checked) r.checked = true; atualizar(); } }));
 
 // ── navegação entre etapas ──
 function irPara(i) {
@@ -1436,7 +1491,7 @@ function montarResumo() {
   const dias = DIAS.filter(([d]) => c.horario[d]).map(([d, n]) => n.slice(0, 3) + ' ' + c.horario[d].join('–')).join(', ') || 'nenhum dia marcado';
   const ROT = { carro: 'carro', moto: 'moto', ambos: 'carro e moto' };
   const deps = c.departamentos.map(d => d.nome + (d.queueId ? ' (ID ' + d.queueId + ')' : ' (sem ID)') + ' — ' + (d.tipo === 'outro' ? 'outro assunto' : 'venda de ' + ROT[d.atende || 'ambos']) + ', ' + (d.distribuicao === 'rodizio' ? 'rodízio' : 'pendente no departamento')).join('; ') || 'nenhum';
-  const tQ = { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas',
+  const tQ = { apos_primeiro: 'se não responder a 1ª tentativa', apos_segundo: 'se não responder a 2ª tentativa', apos_terceiro: 'se não responder a 3ª tentativa (24 h)',
     personalizado: 'depois de ' + fmt(c.followup.transferir.personalizadoMin || 0) }[c.followup.transferir.quando];
   const linhas = [
     ['IA', (c.ia.nome || 'sem nome') + ', tom ' + { acolhedor: 'acolhedor', descontraido: 'descontraído', formal: 'formal' }[c.ia.tom]],
@@ -1454,7 +1509,7 @@ function montarResumo() {
     ['Lead', c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e avisa o gerente' : 'Transferido para o Comercial'],
     ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
-    ['Follow-up', fmt(c.followup.primeiroMin) + ' e ' + fmt(c.followup.segundoMin) + ', transfere ' + tQ]
+    ['Follow-up', 'Tentativas com ' + fmt(c.followup.primeiroMin) + ', ' + fmt(c.followup.segundoMin) + ' e 23 h; passa para o vendedor ' + tQ]
   ];
   $('resumo').innerHTML = linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('');
 }
