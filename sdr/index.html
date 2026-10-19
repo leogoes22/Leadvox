@@ -1163,7 +1163,7 @@ function montarEquipe(c) {
   const usar = LV.filas.length > 0;
   $('equipeNova').hidden = !usar; $('equipeAntiga').hidden = usar;
   if (!usar) {
-    const b = LV_BRUTO, motivo = !b ? 'A conexão desta loja com a LeadVox não respondeu.' : (b.erro || b.error) ? 'A LeadVox respondeu: ' + String(b.erro || b.error).slice(0, 140) : 'A LeadVox respondeu, mas sem nenhum departamento.';
+    const b = LV_BRUTO, motivo = !b ? 'A conexão desta loja com a LeadVox não respondeu.' : (b.erro || b.error) ? 'A LeadVox respondeu: ' + String(b.erro || b.error).slice(0, 400) : 'A LeadVox respondeu, mas sem nenhum departamento.';
     $('eqAvisoTxt').textContent = motivo + ' Por isso aparece o cadastro manual. Tente de novo; se continuar, fale com o suporte.';
     EQ = null; renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); return;
   }
