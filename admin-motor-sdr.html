@@ -415,7 +415,7 @@ const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero
   'followup.transferir.personalizadoMin': 'Transferir após (min)', 'crm.ativo': 'Lança no funil', 'crm.etapaInicialId': 'Etapa inicial do funil',
   'estoque.fonte': 'Sistema de estoque', 'estoque.autocerto.unidade': 'Unidade AutoCerto', 'estoque.autocerto.usuario': 'Usuário AutoCerto',
   'leadvox.tenantId': 'Tenant LeadVox', 'leadvox.sessionId': 'Sessão LeadVox', 'horario.feriados': 'Feriados',
-  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação',
+  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação', 'distribuicao.departamentosIgnorados': 'Departamentos fora da IA',
   'regras.precoModo': 'Quando fala o preço', 'regras.precoFormato': 'Formato do preço', 'regras.precoDepois': 'Depois do preço', 'regras.respostaDesconto': 'Resposta a desconto',
   'ia.tamanho': 'Tamanho das mensagens', 'ia.emojis': 'Emojis', 'ia.tratamento': 'Tratamento', 'vendas.financia': 'Financia', 'vendas.bancos': 'Bancos parceiros',
   'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca',
@@ -432,14 +432,31 @@ function achatar(o, pre, out) {
   return out;
 }
 const IGNORAR = /^(versao|chave|configurada|ativo|bloqueado)(\.|$)|^loja\.(fuso|dominioSite)$|^estoque\.leadvox\.desde$/;
+// campos de departamento e de atendente, com nome de gente (Equipe V2)
+const SUBCAMPO = { nome: 'nome', queueId: 'ID na LeadVox', tipo: 'tipo', atende: 'o que atende', distribuicao: 'como recebe o cliente',
+  finalidade: 'finalidade', userId: 'usuário da LeadVox', departamento: 'departamento', apelidos: 'apelidos' };
 function rotulo(path) {
   if (ROTULO[path]) return ROTULO[path];
+  const eq = /^(departamentos|distribuicao\.vendedores)\[(\d+)\](?:\.(\w+))?/.exec(path);
+  if (eq) return (eq[1] === 'departamentos' ? 'Departamento ' : 'Atendente ') + eq[2] + (eq[3] ? ' › ' + (SUBCAMPO[eq[3]] || eq[3]) : '');
   const m = /^horario\.(\w+)$/.exec(path); if (m && DIA[m[1]]) return 'Horário de ' + DIA[m[1]];
   const s = path.split('.')[0].replace(/\[\d+\]$/, '');
   return (SECAO[s] || s) + ' › ' + path.slice(s.length + 1).replace(/\[(\d+)\]/g, ' $1').replace(/\./g, ' › ');
 }
-function valorTxt(v) {
+const VALOR = {
+  distribuicao: { fila: 'pendente no departamento', rodizio: 'rodízio entre vendedores' },
+  tipo: { venda: 'vendas', outro: 'outro' },
+  quando: { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas', personalizado: 'tempo escolhido' }
+};
+function horasMin(m) {
+  m = Math.round(+m || 0); const h = Math.floor(m / 60), r = m % 60;
+  return h ? h + 'h' + (r ? ' ' + r + 'min' : '') : r + ' min';
+}
+function valorTxt(v, k) {
   if (v === undefined || v === '') return '(vazio)';
+  const ult = String(k || '').split('.').pop();
+  if (VALOR[ult] && VALOR[ult][v]) return VALOR[ult][v];
+  if (k === 'followup.transferir.personalizadoMin' && /^\d+$/.test(v)) return horasMin(v);
   if (v === 'true') return 'sim'; if (v === 'false') return 'não';
   return v.length > 60 ? v.slice(0, 58) + '…' : v;
 }
@@ -447,6 +464,28 @@ function mudancas(nova, velha) {
   const a = achatar(nova || {}, ''), b = achatar(velha || {}, '');
   const chaves = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !IGNORAR.test(k));
   return chaves.filter(k => (a[k] ?? '') !== (b[k] ?? '')).map(k => ({ k, de: b[k], para: a[k] }));
+}
+// Equipe V2: "pendente no departamento" ou "rodízio", no lugar de "fila"
+function resumoDeps(c) {
+  const vs = ((c.distribuicao || {}).vendedores || []);
+  const deps = (c.departamentos || []).map(d => {
+    const rod = d.distribuicao === 'rodizio' || (!d.distribuicao && vs.some(v => v.departamento === d.nome));
+    const n = vs.filter(v => v.departamento === d.nome).length;
+    return d.nome + (rod ? ' (rodízio, ' + n + ' vendedor' + (n === 1 ? '' : 'es') + ')' : ' (pendente no departamento)');
+  });
+  const fora = (c.distribuicao || {}).departamentosIgnorados || [];
+  return (deps.join(', ') || '—') + (fora.length ? ' · fora da IA: ' + fora.map(x => typeof x === 'object' ? x.nome : x).join(', ') : '');
+}
+function resumoAtend(c) {
+  const vs = ((c.distribuicao || {}).vendedores || []).filter(v => v.departamento && v.departamento !== '—');
+  const nomes = [...new Set(vs.map(v => v.nome))];
+  const resp = (c.distribuicao || {}).responsavelVendaConsignacao;
+  return (nomes.length ? nomes.length + ' no rodízio: ' + nomes.join(', ') : 'ninguém no rodízio') + (resp ? ' · consignação: ' + resp : '');
+}
+function quandoTransfere(fu) {
+  const t = fu.transferir || {};
+  if (t.quando === 'personalizado') return 'depois de ' + horasMin(t.personalizadoMin);
+  return VALOR.quando[t.quando] || (t.quando || '').replace(/_/g, ' ');
 }
 function resumoVersao(c) {
   c = c || {};
@@ -459,9 +498,9 @@ function resumoVersao(c) {
     ['Preço', c.regras ? ({ nunca: 'só o consultor informa', quando_perguntar: 'IA informa se perguntarem', com_foto: 'na legenda da foto', primeira_mencao: 'IA fala ao apresentar' }[c.regras.precoModo || (c.regras.informaPreco ? 'quando_perguntar' : 'nunca')]) : '—'],
     ['Pagamento', c.vendas ? (c.vendas.financia === false ? 'não financia' : 'financia') + (c.vendas.troca === 'nao' ? ', sem troca' : '') : '—'],
     ['Perguntas frequentes', String((c.faq || []).length)],
-    ['Departamentos', (c.departamentos || []).map(d => d.nome + (d.queueId ? ' (fila ' + d.queueId + ')' : '')).join(', ') || '—'],
-    ['Atendentes', String(((c.distribuicao || {}).vendedores || []).length)],
-    ['Follow-up', fu.primeiroMin ? fu.primeiroMin + ' e ' + fu.segundoMin + ' min, transfere ' + ((fu.transferir || {}).quando || '').replace(/_/g, ' ') : '—'],
+    ['Departamentos', resumoDeps(c)],
+    ['Atendentes', resumoAtend(c)],
+    ['Follow-up', fu.primeiroMin ? 'mensagens com ' + fu.primeiroMin + ' e ' + fu.segundoMin + ' min; transfere ' + quandoTransfere(fu) : '—'],
     ['Lead', c.lead ? (c.lead.enviarAutoCerto ? 'vai pro AutoCerto e avisa o gerente' : 'transfere pro Comercial') : '—'],
     ['Estoque', (c.estoque || {}).fonte || '—'],
     ['Etiquetas', c.etiquetas ? (c.etiquetas.ativo ? 'marca ' + (c.etiquetas.grupos || []).join(', ') : 'desligadas') : 'não configuradas']
@@ -484,7 +523,7 @@ async function mostrarHistorico(chave) {
         const anterior = vs[i + 1];
         const ms = anterior ? mudancas(v.config, anterior.config) : [];
         const lista = !anterior ? '<li>Primeira versão desta lista.</li>'
-          : ms.length ? ms.slice(0, 6).map(m => `<li><b>${esc(rotulo(m.k))}:</b> <span class="de">${esc(valorTxt(m.de))}</span> → ${esc(valorTxt(m.para))}</li>`).join('') + (ms.length > 6 ? `<li>e mais ${ms.length - 6} alteração(ões).</li>` : '')
+          : ms.length ? ms.slice(0, 6).map(m => `<li><b>${esc(rotulo(m.k))}:</b> <span class="de">${esc(valorTxt(m.de, m.k))}</span> → ${esc(valorTxt(m.para, m.k))}</li>`).join('') + (ms.length > 6 ? `<li>e mais ${ms.length - 6} alteração(ões).</li>` : '')
           : '<li>Sem mudança na configuração.</li>';
         const podeRestaurar = v.config && v.config.ia && v.versao !== HIST.atual;
         return `<div class="versao ${v.versao === HIST.atual ? 'atual' : ''}">
