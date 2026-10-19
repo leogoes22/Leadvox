@@ -515,6 +515,10 @@
       </div>
       <!-- modo antigo — só aparece se não der para buscar os dados da LeadVox -->
       <div id="equipeAntiga">
+      <div class="eq-sync" id="eqAvisoSem">
+        <div><b>Não consegui puxar os departamentos da sua LeadVox</b><span id="eqAvisoTxt">Por isso aparece a tela de cadastro manual. Tente de novo; se continuar, fale com o suporte da LeadVox.</span></div>
+        <button type="button" id="eqTentar">Tentar de novo</button>
+      </div>
       <div class="card">
         <h2>Departamentos</h2>
         <p class="muted">Crie um departamento para cada fila da loja. Os de <b>Venda</b> recebem quem quer comprar: diga se atendem carro, moto ou os dois. Se houver mais de um para o mesmo tipo (ex.: duas lojas de moto), a IA alterna um cliente para cada. Os de <b>Outro assunto</b> recebem documentação, pós-venda etc.: diga o que vai para cada um.</p>
@@ -798,6 +802,7 @@ async function chamarLogin(corpo) {
 function aplicarCarregado(j) {
   CANAL = j.canal || ''; FONTE = j.fonte || '';
   if (j.config && j.config.estoque && j.config.estoque.fonte === 'leadvox') FONTE = 'leadvox';
+  LV_BRUTO = j.leadvox;
   LV = { usuarios: (j.leadvox && Array.isArray(j.leadvox.usuarios)) ? j.leadvox.usuarios : [], etapas: (j.leadvox && Array.isArray(j.leadvox.etapas)) ? j.leadvox.etapas : [], filas: (j.leadvox && Array.isArray(j.leadvox.filas)) ? j.leadvox.filas : [] };
   const cc = j.config || {}; ATIVO = cc.ativo === true; BLOQ = cc.bloqueado === true; CONFIGURADA = cc.configurada === true;
   VERSAO = Number(j.versao) || null; ULTIMA = j.ultima || null; SUPORTE = j.suporte || null;
@@ -1149,6 +1154,7 @@ document.addEventListener('click', (ev) => {
 // então o Motor SDR lê sem mudança. Sem dados da LeadVox: volta a tela antiga.
 // ═══════════════════════════════════════════════════════════════════════════
 var EQ = null;   // var: pode ser lido antes desta linha rodar
+var LV_BRUTO = null;   // o que o servidor devolveu em "leadvox" (para explicar quando não vem departamento)
 const EQ_ASSUNTOS = ['Documentação', 'Boleto / pagamento', 'Garantia', 'Pós-venda', 'Revisão', 'Transferência', 'IPVA / multa'];
 const EQ_RECEBE = [['carro', 'Venda de carro'], ['moto', 'Venda de moto'], ['ambos', 'Carro e moto'], ['outro', 'Outro assunto']];
 const eqSa = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
@@ -1156,7 +1162,11 @@ const eqNomeU = (id) => { const u = LV.usuarios.find(x => String(x.id) === Strin
 function montarEquipe(c) {
   const usar = LV.filas.length > 0;
   $('equipeNova').hidden = !usar; $('equipeAntiga').hidden = usar;
-  if (!usar) { EQ = null; renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); return; }
+  if (!usar) {
+    const b = LV_BRUTO, motivo = !b ? 'A conexão desta loja com a LeadVox não respondeu.' : (b.erro || b.error) ? 'A LeadVox respondeu: ' + String(b.erro || b.error).slice(0, 140) : 'A LeadVox respondeu, mas sem nenhum departamento.';
+    $('eqAvisoTxt').textContent = motivo + ' Por isso aparece o cadastro manual. Tente de novo; se continuar, fale com o suporte.';
+    EQ = null; renderDeps(c.departamentos); renderVend(c.distribuicao.vendedores); return;
+  }
   const salvos = Array.isArray(c.departamentos) ? c.departamentos : [];
   const vends = Array.isArray(c.distribuicao.vendedores) ? c.distribuicao.vendedores : [];
   const ignorados = (c.distribuicao.departamentosIgnorados || []).map(String);
@@ -1261,6 +1271,18 @@ document.addEventListener('keydown', (ev) => {
   const i = ev.target.closest && ev.target.closest('#eqCartoes [data-eq="novoAssunto"]'); if (!i || ev.key !== 'Enter') return;
   ev.preventDefault(); const v = i.value.trim().slice(0, 40); if (!v) return;
   const d = EQ.deps[+i.closest('[data-eqi]').dataset.eqi]; if (!d.assuntos.includes(v)) d.assuntos.push(v); renderEquipe();
+});
+$('eqTentar').addEventListener('click', async () => {
+  const b = $('eqTentar'); b.disabled = true; b.textContent = 'Buscando…';
+  try {
+    const j = await chamar({ acao: 'carregar' });
+    const lv = j.leadvox || {}; LV_BRUTO = j.leadvox;
+    if (Array.isArray(lv.filas) && lv.filas.length) {
+      LV.filas = lv.filas; if (Array.isArray(lv.usuarios)) LV.usuarios = lv.usuarios; if (Array.isArray(lv.etapas)) LV.etapas = lv.etapas;
+      montarEquipe(coletar());
+    } else { montarEquipe(coletar()); }
+  } catch (e) { $('eqAvisoTxt').textContent = 'Não deu certo agora: ' + e.message; }
+  b.disabled = false; b.textContent = 'Tentar de novo';
 });
 $('eqSync').addEventListener('click', async () => {
   const b = $('eqSync'); b.disabled = true; b.textContent = 'Buscando…';
