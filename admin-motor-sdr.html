@@ -4,231 +4,401 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Motor SDR — cadastro de lojas</title>
+<title>Motor SDR — admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #070d1c; --painel: #0e1730; --linha: #1f2b4a; --texto: #e8edf7;
-    --suave: #8b97b3; --verde: #2be87b; --verde-escuro: #0b3d24; --erro: #ff6b6b;
-    --raio: 10px;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--navy); color: var(--texto);
-    font: 16px/1.55 "DM Sans", system-ui, sans-serif; }
-  header { padding: 28px 24px 8px; max-width: 1180px; margin: 0 auto;
-    display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
-  h1 { font: 700 28px/1.1 Syne, sans-serif; margin: 0; letter-spacing: -.01em; }
-  h1 span { color: var(--suave); font-weight: 600; }
-  h2 { font: 600 19px/1.2 Syne, sans-serif; margin: 0 0 4px; }
-  .sub { color: var(--suave); margin: 0 0 20px; font-size: 15px; }
-  main { max-width: 1180px; margin: 0 auto; padding: 16px 24px 64px;
-    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 24px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  section { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 24px; }
-  .largo { grid-column: 1 / -1; }
-  label { display: block; font-size: 14px; font-weight: 500; margin: 14px 0 6px; }
-  label small { color: var(--suave); font-weight: 400; }
-  input, select { width: 100%; padding: 11px 12px; border-radius: var(--raio);
-    border: 1px solid var(--linha); background: var(--navy); color: var(--texto); font: inherit; font-size: 15px; }
-  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
-  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
-  @media (max-width: 520px) { .duas { grid-template-columns: 1fr; } }
-  fieldset { border: 0; padding: 0; margin: 18px 0 0; }
-  legend { font: 600 15px Syne, sans-serif; color: var(--verde); padding: 0; }
-  .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-  button { font: 500 15px "DM Sans", sans-serif; border-radius: var(--raio); padding: 11px 18px;
-    border: 1px solid var(--linha); background: transparent; color: var(--texto); cursor: pointer; }
-  button.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); font-weight: 700; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .chave-admin { display: flex; gap: 8px; align-items: center; }
-  .chave-admin input { width: 260px; }
-  .check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--linha); }
-  .check:first-of-type { border-top: 0; }
-  .ponto { width: 14px; height: 14px; border-radius: 50%; margin-top: 5px; background: var(--linha); }
-  .ok .ponto { background: var(--verde); } .falha .ponto { background: var(--erro); }
-  .check b { display: block; font-weight: 500; }
-  .check span { color: var(--suave); font-size: 14px; }
-  .aviso { color: var(--erro); font-size: 14px; margin: 12px 0 0; }
-  .vazio { color: var(--suave); }
-  .entrega { margin-top: 20px; border-radius: 14px; padding: 22px; background: var(--verde); color: var(--navy); }
-  .entrega h3 { font: 700 20px Syne, sans-serif; margin: 0 0 4px; }
-  .entrega p { margin: 0 0 14px; font-size: 15px; }
-  .campo-copia { display: flex; gap: 8px; margin-bottom: 12px; }
-  .campo-copia input { background: #fff; color: var(--navy); border-color: #fff; font-size: 14px; }
-  .campo-copia button { background: var(--navy); color: #fff; border-color: var(--navy); white-space: nowrap; }
-  .pin { font: 700 30px/1 Syne, sans-serif; letter-spacing: .18em; }
-  .info .ponto { background: var(--suave); }
-  .check.info span { color: var(--texto); }
-  .entrega .rot { margin: 14px 0 6px; font-weight: 700; font-size: 14px; }
-  .entrega .rot small { display: block; font-weight: 400; opacity: .8; }
-  .entrega .tudo { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; margin-top: 6px; }
-  .entrega hr { border: 0; border-top: 1px solid rgba(7,13,28,.25); margin: 18px 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; color: var(--suave); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--linha); }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
-  .tabela { overflow-x: auto; }
-  .etiqueta { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--linha); color: var(--suave); }
-  .etiqueta.pronta { border-color: var(--verde); color: var(--verde); }
-  td button { padding: 7px 12px; font-size: 13px; }
-  .acoes-linha { display: flex; flex-wrap: wrap; gap: 6px; min-width: 300px; }
-  button.ia { border-color: var(--verde); color: var(--verde); font-weight: 700; }
-  .mini { display: block; color: var(--suave); font-size: 12px; margin-top: 4px; }
-  .etiqueta.sup { border-color: #f5c451; color: #f5c451; margin-left: 4px; }
-  a.botao { display: inline-block; text-decoration: none; font: 700 15px "DM Sans", sans-serif; border-radius: var(--raio);
-    padding: 11px 18px; background: var(--navy); color: #fff; margin: 4px 0 14px; }
-  .entrega .perigo { background: transparent; border-color: var(--navy); color: var(--navy); margin-top: 6px; }
-  /* histórico */
-  .hist-topo { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-  .versao { border-top: 1px solid var(--linha); padding: 14px 0; display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; align-items: start; }
-  .versao:first-of-type { border-top: 0; }
-  .versao .num { font: 700 18px Syne, sans-serif; color: var(--suave); }
-  .versao.atual .num { color: var(--verde); }
-  .versao .quem { font-weight: 700; }
-  .versao .quem small { font-weight: 400; color: var(--suave); margin-left: 6px; }
-  .mudancas { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; color: var(--suave); }
-  .mudancas li { padding: 2px 0; }
-  .mudancas b { color: var(--texto); font-weight: 500; }
-  .mudancas .de { text-decoration: line-through; opacity: .7; }
-  .detalhe { grid-column: 2 / -1; background: var(--navy); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; font-size: 13px; margin-top: 6px; }
-  .detalhe dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
-  .detalhe dt { color: var(--suave); } .detalhe dd { margin: 0; }
-  .versao .botoes { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
-  .versao .botoes button { padding: 7px 12px; font-size: 13px; white-space: nowrap; }
-  @media (max-width: 640px) { .versao { grid-template-columns: 48px 1fr; } .versao .botoes { grid-column: 2; flex-direction: row; flex-wrap: wrap; } .detalhe { grid-column: 1 / -1; } }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--texto); color: var(--navy);
-    padding: 10px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
-  .toast.on { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
-  /* dentro do admin unificado (admin.html) */
-  .embed header { display: none; }
-  .embed main { padding-top: 8px; }
+  :root{--navy:#070d1c;--painel:#0e1730;--painel2:#121d3a;--linha:#1f2b4a;--texto:#e8edf7;--suave:#8b97b3;--verde:#2be87b;--verde-f:rgba(43,232,123,.12);--amarelo:#f5c451;--amarelo-f:rgba(245,196,81,.12);--erro:#ff6b6b;--erro-f:rgba(255,107,107,.12);--raio:10px}
+  *{box-sizing:border-box}[hidden]{display:none!important}
+  body{margin:0;background:var(--navy);color:var(--texto);font:15px/1.5 "DM Sans",system-ui,sans-serif}
+  h1,h2,h3{font-family:Syne,sans-serif;margin:0;letter-spacing:-.01em}
+  button{font:500 14px "DM Sans",sans-serif;border-radius:var(--raio);padding:8px 14px;border:1px solid var(--linha);background:transparent;color:var(--texto);cursor:pointer}
+  button.principal{background:var(--verde);border-color:var(--verde);color:var(--navy);font-weight:700}
+  button.mini{padding:5px 10px;font-size:13px;white-space:nowrap}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--verde);outline-offset:2px}
+  input,select{font:inherit;font-size:14px;background:var(--navy);color:var(--texto);border:1px solid var(--linha);border-radius:var(--raio);padding:8px 11px;color-scheme:dark}
+  .muted,small{color:var(--suave)}
+  .topo{max-width:1240px;margin:0 auto;padding:20px 20px 0;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .topo h1{font-size:24px}.topo h1 span{color:var(--suave);font-weight:600}
+  .topo .dir{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .topo input{width:200px}
+  #quando{font-size:12.5px}
+  main{max-width:1240px;margin:0 auto;padding:16px 20px 60px}
+  .card{background:var(--painel);border:1px solid var(--linha);border-radius:14px;padding:16px}
+  .faixa{border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:14px;border:1px solid}
+  .pill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;border-radius:99px;padding:2px 9px;border:1px solid var(--linha);white-space:nowrap}
+  .pill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .ok{color:var(--verde);border-color:rgba(43,232,123,.35);background:var(--verde-f)}
+  .warn{color:var(--amarelo);border-color:rgba(245,196,81,.35);background:var(--amarelo-f)}
+  .bad{color:var(--erro);border-color:rgba(255,107,107,.35);background:var(--erro-f)}
+  .neutro{color:var(--suave)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi b{display:block;font:700 26px Syne,sans-serif}.kpi small{font-size:12.5px}
+  .alto{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+  .fila-alerta{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:330px;overflow:auto}
+  .fila-alerta .item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--linha);border-radius:10px;padding:10px 12px;cursor:pointer}
+  .item.sel{border-color:var(--verde)}
+  .bar-linha{cursor:pointer;border-radius:8px;padding:4px 6px;margin:0 -6px}
+  .bar-linha:hover,.bar-linha.sel{background:var(--painel2)}
+  .barra-uso{height:8px;border-radius:99px;background:var(--linha);overflow:hidden;margin-top:4px}
+  .barra-uso span{display:block;height:100%;background:var(--verde)}
+  .barra-uso span.quente{background:var(--erro)}
+  .dividido{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;align-items:start}
+  .barra-filtro{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 8px 10px}
+  .barra-filtro input{flex:1;min-width:140px}
+  .rolo{max-height:620px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:580px}
+  th{text-align:left;font-weight:500;color:var(--suave);font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--linha);position:sticky;top:0;background:var(--painel)}
+  th.ord{cursor:pointer}th.ord:hover{color:var(--texto)}
+  td{padding:10px;border-bottom:1px solid var(--linha);vertical-align:middle}
+  tbody tr{cursor:pointer}tbody tr:hover td{background:#101a36}tr.sel td{background:var(--painel2)}
+  .detalhe{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+  .abas{display:flex;gap:2px;border-bottom:1px solid var(--linha);overflow-x:auto;margin:12px 0}
+  .abas button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:9px 9px;color:var(--suave)}
+  .abas button[aria-selected=true]{color:var(--texto);border-bottom-color:var(--verde)}
+  .pilha{display:flex;flex-direction:column;gap:12px}
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .nums b{display:block;font-size:18px;font-family:Syne,sans-serif}
+  .nums small{display:block;font-size:11.5px;line-height:1.3}
+  .alerta{font-size:13px;border-radius:8px;padding:7px 10px;border:1px solid}
+  .linha-info{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--linha);font-size:14px}
+  .linha-info:last-child{border-bottom:0}.linha-info span:last-child{text-align:right}
+  .acoes-grade{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .acoes-grade button{text-align:left;padding:10px 12px}
+  .acoes-grade button small{display:block;font-size:12px}
+  .perigo{color:var(--erro);border-color:rgba(255,107,107,.4)}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:60px;margin-top:6px}
+  .spark i{flex:1;background:var(--verde);border-radius:3px 3px 0 0;opacity:.75;min-height:2px}
+  .spark i.hoje{opacity:1}.spark i.pico{background:var(--erro);opacity:1}
+  .eixo{display:flex;justify-content:space-between;font-size:11px;color:var(--suave);margin-top:4px}
+  .contato{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--linha);font-size:13.5px}
+  .contato:last-child{border-bottom:0}
+  .contato .barra-uso{grid-column:1/-1;margin-top:2px}
+  .campo-copia{display:flex;gap:8px;margin-bottom:10px}.campo-copia input{flex:1;font-size:12.5px;min-width:0}
+  .rot{margin:8px 0 4px;font-size:13.5px;font-weight:500}.rot small{display:block;font-weight:400;font-size:12px}
+  .versao{border-top:1px solid var(--linha);padding:10px 0}
+  .versao:first-child{border-top:0}
+  .versao .cab{display:flex;justify-content:space-between;gap:8px;align-items:start}
+  .versao .num{font:700 15px Syne,sans-serif;color:var(--suave);margin-right:6px}.versao.atual .num{color:var(--verde)}
+  .mudancas{list-style:none;margin:4px 0 0;padding:0;font-size:12.5px;color:var(--suave)}
+  .mudancas b{color:var(--texto);font-weight:500}.mudancas .de{text-decoration:line-through;opacity:.7}
+  .resumo{background:var(--navy);border:1px solid var(--linha);border-radius:var(--raio);padding:10px 12px;font-size:12.5px;margin-top:6px}
+  .resumo dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;margin:0}.resumo dt{color:var(--suave)}.resumo dd{margin:0}
+  .caixa{background:var(--navy);border:1px solid var(--verde);border-radius:12px;padding:12px}
+  /* modal */
+  .fundo{position:fixed;inset:0;background:rgba(3,6,14,.65);z-index:10}
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(600px,94vw);max-height:92vh;overflow:auto;background:var(--painel);border:1px solid var(--linha);border-radius:16px;z-index:11;padding:20px}
+  .passos{display:flex;gap:6px;margin:12px 0 16px}.passos span{flex:1;height:4px;border-radius:99px;background:var(--linha)}.passos span.on{background:var(--verde)}
+  .modal label{display:block;font-size:13.5px;margin:10px 0 4px}.modal label small{font-weight:400}
+  .modal input,.modal select{width:100%}
+  .duas-col{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .rodape{display:flex;justify-content:space-between;gap:8px;margin-top:18px;flex-wrap:wrap}
+  .check{display:grid;grid-template-columns:18px 1fr;gap:8px;padding:8px 0;border-top:1px solid var(--linha);font-size:14px}
+  .check:first-child{border-top:0}
+  .check .ponto{width:12px;height:12px;border-radius:50%;margin-top:5px;background:var(--linha)}
+  .check.okc .ponto{background:var(--verde)}.check.falha .ponto{background:var(--erro)}.check.info .ponto{background:var(--suave)}
+  .check b{display:block;font-weight:500}.check span{color:var(--suave);font-size:13px}
+  .erro-txt{color:var(--erro);font-size:14px;margin:10px 0 0}
+  .pin{font:700 28px/1 Syne,sans-serif;letter-spacing:.18em;margin:6px 0}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--texto);color:var(--navy);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .toast.on{opacity:1}
+  @media(max-width:980px){.dividido{grid-template-columns:minmax(0,1fr)}.detalhe{position:static;max-height:none}}
+  @media(max-width:900px){.alto{grid-template-columns:1fr}}
+  @media(max-width:800px){.kpis{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){.kpi b{font-size:20px}main{padding:12px 16px 48px}.topo{padding:16px 16px 0}.topo input{width:100%}.topo .dir{width:100%}.duas-col{grid-template-columns:1fr}.acoes-grade{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
-<script>if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');</script>
 </head>
 <body>
-<header>
-  <h1>Motor SDR <span>cadastro de lojas</span></h1>
-  <div class="chave-admin">
-    <label for="adminKey" style="margin:0">Chave de admin</label>
-    <input id="adminKey" type="password" autocomplete="off" placeholder="a mesma do n8n">
+<div class="topo">
+  <h1>Motor SDR <span>admin</span></h1>
+  <div class="dir">
+    <input id="adminKey" type="password" autocomplete="off" placeholder="Chave de admin" aria-label="Chave de admin">
+    <button id="btAtualizar" type="button">Atualizar</button>
+    <button class="principal" type="button" data-novo>+ Nova loja</button>
+    <span id="quando" class="muted"></span>
   </div>
-</header>
-
+</div>
 <main>
-  <section>
-    <h2 id="tituloForm">Nova loja</h2>
-    <p class="sub" id="subForm">Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.</p>
+  <div id="faixas"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="alto">
+    <div class="card"><h3 style="font-size:16px">⚠️ Precisa de você <span id="nAlertas" class="muted"></span></h3>
+      <p class="muted" style="font-size:13px;margin:4px 0 0">O que pode estar fazendo a loja perder cliente ou gastar demais. Clique para abrir ao lado.</p>
+      <div class="fila-alerta" id="alertas"></div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="font-size:16px">💰 Consumo de IA</h3>
+      <select id="periodo" aria-label="Período"><option value="hoje">Hoje</option><option value="7d">Últimos 7 dias</option><option value="30d">Últimos 30 dias</option></select></div>
+      <p class="muted" style="font-size:13px;margin:4px 0 0" id="consumoSub">Custo estimado pelas respostas da IA. Vermelho = custo por conversa bem acima da média (costuma ser loop com robô).</p>
+      <div id="consumo" style="margin-top:10px;display:flex;flex-direction:column;gap:4px"></div></div>
+  </div>
+  <div class="dividido">
+    <div class="card" style="padding:8px 4px">
+      <div class="barra-filtro"><input id="busca" placeholder="Buscar loja…" aria-label="Buscar loja">
+        <select id="filtro" aria-label="Filtro"><option value="todas">Todas as situações</option><option value="atencao">Precisam de atenção</option><option value="desligada">IA desligada ou suspensa</option><option value="waba">API oficial</option><option value="qr">QR code</option></select></div>
+      <div class="rolo"><table><thead><tr><th class="ord" data-ord="nome">Loja</th><th>Situação</th><th class="ord" data-ord="conv">Conversas</th><th class="ord" data-ord="transf">Passou p/ equipe</th><th class="ord" data-ord="custo">Custo IA</th><th class="ord" data-ord="ult">Última IA</th></tr></thead><tbody id="tabela"><tr><td colspan="6" class="muted">Informe a chave de admin e clique em "Atualizar".</td></tr></tbody></table></div>
+    </div>
+    <aside class="card detalhe" id="detalhe" aria-live="polite"><p class="muted" style="margin:0">Escolha uma loja na lista.</p></aside>
+  </div>
+</main>
+
+<!-- Nova loja / Editar acesso -->
+<div id="camada" hidden>
+  <div class="fundo" data-fechar></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitulo">
+    <div style="display:flex;justify-content:space-between;gap:8px"><h2 style="font-size:19px" id="mTitulo">Nova loja</h2><button class="mini" type="button" data-fechar aria-label="Fechar">✕</button></div>
+    <div class="passos"><span></span><span></span><span></span></div>
     <form id="form" autocomplete="off" onsubmit="return false">
-      <label for="nome">Nome da loja</label>
-      <input id="nome" required placeholder="Ex.: MG Motos">
-
-      <fieldset>
-        <legend>Estoque</legend>
+      <div data-passo="1">
+        <h3 style="font-size:16px">1 · A loja e o estoque</h3>
+        <p class="muted" style="font-size:13.5px;margin:4px 0 0" id="mSub">Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.</p>
+        <label for="nome">Nome da loja</label><input id="nome" placeholder="Ex.: MG Motos">
         <label for="fonte">Sistema de estoque da loja</label>
-        <select id="fonte">
-          <option value="autocerto">AutoCerto</option>
-          <option value="revendamais">Revenda Mais</option>
-          <option value="leadvox">Estoque LeadVox (próprio · R$ 69,90/mês)</option>
-        </select>
-        <div id="blocoAC">
-          <div class="duas">
-            <div><label for="unidade">Código de unidade</label><input id="unidade" inputmode="numeric" placeholder="Ex.: 4425"></div>
-            <div><label for="usuario">Usuário da API</label><input id="usuario" placeholder="loja@autocerto.com"></div>
-          </div>
-          <label for="senha">Senha da API</label>
-          <input id="senha" type="password">
-        </div>
-        <p id="blocoLV" class="sub" style="margin:12px 0 0" hidden>A loja cadastra os próprios veículos e fotos no painel dela (aba <b>Estoque</b>). Não precisa de AutoCerto nem de Revenda Mais.</p>
-        <div id="blocoRM" hidden>
-          <label for="feedUrl">URL do feed JSON do Revenda Mais</label>
-          <input id="feedUrl" placeholder="https://…/appdaloja/…json">
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>LeadVox</legend>
+        <select id="fonte"><option value="autocerto">AutoCerto</option><option value="revendamais">Revenda Mais</option><option value="leadvox">Estoque LeadVox (próprio · R$ 69,90/mês)</option></select>
+        <div id="blocoAC"><div class="duas-col">
+          <div><label for="unidade">Código de unidade</label><input id="unidade" inputmode="numeric" placeholder="Ex.: 4425"></div>
+          <div><label for="usuario">Usuário da API</label><input id="usuario" placeholder="loja@autocerto.com"></div></div>
+          <label for="senha">Senha da API</label><input id="senha" type="password"></div>
+        <div id="blocoRM" hidden><label for="feedUrl">URL do feed JSON do Revenda Mais</label><input id="feedUrl" placeholder="https://…/appdaloja/…json"></div>
+        <p id="blocoLV" class="muted" style="font-size:13.5px;margin:10px 0 0" hidden>A loja cadastra os próprios veículos e fotos no painel dela (aba <b>Estoque</b>).</p>
+      </div>
+      <div data-passo="2" hidden>
+        <h3 style="font-size:16px">2 · LeadVox e conferência</h3>
         <label for="urlEnvio">URL de envio da API externa <small>(completa, com ?token=)</small></label>
         <input id="urlEnvio" type="password" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…">
-        <label for="tokenRest">Token da API REST <small>(opcional: etiquetas e leitura do CRM; vazio = usa o da URL de envio)</small></label>
+        <label for="tokenRest">Token da API REST <small>(opcional; vazio = usa o da URL de envio)</small></label>
         <input id="tokenRest" type="password">
-      </fieldset>
-
-      <div class="acoes">
-        <button id="btTestar" type="button">Testar conexões</button>
-        <button id="btCriar" type="button" class="principal" disabled>Criar loja e gerar link</button>
-        <button id="btCancelar" type="button" hidden>Cancelar edição</button>
+        <button type="button" id="btTestar" style="margin-top:12px">Testar conexões</button>
+        <div id="checks" style="margin-top:10px"><p class="muted" style="font-size:13.5px;margin:0">O link só é gerado depois que as duas conexões passarem no teste.</p></div>
+        <p class="erro-txt" id="mErro" hidden></p>
       </div>
+      <div data-passo="3" hidden><div id="entrega"></div></div>
     </form>
-  </section>
-
-  <section aria-live="polite">
-    <h2>Conferência</h2>
-    <p class="sub">O link só é gerado depois que as duas conexões passarem no teste.</p>
-    <div id="checks"><p class="vazio">Preencha os dados e clique em "Testar conexões".</p></div>
-    <p class="aviso" id="aviso" hidden></p>
-    <div id="entrega"></div>
-  </section>
-
-  <section class="largo">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <div><h2>Lojas cadastradas</h2><p class="sub" style="margin:0">"Editar IA" abre a configuração da IA da loja sem a senha do dono. "Histórico" mostra quem mudou o quê e permite voltar uma versão.</p></div>
-      <button id="btListar" type="button">Atualizar lista</button>
+    <div class="rodape">
+      <button type="button" id="btVoltar">Voltar</button>
+      <button type="button" class="principal" id="btAvancar">Próximo</button>
     </div>
-    <div class="tabela" id="lista" style="margin-top:14px"><p class="vazio">Informe a chave de admin e clique em "Atualizar lista".</p></div>
-  </section>
-
-  <section class="largo" id="painelHist" hidden aria-live="polite"></section>
-</main>
+  </div>
+</div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-admin';
+// ═══════════════ ENDEREÇOS ═══════════════
+const API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-admin';            // cadastro e ações (workflow Admin)
+const API_CENTRAL = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-admin-central'; // métricas (workflow Admin Central)
+const PLUGIN_VENDEDOR_PADRAO = 'https://leadvox.com.br/sdr/plugin/';
+const BASE_WH = API.replace(/\/sdr-admin\/?$/, '/');
+
 const $ = (id) => document.getElementById(id);
-let testado = null, editando = null;
-const LOJAS = {};
-const SECRETOS = ['senha', 'feedUrl', 'urlEnvio', 'tokenRest'];
-function modoEdicao(l) {
-  editando = l ? l.chave : null;
-  $('tituloForm').textContent = l ? 'Editar acesso: ' + l.nome : 'Nova loja';
-  $('subForm').textContent = l ? 'Deixe em branco o que não mudou. Senha, URL e token atuais continuam valendo.' : 'Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.';
-  $('btCriar').textContent = l ? 'Salvar alterações' : 'Criar loja e gerar link';
-  $('btCancelar').hidden = !l;
-  $('nome').disabled = !!l;
-  ['nome', 'unidade', 'usuario', ...SECRETOS].forEach(id => $(id).value = '');
-  SECRETOS.forEach(id => $(id).placeholder = l ? 'Em branco = manter a atual' : ($(id).dataset.ph || ''));
-  if (l) {
-    $('nome').value = l.nome || ''; $('fonte').value = ['revendamais', 'leadvox'].includes(l.fonte) ? l.fonte : 'autocerto';
-    $('unidade').value = l.unidade || ''; $('usuario').value = l.usuario || '';
-  } else { $('fonte').value = 'autocerto'; }
-  $('fonte').dispatchEvent(new Event('change'));
-  $('checks').innerHTML = '<p class="vazio">' + (l ? 'Mude o que precisar e clique em "Testar conexões".' : 'Preencha os dados e clique em "Testar conexões".') + '</p>';
-  $('aviso').hidden = true; $('entrega').innerHTML = ''; invalidar();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = (v) => 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ',');
+const num = (v) => (v === undefined || v === null) ? '—' : String(v);
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
+function haQuanto(ms) {
+  if (!ms) return '—'; const s = (Date.now() - ms) / 1000;
+  if (s < 90) return 'agora'; if (s < 3600) return Math.round(s / 60) + ' min';
+  if (s < 86400 * 2) return Math.round(s / 3600) + ' h'; return Math.round(s / 86400) + ' dias';
 }
-SECRETOS.forEach(id => { const el = document.getElementById(id); if (el) el.dataset.ph = el.placeholder; });
+const haTxt = (ms) => { const q = haQuanto(ms); return q === '—' || q === 'agora' ? q : 'há ' + q; };
+function dataCurta(iso) { const d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às'); }
+function horaCurta(iso) { const d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }); }
+function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
+function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
 
 try { $('adminKey').value = sessionStorage.getItem('sdrAdminKey') || ''; } catch (e) {}
 $('adminKey').addEventListener('change', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} });
+$('adminKey').addEventListener('keydown', e => { if (e.key === 'Enter') { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (x) {} carregar(); } });
 
-$('fonte').addEventListener('change', () => {
-  const f = $('fonte').value;
-  $('blocoAC').hidden = f !== 'autocerto'; $('blocoRM').hidden = f !== 'revendamais'; $('blocoLV').hidden = f !== 'leadvox'; invalidar();
-});
-document.querySelectorAll('#form input, #form select').forEach(el => el.addEventListener('input', invalidar));
-function invalidar() { testado = null; $('btCriar').disabled = true; }
-
-function dados() {
-  return { nome: $('nome').value.trim(), fonte: $('fonte').value, unidade: $('unidade').value.trim(),
-    usuario: $('usuario').value.trim(), senha: $('senha').value, feedUrl: $('feedUrl').value.trim(),
-    urlEnvio: $('urlEnvio').value.trim(), tokenRest: $('tokenRest').value.trim() };
+async function postar(url, corpo) {
+  const adminKey = $('adminKey').value;
+  if (!adminKey) { const e = new Error('Informe a chave de admin no topo da página.'); e.auth = true; throw e; }
+  let r;
+  try { r = await fetch(url, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey, ...corpo }) }) }); }
+  catch (x) { const e = new Error('Sem resposta do n8n.'); e.rede = true; throw e; }
+  let j = {}; try { j = await r.json(); } catch (x) {}
+  if (!r.ok || j.ok === false) { const e = new Error(j.erro || j.message || ('O n8n respondeu HTTP ' + r.status + '.')); e.status = r.status; e.auth = r.status === 401 || r.status === 403; throw e; }
+  return j;
 }
-function hexAleatorio(n) { const a = new Uint8Array(n / 2); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
-function pinAleatorio() { const a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
-const BASE_WH = API.replace(/\/sdr-admin\/?$/, '/');
-// plugin do vendedor (estoque): mesma chave da loja, serve AutoCerto, Revenda Mais e Estoque LeadVox
-const PLUGIN_VENDEDOR_PADRAO = 'https://leadvox.com.br/sdr/plugin/';
+const chamar = (corpo) => postar(API, corpo);
+
+// ═══════════════ ESTADO ═══════════════
+let LOJAS = [], META = {}, IDX = {};
+let sel = null, aba = 'geral', periodo = 'hoje', ord = 'custo', filtro = 'todas';
+let SUPORTE = {};            // chave → { link, expiraEm }
+let HIST = { chave: null, versoes: [], atual: null, carregando: false, erro: '' };
+
+const vazio = { resp: 0, conv: 0, robos: 0, custo: 0 };
+const M = (l) => l.m || { hoje: vazio, d7: vazio, d30: vazio, serie: [], top: [], pausados: [] };
+const per = (l) => { const m = M(l); return periodo === 'hoje' ? m.hoje : periodo === '7d' ? m.d7 : m.d30; };
+const transfP = (l) => periodo === '30d' ? undefined : per(l).transf;
+const nomePer = () => ({ hoje: 'hoje', '7d': 'em 7 dias', '30d': 'em 30 dias' })[periodo];
+const fonteNome = (f) => f === 'revendamais' ? 'Revenda Mais' : f === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto';
+const canalNome = (c) => c === 'waba' ? 'API oficial' : c ? 'QR code' : '?';
+function status(l) {
+  if (l.bloqueado) return ['neutro', 'Suspensa por você'];
+  if (!l.configurada) return ['warn', 'Aguardando o dono'];
+  if (!l.ativo) return ['bad', 'IA desligada'];
+  const al = l.alertas || [];
+  if (al.some(a => a.t === 'bad')) return ['bad', 'Urgente'];
+  if (al.length) return ['warn', 'Atenção'];
+  return ['ok', 'Funcionando'];
+}
+const pill = (c, t) => `<span class="pill ${c}"><i></i>${esc(t)}</span>`;
+
+// ═══════════════ CARREGAR ═══════════════
+let carregando = false;
+async function carregar(silencioso) {
+  if (carregando) return; carregando = true;
+  const bt = $('btAtualizar'); bt.disabled = true; bt.textContent = 'Atualizando…';
+  const faixas = [];
+  try {
+    let j;
+    try { j = await postar(API_CENTRAL, { acao: 'painel' }); META = { ...j, semMetricas: false }; }
+    catch (e) {
+      if (e.auth) throw e;
+      j = await chamar({ acao: 'listar' });        // sem o Admin Central: só a lista, sem números
+      META = { semMetricas: true, motivo: e.message };
+    }
+    LOJAS = j.lojas || []; IDX = {}; LOJAS.forEach(l => IDX[l.chave] = l);
+    if (!sel || !IDX[sel]) { const pior = LOJAS.slice().sort((a, b) => rank(a) - rank(b))[0]; sel = pior ? pior.chave : null; }
+    if (META.semMetricas) faixas.push(['warn', '📊 Métricas indisponíveis (' + esc(META.motivo) + '). Importe e ative o workflow <b>V0.1 SDR Motor · Admin Central</b> no n8n. A lista e as ações funcionam normalmente.']);
+    else if (!META.temRelatorio) faixas.push(['warn', '“Passou p/ equipe” e “visitas” aparecem depois que o motor <b>V1.4.2</b> estiver instalado (ele grava esses contadores).']);
+    $('quando').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    tudo();
+  } catch (e) {
+    if (!silencioso || e.auth) faixas.push(['bad', esc(e.message)]);
+    if (e.auth) { LOJAS = []; tudo(); }
+  }
+  $('faixas').innerHTML = faixas.map(([c, t]) => `<div class="faixa ${c}">${t}</div>`).join('');
+  bt.disabled = false; bt.textContent = 'Atualizar'; carregando = false;
+}
+function rank(l) { const c = status(l)[0]; return c === 'bad' ? 0 : c === 'warn' ? 1 : c === 'ok' ? 2 : 3; }
+$('btAtualizar').addEventListener('click', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} carregar(); });
+setInterval(() => { if (document.visibilityState === 'visible' && $('adminKey').value && $('camada').hidden && document.activeElement.id !== 'telBloq') carregar(true); }, 180000);
+
+// ═══════════════ TOPO: KPIs, ALERTAS, CONSUMO ═══════════════
+function renderKpis() {
+  if (!LOJAS.length) { $('kpis').innerHTML = ''; return; }
+  const ligadas = LOJAS.filter(l => l.ativo && !l.bloqueado).length;
+  const conv = LOJAS.reduce((s, l) => s + (M(l).hoje.conv || 0), 0);
+  const tr = META.temRelatorio ? LOJAS.reduce((s, l) => s + (M(l).hoje.transf || 0), 0) : null;
+  const custo = LOJAS.reduce((s, l) => s + (per(l).custo || 0), 0);
+  const sm = META.semMetricas;
+  $('kpis').innerHTML = [
+    [ligadas + '/' + LOJAS.length, 'lojas com a IA ligada'],
+    [sm ? '—' : conv, 'conversas com a IA hoje'],
+    [tr === null ? '—' : tr, 'passadas para a equipe hoje'],
+    [sm ? '—' : brl(custo), 'custo estimado de IA ' + nomePer()]
+  ].map(([b, s]) => `<div class="card kpi"><b>${esc(b)}</b><small>${esc(s)}</small></div>`).join('');
+}
+function renderAlertas() {
+  const al = LOJAS.flatMap(l => (l.alertas || []).map(a => ({ ...a, l }))).sort((a, b) => (a.t === 'bad' ? 0 : 1) - (b.t === 'bad' ? 0 : 1));
+  $('nAlertas').textContent = '(' + al.length + ')';
+  $('alertas').innerHTML = al.length ? al.map(a => `<div class="item ${a.l.chave === sel ? 'sel' : ''}" data-sel="${esc(a.l.chave)}" data-ir="${/loop|robô|custo/i.test(a.m) ? 'consumo' : 'geral'}">
+      <div>${pill(a.t, a.t === 'bad' ? 'Urgente' : 'Atenção')} <b style="font-weight:500;margin-left:6px">${esc(a.l.nome)}</b><br><small>${esc(a.m)}</small></div>
+      <button class="mini" type="button">Ver →</button></div>`).join('')
+    : `<p class="muted" style="font-size:14px;margin:6px 0 0">${LOJAS.length ? (META.semMetricas ? 'Sem métricas, só os alertas de situação da loja.' : 'Nada pedindo atenção agora. 🎉') : '—'}</p>`;
+}
+function renderConsumo() {
+  if (META.semMetricas || !LOJAS.length) { $('consumo').innerHTML = '<p class="muted" style="font-size:14px;margin:0">—</p>'; return; }
+  const lista = LOJAS.slice().sort((a, b) => (per(b).custo || 0) - (per(a).custo || 0)).slice(0, 8);
+  const max = Math.max(0.01, ...lista.map(l => per(l).custo || 0));
+  $('consumo').innerHTML = lista.map(l => { const p = per(l), q = periodo === 'hoje' && M(l).quente;
+    return `<div class="bar-linha ${l.chave === sel ? 'sel' : ''}" data-sel="${esc(l.chave)}" data-ir="consumo">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;gap:8px"><span>${esc(l.nome)}${q ? ' <span class="pill bad" style="margin-left:4px">custo alto por conversa</span>' : ''}</span>
+      <span class="muted" style="white-space:nowrap">${brl(p.custo)} · ${p.resp} resp.</span></div>
+      <div class="barra-uso"><span class="${q ? 'quente' : ''}" style="width:${((p.custo || 0) / max * 100).toFixed(0)}%"></span></div></div>`; }).join('');
+  $('consumoSub').textContent = 'Estimativa: respostas da IA × ' + brl(META.custoPorResposta) + '. Vermelho = custo por conversa bem acima da média (costuma ser loop com robô).';
+}
+
+// ═══════════════ TABELA ═══════════════
+function renderTabela() {
+  if (!LOJAS.length) return;
+  const q = $('busca').value.toLowerCase().trim();
+  const passa = l => (!q || (l.nome || '').toLowerCase().includes(q) || (l.nomeIA || '').toLowerCase().includes(q) || (l.chave || '').includes(q)) &&
+    (filtro === 'todas' || (filtro === 'atencao' ? ['bad', 'warn'].includes(status(l)[0]) : filtro === 'desligada' ? (!l.ativo || l.bloqueado) : filtro === 'waba' ? l.canal === 'waba' : l.canal !== 'waba'));
+  const val = (l) => ord === 'conv' ? per(l).conv || 0 : ord === 'transf' ? transfP(l) || 0 : ord === 'custo' ? per(l).custo || 0 : M(l).ultIA || 0;
+  const lista = LOJAS.filter(passa).sort((a, b) => ord === 'nome' ? (a.nome || '').localeCompare(b.nome || '') : val(b) - val(a) || rank(a) - rank(b));
+  const sm = META.semMetricas;
+  $('tabela').innerHTML = lista.map(l => { const [c, t] = status(l), p = per(l);
+    return `<tr class="${l.chave === sel ? 'sel' : ''}" data-sel="${esc(l.chave)}">
+      <td><b style="font-weight:500">${esc(l.nome)}</b><br><small>${l.nomeIA ? 'IA ' + esc(l.nomeIA) + ' · ' : ''}${canalNome(l.canal)}</small></td>
+      <td>${pill(c, t)}${l.suporteAberto ? ' <span class="pill warn">suporte</span>' : ''}</td>
+      <td>${sm ? '—' : p.conv}</td><td>${sm ? '—' : num(transfP(l))}</td>
+      <td style="white-space:nowrap">${sm ? '—' : brl(p.custo) + (periodo === 'hoje' && M(l).quente ? ' 🔥' : '')}</td>
+      <td><small>${sm ? '—' : haQuanto(M(l).ultIA)}</small></td></tr>`; }).join('') || '<tr><td colspan="6" class="muted">Nenhuma loja com esse filtro.</td></tr>';
+  document.querySelectorAll('th[data-ord]').forEach(th => th.style.color = th.dataset.ord === ord ? 'var(--verde)' : '');
+}
+
+// ═══════════════ DETALHE ═══════════════
+function quemFez(origem) {
+  const o = String(origem || '');
+  if (o === 'plugin') return 'dono da loja';
+  if (o.startsWith('suporte')) return (o.split(':')[1] || 'LeadVox') + ' (suporte)';
+  if (o.startsWith('restaurar')) { const p = o.split(':'); return (p[2] || 'LeadVox') + ' restaurou a versão ' + (p[1] || '?'); }
+  if (o === 'admin') return 'cadastro da loja'; if (o === 'admin-acesso') return 'acesso editado no admin'; if (o === 'carga-n8n') return 'carga inicial';
+  return o || 'desconhecido';
+}
+function corpoGeral(l) {
+  const m = M(l), h = m.hoje, sm = META.semMetricas;
+  const info = [['IA', (l.nomeIA || 'ainda sem nome') + (l.bloqueado ? ' · suspensa' : l.ativo ? ' · ligada' : ' · desligada')],
+    ['WhatsApp', canalNome(l.canal)], ['Estoque', fonteNome(l.fonte)], ['Tenant LeadVox', l.tenantId || '—']];
+  if (!sm) info.push(['Última resposta da IA', haTxt(m.ultIA)],
+    ['Última msg do cliente (Sentinela)', haTxt(m.ultCliente)]);
+  if (!sm && (m.bloqueados || []).length) info.push(['Números bloqueados por você', String(m.bloqueados.length)]);
+  if (l.ultima) info.push(['Última alteração', quemFez(l.ultima.origem) + (l.ultima.em ? ' · ' + dataCurta(l.ultima.em) : '')]);
+  return `<div class="nums">${[['Conversas hoje', sm ? '—' : h.conv], ['Passou p/ equipe', sm ? '—' : num(h.transf)], ['Visitas marcadas', sm ? '—' : num(h.visitas)]].map(([a, b]) => `<div><b>${esc(b)}</b><small>${a}</small></div>`).join('')}</div>
+    ${(l.alertas || []).map(a => `<div class="alerta ${a.t}">${esc(a.m)}</div>`).join('')}
+    <div class="card" style="padding:4px 14px">${info.map(([a, b]) => `<div class="linha-info"><span class="muted">${esc(a)}</span><span>${esc(b)}</span></div>`).join('')}</div>`;
+}
+function fmtTel(t) { let d = String(t || '').replace(/\D/g, ''); if (d.startsWith('55') && d.length >= 12) d = d.slice(2); return d.length >= 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, -4) + '-' + d.slice(-4) : d; }
+function linhaContato(p, extra) {
+  // p: { tel, telFmt, nome, n?, pausado?, bloqueado? }
+  const preso = p.bloqueado || p.pausadoAgora;
+  const tag = p.bloqueado ? ' <span class="pill bad">bloqueado</span>' : p.pausadoAgora ? ' <span class="pill bad">IA pausada (robô)</span>' : (p.n >= 30 ? ' <span class="pill warn">possível loop</span>' : '');
+  return `<div class="contato"><span><b style="font-weight:500">${esc(p.nome || 'Sem nome')}</b>${p.teste ? ' <small>· teste</small>' : ''}${tag}<br><small>${esc(p.telFmt || fmtTel(p.tel))}</small></span>
+    <span style="display:flex;gap:6px;align-items:center">${p.n !== undefined ? `<b title="respostas da IA hoje">${p.n}</b>` : ''}<button class="mini" type="button" data-copiar="${esc(p.telFmt || fmtTel(p.tel))}" title="Copiar número" aria-label="Copiar número">📋</button>
+      ${preso ? `<button class="mini" type="button" data-liberar="${esc(p.tel)}">Liberar</button>` : `<button class="mini perigo" type="button" data-bloquear="${esc(p.tel)}" data-nome="${esc(p.nome || '')}">Bloquear</button>`}</span>
+    ${extra || ''}</div>`;
+}
+function corpoConsumo(l) {
+  if (META.semMetricas) return '<p class="muted" style="margin:0">Importe o workflow Admin Central para ver o consumo.</p>';
+  const m = M(l), serie = m.serie || [], mx = Math.max(1, ...serie.map(s => s.resp));
+  const media = META.mediaPorConv || 0;
+  const top = m.top || [], maxN = Math.max(1, ...top.map(t => t.n));
+  const fim8 = (t) => String(t || '').slice(-8);
+  const naTop = (t) => top.some(x => fim8(x.tel) === fim8(t));
+  const pausados = (m.pausados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, pausadoAgora: true }));
+  const bloqueados = (m.bloqueados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, bloqueado: true }));
+  const ultimo = serie.length ? serie[serie.length - 1].dia : '';
+  return `<div class="nums">${[['Hoje', m.hoje], ['7 dias', m.d7], ['30 dias', m.d30]].map(([a, p]) => `<div><b style="font-size:16px">${brl(p.custo)}</b><small>${a} · ${p.resp} respostas · ${p.conv} conversas</small></div>`).join('')}</div>
+    <div class="linha-info"><span class="muted">Custo por conversa hoje</span><span>${m.hoje.porConv !== undefined ? brl(m.hoje.porConv) : '—'} <small>(média das lojas ${brl(media)})</small></span></div>
+    <div><small>Respostas da IA por dia (14 dias)</small>
+      <div class="spark">${serie.map(s => `<i class="${s.dia === ultimo ? 'hoje' : ''}" style="height:${Math.max(3, s.resp / mx * 100)}%" title="${s.dia.slice(8)}/${s.dia.slice(5, 7)}: ${s.resp} respostas"></i>`).join('')}</div>
+      <div class="eixo"><span>${serie[0] ? serie[0].dia.slice(8) + '/' + serie[0].dia.slice(5, 7) : ''}</span><span>hoje</span></div></div>
+    <div><small>Contatos que mais chamaram a IA hoje</small>
+      ${top.length ? top.map(t => linhaContato(t, `<div class="barra-uso"><span class="${t.bloqueado || t.pausadoAgora || t.n >= 30 ? 'quente' : ''}" style="width:${(t.n / maxN * 100).toFixed(0)}%"></span></div>`)).join('')
+        : '<p class="muted" style="font-size:13px;margin:4px 0 0">Nenhuma resposta da IA hoje.</p>'}</div>
+    ${pausados.length ? `<div><small>Pausados agora pelo guardião de robô (24 h)</small>${pausados.map(p => linhaContato(p)).join('')}</div>` : ''}
+    ${bloqueados.length ? `<div><small>Números bloqueados por você</small>${bloqueados.map(p => linhaContato(p)).join('')}</div>` : ''}
+    <div class="card" style="padding:12px 14px"><small>Bloquear outro número nesta loja</small>
+      <div class="campo-copia" style="margin:6px 0 0"><input id="telBloq" inputmode="tel" placeholder="(21) 99999-0000" aria-label="Número para bloquear"><button class="mini perigo" type="button" data-bloquear-campo>Bloquear</button></div></div>
+    <p class="muted" style="font-size:12.5px;margin:0"><b>Bloquear</b>: a IA para de responder esse número nesta loja até você liberar (o vendedor continua atendendo normal). <b>Liberar</b>: tira o seu bloqueio e a pausa do guardião de robô; não mexe em pausa de vendedor.</p>`;
+}
+function corpoAcoes(l) {
+  const s = SUPORTE[l.chave];
+  return `<div class="acoes-grade">
+      <button type="button" data-suporte="${esc(l.chave)}"><b>✏️ Editar IA</b><small>Abre o painel da loja sem a senha do dono</small></button>
+      <button type="button" data-editar="${esc(l.chave)}"><b>🔑 Editar acesso</b><small>Estoque, LeadVox e tokens</small></button>
+      <button type="button" data-pin="${esc(l.chave)}"><b>🔢 Novo PIN</b><small>Para o link antigo, sem login</small></button>
+      <button type="button" class="${l.bloqueado ? '' : 'perigo'}" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}"><b>${l.bloqueado ? '▶️ Reativar loja' : '⛔ Suspender loja'}</b><small>${l.bloqueado ? 'O dono volta a ligar e desligar' : 'A IA para na hora; o dono não religa'}</small></button></div>
+    ${s ? `<div class="caixa"><b>Modo suporte aberto</b><p style="font-size:13px;margin:4px 0 8px">Abre a IA desta loja sem senha${s.expiraEm ? ', até as ' + esc(horaCurta(s.expiraEm)) : ''}. O que você salvar fica no histórico como LeadVox. Não mande este link para o cliente.</p>
+        <div class="campo-copia"><input readonly value="${esc(s.link)}" aria-label="Link do modo suporte"><button class="mini" type="button" data-copiar="${esc(s.link)}">Copiar</button></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer"><button class="mini principal" type="button">Abrir configuração</button></a><button class="mini perigo" type="button" data-encerrar="${esc(l.chave)}">Encerrar acesso agora</button></div></div>`
+      : l.suporteAberto ? `<div class="alerta warn">Há um acesso de suporte aberto para esta loja. <button class="mini" type="button" data-encerrar="${esc(l.chave)}" style="margin-left:6px">Encerrar agora</button></div>` : ''}`;
+}
+// ── links ──
 function linkVendedor(l) {
   const ch = l.chave || ''; if (!ch) return '';
   let base = PLUGIN_VENDEDOR_PADRAO;
@@ -242,199 +412,35 @@ function enderecos(l) {
     sent: l.webhookSentinela || (ch ? BASE_WH + 'sdr-sentinela?k=' + ch : ''),
     api: l.apiEstoque || (ch && l.fonte === 'leadvox' ? BASE_WH + 'sdr-estoque-api?k=' + ch : '') };
 }
-function campo(valor, rotulo) {
-  return `<div class="campo-copia"><input readonly value="${esc(valor)}" aria-label="${esc(rotulo)}"><button type="button" data-copiar="${esc(valor)}">Copiar</button></div>`;
-}
-function blocoEnderecos(l, titulo) {
-  const e = enderecos(l);
-  let n = 0; const num = () => (++n) + ') ';
+const campo = (valor, rotulo) => `<div class="campo-copia"><input readonly value="${esc(valor)}" aria-label="${esc(rotulo)}"><button class="mini" type="button" data-copiar="${esc(valor)}">Copiar</button></div>`;
+function blocoEnderecos(l) {
+  const e = enderecos(l); let n = 0; const nn = () => (++n) + ') ';
   const tudo = 'Configuração da IA — ' + e.nome + '\n\n' +
-    (e.link ? num() + 'Plugin da IA, para o dono (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.link + '\n\n' : '') +
-    (e.vend ? num() + 'Plugin do vendedor: estoque, fotos e ficha (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.vend + '\n\n' : '') +
-    num() + 'Webhook do CHATFLOW da IA:\n' + e.ia + '\n\n' +
-    num() + 'Configuração da API → URL Webhook (marcar os eventos de mensagem e deixar "Manter aberto"):\n' + e.sent +
+    (e.link ? nn() + 'Plugin da IA, para o dono (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.link + '\n\n' : '') +
+    (e.vend ? nn() + 'Plugin do vendedor: estoque, fotos e ficha (LeadVox → Nova Integração, com "Permitir transferência de dados" ligado):\n' + e.vend + '\n\n' : '') +
+    nn() + 'Webhook do CHATFLOW da IA:\n' + e.ia + '\n\n' +
+    nn() + 'Configuração da API → URL Webhook (marcar os eventos de mensagem e deixar "Manter aberto"):\n' + e.sent +
     (e.api ? '\n\nAPI do estoque (para o site):\n' + e.api : '');
-  return `<div class="entrega">
-    <h3>${esc(titulo || ('Endereços — ' + e.nome))}</h3>
-    <p>Mande para o cliente ou cole você mesmo na LeadVox da loja.</p>
-    ${e.link ? `<p class="rot">Plugin da IA (dono) <small>LeadVox → Nova Integração, com "Permitir transferência de dados" ligado</small></p>${campo(e.link, 'Link do plugin da IA')}` : ''}
-    ${e.vend ? `<p class="rot">Plugin do vendedor (estoque) <small>Foto, galeria, vídeo e ficha direto no ticket · Nova Integração com "Permitir transferência de dados" ligado</small></p>${campo(e.vend, 'Link do plugin do vendedor')}` : ''}
-    <p class="rot">Webhook do chatflow (IA) <small>No chatflow da loja, no lugar do webhook do bot antigo</small></p>${campo(e.ia, 'Webhook do chatflow')}
-    <p class="rot">Webhook da API (Sentinela) <small>Configuração da API → URL Webhook · eventos de mensagem · "Manter aberto"</small></p>${campo(e.sent, 'Webhook da API')}
-    ${e.api ? `<p class="rot">API do estoque (sites) <small>JSON com os veículos disponíveis, para o site da loja</small></p>${campo(e.api, 'API do estoque')}` : ''}
-    <button type="button" class="tudo" data-copiar="${esc(tudo)}">Copiar tudo para o cliente</button>
-  </div>`;
+  return `${e.link ? `<p class="rot">Plugin da IA (dono)<small>LeadVox → Nova Integração · "Permitir transferência de dados" ligado</small></p>${campo(e.link, 'Link do plugin da IA')}` : ''}
+    ${e.vend ? `<p class="rot">Plugin do vendedor (estoque)<small>Foto, galeria, vídeo e ficha direto no ticket</small></p>${campo(e.vend, 'Link do plugin do vendedor')}` : ''}
+    <p class="rot">Webhook do chatflow (IA)<small>No chatflow da loja, no lugar do webhook do bot antigo</small></p>${campo(e.ia, 'Webhook do chatflow')}
+    <p class="rot">Webhook da API (Sentinela)<small>Configuração da API → URL Webhook · eventos de mensagem · "Manter aberto"</small></p>${campo(e.sent, 'Webhook da API')}
+    ${e.api ? `<p class="rot">API do estoque (sites)<small>JSON com os veículos disponíveis</small></p>${campo(e.api, 'API do estoque')}` : ''}
+    <button type="button" class="principal mini" style="align-self:flex-start;margin-top:4px" data-copiar="${esc(tudo)}">📋 Copiar tudo para mandar ao cliente</button>`;
 }
-function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 1800); }
-function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-
-async function chamar(corpo) {
-  const adminKey = $('adminKey').value;
-  if (!adminKey) throw new Error('Informe a chave de admin no topo da página.');
-  const r = await fetch(API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey, ...corpo }) }) });
-  let j = {}; try { j = await r.json(); } catch (e) {}
-  if (!r.ok || j.ok === false) throw new Error(j.erro || ('O n8n respondeu HTTP ' + r.status + '.'));
-  return j;
-}
-
-function mostrarChecks(j) {
-  const lv = j.leadvox || {}, es = j.estoque || {};
-  const nomeFonte = es.fonte === 'revendamais' ? 'Revenda Mais' : es.fonte === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto';
-  const canal = lv.canal === 'waba' ? 'API oficial (WABA)' : (lv.canal ? 'não oficial (' + lv.canal + ')' : 'não identificado');
-  $('checks').innerHTML = `
-    <div class="check ${lv.ok ? 'ok' : 'falha'}"><div class="ponto"></div><div>
-      <b>LeadVox ${lv.ok ? 'conectada' : 'não respondeu'}</b>
-      <span>Tenant ${esc(lv.tenantId)} · sessão ${esc(lv.sessionId ?? '?')} · ${esc(canal)}${lv.etiquetas != null ? ' · ' + lv.etiquetas + ' etiquetas lidas' : ''}</span></div></div>
-    <div class="check ${es.ok ? 'ok' : 'falha'}"><div class="ponto"></div><div>
-      <b>${nomeFonte} ${es.ok ? 'conectado' : 'não respondeu'}</b>
-      <span>${es.fonte === 'leadvox' ? 'A loja cadastra os veículos no painel dela' : es.ok ? es.total + ' veículos no estoque' + (es.exemplos && es.exemplos.length ? ', como ' + es.exemplos.map(esc).join(', ') : '') : 'Sem estoque lido'}</span></div></div>`;
-  const INFO = ['📱', '👥', '📈', '🤖', '🧾', '🚘'], ENDER = ['🔗', '🛡'];
-  const todas = j.mensagens || [];
-  const info = todas.filter(m => INFO.some(e => m.startsWith(e)));
-  const msgs = todas.filter(m => !INFO.some(e => m.startsWith(e)) && !ENDER.some(e => m.startsWith(e))).concat(j.aviso ? [j.aviso] : []);
-  $('checks').innerHTML += info.map(m => `<div class="check info"><div class="ponto"></div><div><span>${esc(m)}</span></div></div>`).join('');
-  $('aviso').hidden = !msgs.length; $('aviso').textContent = msgs.join(' ');
-  if (j.webhookIA && editando) $('entrega').innerHTML = blocoEnderecos({ ...(LOJAS[editando] || {}), chave: editando, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela });
-}
-
-$('btTestar').addEventListener('click', async () => {
-  const bt = $('btTestar'); bt.disabled = true; bt.textContent = 'Testando…';
-  $('entrega').innerHTML = ''; $('aviso').hidden = true;
-  try {
-    const d = dados(); const j = await chamar(editando ? { acao: 'editar', chave: editando, salvar: false, loja: d } : { acao: 'testar', loja: d });
-    mostrarChecks(j);
-    testado = j.aprovado ? JSON.stringify(d) : null;
-    $('btCriar').disabled = !j.aprovado;
-  } catch (e) { $('checks').innerHTML = ''; $('aviso').hidden = false; $('aviso').textContent = e.message; }
-  bt.disabled = false; bt.textContent = 'Testar conexões';
-});
-
-$('btCriar').addEventListener('click', async () => {
-  const d = dados();
-  if (testado !== JSON.stringify(d)) { invalidar(); toast('Os dados mudaram. Teste de novo.'); return; }
-  const bt = $('btCriar'); bt.disabled = true; bt.textContent = editando ? 'Salvando…' : 'Criando…';
-  if (editando) {
-    try {
-      const j = await chamar({ acao: 'editar', chave: editando, salvar: true, loja: d });
-      mostrarChecks(j);
-      if (!j.salvo) throw new Error(j.aviso || 'As alterações não foram salvas.');
-      const ch = editando;
-      toast('Acesso atualizado'); modoEdicao(null); await listar();
-      if (LOJAS[ch]) $('entrega').innerHTML = blocoEnderecos(LOJAS[ch], 'Acesso salvo — ' + (LOJAS[ch].nome || ''));
-    } catch (e) { $('aviso').hidden = false; $('aviso').textContent = e.message; bt.disabled = false; bt.textContent = 'Salvar alterações'; }
-    return;
-  }
-  try {
-    const j = await chamar({ acao: 'criar', loja: d, sufixo: hexAleatorio(16), pin: pinAleatorio() });
-    if (j.criada && d.fonte === 'leadvox') j.fonte = 'leadvox';
-    mostrarChecks(j);
-    if (!j.criada) throw new Error(j.aviso || 'A loja não foi criada.');
-    $('entrega').innerHTML = `
-      <div class="entrega">
-        <h3>${esc(j.nome)} cadastrada</h3>
-        <p>Os endereços da loja estão logo abaixo (plugin da IA, plugin do vendedor e webhooks). Depois, cadastre o acesso do dono (e-mail e senha) no workflow Login do cliente.</p>
-      </div>` + blocoEnderecos({ nome: j.nome, chave: j.chave, link: j.link, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela, apiEstoque: j.apiEstoque, fonte: j.fonte }, 'Endereços para a LeadVox') + `
-      <div class="entrega" style="background:var(--painel);color:var(--texto);border:1px solid var(--linha)">
-        <p style="margin-bottom:4px">PIN da loja (só para o link antigo, sem login):</p>
-        <div class="pin">${esc(j.pin)}</div>
-        <p style="margin:10px 0 0;font-size:13px;color:var(--suave)">Anote se for usar. Ao cadastrar o acesso com e-mail e senha, este PIN deixa de valer.</p>
-      </div>`;
-    ['nome', 'unidade', 'usuario', 'senha', 'feedUrl', 'urlEnvio', 'tokenRest'].forEach(id => $(id).value = '');
-    invalidar(); listar();
-  } catch (e) { $('aviso').hidden = false; $('aviso').textContent = e.message; bt.disabled = false; }
-  bt.textContent = 'Criar loja e gerar link';
-});
-
-async function listar() {
-  try {
-    const j = await chamar({ acao: 'listar' });
-    j.lojas.forEach(l => LOJAS[l.chave] = l);
-    if (!j.lojas.length) { $('lista').innerHTML = '<p class="vazio">Nenhuma loja cadastrada ainda. Cadastre a primeira no formulário acima.</p>'; return; }
-    $('lista').innerHTML = `<table><thead><tr><th>Loja</th><th>Situação</th><th>Estoque</th><th>Canal</th><th>Tenant</th><th></th></tr></thead><tbody>${
-      j.lojas.map(l => `<tr>
-        <td><b>${esc(l.nome)}</b><br><span style="color:var(--suave);font-size:12px">${esc(l.chave)}</span></td>
-        <td><span class="etiqueta ${l.ativo && !l.bloqueado ? 'pronta' : ''}">${l.bloqueado ? 'suspensa por você' : l.ativo ? 'IA ligada' : (l.configurada ? 'desligada pelo dono' : 'aguardando o dono')}</span>${l.suporteAberto ? '<span class="etiqueta sup">suporte aberto</span>' : ''}
-          ${l.nomeIA ? `<span class="mini">IA: ${esc(l.nomeIA)}</span>` : ''}${l.ultima ? `<span class="mini">Última alteração: ${esc(quemFez(l.ultima.origem))}${l.ultima.em ? ' · ' + esc(dataCurta(l.ultima.em)) : ''}</span>` : ''}</td>
-        <td>${l.fonte === 'revendamais' ? 'Revenda Mais' : l.fonte === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto'}</td>
-        <td>${l.canal === 'waba' ? 'Oficial' : esc(l.canal || '?')}</td>
-        <td>${esc(l.tenantId)}</td>
-        <td><div class="acoes-linha"><button type="button" class="ia" data-suporte="${esc(l.chave)}">Editar IA</button><button type="button" data-hist="${esc(l.chave)}">Histórico</button><button type="button" data-enderecos="${esc(l.chave)}">Endereços</button><button type="button" data-copiar="${esc(l.link)}">Link da IA</button><button type="button" data-copiar="${esc(linkVendedor(l))}">Link do vendedor</button><button type="button" data-editar="${esc(l.chave)}">Editar acesso</button><button type="button" data-pin="${esc(l.chave)}">Novo PIN</button><button type="button" data-ativo="${esc(l.chave)}" data-ligar="${l.bloqueado ? '1' : '0'}">${l.bloqueado ? 'Reativar loja' : 'Suspender loja'}</button></div></td>
-      </tr>`).join('')}</tbody></table>`;
-  } catch (e) { $('lista').innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
-}
-// ═══════════════ MODO SUPORTE E HISTÓRICO ═══════════════
-function dataCurta(iso) {
-  const d = new Date(iso); if (isNaN(d)) return '';
-  return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
-}
-function horaCurta(iso) {
-  const d = new Date(iso); if (isNaN(d)) return '';
-  return d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-}
-function quemFez(origem) {
-  const o = String(origem || '');
-  if (o === 'plugin') return 'dono da loja';
-  if (o.startsWith('suporte')) return (o.split(':')[1] || 'LeadVox') + ' (suporte)';
-  if (o.startsWith('restaurar')) { const p = o.split(':'); return (p[2] || 'LeadVox') + ' restaurou a versão ' + (p[1] || '?'); }
-  if (o === 'admin') return 'cadastro da loja';
-  if (o === 'admin-acesso') return 'acesso editado no admin';
-  if (o === 'carga-n8n') return 'carga inicial';
-  return o || 'desconhecido';
-}
-
-async function abrirSuporte(chave, bt) {
-  const l = LOJAS[chave] || {};
-  // abre a aba já no clique (senão o navegador bloqueia como pop-up) e só depois põe o endereço
-  let aba = null; try { aba = window.open('', '_blank'); if (aba) aba.document.write('<p style="font:16px sans-serif;padding:24px">Abrindo o modo suporte…</p>'); } catch (e) { aba = null; }
-  bt.disabled = true;
-  try {
-    const j = await chamar({ acao: 'suporte', chave });
-    if (aba) { try { aba.opener = null; aba.location.replace(j.link); } catch (e) { aba = null; } }
-    $('entrega').innerHTML = `<div class="entrega">
-      <h3>Modo suporte — ${esc(l.nome || chave)}</h3>
-      <p>Abre a configuração da IA desta loja sem a senha do dono${j.expiraEm ? ', até as ' + esc(horaCurta(j.expiraEm)) : ''}. O que você salvar fica no histórico como alteração da LeadVox.</p>
-      <a class="botao" href="${esc(j.link)}" target="_blank" rel="noopener noreferrer">${aba ? 'Abrir de novo' : 'Abrir configuração da IA'}</a>
-      ${campo(j.link, 'Link do modo suporte')}
-      <p style="font-size:13px">Não mande este link para o cliente: ele abre a IA sem senha. Para o dono, continue usando o link do plugin.</p>
-      <button type="button" class="perigo" data-encerrar="${esc(chave)}">Encerrar acesso agora</button>
-    </div>`;
-    $('entrega').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    listar();
-  } catch (e) { if (aba) aba.close(); toast(e.message); }
-  bt.disabled = false;
-}
-
-const SECAO = { ia: 'IA', loja: 'Loja', horario: 'Horário', regras: 'Regras', departamentos: 'Departamentos', distribuicao: 'Atendentes',
-  lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox',
-  vendas: 'Pagamento e troca', faq: 'Perguntas frequentes', etiquetas: 'Etiquetas' };
-const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero', 'ia.diferenciais': 'Diferenciais', 'loja.nome': 'Nome da loja',
-  'loja.tipo': 'Vende', 'loja.endereco': 'Endereço', 'loja.site': 'Site', 'loja.telefone': 'Telefone', 'regras.informaPreco': 'IA informa preço',
-  'regras.atendimentoNoHorarioDaEquipe': 'Atendimento no horário da equipe', 'regras.perguntaSeJaEAtendido': 'Pergunta se já é atendido',
-  'regras.coletaFinanciamento': 'Dados de financiamento', 'lead.enviarAutoCerto': 'Envia lead pro AutoCerto', 'lead.whatsappGerente': 'WhatsApp do gerente',
-  'followup.primeiroMin': '1º follow-up (min)', 'followup.segundoMin': '2º follow-up (min)', 'followup.transferir.quando': 'Quando transferir',
-  'followup.transferir.personalizadoMin': 'Transferir após (min)', 'crm.ativo': 'Lança no funil', 'crm.etapaInicialId': 'Etapa inicial do funil',
-  'estoque.fonte': 'Sistema de estoque', 'estoque.autocerto.unidade': 'Unidade AutoCerto', 'estoque.autocerto.usuario': 'Usuário AutoCerto',
-  'leadvox.tenantId': 'Tenant LeadVox', 'leadvox.sessionId': 'Sessão LeadVox', 'horario.feriados': 'Feriados',
-  'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação', 'distribuicao.departamentosIgnorados': 'Departamentos fora da IA',
-  'regras.precoModo': 'Quando fala o preço', 'regras.precoFormato': 'Formato do preço', 'regras.precoDepois': 'Depois do preço', 'regras.respostaDesconto': 'Resposta a desconto',
-  'ia.tamanho': 'Tamanho das mensagens', 'ia.emojis': 'Emojis', 'ia.tratamento': 'Tratamento', 'vendas.financia': 'Financia', 'vendas.bancos': 'Bancos parceiros',
-  'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca',
-  'etiquetas.ativo': 'Marca etiquetas', 'etiquetas.grupos': 'Etiquetas marcadas', 'etiquetas.entradaAlta': 'Entrada alta a partir de (R$)',
-  'etiquetas.entradaBaixa': 'Entrada baixa até (R$)', 'etiquetas.substituir': 'IA troca as próprias etiquetas' };
+// ── histórico ──
+const SECAO = { ia: 'IA', loja: 'Loja', horario: 'Horário', regras: 'Regras', departamentos: 'Departamentos', distribuicao: 'Atendentes', lead: 'Envio do lead', followup: 'Follow-up', crm: 'Funil (CRM)', estoque: 'Estoque', leadvox: 'Conexão LeadVox', vendas: 'Pagamento e troca', faq: 'Perguntas frequentes', etiquetas: 'Etiquetas', avisos: 'Avisos automáticos' };
+const ROTULO = { 'ia.nome': 'Nome da IA', 'ia.tom': 'Tom', 'ia.genero': 'Gênero', 'ia.diferenciais': 'Diferenciais', 'loja.nome': 'Nome da loja', 'loja.tipo': 'Vende', 'loja.endereco': 'Endereço', 'loja.site': 'Site', 'loja.telefone': 'Telefone', 'regras.informaPreco': 'IA informa preço', 'regras.atendimentoNoHorarioDaEquipe': 'Atendimento no horário da equipe', 'regras.perguntaSeJaEAtendido': 'Pergunta se já é atendido', 'regras.coletaFinanciamento': 'Dados de financiamento', 'lead.enviarAutoCerto': 'Envia lead pro AutoCerto', 'lead.whatsappGerente': 'WhatsApp do gerente', 'followup.primeiroMin': '1º follow-up (min)', 'followup.segundoMin': '2º follow-up (min)', 'followup.transferir.quando': 'Quando transferir', 'followup.transferir.personalizadoMin': 'Transferir após (min)', 'followup.ativas.s1': '1ª tentativa', 'followup.ativas.s2': '2ª tentativa', 'followup.ativas.s3': '3ª tentativa', 'followup.lembretesDias': 'Lembretes (dias)', 'avisos.lembreteVisita': 'Lembrete de visita', 'avisos.retomada': 'Retomada do dia seguinte', 'avisos.resumo.ativo': 'Resumo do dia', 'avisos.resumo.whatsapp': 'WhatsApp do resumo', 'avisos.resumo.hora': 'Hora do resumo', 'crm.ativo': 'Lança no funil', 'crm.etapaInicialId': 'Etapa inicial do funil', 'estoque.fonte': 'Sistema de estoque', 'estoque.autocerto.unidade': 'Unidade AutoCerto', 'estoque.autocerto.usuario': 'Usuário AutoCerto', 'leadvox.tenantId': 'Tenant LeadVox', 'leadvox.sessionId': 'Sessão LeadVox', 'horario.feriados': 'Feriados', 'distribuicao.responsavelVendaConsignacao': 'Responsável por consignação', 'distribuicao.departamentosIgnorados': 'Departamentos fora da IA', 'regras.precoModo': 'Quando fala o preço', 'regras.precoFormato': 'Formato do preço', 'regras.precoDepois': 'Depois do preço', 'regras.respostaDesconto': 'Resposta a desconto', 'ia.tamanho': 'Tamanho das mensagens', 'ia.emojis': 'Emojis', 'ia.tratamento': 'Tratamento', 'vendas.financia': 'Financia', 'vendas.bancos': 'Bancos parceiros', 'vendas.entradaMinima': 'Entrada', 'vendas.cartao': 'Aceita cartão', 'vendas.consorcio': 'Consórcio', 'vendas.troca': 'Aceita troca', 'etiquetas.ativo': 'Marca etiquetas', 'etiquetas.grupos': 'Etiquetas marcadas', 'etiquetas.entradaAlta': 'Entrada alta a partir de (R$)', 'etiquetas.entradaBaixa': 'Entrada baixa até (R$)', 'etiquetas.substituir': 'IA troca as próprias etiquetas' };
 const DIA = { seg: 'segunda', ter: 'terça', qua: 'quarta', qui: 'quinta', sex: 'sexta', sab: 'sábado', dom: 'domingo' };
 function achatar(o, pre, out) {
   out = out || {};
-  if (Array.isArray(o)) {
-    if (o.every(x => x === null || typeof x !== 'object')) out[pre] = o.join(pre.startsWith('horario.') ? '–' : ', ');
-    else o.forEach((x, i) => achatar(x, pre + '[' + (i + 1) + ']', out));
-  } else if (o && typeof o === 'object') Object.keys(o).forEach(k => achatar(o[k], pre ? pre + '.' + k : k, out));
+  if (Array.isArray(o)) { if (o.every(x => x === null || typeof x !== 'object')) out[pre] = o.join(pre.startsWith('horario.') ? '–' : ', '); else o.forEach((x, i) => achatar(x, pre + '[' + (i + 1) + ']', out)); }
+  else if (o && typeof o === 'object') Object.keys(o).forEach(k => achatar(o[k], pre ? pre + '.' + k : k, out));
   else out[pre] = o === null || o === undefined ? '' : String(o);
   return out;
 }
 const IGNORAR = /^(versao|chave|configurada|ativo|bloqueado)(\.|$)|^loja\.(fuso|dominioSite)$|^estoque\.leadvox\.desde$/;
-// campos de departamento e de atendente, com nome de gente (Equipe V2)
-const SUBCAMPO = { nome: 'nome', queueId: 'ID na LeadVox', tipo: 'tipo', atende: 'o que atende', distribuicao: 'como recebe o cliente',
-  finalidade: 'finalidade', userId: 'usuário da LeadVox', departamento: 'departamento', apelidos: 'apelidos' };
+const SUBCAMPO = { nome: 'nome', queueId: 'ID na LeadVox', tipo: 'tipo', atende: 'o que atende', distribuicao: 'como recebe o cliente', finalidade: 'finalidade', userId: 'usuário da LeadVox', departamento: 'departamento', apelidos: 'apelidos' };
 function rotulo(path) {
   if (ROTULO[path]) return ROTULO[path];
   const eq = /^(departamentos|distribuicao\.vendedores)\[(\d+)\](?:\.(\w+))?/.exec(path);
@@ -443,15 +449,9 @@ function rotulo(path) {
   const s = path.split('.')[0].replace(/\[\d+\]$/, '');
   return (SECAO[s] || s) + ' › ' + path.slice(s.length + 1).replace(/\[(\d+)\]/g, ' $1').replace(/\./g, ' › ');
 }
-const VALOR = {
-  distribuicao: { fila: 'pendente no departamento', rodizio: 'rodízio entre vendedores' },
-  tipo: { venda: 'vendas', outro: 'outro' },
-  quando: { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas', personalizado: 'tempo escolhido' }
-};
-function horasMin(m) {
-  m = Math.round(+m || 0); const h = Math.floor(m / 60), r = m % 60;
-  return h ? h + 'h' + (r ? ' ' + r + 'min' : '') : r + ' min';
-}
+const VALOR = { distribuicao: { fila: 'pendente no departamento', rodizio: 'rodízio entre vendedores' }, tipo: { venda: 'vendas', outro: 'outro' },
+  quando: { apos_primeiro: 'se não responder a 1ª mensagem', apos_segundo: 'se não responder a 2ª mensagem', apos_terceiro: 'depois de 24 horas', personalizado: 'tempo escolhido' } };
+function horasMin(m) { m = Math.round(+m || 0); const h = Math.floor(m / 60), r = m % 60; return h ? h + 'h' + (r ? ' ' + r + 'min' : '') : r + ' min'; }
 function valorTxt(v, k) {
   if (v === undefined || v === '') return '(vazio)';
   const ult = String(k || '').split('.').pop();
@@ -462,136 +462,238 @@ function valorTxt(v, k) {
 }
 function mudancas(nova, velha) {
   const a = achatar(nova || {}, ''), b = achatar(velha || {}, '');
-  const chaves = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !IGNORAR.test(k));
-  return chaves.filter(k => (a[k] ?? '') !== (b[k] ?? '')).map(k => ({ k, de: b[k], para: a[k] }));
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !IGNORAR.test(k)).filter(k => (a[k] ?? '') !== (b[k] ?? '')).map(k => ({ k, de: b[k], para: a[k] }));
 }
-// Equipe V2: "pendente no departamento" ou "rodízio", no lugar de "fila"
 function resumoDeps(c) {
   const vs = ((c.distribuicao || {}).vendedores || []);
-  const deps = (c.departamentos || []).map(d => {
-    const rod = d.distribuicao === 'rodizio' || (!d.distribuicao && vs.some(v => v.departamento === d.nome));
-    const n = vs.filter(v => v.departamento === d.nome).length;
-    return d.nome + (rod ? ' (rodízio, ' + n + ' vendedor' + (n === 1 ? '' : 'es') + ')' : ' (pendente no departamento)');
-  });
+  const deps = (c.departamentos || []).map(d => { const rod = d.distribuicao === 'rodizio' || (!d.distribuicao && vs.some(v => v.departamento === d.nome)); const n = vs.filter(v => v.departamento === d.nome).length;
+    return d.nome + (rod ? ' (rodízio, ' + n + ' vendedor' + (n === 1 ? '' : 'es') + ')' : ' (pendente no departamento)'); });
   const fora = (c.distribuicao || {}).departamentosIgnorados || [];
   return (deps.join(', ') || '—') + (fora.length ? ' · fora da IA: ' + fora.map(x => typeof x === 'object' ? x.nome : x).join(', ') : '');
 }
 function resumoAtend(c) {
-  const vs = ((c.distribuicao || {}).vendedores || []).filter(v => v.departamento && v.departamento !== '—');
-  const nomes = [...new Set(vs.map(v => v.nome))];
+  const vs = ((c.distribuicao || {}).vendedores || []).filter(v => v.departamento && v.departamento !== '—'); const nomes = [...new Set(vs.map(v => v.nome))];
   const resp = (c.distribuicao || {}).responsavelVendaConsignacao;
   return (nomes.length ? nomes.length + ' no rodízio: ' + nomes.join(', ') : 'ninguém no rodízio') + (resp ? ' · consignação: ' + resp : '');
 }
-function quandoTransfere(fu) {
-  const t = fu.transferir || {};
-  if (t.quando === 'personalizado') return 'depois de ' + horasMin(t.personalizadoMin);
-  return VALOR.quando[t.quando] || (t.quando || '').replace(/_/g, ' ');
-}
+function quandoTransfere(fu) { const t = fu.transferir || {}; if (t.quando === 'personalizado') return 'depois de ' + horasMin(t.personalizadoMin); return VALOR.quando[t.quando] || (t.quando || '').replace(/_/g, ' '); }
 function resumoVersao(c) {
-  c = c || {};
-  const h = c.horario || {}, ia = c.ia || {}, lj = c.loja || {}, fu = c.followup || {};
+  c = c || {}; const h = c.horario || {}, ia = c.ia || {}, lj = c.loja || {}, fu = c.followup || {};
   const dias = Object.keys(DIA).filter(d => Array.isArray(h[d])).map(d => DIA[d].slice(0, 3) + ' ' + h[d].join('–')).join(', ');
-  const linhas = [
-    ['IA', ia.nome ? ia.nome + (ia.tom ? ', tom ' + ia.tom : '') : 'ainda não configurada'],
-    ['Loja', (lj.nome || '') + (lj.tipo ? ' · vende ' + ({ moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[lj.tipo] || lj.tipo) : '')],
-    ['Horário', dias || '—'],
+  const linhas = [['IA', ia.nome ? ia.nome + (ia.tom ? ', tom ' + ia.tom : '') : 'ainda não configurada'],
+    ['Loja', (lj.nome || '') + (lj.tipo ? ' · vende ' + ({ moto: 'motos', carro: 'carros', ambos: 'motos e carros' }[lj.tipo] || lj.tipo) : '')], ['Horário', dias || '—'],
     ['Preço', c.regras ? ({ nunca: 'só o consultor informa', quando_perguntar: 'IA informa se perguntarem', com_foto: 'na legenda da foto', primeira_mencao: 'IA fala ao apresentar' }[c.regras.precoModo || (c.regras.informaPreco ? 'quando_perguntar' : 'nunca')]) : '—'],
     ['Pagamento', c.vendas ? (c.vendas.financia === false ? 'não financia' : 'financia') + (c.vendas.troca === 'nao' ? ', sem troca' : '') : '—'],
-    ['Perguntas frequentes', String((c.faq || []).length)],
-    ['Departamentos', resumoDeps(c)],
-    ['Atendentes', resumoAtend(c)],
+    ['Perguntas frequentes', String((c.faq || []).length)], ['Departamentos', resumoDeps(c)], ['Atendentes', resumoAtend(c)],
     ['Follow-up', fu.primeiroMin ? 'mensagens com ' + fu.primeiroMin + ' e ' + fu.segundoMin + ' min; transfere ' + quandoTransfere(fu) : '—'],
     ['Lead', c.lead ? (c.lead.enviarAutoCerto ? 'vai pro AutoCerto e avisa o gerente' : 'transfere pro Comercial') : '—'],
-    ['Estoque', (c.estoque || {}).fonte || '—'],
-    ['Etiquetas', c.etiquetas ? (c.etiquetas.ativo ? 'marca ' + (c.etiquetas.grupos || []).join(', ') : 'desligadas') : 'não configuradas']
-  ];
+    ['Estoque', (c.estoque || {}).fonte || '—'], ['Etiquetas', c.etiquetas ? (c.etiquetas.ativo ? 'marca ' + (c.etiquetas.grupos || []).join(', ') : 'desligadas') : 'não configuradas']];
   return '<dl>' + linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('') + '</dl>';
 }
-let HIST = { chave: null, versoes: [], atual: null };
-async function mostrarHistorico(chave) {
-  const p = $('painelHist'), l = LOJAS[chave] || {};
-  p.hidden = false; p.innerHTML = '<p class="vazio">Carregando o histórico…</p>';
-  p.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  try {
-    const j = await chamar({ acao: 'historico', chave });
-    HIST = { chave, versoes: j.versoes || [], atual: j.atual };
-    const vs = HIST.versoes;
-    p.innerHTML = `<div class="hist-topo"><div><h2>Histórico — ${esc(l.nome || chave)}</h2>
-        <p class="sub" style="margin:0">As 30 últimas versões. Restaurar volta só a parte da IA; estoque e conexão da LeadVox continuam como estão hoje.</p></div>
-        <button type="button" data-fecharhist>Fechar</button></div>` +
-      (vs.length ? vs.map((v, i) => {
-        const anterior = vs[i + 1];
-        const ms = anterior ? mudancas(v.config, anterior.config) : [];
-        const lista = !anterior ? '<li>Primeira versão desta lista.</li>'
-          : ms.length ? ms.slice(0, 6).map(m => `<li><b>${esc(rotulo(m.k))}:</b> <span class="de">${esc(valorTxt(m.de, m.k))}</span> → ${esc(valorTxt(m.para, m.k))}</li>`).join('') + (ms.length > 6 ? `<li>e mais ${ms.length - 6} alteração(ões).</li>` : '')
-          : '<li>Sem mudança na configuração.</li>';
-        const podeRestaurar = v.config && v.config.ia && v.versao !== HIST.atual;
-        return `<div class="versao ${v.versao === HIST.atual ? 'atual' : ''}">
-          <div class="num">v${esc(v.versao)}</div>
-          <div><div class="quem">${esc(quemFez(v.origem))}<small>${esc(v.em ? dataCurta(v.em) : 'sem data')}${v.versao === HIST.atual ? ' · versão atual' : ''}</small></div>
-            <ul class="mudancas">${lista}</ul></div>
-          <div class="botoes"><button type="button" data-detalhe="${esc(v.versao)}">Ver versão</button>
-            ${podeRestaurar ? `<button type="button" data-restaurar="${esc(v.versao)}">Restaurar</button>` : ''}</div>
-          <div class="detalhe" id="det-${esc(v.versao)}" hidden>${resumoVersao(v.config)}</div>
-        </div>`;
-      }).join('') : '<p class="vazio">Nenhuma versão registrada ainda.</p>');
-  } catch (e) { p.innerHTML = '<p class="aviso">' + esc(e.message) + '</p>'; }
+function corpoHist(l) {
+  if (HIST.chave !== l.chave) { carregarHist(l.chave); return '<p class="muted" style="margin:0">Carregando o histórico…</p>'; }
+  if (HIST.carregando) return '<p class="muted" style="margin:0">Carregando o histórico…</p>';
+  if (HIST.erro) return `<p class="erro-txt" style="margin:0">${esc(HIST.erro)}</p><button class="mini" type="button" data-rehist style="align-self:flex-start">Tentar de novo</button>`;
+  const vs = HIST.versoes;
+  if (!vs.length) return '<p class="muted" style="margin:0">Nenhuma versão registrada ainda.</p>';
+  return `<p class="muted" style="font-size:12.5px;margin:0">As 30 últimas versões. Restaurar volta só a parte da IA; estoque e conexão da LeadVox ficam como estão hoje.</p><div>` + vs.map((v, i) => {
+    const ant = vs[i + 1], ms = ant ? mudancas(v.config, ant.config) : [];
+    const lista = !ant ? '<li>Primeira versão desta lista.</li>' : ms.length ? ms.slice(0, 5).map(m => `<li><b>${esc(rotulo(m.k))}:</b> <span class="de">${esc(valorTxt(m.de, m.k))}</span> → ${esc(valorTxt(m.para, m.k))}</li>`).join('') + (ms.length > 5 ? `<li>e mais ${ms.length - 5} alteração(ões).</li>` : '') : '<li>Sem mudança na configuração.</li>';
+    const atual = v.versao === HIST.atual, pode = v.config && v.config.ia && !atual;
+    return `<div class="versao ${atual ? 'atual' : ''}"><div class="cab"><div><span class="num">v${esc(v.versao)}</span><b style="font-weight:500">${esc(quemFez(v.origem))}</b><br><small>${esc(v.em ? dataCurta(v.em) : 'sem data')}${atual ? ' · versão atual' : ''}</small></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="mini" type="button" data-detalhe="${esc(v.versao)}">Ver</button>${pode ? `<button class="mini" type="button" data-restaurar="${esc(v.versao)}">Restaurar</button>` : ''}</div></div>
+      <ul class="mudancas">${lista}</ul><div class="resumo" id="det-${esc(v.versao)}" hidden>${resumoVersao(v.config)}</div></div>`;
+  }).join('') + '</div>';
 }
-async function restaurar(versao, bt) {
-  const l = LOJAS[HIST.chave] || {};
-  if (!confirm('Restaurar a versão ' + versao + ' da IA da ' + (l.nome || 'loja') + '?\n\nA IA volta a ter as configurações dessa versão na hora. A versão de agora continua no histórico, então dá para desfazer.')) return;
+async function carregarHist(chave) {
+  HIST = { chave, versoes: [], atual: null, carregando: true, erro: '' };
+  try { const j = await chamar({ acao: 'historico', chave }); HIST = { chave, versoes: j.versoes || [], atual: j.atual, carregando: false, erro: '' }; }
+  catch (e) { HIST = { chave, versoes: [], atual: null, carregando: false, erro: e.message }; }
+  if (sel === chave && aba === 'hist') renderDetalhe();
+}
+function renderDetalhe() {
+  const l = IDX[sel];
+  if (!l) { $('detalhe').innerHTML = `<p class="muted" style="margin:0">${LOJAS.length ? 'Escolha uma loja na lista.' : 'Informe a chave de admin e clique em "Atualizar".'}</p>`; return; }
+  const [c, t] = status(l);
+  const corpos = { geral: corpoGeral, consumo: corpoConsumo, acoes: corpoAcoes, links: (x) => blocoEnderecos(x), hist: corpoHist };
+  $('detalhe').innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><div><h2 style="font-size:18px">${esc(l.nome)}</h2><small>${l.nomeIA ? 'IA ' + esc(l.nomeIA) + ' · ' : ''}${fonteNome(l.fonte)} · ${esc(l.chave)}</small></div>${pill(c, t)}</div>
+    <div class="abas" role="tablist">${[['geral', 'Visão geral'], ['consumo', 'Consumo'], ['acoes', 'Ações'], ['links', 'Links'], ['hist', 'Histórico']].map(([k, n]) => `<button type="button" role="tab" aria-selected="${aba === k}" data-aba="${k}">${n}</button>`).join('')}</div>
+    <div class="pilha">${corpos[aba](l)}</div>`;
+}
+function tudo() { renderKpis(); renderAlertas(); renderConsumo(); renderTabela(); renderDetalhe(); }
+
+// ═══════════════ AÇÕES ═══════════════
+async function abrirSuporte(chave, bt) {
+  let janela = null; try { janela = window.open('', '_blank'); if (janela) janela.document.write('<p style="font:16px sans-serif;padding:24px">Abrindo o modo suporte…</p>'); } catch (e) { janela = null; }
   bt.disabled = true;
   try {
-    const j = await chamar({ acao: 'restaurar', chave: HIST.chave, versao: Number(versao) });
-    toast('Versão ' + j.restaurada + ' restaurada (agora é a v' + j.versao + ')');
-    await mostrarHistorico(HIST.chave); listar();
-  } catch (e) { toast(e.message); bt.disabled = false; }
+    const j = await chamar({ acao: 'suporte', chave });
+    if (janela) { try { janela.opener = null; janela.location.replace(j.link); } catch (e) {} }
+    SUPORTE[chave] = { link: j.link, expiraEm: j.expiraEm };
+    if (IDX[chave]) IDX[chave].suporteAberto = true;
+    aba = 'acoes'; renderDetalhe();
+  } catch (e) { if (janela) janela.close(); toast(e.message); bt.disabled = false; }
+}
+async function liberar(tel, bt) {
+  const l = IDX[sel]; if (!l) return;
+  if (!confirm('Liberar o número ' + fmtTel(tel) + ' na ' + l.nome + '?\n\nA IA volta a responder esse contato. Se for mesmo outro robô, o guardião pausa de novo.')) return;
+  bt.disabled = true;
+  try { const j = await postar(API_CENTRAL, { acao: 'liberar', chave: l.chave, tel }); toast(j.mensagem || 'IA liberada'); await carregar(true); }
+  catch (e) { toast(e.message); bt.disabled = false; }
+}
+async function bloquear(tel, nome, bt) {
+  const l = IDX[sel]; if (!l) return;
+  const d = String(tel || '').replace(/\D/g, '');
+  if (d.length < 10) { toast('Número incompleto: coloque DDD + número.'); return; }
+  if (!confirm('Bloquear ' + (nome ? nome + ' · ' : '') + fmtTel(d) + ' na ' + l.nome + '?\n\nA IA para de responder esse número até você liberar. O vendedor continua podendo atender normalmente.')) return;
+  if (bt) bt.disabled = true;
+  try { const j = await postar(API_CENTRAL, { acao: 'bloquear', chave: l.chave, tel: d }); toast(j.mensagem || 'Número bloqueado'); aba = 'consumo'; await carregar(true); }
+  catch (e) { toast(e.message); if (bt) bt.disabled = false; }
+}
+async function restaurar(versao, bt) {
+  const l = IDX[HIST.chave] || {};
+  if (!confirm('Restaurar a versão ' + versao + ' da IA da ' + (l.nome || 'loja') + '?\n\nA IA volta a ter as configurações dessa versão na hora. A versão de agora continua no histórico, então dá para desfazer.')) return;
+  bt.disabled = true;
+  try { const j = await chamar({ acao: 'restaurar', chave: HIST.chave, versao: Number(versao) }); toast('Versão ' + j.restaurada + ' restaurada (agora é a v' + j.versao + ')'); await carregarHist(HIST.chave); carregar(true); }
+  catch (e) { toast(e.message); bt.disabled = false; }
 }
 
-$('btListar').addEventListener('click', listar);
-// no admin unificado a chave vem de lá: já abre com a lista
-if (document.documentElement.classList.contains('embed') && $('adminKey').value) listar();
-$('btCancelar').addEventListener('click', () => modoEdicao(null));
-
-document.addEventListener('click', async (ev) => {
-  const c = ev.target.closest('[data-copiar]');
-  const en = ev.target.closest('[data-enderecos]');
-  const su = ev.target.closest('[data-suporte]');
-  if (su) { abrirSuporte(su.dataset.suporte, su); return; }
-  const fim = ev.target.closest('[data-encerrar]');
-  if (fim) {
-    fim.disabled = true;
-    try { await chamar({ acao: 'encerrarSuporte', chave: fim.dataset.encerrar }); toast('Acesso de suporte encerrado'); $('entrega').innerHTML = ''; listar(); }
-    catch (e) { toast(e.message); fim.disabled = false; }
-    return;
+// ═══════════════ NOVA LOJA / EDITAR ACESSO (modal em 3 passos) ═══════════════
+const SECRETOS = ['senha', 'feedUrl', 'urlEnvio', 'tokenRest'];
+SECRETOS.forEach(id => $(id).dataset.ph = $(id).placeholder);
+let passo = 1, testado = null, aprovado = false, editando = null, concluido = false;
+function dados() {
+  return { nome: $('nome').value.trim(), fonte: $('fonte').value, unidade: $('unidade').value.trim(), usuario: $('usuario').value.trim(), senha: $('senha').value,
+    feedUrl: $('feedUrl').value.trim(), urlEnvio: $('urlEnvio').value.trim(), tokenRest: $('tokenRest').value.trim() };
+}
+function invalidar() { testado = null; aprovado = false; if (passo === 2) pintarRodape(); }
+function abrirModal(l) {
+  editando = l ? l.chave : null; concluido = false; passo = 1;
+  $('mTitulo').textContent = l ? 'Editar acesso: ' + l.nome : 'Nova loja';
+  $('mSub').textContent = l ? 'Deixe em branco o que não mudou. Senha, URL e token atuais continuam valendo.' : 'Você só preenche o acesso. Todo o resto da IA o dono configura pelo plugin.';
+  ['nome', 'unidade', 'usuario', ...SECRETOS].forEach(id => $(id).value = '');
+  SECRETOS.forEach(id => $(id).placeholder = l ? 'Em branco = manter a atual' : ($(id).dataset.ph || ''));
+  $('nome').disabled = !!l;
+  if (l) { $('nome').value = l.nome || ''; $('fonte').value = ['revendamais', 'leadvox'].includes(l.fonte) ? l.fonte : 'autocerto'; $('unidade').value = l.unidade || ''; $('usuario').value = l.usuario || ''; }
+  else $('fonte').value = 'autocerto';
+  trocarFonte();
+  $('checks').innerHTML = '<p class="muted" style="font-size:13.5px;margin:0">' + (l ? 'Mude o que precisar e clique em "Testar conexões".' : 'O link só é gerado depois que as duas conexões passarem no teste.') + '</p>';
+  $('mErro').hidden = true; $('entrega').innerHTML = ''; invalidar();
+  $('camada').hidden = false; mostrarPasso(); setTimeout(() => (l ? $('fonte') : $('nome')).focus(), 30);
+}
+function fecharModal() { $('camada').hidden = true; if (concluido) carregar(true); }
+function mostrarPasso() {
+  document.querySelectorAll('[data-passo]').forEach(el => el.hidden = Number(el.dataset.passo) !== passo);
+  document.querySelectorAll('.passos span').forEach((s, i) => s.classList.toggle('on', i < passo));
+  pintarRodape();
+}
+function pintarRodape() {
+  const v = $('btVoltar'), a = $('btAvancar');
+  v.hidden = passo === 3 || passo === 1; a.disabled = false;
+  if (passo === 1) a.textContent = 'Próximo';
+  else if (passo === 2) { a.textContent = editando ? 'Salvar alterações' : 'Criar loja e gerar link'; a.disabled = !aprovado; }
+  else a.textContent = 'Concluir';
+}
+function trocarFonte() { const f = $('fonte').value; $('blocoAC').hidden = f !== 'autocerto'; $('blocoRM').hidden = f !== 'revendamais'; $('blocoLV').hidden = f !== 'leadvox'; invalidar(); }
+$('fonte').addEventListener('change', trocarFonte);
+document.querySelectorAll('#form input').forEach(el => el.addEventListener('input', invalidar));
+function erroModal(t) { $('mErro').hidden = !t; $('mErro').textContent = t || ''; }
+function mostrarChecks(j) {
+  const lv = j.leadvox || {}, es = j.estoque || {};
+  const nf = es.fonte === 'revendamais' ? 'Revenda Mais' : es.fonte === 'leadvox' ? 'Estoque LeadVox' : 'AutoCerto';
+  const canal = lv.canal === 'waba' ? 'API oficial (WABA)' : (lv.canal ? 'não oficial (' + lv.canal + ')' : 'não identificado');
+  const INFO = ['📱', '👥', '📈', '🤖', '🧾', '🚘'], ENDER = ['🔗', '🛡'];
+  const todas = j.mensagens || [];
+  const info = todas.filter(m => INFO.some(e => m.startsWith(e)));
+  const msgs = todas.filter(m => !INFO.some(e => m.startsWith(e)) && !ENDER.some(e => m.startsWith(e))).concat(j.aviso ? [j.aviso] : []);
+  $('checks').innerHTML = `
+    <div class="check ${lv.ok ? 'okc' : 'falha'}"><div class="ponto"></div><div><b>LeadVox ${lv.ok ? 'conectada' : 'não respondeu'}</b>
+      <span>Tenant ${esc(lv.tenantId)} · sessão ${esc(lv.sessionId ?? '?')} · ${esc(canal)}${lv.etiquetas != null ? ' · ' + lv.etiquetas + ' etiquetas lidas' : ''}</span></div></div>
+    <div class="check ${es.ok ? 'okc' : 'falha'}"><div class="ponto"></div><div><b>${nf} ${es.ok ? 'conectado' : 'não respondeu'}</b>
+      <span>${es.fonte === 'leadvox' ? 'A loja cadastra os veículos no painel dela' : es.ok ? es.total + ' veículos no estoque' + (es.exemplos && es.exemplos.length ? ', como ' + es.exemplos.map(esc).join(', ') : '') : 'Sem estoque lido'}</span></div></div>` +
+    info.map(m => `<div class="check info"><div class="ponto"></div><div><span>${esc(m)}</span></div></div>`).join('');
+  erroModal(msgs.join(' '));
+}
+$('btTestar').addEventListener('click', async () => {
+  const bt = $('btTestar'); bt.disabled = true; bt.textContent = 'Testando…'; erroModal('');
+  try {
+    const d = dados(); const j = await chamar(editando ? { acao: 'editar', chave: editando, salvar: false, loja: d } : { acao: 'testar', loja: d });
+    mostrarChecks(j); aprovado = !!j.aprovado; testado = aprovado ? JSON.stringify(d) : null;
+  } catch (e) { $('checks').innerHTML = ''; erroModal(e.message); aprovado = false; }
+  bt.disabled = false; bt.textContent = 'Testar conexões'; pintarRodape();
+});
+async function criarOuSalvar() {
+  const d = dados(), bt = $('btAvancar');
+  if (testado !== JSON.stringify(d)) { invalidar(); toast('Os dados mudaram. Teste de novo.'); return; }
+  bt.disabled = true; bt.textContent = editando ? 'Salvando…' : 'Criando…'; erroModal('');
+  try {
+    if (editando) {
+      const j = await chamar({ acao: 'editar', chave: editando, salvar: true, loja: d });
+      if (!j.salvo) throw new Error(j.aviso || 'As alterações não foram salvas.');
+      const l = { ...(IDX[editando] || {}), chave: editando, webhookIA: j.webhookIA || (IDX[editando] || {}).webhookIA, webhookSentinela: j.webhookSentinela || (IDX[editando] || {}).webhookSentinela };
+      $('entrega').innerHTML = `<h3 style="font-size:16px">Acesso salvo — ${esc(l.nome || '')}</h3><p class="muted" style="font-size:13.5px">Os endereços não mudam. Se precisar, copie de novo:</p><div class="pilha" style="gap:4px">${blocoEnderecos(l)}</div>`;
+    } else {
+      const j = await chamar({ acao: 'criar', loja: d, sufixo: hexAleatorio(16), pin: pinAleatorio() });
+      if (!j.criada) { mostrarChecks(j); throw new Error(j.aviso || 'A loja não foi criada.'); }
+      const l = { nome: j.nome, chave: j.chave, link: j.link, webhookIA: j.webhookIA, webhookSentinela: j.webhookSentinela, apiEstoque: j.apiEstoque, fonte: d.fonte };
+      $('entrega').innerHTML = `<h3 style="font-size:16px">3 · ${esc(j.nome)} cadastrada ✅</h3>
+        <p class="muted" style="font-size:13.5px">Mande os endereços para o cliente (ou cole você mesmo na LeadVox). Depois, cadastre o acesso do dono (e-mail e senha) no workflow Login do cliente.</p>
+        <div class="pilha" style="gap:4px">${blocoEnderecos(l)}</div>
+        <div class="card" style="margin-top:14px;background:var(--navy)"><small>PIN da loja (só para o link antigo, sem login):</small><div class="pin">${esc(j.pin)}</div><small>Ao cadastrar o acesso com e-mail e senha, este PIN deixa de valer.</small></div>`;
+      sel = j.chave; aba = 'links';
+    }
+    concluido = true; passo = 3; mostrarPasso();
+  } catch (e) { erroModal(e.message); pintarRodape(); }
+}
+$('btAvancar').addEventListener('click', () => {
+  if (passo === 1) {
+    if (!editando && !$('nome').value.trim()) { toast('Informe o nome da loja.'); $('nome').focus(); return; }
+    passo = 2; mostrarPasso(); return;
   }
-  const hi = ev.target.closest('[data-hist]');
-  if (hi) { mostrarHistorico(hi.dataset.hist); return; }
-  if (ev.target.closest('[data-fecharhist]')) { $('painelHist').hidden = true; return; }
-  const de = ev.target.closest('[data-detalhe]');
-  if (de) { const d = $('det-' + de.dataset.detalhe); if (d) { d.hidden = !d.hidden; de.textContent = d.hidden ? 'Ver versão' : 'Esconder'; } return; }
-  const rs = ev.target.closest('[data-restaurar]');
-  if (rs) { restaurar(rs.dataset.restaurar, rs); return; }
-  if (en) { const l = LOJAS[en.dataset.enderecos]; if (l) { $('entrega').innerHTML = blocoEnderecos(l); $('entrega').scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+  if (passo === 2) return criarOuSalvar();
+  fecharModal();
+});
+$('btVoltar').addEventListener('click', () => { if (passo === 2) { passo = 1; mostrarPasso(); } });
+
+// ═══════════════ CLIQUES ═══════════════
+document.addEventListener('click', async (ev) => {
+  const t = ev.target;
+  const c = t.closest('[data-copiar]');
   if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
-  const ed = ev.target.closest('[data-editar]');
-  if (ed) { modoEdicao(LOJAS[ed.dataset.editar]); return; }
-  const at = ev.target.closest('[data-ativo]');
-  if (at) {
-    const ligar = at.dataset.ligar === '1';
+  if (t.closest('[data-fechar]')) { fecharModal(); return; }
+  if (t.closest('[data-novo]')) { if (!$('adminKey').value) { toast('Informe a chave de admin primeiro.'); $('adminKey').focus(); return; } abrirModal(null); return; }
+  const s = t.closest('[data-sel]');
+  if (s) { sel = s.dataset.sel; aba = s.dataset.ir || aba; tudo(); if (innerWidth < 980) $('detalhe').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const ab = t.closest('[data-aba]'); if (ab) { aba = ab.dataset.aba; renderDetalhe(); return; }
+  const od = t.closest('[data-ord]'); if (od) { ord = od.dataset.ord; renderTabela(); return; }
+  const su = t.closest('[data-suporte]'); if (su) { abrirSuporte(su.dataset.suporte, su); return; }
+  const fim = t.closest('[data-encerrar]');
+  if (fim) { fim.disabled = true;
+    try { await chamar({ acao: 'encerrarSuporte', chave: fim.dataset.encerrar }); toast('Acesso de suporte encerrado'); delete SUPORTE[fim.dataset.encerrar]; if (IDX[fim.dataset.encerrar]) IDX[fim.dataset.encerrar].suporteAberto = false; tudo(); carregar(true); }
+    catch (e) { toast(e.message); fim.disabled = false; } return; }
+  const ed = t.closest('[data-editar]'); if (ed) { abrirModal(IDX[ed.dataset.editar]); return; }
+  const at = t.closest('[data-ativo]');
+  if (at) { const ligar = at.dataset.ligar === '1';
     if (!confirm(ligar ? 'Reativar esta loja? O dono volta a poder ligar e desligar a IA.' : 'Suspender esta loja? A IA para de responder na hora e o dono não consegue religar até você reativar.')) return;
     at.disabled = true;
-    try { await chamar({ acao: 'ativo', chave: at.dataset.ativo, ligar }); toast(ligar ? 'Loja reativada' : 'Loja suspensa'); listar(); }
-    catch (e) { toast(e.message); at.disabled = false; }
-    return;
-  }
-  const p = ev.target.closest('[data-pin]');
-  if (p) {
-    if (!confirm('Gerar um novo PIN? O PIN antigo deixa de funcionar.')) return;
-    try { const j = await chamar({ acao: 'novoPin', chave: p.dataset.pin, pin: pinAleatorio() }); alert('Novo PIN: ' + j.pin + '\n\nAnote agora e passe para o dono da loja.'); }
-    catch (e) { toast(e.message); }
-  }
+    try { await chamar({ acao: 'ativo', chave: at.dataset.ativo, ligar }); toast(ligar ? 'Loja reativada' : 'Loja suspensa'); await carregar(true); }
+    catch (e) { toast(e.message); at.disabled = false; } return; }
+  const p = t.closest('[data-pin]');
+  if (p) { if (!confirm('Gerar um novo PIN? O PIN antigo deixa de funcionar.')) return;
+    try { const j = await chamar({ acao: 'novoPin', chave: p.dataset.pin, pin: pinAleatorio() }); alert('Novo PIN: ' + j.pin + '\n\nAnote agora e passe para o dono da loja.'); } catch (e) { toast(e.message); } return; }
+  const lb = t.closest('[data-liberar]'); if (lb) { liberar(lb.dataset.liberar, lb); return; }
+  const bq = t.closest('[data-bloquear]'); if (bq) { bloquear(bq.dataset.bloquear, bq.dataset.nome, bq); return; }
+  if (t.closest('[data-bloquear-campo]')) { bloquear($('telBloq').value, '', t.closest('button')); return; }
+  const de = t.closest('[data-detalhe]');
+  if (de) { const d = $('det-' + de.dataset.detalhe); if (d) { d.hidden = !d.hidden; de.textContent = d.hidden ? 'Ver' : 'Esconder'; } return; }
+  const rs = t.closest('[data-restaurar]'); if (rs) { restaurar(rs.dataset.restaurar, rs); return; }
+  if (t.closest('[data-rehist]')) { carregarHist(sel); renderDetalhe(); return; }
 });
+document.addEventListener('input', e => { if (e.target.id === 'busca') renderTabela(); });
+document.addEventListener('change', e => { if (e.target.id === 'periodo') { periodo = e.target.value; tudo(); } if (e.target.id === 'filtro') { filtro = e.target.value; renderTabela(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('camada').hidden) fecharModal(); });
+
+if ($('adminKey').value) carregar(); else renderDetalhe();
 </script>
 </body>
 </html>
