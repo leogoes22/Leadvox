@@ -282,13 +282,13 @@ function renderKpis() {
   if (!LOJAS.length) { $('kpis').innerHTML = ''; return; }
   const ligadas = LOJAS.filter(l => l.ativo && !l.bloqueado).length;
   const conv = LOJAS.reduce((s, l) => s + (M(l).hoje.conv || 0), 0);
-  const tr = META.temRelatorio ? LOJAS.reduce((s, l) => s + (M(l).hoje.transf || 0), 0) : null;
+  const esp = META.temSentinela ? LOJAS.reduce((s, l) => s + (M(l).nEsperando || 0), 0) : null;
   const custo = LOJAS.reduce((s, l) => s + (per(l).custo || 0), 0);
   const sm = META.semMetricas;
   $('kpis').innerHTML = [
     [ligadas + '/' + LOJAS.length, 'lojas com a IA ligada'],
     [sm ? '—' : conv, 'conversas com a IA hoje'],
-    [tr === null ? '—' : tr, 'passadas para a equipe hoje'],
+    [esp === null ? '—' : esp, 'clientes sem nenhuma resposta agora'],
     [sm ? '—' : brl(custo), 'custo estimado de IA ' + nomePer()]
   ].map(([b, s]) => `<div class="card kpi"><b>${esc(b)}</b><small>${esc(s)}</small></div>`).join('');
 }
@@ -297,7 +297,7 @@ function renderAlertas() {
   $('nAlertas').textContent = '(' + al.length + ')';
   $('alertas').innerHTML = al.length ? al.map(a => `<div class="item ${a.l.chave === sel ? 'sel' : ''}" data-sel="${esc(a.l.chave)}" data-ir="${/loop|robô|custo/i.test(a.m) ? 'consumo' : 'geral'}">
       <div>${pill(a.t, a.t === 'bad' ? 'Urgente' : 'Atenção')} <b style="font-weight:500;margin-left:6px">${esc(a.l.nome)}</b><br><small>${esc(a.m)}</small></div>
-      <button class="mini" type="button">Ver →</button></div>`).join('')
+      <span style="display:flex;gap:6px">${a.acao === 'encerrar' ? `<button class="mini" type="button" data-encerrar="${esc(a.l.chave)}">Encerrar</button>` : ''}<button class="mini" type="button">Ver →</button></span></div>`).join('')
     : `<p class="muted" style="font-size:14px;margin:6px 0 0">${LOJAS.length ? (META.semMetricas ? 'Sem métricas, só os alertas de situação da loja.' : 'Nada pedindo atenção agora. 🎉') : '—'}</p>`;
 }
 function renderConsumo() {
@@ -349,7 +349,8 @@ function corpoGeral(l) {
   if (!sm && (m.bloqueados || []).length) info.push(['Números bloqueados por você', String(m.bloqueados.length)]);
   if (l.ultima) info.push(['Última alteração', quemFez(l.ultima.origem) + (l.ultima.em ? ' · ' + dataCurta(l.ultima.em) : '')]);
   return `<div class="nums">${[['Conversas hoje', sm ? '—' : h.conv], ['Passou p/ equipe', sm ? '—' : num(h.transf)], ['Visitas marcadas', sm ? '—' : num(h.visitas)]].map(([a, b]) => `<div><b>${esc(b)}</b><small>${a}</small></div>`).join('')}</div>
-    ${(l.alertas || []).map(a => `<div class="alerta ${a.t}">${esc(a.m)}</div>`).join('')}
+    ${(l.alertas || []).map(a => `<div class="alerta ${a.t}" style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${esc(a.m)}</span>${a.acao === 'encerrar' ? `<button class="mini" type="button" data-encerrar="${esc(l.chave)}">Encerrar agora</button>` : ''}</div>`).join('')}
+    ${(m.esperando || []).length ? `<div><small>Clientes sem nenhuma resposta (nem da IA nem da equipe)</small>${m.esperando.map(p => linhaContato(p, `<small style="grid-column:1/-1">escreveu há ${esc(haQuanto(p.ts))}</small>`)).join('')}</div>` : ''}
     <div class="card" style="padding:4px 14px">${info.map(([a, b]) => `<div class="linha-info"><span class="muted">${esc(a)}</span><span>${esc(b)}</span></div>`).join('')}</div>`;
 }
 function fmtTel(t) { let d = String(t || '').replace(/\D/g, ''); if (d.startsWith('55') && d.length >= 12) d = d.slice(2); return d.length >= 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, -4) + '-' + d.slice(-4) : d; }
@@ -662,15 +663,15 @@ document.addEventListener('click', async (ev) => {
   if (c) { try { await navigator.clipboard.writeText(c.dataset.copiar); toast('Copiado'); } catch (e) { toast('Não consegui copiar. Selecione e copie manualmente.'); } return; }
   if (t.closest('[data-fechar]')) { fecharModal(); return; }
   if (t.closest('[data-novo]')) { if (!$('adminKey').value) { toast('Informe a chave de admin primeiro.'); $('adminKey').focus(); return; } abrirModal(null); return; }
+  const fim = t.closest('[data-encerrar]');
+  if (fim) { fim.disabled = true;
+    try { await chamar({ acao: 'encerrarSuporte', chave: fim.dataset.encerrar }); toast('Acesso de suporte encerrado'); delete SUPORTE[fim.dataset.encerrar]; if (IDX[fim.dataset.encerrar]) IDX[fim.dataset.encerrar].suporteAberto = false; tudo(); carregar(true); }
+    catch (e) { toast(e.message); fim.disabled = false; } return; }
   const s = t.closest('[data-sel]');
   if (s) { sel = s.dataset.sel; aba = s.dataset.ir || aba; tudo(); if (innerWidth < 980) $('detalhe').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const ab = t.closest('[data-aba]'); if (ab) { aba = ab.dataset.aba; renderDetalhe(); return; }
   const od = t.closest('[data-ord]'); if (od) { ord = od.dataset.ord; renderTabela(); return; }
   const su = t.closest('[data-suporte]'); if (su) { abrirSuporte(su.dataset.suporte, su); return; }
-  const fim = t.closest('[data-encerrar]');
-  if (fim) { fim.disabled = true;
-    try { await chamar({ acao: 'encerrarSuporte', chave: fim.dataset.encerrar }); toast('Acesso de suporte encerrado'); delete SUPORTE[fim.dataset.encerrar]; if (IDX[fim.dataset.encerrar]) IDX[fim.dataset.encerrar].suporteAberto = false; tudo(); carregar(true); }
-    catch (e) { toast(e.message); fim.disabled = false; } return; }
   const ed = t.closest('[data-editar]'); if (ed) { abrirModal(IDX[ed.dataset.editar]); return; }
   const at = t.closest('[data-ativo]');
   if (at) { const ligar = at.dataset.ligar === '1';
