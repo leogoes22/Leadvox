@@ -254,7 +254,7 @@ async function carregar(silencioso) {
   const faixas = [];
   try {
     let j;
-    try { j = await postar(API_CENTRAL, { acao: 'painel' }); META = { ...j, semMetricas: false }; }
+    try { j = await postar(API_CENTRAL, { acao: 'painel' }); if (!Array.isArray(j.lojas)) throw new Error('o Admin Central não devolveu as lojas'); META = { ...j, semMetricas: false }; }
     catch (e) {
       if (e.auth) throw e;
       j = await chamar({ acao: 'listar' });        // sem o Admin Central: só a lista, sem números
