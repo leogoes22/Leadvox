@@ -485,14 +485,14 @@ async function ligar(chave, ligarIA) {
 
 /* ═══════════ EDITOR ═══════════ */
 const TIPO_PASSOS = {
-  sdr:         ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'precos', 'catalogo', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
-  recepcao:    ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'setores', 'coleta', 'materiais', 'crm', 'revisar'],
-  suporte:     ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'materiais', 'setores', 'revisar'],
-  catalogo:    ['identidade', 'lugar', 'empresa', 'horario', 'catalogo', 'conhecimento', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'revisar'],
-  agendamento: ['identidade', 'lugar', 'empresa', 'horario', 'precos', 'conhecimento', 'coleta', 'setores', 'materiais', 'followup', 'crm', 'revisar']
+  sdr:         ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'precos', 'catalogo', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'avisos', 'revisar'],
+  recepcao:    ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'setores', 'coleta', 'materiais', 'crm', 'avisos', 'revisar'],
+  suporte:     ['identidade', 'lugar', 'empresa', 'horario', 'conhecimento', 'materiais', 'setores', 'avisos', 'revisar'],
+  catalogo:    ['identidade', 'lugar', 'empresa', 'horario', 'catalogo', 'conhecimento', 'materiais', 'coleta', 'setores', 'followup', 'crm', 'avisos', 'revisar'],
+  agendamento: ['identidade', 'lugar', 'empresa', 'horario', 'precos', 'conhecimento', 'coleta', 'setores', 'materiais', 'followup', 'crm', 'avisos', 'revisar']
 };
 const NOMES_PASSO = { identidade: 'Identidade', lugar: 'Onde atua', empresa: 'Empresa', horario: 'Horário', conhecimento: 'Conhecimento', precos: 'Preços',
-  catalogo: 'Catálogo', materiais: 'Materiais', coleta: 'Coleta de dados', setores: 'Setores', followup: 'Follow-up', crm: 'CRM', revisar: 'Revisar' };
+  catalogo: 'Catálogo', materiais: 'Materiais', coleta: 'Coleta de dados', setores: 'Setores', followup: 'Follow-up', crm: 'CRM', avisos: 'Avisos', revisar: 'Revisar' };
 const CAMPOS_PADRAO = {
   sdr: [['Nome', true], ['Cidade ou bairro', false], ['O que procura', true], ['Para quando precisa', false], ['Forma de pagamento', false]],
   recepcao: [['Nome', true], ['Assunto', true]],
@@ -513,7 +513,8 @@ function configPadrao(tipo, nome) {
     coleta: { campos: (CAMPOS_PADRAO[tipo] || []).map(([n, o]) => ({ nome: n, obrigatorio: o })), teto: tipo === 'recepcao' ? 3 : 5 },
     setores: [], transferencia: { mensagem: '' },
     followup: { ativo: false, toques: [{ minutos: 60, texto: '' }, { minutos: 1440, texto: '' }], janelaIni: '09:00', janelaFim: '20:00' },
-    crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true }
+    crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true },
+    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
   };
 }
 function mesclar(pad, cfg) {
@@ -734,6 +735,28 @@ const PASSOS = {
       <label class="check-lin"><input type="checkbox" id="crmEtq" ${c.crm.etiquetas ? 'checked' : ''}> Colocar etiquetas automáticas (assunto, setor)</label></div>`,
     ler: (c) => { c.crm = { oportunidade: $('#crmOp').checked, etapaId: Number($('#crmEt').value) || null, etiquetas: $('#crmEtq').checked }; }
   },
+  avisos: {
+    html: (c) => { const a = c.avisos || {}, rt = a.retomada || {}, g = a.gerente || {}, r = a.resumo || {};
+      const telV = (v) => { const d = String(v || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''); return d.length >= 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, -4) + '-' + d.slice(-4) : d; };
+      return `<div class="card"><h2>Recontato no dia seguinte</h2><p class="muted">Conversa que parou (o cliente e sua equipe ficaram quietos) ganha <b>uma</b> mensagem perto de 24 h depois da última fala do cliente, dentro da janela do follow-up.</p>
+      <label class="check-lin"><input type="checkbox" id="avRet" ${rt.ativo ? 'checked' : ''}> Ligar recontato no dia seguinte</label>
+      <div id="avRetBox"><label for="avRetTxt">Mensagem <small>(deixe vazio para usar a padrão)</small></label><input id="avRetTxt" maxlength="400" value="${esc(rt.texto || '')}" placeholder="E aí, {nome}! Conseguiu resolver tudo? Se ficou alguma dúvida, sigo à disposição por aqui 😊"></div></div>
+      <div class="card"><h2>Avisar o gerente</h2><p class="muted">Quando a IA passar um cliente para a equipe, o gerente recebe no WhatsApp o resumo: nome, telefone, setor e o que foi conversado.</p>
+      <label class="check-lin"><input type="checkbox" id="avGer" ${g.ativo ? 'checked' : ''}> Ligar aviso ao gerente</label>
+      <div id="avGerBox"><label for="avGerTel">WhatsApp do gerente <small>(com DDD)</small></label><input id="avGerTel" inputmode="tel" maxlength="20" value="${esc(telV(g.whatsapp))}" placeholder="(21) 99999-0000">
+        <label>Quando avisar</label>${radios('avGerQ', [op('equipe', 'Quando passar para a equipe (👤)', 'O mais comum: cliente pronto para ser atendido'), op('todas', 'Em toda transferência', 'Inclui quando passa para outro agente (🤖)')], g.quando || 'equipe')}</div></div>
+      <div class="card"><h2>Resumo do dia</h2><p class="muted">No fim do dia, um WhatsApp com o que a IA fez: conversas, clientes novos, quantos foram para a equipe, follow-ups, pedidos e quem ficou sem resposta.</p>
+      <label class="check-lin"><input type="checkbox" id="avRes" ${r.ativo ? 'checked' : ''}> Ligar resumo do dia</label>
+      <div id="avResBox"><div class="duas"><div><label for="avResTel">WhatsApp que recebe</label><input id="avResTel" inputmode="tel" maxlength="20" value="${esc(telV(r.whatsapp))}" placeholder="(21) 99999-0000"></div>
+        <div><label for="avResHora">Horário</label><select id="avResHora">${[17, 18, 19, 20, 21, 22].map(h => `<option value="${h}" ${Number(r.hora || 19) === h ? 'selected' : ''}>${h}h</option>`).join('')}</select></div></div>
+        <p class="dica">Se a empresa tiver mais de um agente com o resumo ligado para o mesmo número, chega uma mensagem só, com tudo junto.</p></div></div>
+      <p class="muted" style="font-size:13px;margin-top:10px">O número do gerente e o do resumo ficam com a IA em silêncio: se eles responderem, a IA não conversa com eles.</p>`; },
+    depois: () => { [['#avRet', '#avRetBox'], ['#avGer', '#avGerBox'], ['#avRes', '#avResBox']].forEach(([c, b]) => { const up = () => $(b).hidden = !$(c).checked; $(c).addEventListener('change', up); up(); }); },
+    ler: (c) => { const tel = (v) => { let d = String(v || '').replace(/\D/g, ''); if (d.length === 10 || d.length === 11) d = '55' + d; return d; };
+      c.avisos = { retomada: { ativo: $('#avRet').checked, texto: $('#avRetTxt').value.trim() },
+        gerente: { ativo: $('#avGer').checked, whatsapp: tel($('#avGerTel').value), quando: radioVal('avGerQ') || 'equipe' },
+        resumo: { ativo: $('#avRes').checked, whatsapp: tel($('#avResTel').value), hora: Number($('#avResHora').value) || 19 } }; }
+  },
   revisar: {
     html: (c) => { const f = faltando(c);
       return `<div class="card"><h2>Revisar e concluir</h2>
@@ -748,6 +771,7 @@ const PASSOS = {
         <dt>Coleta</dt><dd>${c.coleta.campos.map(x => esc(x.nome) + (x.obrigatorio ? '*' : '')).join(', ') || 'nada'}</dd>
         <dt>Setores</dt><dd>${c.setores.map(s => esc(s.nome) + (s.padrao ? ' (padrão)' : '')).join(', ') || 'nenhum'}</dd>
         ${TIPO_PASSOS[AG.agente.tipo].includes('followup') ? `<dt>Follow-up</dt><dd>${c.followup.ativo ? c.followup.toques.length + ' mensagem(ns)' : 'desligado'}</dd>` : ''}
+        <dt>Avisos</dt><dd>${[c.avisos.retomada.ativo ? 'recontato no dia seguinte' : '', c.avisos.gerente.ativo ? 'avisa o gerente' : '', c.avisos.resumo.ativo ? 'resumo às ' + c.avisos.resumo.hora + 'h' : ''].filter(Boolean).join(' · ') || 'nenhum'}</dd>
       </dl>
       <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="principal" type="button" id="btConcluir" ${f.length ? 'disabled' : ''}>Concluir</button>
         <button type="button" id="btHist">Ver histórico</button></div></div>`; },
@@ -765,6 +789,9 @@ function faltando(c) {
   if (c.setores.some(s => !s.filaId)) f.push('fila de todos os setores (Setores)');
   if (t === 'catalogo' && c.catalogo.usar && !CAT.length) f.push('itens no catálogo (aba Catálogo)');
   if (t === 'suporte' && !c.conhecimento.faq.length && !c.conhecimento.extra) f.push('perguntas frequentes ou informações (Conhecimento)');
+  const telOk = (v) => /^55\d{10,11}$/.test(String(v || ''));
+  if (c.avisos && c.avisos.gerente.ativo && !telOk(c.avisos.gerente.whatsapp)) f.push('WhatsApp do gerente com DDD (Avisos)');
+  if (c.avisos && c.avisos.resumo.ativo && !telOk(c.avisos.resumo.whatsapp)) f.push('WhatsApp do resumo do dia com DDD (Avisos)');
   return f;
 }
 function lerPassoAtual() { const nome = TIPO_PASSOS[AG.agente.tipo][passoAtual]; PASSOS[nome].ler(AG.config); }
