@@ -150,12 +150,39 @@
   .salvo { background: var(--verde-fundo); border: 1px solid var(--verde); color: var(--verde); border-radius: 14px; padding: 16px; margin-top: 14px; }
 
   /* IA × Estoque */
-  .vistas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--painel); border: 1px solid var(--linha); border-radius: 99px; padding: 4px; margin-top: 14px; }
+  .vistas { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--painel); border: 1px solid var(--linha); border-radius: 99px; padding: 4px; margin-top: 14px; }
   .vistas button { border: 0; border-radius: 99px; padding: 8px 10px; font-size: 14px; }
   .vistas button[aria-pressed="true"] { background: var(--verde); color: var(--navy); font-weight: 700; }
   #vistaEstoque { display: none; }
   .modo-estoque #vistaEstoque { display: block; }
   .modo-estoque #cardLiga, .modo-estoque #passos, .modo-estoque .passo, .modo-estoque .barra { display: none !important; }
+  #vistaHoje { display: none; }
+  .modo-hoje #vistaHoje { display: block; }
+  .modo-hoje #passos, .modo-hoje .passo, .modo-hoje .barra { display: none !important; }
+
+  /* aba Hoje */
+  .h-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .h-nums div { background: var(--navy); border: 1px solid var(--linha); border-radius: 12px; padding: 12px; }
+  .h-nums b { display: block; font: 700 24px/1.1 Syne, sans-serif; }
+  .h-nums small { color: var(--suave); font-size: 12.5px; display: block; margin-top: 4px; line-height: 1.3; }
+  @media (max-width: 420px) { .h-nums b { font-size: 20px; } }
+  .h-aviso { border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 10px; border: 1px solid; }
+  .h-aviso.bad { color: var(--erro); border-color: rgba(255,107,107,.4); background: rgba(255,107,107,.08); }
+  .h-aviso.warn { color: #f5c451; border-color: rgba(245,196,81,.4); background: rgba(245,196,81,.08); }
+  .h-aviso.sup { color: #f5c451; border-color: rgba(245,196,81,.5); background: rgba(245,196,81,.08); border-style: dashed; }
+  .h-barras { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 12px; }
+  .h-barras div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+  .h-barras i { display: block; width: 100%; background: var(--verde); border-radius: 4px 4px 0 0; opacity: .75; min-height: 3px; }
+  .h-barras div.hoje i { opacity: 1; }
+  .h-barras small { font-size: 11px; color: var(--suave); }
+  .h-lin { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); font-size: 14px; }
+  .h-lin:first-of-type { border-top: 0; }
+  .h-lin small { color: var(--suave); display: block; font-size: 12.5px; }
+  .h-lin .bt { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; }
+  .h-lin button { padding: 6px 10px; font-size: 13px; }
+  .h-tag { display: inline-block; font-size: 11.5px; border-radius: 99px; padding: 1px 8px; margin-left: 6px; border: 1px solid rgba(255,107,107,.4); color: var(--erro); }
+  .h-sub { font-size: 13px; color: var(--suave); margin: 16px 0 4px; font-weight: 500; }
+  .h-campo { display: flex; gap: 8px; margin-top: 8px; } .h-campo input { flex: 1; }
 
   /* estoque */
   .est-topo { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
@@ -261,8 +288,9 @@
     <p class="ultima" id="ultimaAlt" hidden></p>
     <span class="selo" id="selo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Acesso liberado</span>
     <div class="vistas" id="vistas" role="group" aria-label="Escolha o que editar" hidden>
+      <button type="button" data-vista="hoje" aria-pressed="false" id="btVistaHoje">Hoje</button>
       <button type="button" data-vista="ia" aria-pressed="true">Configurar IA</button>
-      <button type="button" data-vista="estoque" aria-pressed="false">Estoque</button>
+      <button type="button" data-vista="estoque" aria-pressed="false" id="btVistaEstoque">Estoque</button>
     </div>
     <div class="card liga" id="cardLiga">
       <div class="liga-lin">
@@ -272,6 +300,26 @@
       <p class="erro" id="erroLiga" hidden></p>
     </div>
     <nav class="passos" id="passos" aria-label="Etapas"></nav>
+
+    <!-- HOJE: o que a IA fez pela loja -->
+    <div id="vistaHoje" aria-live="polite">
+      <div id="hSuporte"></div>
+      <div class="card">
+        <div class="est-topo"><div><h2>Hoje na sua loja</h2><p class="muted" id="hQuando">Carregando…</p></div><button class="leve" type="button" id="btHojeAtualizar">Atualizar</button></div>
+        <div id="hAvisos"></div>
+        <div class="h-nums" style="margin-top:14px" id="hNums"></div>
+        <p class="muted" style="font-size:13px;margin-top:10px" id="hNota" hidden></p>
+      </div>
+      <div class="card"><h2>Últimos 7 dias</h2><p class="muted" id="h7"></p><div class="h-barras" id="hBarras"></div></div>
+      <div class="card" id="hCardEsperando" hidden><h2>Clientes sem resposta</h2><p class="muted" style="font-size:13.5px">Escreveram e ninguém respondeu ainda (nem a IA nem a equipe).</p><div id="hEsperando" style="margin-top:6px"></div></div>
+      <div class="card" id="hCardPara" hidden><h2>Para quem a IA passou</h2><p class="muted" style="font-size:13.5px">Clientes que a IA atendeu e passou para a sua equipe nos últimos 7 dias.</p><div id="hPara" style="margin-top:6px"></div><div id="hOrigens"></div></div>
+      <div class="card"><h2>Números e robôs</h2>
+        <p class="muted" style="font-size:13.5px">Se um número for outro robô ou alguém que você não quer que a IA responda, bloqueie. Seus vendedores continuam atendendo normal.</p>
+        <div id="hNumeros" style="margin-top:6px"></div>
+        <div class="h-campo"><input id="hTelBloq" inputmode="tel" placeholder="(21) 99999-0000" aria-label="Número para bloquear"><button type="button" class="perigo" id="btHojeBloq">Bloquear</button></div>
+      </div>
+      <p class="erro" id="hErro" hidden></p>
+    </div>
 
     <!-- ESTOQUE LEADVOX -->
     <div id="vistaEstoque">
@@ -702,6 +750,7 @@ const q = new URLSearchParams(location.search);
 const CHAVE = q.get('k') || '';
 const API_PADRAO = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-plugin';
 const LOGIN_API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-login';
+const HOJE_API = 'https://webhook.lv-mktdeconversa.com/webhook/sdr-plugin-hoje';
 const API = q.get('api') || API_PADRAO;
 // Login com e-mail e senha é o padrão, mesmo quando o plugin abre com ?k= (link da loja).
 // Com ?k=, aparece também a opção "Entrar com o PIN da loja" (jeito antigo).
@@ -1653,13 +1702,18 @@ async function chamarEstoque(corpo) {
   return j;
 }
 function prepararEstoque() {
-  $('vistas').hidden = FONTE !== 'leadvox' || MODO === 'suporte';   // estoque continua só com o acesso do dono
+  $('btVistaEstoque').hidden = FONTE !== 'leadvox' || MODO === 'suporte';   // estoque continua só com o acesso do dono
+  $('btVistaHoje').hidden = !HOJE_OK;
+  $('vistas').hidden = $('btVistaEstoque').hidden && $('btVistaHoje').hidden;
   ESTOQUE_OK = false; SUJO = false;
-  trocarVista('ia', true);
+  // o dono abre direto no "Hoje"; no modo suporte a LeadVox abre na configuração
+  trocarVista(MODO === 'suporte' || !HOJE_OK || !CONFIGURADA ? 'ia' : 'hoje', true);
 }
 function trocarVista(v, silencioso) {
-  if (v === 'ia' && !silencioso && SUJO && !$('estForm').hidden && !confirm('Sair sem salvar o veículo?')) return;
+  if (v !== 'estoque' && !silencioso && SUJO && !$('estForm').hidden && !confirm('Sair sem salvar o veículo?')) return;
   document.body.classList.toggle('modo-estoque', v === 'estoque');
+  document.body.classList.toggle('modo-hoje', v === 'hoje');
+  if (v === 'hoje') carregarHoje();
   $('vistas').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vista === v)));
   if (v === 'estoque') {
     mostrarListaEst();
@@ -1669,6 +1723,87 @@ function trocarVista(v, silencioso) {
   window.scrollTo(0, 0);
 }
 $('vistas').addEventListener('click', (ev) => { const b = ev.target.closest('[data-vista]'); if (b) trocarVista(b.dataset.vista); });
+
+// ═══════════════ ABA HOJE ═══════════════
+let HOJE_OK = true;           // vira false se o workflow "Painel Hoje" não estiver instalado
+async function chamarHoje(corpo) {
+  const ident = MODO === 'login' ? { token: TOKEN } : MODO === 'suporte' ? { token: TOKEN_SUP, tipoSessao: 'suporte' } : { chave: CHAVE, pin: PIN };
+  const r = await fetch(HOJE_API, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ ...ident, ...corpo }) }) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (MODO === 'login' && j.sessao === false) { guardar.limpar(); TOKEN = ''; mostrarLogin('Sua sessão expirou. Entre de novo.'); throw new Error(j.erro || 'Sessão expirada.'); }
+  if (!r.ok || j.ok === false) { const e = new Error(j.erro || ('Não consegui falar com o servidor (HTTP ' + r.status + ').')); e.status = r.status; throw e; }
+  return j;
+}
+const telBonito = (t) => { let d = String(t || '').replace(/\D/g, ''); if (d.startsWith('55') && d.length >= 12) d = d.slice(2); return d.length >= 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, -4) + '-' + d.slice(-4) : d; };
+const haTempo = (ms) => { const s = (Date.now() - ms) / 1000; if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min'; if (s < 172800) return Math.round(s / 3600) + ' h'; return Math.round(s / 86400) + ' dias'; };
+const nn = (v) => v === null || v === undefined ? '—' : String(v);
+function linhaNum(p, extra) {
+  const preso = p.bloqueado || p.pausado;
+  const tag = p.bloqueado ? '<span class="h-tag">' + (p.por === 'admin' ? 'bloqueado pela LeadVox' : 'bloqueado') + '</span>' : p.pausado ? '<span class="h-tag">IA pausada: parece robô</span>' : '';
+  const podeLiberar = preso && p.por !== 'admin';
+  return `<div class="h-lin"><div><b style="font-weight:500">${esc(p.nome || 'Sem nome')}</b>${tag}<small>${esc(p.telFmt || telBonito(p.tel))}${extra ? ' · ' + extra : ''}</small></div>
+    <div class="bt">${p.n !== undefined ? `<b title="mensagens da IA hoje">${p.n}</b>` : ''}${podeLiberar ? `<button type="button" data-hlib="${esc(p.tel)}">Liberar</button>` : preso ? '' : `<button type="button" class="perigo" data-hbloq="${esc(p.tel)}" data-nome="${esc(p.nome || '')}">Bloquear</button>`}</div></div>`;
+}
+function renderHoje(j) {
+  const n = j.numeros || {}, h = n.hoje || {}, d7 = n.d7 || {};
+  // suporte da LeadVox (o dono vê quando a equipe está mexendo)
+  const sp = j.suporte || {};
+  $('hSuporte').innerHTML = sp.aberto && MODO !== 'suporte' ? '<div class="h-aviso sup">🛠 <b>A equipe LeadVox está dando suporte na sua IA agora.</b> As mudanças que ela fizer ficam registradas no histórico.</div>'
+    : sp.ultimaAjuda ? '<p class="muted" style="font-size:13px;margin-top:12px">🛠 Última ajuda da equipe LeadVox' + esc(quandoTxt(sp.ultimaAjuda)) + '.</p>' : '';
+  $('hQuando').textContent = (j.loja && j.loja.nomeIA ? 'O que a ' + j.loja.nomeIA + ' fez hoje' : 'O que a IA fez hoje') + ' · atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  $('hAvisos').innerHTML = (j.avisos || []).map(a => `<div class="h-aviso ${a.t}">${esc(a.m)}</div>`).join('');
+  $('hNums').innerHTML = [[h.conversas, 'conversas com a IA'], [nn(h.transferidos), 'passadas para a equipe'], [nn(h.visitas), 'visitas marcadas']].map(([b, t]) => `<div><b>${esc(b ?? 0)}</b><small>${t}</small></div>`).join('');
+  $('hNota').hidden = !!j.temRelatorio;
+  $('hNota').textContent = 'Os números de "passadas para a equipe" e "visitas" aparecem assim que a LeadVox ativar o relatório da sua IA.';
+  $('h7').textContent = (d7.conversas || 0) + ' conversas' + (d7.transferidos != null ? ' · ' + d7.transferidos + ' passadas para a equipe' : '') + (d7.visitas != null ? ' · ' + d7.visitas + ' visitas' : '');
+  const se = j.serie || [], mx = Math.max(1, ...se.map(x => x.conversas));
+  const SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  $('hBarras').innerHTML = se.map((x, i) => `<div class="${i === se.length - 1 ? 'hoje' : ''}" title="${x.conversas} conversas"><small>${x.conversas}</small><i style="height:${Math.max(3, x.conversas / mx * 70)}%"></i><small>${i === se.length - 1 ? 'hoje' : SEM[new Date(x.dia + 'T12:00:00').getDay()]}</small></div>`).join('');
+  const esp = j.esperando || [];
+  $('hCardEsperando').hidden = !esp.length;
+  $('hEsperando').innerHTML = esp.map(p => linhaNum(p, 'escreveu há ' + haTempo(p.ts))).join('');
+  const pq = (j.paraQuem || {}).d7 || [];
+  $('hCardPara').hidden = !j.temRelatorio;
+  $('hPara').innerHTML = pq.length ? pq.map(x => `<div class="h-lin"><span>${esc(x.nome)}</span><b>${x.n}</b></div>`).join('') : '<p class="muted" style="font-size:14px">Ninguém ainda nesta semana.</p>';
+  const og = j.origens || [], pg = j.pagamentos || [];
+  $('hOrigens').innerHTML = (og.length ? '<p class="h-sub">De onde vieram</p>' + og.map(x => `<div class="h-lin"><span>${esc(x.nome)}</span><b>${x.n}</b></div>`).join('') : '') +
+    (pg.length ? '<p class="h-sub">Como querem pagar</p>' + pg.map(x => `<div class="h-lin"><span>${esc(x.nome)}</span><b>${x.n}</b></div>`).join('') : '');
+  const fim8 = (t) => String(t || '').replace(/\D/g, '').slice(-8);
+  const top = j.top || [], naTop = (t) => top.some(x => fim8(x.tel) === fim8(t));
+  top.forEach(t => { const b = (j.bloqueados || []).find(x => fim8(x.tel) === fim8(t.tel)); if (b) t.por = b.por; });
+  const extras = [...(j.pausados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, pausado: true })), ...(j.bloqueados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, bloqueado: true }))];
+  $('hNumeros').innerHTML = (top.length ? '<p class="h-sub">Quem mais conversou com a IA hoje</p>' + top.map(p => linhaNum(p)).join('') : '') +
+    (extras.length ? '<p class="h-sub">Bloqueados e pausados</p>' + extras.map(p => linhaNum(p)).join('') : '') ||
+    '<p class="muted" style="font-size:14px">Nenhuma conversa com a IA hoje ainda.</p>';
+}
+let hojeCarregando = false;
+async function carregarHoje() {
+  if (hojeCarregando) return; hojeCarregando = true;
+  $('hErro').hidden = true;
+  try { renderHoje(await chamarHoje({ acao: 'hoje' })); }
+  catch (e) {
+    if (e.status === 404) { HOJE_OK = false; $('btVistaHoje').hidden = true; trocarVista('ia', true); }
+    else { $('hErro').hidden = false; $('hErro').textContent = e.message; }
+  }
+  hojeCarregando = false;
+}
+async function acaoNumero(acao, tel, nome, bt) {
+  const d = String(tel || '').replace(/\D/g, '');
+  if (d.length < 10) { alert('Coloque o número com DDD.'); return; }
+  const msg = acao === 'bloquear' ? 'Bloquear ' + (nome ? nome + ' · ' : '') + telBonito(d) + '?\n\nA IA para de responder esse número até você liberar. Seus vendedores continuam podendo atender normal.'
+    : 'Liberar ' + telBonito(d) + '?\n\nA IA volta a responder esse número.';
+  if (!confirm(msg)) return;
+  if (bt) bt.disabled = true;
+  try { const j = await chamarHoje({ acao, tel: d }); if (j.mensagem) alert(j.mensagem); if (acao === 'bloquear') $('hTelBloq').value = ''; await carregarHoje(); }
+  catch (e) { alert(e.message); }
+  if (bt) bt.disabled = false;
+}
+$('btHojeAtualizar').addEventListener('click', carregarHoje);
+$('btHojeBloq').addEventListener('click', (ev) => acaoNumero('bloquear', $('hTelBloq').value, '', ev.currentTarget));
+$('vistaHoje').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-hbloq]'); if (b) { acaoNumero('bloquear', b.dataset.hbloq, b.dataset.nome, b); return; }
+  const l = ev.target.closest('[data-hlib]'); if (l) acaoNumero('liberar', l.dataset.hlib, '', l);
+});
 
 function erroEst(m) { $('estErro').hidden = !m; $('estErro').textContent = m || ''; }
 async function carregarEstoque() {
