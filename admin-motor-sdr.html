@@ -346,7 +346,7 @@ function corpoGeral(l) {
     ['WhatsApp', canalNome(l.canal)], ['Estoque', fonteNome(l.fonte)], ['Tenant LeadVox', l.tenantId || '—']];
   if (!sm) info.push(['Última resposta da IA', haTxt(m.ultIA)],
     ['Última msg do cliente (Sentinela)', haTxt(m.ultCliente)]);
-  if (!sm && (m.bloqueados || []).length) info.push(['Números bloqueados por você', String(m.bloqueados.length)]);
+  if (!sm && (m.bloqueados || []).length) info.push(['Números bloqueados', String(m.bloqueados.length)]);
   if (l.ultima) info.push(['Última alteração', quemFez(l.ultima.origem) + (l.ultima.em ? ' · ' + dataCurta(l.ultima.em) : '')]);
   return `<div class="nums">${[['Conversas hoje', sm ? '—' : h.conv], ['Passou p/ equipe', sm ? '—' : num(h.transf)], ['Visitas marcadas', sm ? '—' : num(h.visitas)]].map(([a, b]) => `<div><b>${esc(b)}</b><small>${a}</small></div>`).join('')}</div>
     ${(l.alertas || []).map(a => `<div class="alerta ${a.t}" style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${esc(a.m)}</span>${a.acao === 'encerrar' ? `<button class="mini" type="button" data-encerrar="${esc(l.chave)}">Encerrar agora</button>` : ''}</div>`).join('')}
@@ -357,7 +357,7 @@ function fmtTel(t) { let d = String(t || '').replace(/\D/g, ''); if (d.startsWit
 function linhaContato(p, extra) {
   // p: { tel, telFmt, nome, n?, pausado?, bloqueado? }
   const preso = p.bloqueado || p.pausadoAgora;
-  const tag = p.bloqueado ? ' <span class="pill bad">bloqueado</span>' : p.pausadoAgora ? ' <span class="pill bad">IA pausada (robô)</span>' : (p.n >= 30 ? ' <span class="pill warn">possível loop</span>' : '');
+  const tag = p.bloqueado ? ' <span class="pill bad">' + (p.por === 'dono' ? 'bloqueado pelo dono' : 'bloqueado') + '</span>' : p.pausadoAgora ? ' <span class="pill bad">IA pausada (robô)</span>' : (p.n >= 30 ? ' <span class="pill warn">possível loop</span>' : '');
   return `<div class="contato"><span><b style="font-weight:500">${esc(p.nome || 'Sem nome')}</b>${p.teste ? ' <small>· teste</small>' : ''}${tag}<br><small>${esc(p.telFmt || fmtTel(p.tel))}</small></span>
     <span style="display:flex;gap:6px;align-items:center">${p.n !== undefined ? `<b title="respostas da IA hoje">${p.n}</b>` : ''}<button class="mini" type="button" data-copiar="${esc(p.telFmt || fmtTel(p.tel))}" title="Copiar número" aria-label="Copiar número">📋</button>
       ${preso ? `<button class="mini" type="button" data-liberar="${esc(p.tel)}">Liberar</button>` : `<button class="mini perigo" type="button" data-bloquear="${esc(p.tel)}" data-nome="${esc(p.nome || '')}">Bloquear</button>`}</span>
@@ -372,6 +372,7 @@ function corpoConsumo(l) {
   const naTop = (t) => top.some(x => fim8(x.tel) === fim8(t));
   const pausados = (m.pausados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, pausadoAgora: true }));
   const bloqueados = (m.bloqueados || []).filter(p => !naTop(p.tel)).map(p => ({ ...p, bloqueado: true }));
+  top.forEach(t => { const b = (m.bloqueados || []).find(x => fim8(x.tel) === fim8(t.tel)); if (b) t.por = b.por; });
   const ultimo = serie.length ? serie[serie.length - 1].dia : '';
   return `<div class="nums">${[['Hoje', m.hoje], ['7 dias', m.d7], ['30 dias', m.d30]].map(([a, p]) => `<div><b style="font-size:16px">${brl(p.custo)}</b><small>${a} · ${p.resp} respostas · ${p.conv} conversas</small></div>`).join('')}</div>
     <div class="linha-info"><span class="muted">Custo por conversa hoje</span><span>${m.hoje.porConv !== undefined ? brl(m.hoje.porConv) : '—'} <small>(média das lojas ${brl(media)})</small></span></div>
@@ -382,7 +383,7 @@ function corpoConsumo(l) {
       ${top.length ? top.map(t => linhaContato(t, `<div class="barra-uso"><span class="${t.bloqueado || t.pausadoAgora || t.n >= 30 ? 'quente' : ''}" style="width:${(t.n / maxN * 100).toFixed(0)}%"></span></div>`)).join('')
         : '<p class="muted" style="font-size:13px;margin:4px 0 0">Nenhuma resposta da IA hoje.</p>'}</div>
     ${pausados.length ? `<div><small>Pausados agora pelo guardião de robô (24 h)</small>${pausados.map(p => linhaContato(p)).join('')}</div>` : ''}
-    ${bloqueados.length ? `<div><small>Números bloqueados por você</small>${bloqueados.map(p => linhaContato(p)).join('')}</div>` : ''}
+    ${bloqueados.length ? `<div><small>Números bloqueados (por você ou pelo dono no painel dele)</small>${bloqueados.map(p => linhaContato(p)).join('')}</div>` : ''}
     <div class="card" style="padding:12px 14px"><small>Bloquear outro número nesta loja</small>
       <div class="campo-copia" style="margin:6px 0 0"><input id="telBloq" inputmode="tel" placeholder="(21) 99999-0000" aria-label="Número para bloquear"><button class="mini perigo" type="button" data-bloquear-campo>Bloquear</button></div></div>
     <p class="muted" style="font-size:12.5px;margin:0"><b>Bloquear</b>: a IA para de responder esse número nesta loja até você liberar (o vendedor continua atendendo normal). <b>Liberar</b>: tira o seu bloqueio e a pausa do guardião de robô; não mexe em pausa de vendedor.</p>`;
