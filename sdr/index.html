@@ -705,14 +705,21 @@
         <div class="opcoes">
           <label class="opcao"><input type="checkbox" id="avLembrete"><span>Lembrar o cliente da visita<small>Quando a IA marca uma visita com dia, ela confirma na véspera (a partir das 18h) e, se o cliente disse a hora, lembra 2 horas antes com o endereço da loja.</small></span></label>
           <label class="opcao"><input type="checkbox" id="avRetomada"><span>Retomar a conversa parada no dia seguinte<small>Se o cliente já está com um vendedor e os dois ficaram quietos, a IA manda uma mensagem só, perto de 24 h depois da última fala do cliente: "E aí, conseguiu resolver? Sigo à disposição". Não manda se o atendimento foi finalizado e não repete.</small></span></label>
-          <label class="opcao"><input type="checkbox" id="avResumo"><span>Resumo do dia no WhatsApp<small>Todo dia a IA manda quantos clientes atendeu, de onde vieram, quantas visitas marcou e para quem passou.</small></span></label>
+          <label class="opcao"><input type="checkbox" id="avResumo"><span>Resumo do dia<small>Todo dia a IA manda quantos clientes atendeu, de onde vieram, quantas visitas marcou e para quem passou.</small></span></label>
         </div>
         <div id="blocoResumo" hidden>
-          <div class="duas">
-            <div><label for="avResumoTel">WhatsApp que recebe o resumo</label><input id="avResumoTel" inputmode="numeric" placeholder="5521999999999"></div>
+          <p style="font-size:13px;margin:4px 0 6px">Onde receber o resumo:</p>
+          <div class="fu-chips" id="avResumoDest">
+            <label><input type="radio" name="avResumoDest" value="whatsapp"> No meu WhatsApp</label>
+            <label><input type="radio" name="avResumoDest" value="grupo"> No grupo de notificações</label>
+            <label><input type="radio" name="avResumoDest" value="ambos"> Nos dois</label>
+          </div>
+          <p class="muted" id="avResumoGrupoInfo" hidden style="font-size:13px;margin-top:6px"></p>
+          <div class="duas" style="margin-top:10px">
+            <div id="avResumoTelBox"><label for="avResumoTel">WhatsApp que recebe o resumo</label><input id="avResumoTel" inputmode="numeric" placeholder="5521999999999"></div>
             <div><label for="avResumoHora">Horário</label><select id="avResumoHora"><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option></select></div>
           </div>
-          <p class="muted" style="font-size:13px;margin-top:6px">Com 55 e DDD. O resumo sai pelo WhatsApp da loja.</p>
+          <p class="muted" id="avResumoTelDica" style="font-size:13px;margin-top:6px">Com 55 e DDD. O resumo sai pelo WhatsApp da loja.</p>
         </div>
         <div class="opcoes" style="margin-top:10px">
           <label class="opcao"><input type="checkbox" id="avGrupo"><span>Grupo de notificações da IA<small>Toda vez que a IA passa um cliente para a equipe, ela avisa num grupo do WhatsApp: quem é o cliente, por que ela passou, para onde e para quem foi, e o resumo da conversa. Vale para o AutoCerto e para a LeadVox. Coloque no grupo quem você quiser acompanhar.</small></span></label>
@@ -825,7 +832,7 @@ const PADRAO = {
   departamentos: [{ nome: 'Comercial', queueId: '', finalidade: 'compra, troca, financiamento, visita' }],
   distribuicao: { modo: 'departamento', vendedores: [], responsavelVendaConsignacao: null },
   lead: { enviarAutoCerto: false, codigoMidia: 12, interesse: 2, whatsappGerente: '' },
-  avisos: { lembreteVisita: true, retomada: false, resumo: { ativo: false, whatsapp: '', hora: 19 },
+  avisos: { lembreteVisita: true, retomada: false, resumo: { ativo: false, whatsapp: '', hora: 19, destino: 'whatsapp' },
     grupo: { ativo: false, id: '', eventos: { visita: false, robo: false } } },
   followup: { primeiroMin: 10, segundoMin: 45, transferir: { quando: 'apos_primeiro', personalizadoMin: null }, templateSeteDias: null },
   crm: { ativo: true, etapaInicialId: null },
@@ -1079,6 +1086,8 @@ function abrirApp() {
   { const av = c.avisos || {}, rs = av.resumo || {};
     $('avLembrete').checked = av.lembreteVisita !== false; $('avRetomada').checked = av.retomada === true; $('avResumo').checked = rs.ativo === true;
     $('avResumoTel').value = rs.whatsapp || c.lead.whatsappGerente || ''; $('avResumoHora').value = String(rs.hora || 19);
+    { const dst = ['whatsapp', 'grupo', 'ambos'].includes(rs.destino) ? rs.destino : 'whatsapp';
+      document.querySelector('input[name="avResumoDest"][value="' + dst + '"]').checked = true; }
     const gp = av.grupo || {}, ge = gp.eventos || {};
     $('avGrupo').checked = gp.ativo === true; $('avGrupoId').value = gp.id || '';
     document.querySelectorAll('#avGrupoEv input').forEach(i => { i.checked = ge[i.value] === true; }); }
@@ -1525,7 +1534,8 @@ function coletar() {
       templateSeteDias: CANAL === 'waba' ? ($('fuTemplate').value || null) : ((CFG && CFG.followup && CFG.followup.templateSeteDias) || null) },
     crm: { ativo: $('crmAtivo').checked, etapaInicialId: $('crmEtapa').value ? +$('crmEtapa').value : null },
     avisos: { lembreteVisita: $('avLembrete').checked, retomada: $('avRetomada').checked,
-      resumo: { ativo: $('avResumo').checked, whatsapp: $('avResumoTel').value.replace(/\D/g, ''), hora: +$('avResumoHora').value || 19 },
+      resumo: { ativo: $('avResumo').checked, whatsapp: $('avResumoTel').value.replace(/\D/g, ''), hora: +$('avResumoHora').value || 19,
+        destino: valor('avResumoDest') || 'whatsapp' },
       grupo: { ativo: $('avGrupo').checked, id: grupoLimpo($('avGrupoId').value),
         eventos: Object.fromEntries([...document.querySelectorAll('#avGrupoEv input')].map(i => [i.value, i.checked])) } },
     etiquetas: { ativo: $('etqAtivo').checked, grupos: [...document.querySelectorAll('#etqGrupos input:checked')].map(i => i.value),
@@ -1565,6 +1575,12 @@ function atualizar() {
   renderFollowup(c);
   $('blocoResumo').hidden = !$('avResumo').checked;
   $('blocoGrupo').hidden = !$('avGrupo').checked;
+  { const dst = valor('avResumoDest') || 'whatsapp', usaGrupo = dst !== 'whatsapp', idG = grupoLimpo($('avGrupoId').value);
+    $('avResumoTelBox').hidden = dst === 'grupo'; $('avResumoTelDica').hidden = dst === 'grupo';
+    $('avResumoGrupoInfo').hidden = !usaGrupo;
+    $('avResumoGrupoInfo').innerHTML = !usaGrupo ? '' : ($('avGrupo').checked && idG)
+      ? 'O resumo vai para o grupo <b>' + esc(idG) + '</b>, o mesmo do <b>Grupo de notificações</b> logo abaixo.'
+      : '⚠️ Para mandar no grupo, ligue o <b>Grupo de notificações</b> logo abaixo e coloque o número do grupo.'; }
   $('blocoTemplate').hidden = CANAL !== 'waba';
 }
 
@@ -1660,7 +1676,7 @@ function renderFollowup(c) {
     (ven.length ? 'Depois disso o vendedor recebe lembretes em ' + ven.map(e => fmt(e.m)).join(', ') + '.' : 'Sem lembretes depois.') +
     ' <small class="muted">(Horário de exemplo, sem contar loja fechada.)</small>';
 }
-['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2' || e.target.id === 'avResumo' || e.target.id === 'avGrupo' || e.target.closest('#avGrupoEv') || /^fuOn\d$/.test(e.target.id) || e.target.closest('#fuLemb')) atualizar();
+['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2' || e.target.id === 'avResumo' || e.target.id === 'avGrupo' || e.target.id === 'avGrupoId' || e.target.name === 'avResumoDest' || e.target.closest('#avGrupoEv') || /^fuOn\d$/.test(e.target.id) || e.target.closest('#fuLemb')) atualizar();
   if (e.target.id === 'persH' || e.target.id === 'persM') { const r = document.querySelector('input[name="fuTr"][value="personalizado"]'); if (!r.checked) r.checked = true; atualizar(); } }));
 
 // ── navegação entre etapas ──
@@ -1722,7 +1738,7 @@ function montarResumo() {
     ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
     ['Avisos', [c.avisos.lembreteVisita ? 'Lembra o cliente da visita' : 'Sem lembrete de visita', c.avisos.retomada ? 'retoma conversa parada no dia seguinte' : 'sem retomada',
-      c.avisos.resumo.ativo ? 'resumo do dia às ' + c.avisos.resumo.hora + 'h para ' + (c.avisos.resumo.whatsapp || '(sem número)') : 'sem resumo do dia'].join('; ')],
+      c.avisos.resumo.ativo ? 'resumo do dia às ' + c.avisos.resumo.hora + 'h ' + ({ grupo: 'no grupo de notificações', ambos: 'para ' + (c.avisos.resumo.whatsapp || '(sem número)') + ' e no grupo' }[c.avisos.resumo.destino] || 'para ' + (c.avisos.resumo.whatsapp || '(sem número)')) : 'sem resumo do dia'].join('; ')],
     ['Grupo de notificações', (c.avisos.grupo && c.avisos.grupo.ativo) ? 'Avisa no grupo ' + (c.avisos.grupo.id || '(sem número)') + ' quando passa o cliente para a equipe' +
       [c.avisos.grupo.eventos.visita ? ', quando marca visita' : '', c.avisos.grupo.eventos.robo ? ', quando pausa um robô' : ''].join('') : 'Desligado'],
     ['Follow-up', 'Tentativas com ' + fmt(c.followup.primeiroMin) + ', ' + fmt(c.followup.segundoMin) + ' e 23 h; passa para o vendedor ' + tQ +
@@ -1744,6 +1760,7 @@ $('btSalvar').addEventListener('click', async () => {
   const bt = $('btSalvar'); bt.disabled = true; bt.textContent = 'Salvando…'; $('erroSalvar').hidden = true; $('salvo').hidden = true; $('conflitoAcoes').hidden = true;
   try {
     const cfg = coletar();
+    if (cfg.avisos.resumo.ativo && cfg.avisos.resumo.destino !== 'whatsapp' && !(cfg.avisos.grupo.ativo && cfg.avisos.grupo.id)) throw new Error('O resumo do dia está para ir no grupo, mas o Grupo de notificações está desligado ou sem número. Ligue o grupo em Follow-up → Avisos automáticos, ou escolha receber só no WhatsApp.');
     if (cfg.avisos.grupo.ativo && !cfg.avisos.grupo.id) throw new Error('Grupo de notificações ligado sem o número do grupo. Cole o número (120363…) em Follow-up → Avisos automáticos, ou desligue a opção.');
     const j = await chamar({ acao: 'salvar', config: cfg, versaoBase: VERSAO });
     CFG = mesclar({ ...CFG, ...cfg });
