@@ -226,6 +226,7 @@ const chamar = (corpo) => postar(API, corpo);
 let LOJAS = [], META = {}, IDX = {};
 let sel = null, aba = 'geral', periodo = 'hoje', ord = 'custo', filtro = 'todas';
 let SUPORTE = {};            // chave → { link, expiraEm }
+let AVISOS = {};             // V0.5 — chave → { carregando, canal, configurada, destino, grupo, erro }
 let HIST = { chave: null, versoes: [], atual: null, carregando: false, erro: '' };
 
 const vazio = { resp: 0, conv: 0, robos: 0, custo: 0 };
@@ -398,7 +399,47 @@ function corpoAcoes(l) {
     ${s ? `<div class="caixa"><b>Modo suporte aberto</b><p style="font-size:13px;margin:4px 0 8px">Abre a IA desta loja sem senha${s.expiraEm ? ', até as ' + esc(horaCurta(s.expiraEm)) : ''}. O que você salvar fica no histórico como LeadVox. Não mande este link para o cliente.</p>
         <div class="campo-copia"><input readonly value="${esc(s.link)}" aria-label="Link do modo suporte"><button class="mini" type="button" data-copiar="${esc(s.link)}">Copiar</button></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer"><button class="mini principal" type="button">Abrir configuração</button></a><button class="mini perigo" type="button" data-encerrar="${esc(l.chave)}">Encerrar acesso agora</button></div></div>`
-      : l.suporteAberto ? `<div class="alerta warn">Há um acesso de suporte aberto para esta loja. <button class="mini" type="button" data-encerrar="${esc(l.chave)}" style="margin-left:6px">Encerrar agora</button></div>` : ''}`;
+      : l.suporteAberto ? `<div class="alerta warn">Há um acesso de suporte aberto para esta loja. <button class="mini" type="button" data-encerrar="${esc(l.chave)}" style="margin-left:6px">Encerrar agora</button></div>` : ''}
+    ${blocoAvisos(l)}`;
+}
+// ── V0.5 · avisos pelo canal QR (lojas na API oficial) ──
+function blocoAvisos(l) {
+  const a = AVISOS[l.chave];
+  if (!a) { setTimeout(() => lerAvisos(l.chave), 0); return '<div class="caixa"><b>📣 Avisos pelo canal QR</b><p class="muted" style="font-size:13px;margin:4px 0 0">Carregando…</p></div>'; }
+  if (a.carregando) return '<div class="caixa"><b>📣 Avisos pelo canal QR</b><p class="muted" style="font-size:13px;margin:4px 0 0">Carregando…</p></div>';
+  const waba = (a.canal || l.canal) === 'waba';
+  return `<div class="caixa"><b>📣 Avisos pelo canal QR</b>
+    <p style="font-size:13px;margin:4px 0 8px">${waba
+      ? 'Esta loja está na <b>API oficial</b>. Grupo de notificações, resumo do dia e lead do AutoCerto saem pelo canal QR da loja (Vincular app / COEX), usando uma API criada com <b>"Enviar por"</b> no canal QR. Nada para cliente passa por aqui.'
+      : 'Esta loja já está em QR code: os avisos saem pelo próprio número. Só preencha se quiser mandar os avisos por outra API.'}</p>
+    <p style="font-size:13px;margin:0 0 8px">${a.configurada ? '✅ Configurada: <b>' + esc(a.destino) + '</b>' : (waba ? '⚠️ <b>Sem URL de avisos</b> — grupo e resumo do dia podem não chegar.' : 'Sem URL própria (usa a da loja).')}
+      ${a.grupo ? ' · grupo da loja ligado' : ' · grupo da loja desligado'}</p>
+    <label for="avUrl" style="font-size:13px">URL de envio da API de avisos <small>(completa, com ?token=)</small></label>
+    <div class="campo-copia"><input id="avUrl" type="password" placeholder="${a.configurada ? 'Em branco = manter a atual' : 'https://chatapi.leadvox.com.br/v1/api/external/…'}"><button class="mini principal" type="button" data-av="salvar">Salvar</button></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <input id="avNum" inputmode="numeric" placeholder="WhatsApp p/ teste (opcional)" style="max-width:220px">
+      <button class="mini" type="button" data-av="testar" ${a.configurada ? '' : 'disabled'}>Mandar teste</button>
+      ${a.configurada ? '<button class="mini perigo" type="button" data-av="apagar">Remover</button>' : ''}</div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">O teste vai para o grupo da loja; se o grupo estiver desligado, informe um número com 55 e DDD.</p>
+    ${a.erro ? '<p class="erro-txt" style="margin-top:6px">' + esc(a.erro) + '</p>' : ''}</div>`;
+}
+async function lerAvisos(chave) {
+  if (AVISOS[chave] && AVISOS[chave].carregando) return;
+  AVISOS[chave] = { carregando: true };
+  try { const j = await chamar({ acao: 'avisos', modo: 'ler', chave }); AVISOS[chave] = j; }
+  catch (e) { AVISOS[chave] = { erro: e.message }; }
+  if (sel === chave && aba === 'acoes') renderDetalhe();
+}
+async function acaoAvisos(modo, bt) {
+  const l = IDX[sel]; if (!l) return;
+  const corpo = { acao: 'avisos', modo, chave: l.chave };
+  if (modo === 'salvar') { corpo.url = ($('avUrl') || {}).value ? $('avUrl').value.trim() : ''; if (!corpo.url) { toast('Cole a URL da API de avisos.'); return; } }
+  if (modo === 'testar') corpo.numero = (($('avNum') || {}).value || '').replace(/\D/g, '');
+  if (modo === 'apagar' && !confirm('Remover a URL de avisos da ' + l.nome + '? Os avisos voltam a sair pela URL normal da loja.')) return;
+  bt.disabled = true;
+  try { const j = await chamar(corpo); AVISOS[l.chave] = j; toast(j.mensagem || 'Pronto'); }
+  catch (e) { AVISOS[l.chave] = { ...(AVISOS[l.chave] || {}), erro: e.message }; toast(e.message); }
+  renderDetalhe();
 }
 // ── links ──
 function linkVendedor(l) {
@@ -689,6 +730,7 @@ document.addEventListener('click', async (ev) => {
   const de = t.closest('[data-detalhe]');
   if (de) { const d = $('det-' + de.dataset.detalhe); if (d) { d.hidden = !d.hidden; de.textContent = d.hidden ? 'Ver' : 'Esconder'; } return; }
   const rs = t.closest('[data-restaurar]'); if (rs) { restaurar(rs.dataset.restaurar, rs); return; }
+  const av = t.closest('[data-av]'); if (av) { acaoAvisos(av.dataset.av, av); return; }
   if (t.closest('[data-rehist]')) { carregarHist(sel); renderDetalhe(); return; }
 });
 document.addEventListener('input', e => { if (e.target.id === 'busca') renderTabela(); });
