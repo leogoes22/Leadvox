@@ -685,6 +685,13 @@
           <label id="fuLemb30"><input type="checkbox" value="30"> 30 dias</label>
         </div>
         <p class="fu-fixo" id="fuLembretes" style="margin-top:8px"></p>
+        <div id="blocoTemplate" hidden style="margin-top:14px;border-top:1px solid var(--linha);padding-top:14px">
+          <label for="fuTemplate">Mensagem de 7 dias para o cliente (template da Meta)</label>
+          <p class="muted" style="font-size:13px;margin:2px 0 8px">No WhatsApp oficial, depois de 24 h a IA só pode falar com o cliente usando um template aprovado. Escolha qual ela manda no 7º dia para quem ainda não foi passado para a equipe. Sem template, o 7º dia vira só nota para o vendedor.</p>
+          <div class="tres"><select id="fuTemplate"><option value="">Não mandar template (só nota para o vendedor)</option></select><button type="button" id="btTemplates">↻ Atualizar da LeadVox</button></div>
+          <div id="tplPrevia" class="fu-aviso" hidden style="margin-top:8px;white-space:pre-wrap"></div>
+          <p class="muted" id="tplInfo" style="font-size:12.5px;margin-top:6px"></p>
+        </div>
       </div>
       <div class="card">
         <h2>Como vai ficar</h2>
@@ -706,6 +713,22 @@
             <div><label for="avResumoHora">Horário</label><select id="avResumoHora"><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option></select></div>
           </div>
           <p class="muted" style="font-size:13px;margin-top:6px">Com 55 e DDD. O resumo sai pelo WhatsApp da loja.</p>
+        </div>
+        <div class="opcoes" style="margin-top:10px">
+          <label class="opcao"><input type="checkbox" id="avGrupo"><span>Grupo de notificações da IA<small>Toda vez que a IA passa um cliente para a equipe, ela avisa num grupo do WhatsApp: quem é o cliente, por que ela passou, para onde e para quem foi, e o resumo da conversa. Vale para o AutoCerto e para a LeadVox. Coloque no grupo quem você quiser acompanhar.</small></span></label>
+        </div>
+        <div id="blocoGrupo" hidden>
+          <label for="avGrupoId">Número do grupo</label>
+          <div class="tres"><input id="avGrupoId" inputmode="numeric" placeholder="120363000000000000"><button type="button" id="btTestarGrupo">Mandar mensagem de teste</button></div>
+          <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo no WhatsApp com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo (aba <b>Grupos</b>), clique no nome dele e copie o número que aparece embaixo, algo como 120363…</p>
+          <p class="erro" id="grupoErro" hidden></p>
+          <p class="muted" id="grupoOk" hidden style="font-size:13px;color:var(--verde)"></p>
+          <p style="font-size:13px;margin:12px 0 6px">Também avisar no grupo quando:</p>
+          <div class="fu-chips" id="avGrupoEv">
+            <label><input type="checkbox" value="visita"> a IA marcar uma visita</label>
+            <label><input type="checkbox" value="robo"> a IA pausar um número que parece robô</label>
+          </div>
+          <p class="muted" style="font-size:12.5px;margin-top:6px">O aviso de cliente passado para a equipe sai sempre que o grupo estiver ligado — e, quando o lead também vai para o AutoCerto, o aviso já diz isso.</p>
         </div>
       </div>
     </section>
@@ -802,8 +825,9 @@ const PADRAO = {
   departamentos: [{ nome: 'Comercial', queueId: '', finalidade: 'compra, troca, financiamento, visita' }],
   distribuicao: { modo: 'departamento', vendedores: [], responsavelVendaConsignacao: null },
   lead: { enviarAutoCerto: false, codigoMidia: 12, interesse: 2, whatsappGerente: '' },
-  avisos: { lembreteVisita: true, retomada: false, resumo: { ativo: false, whatsapp: '', hora: 19 } },
-  followup: { primeiroMin: 10, segundoMin: 45, transferir: { quando: 'apos_primeiro', personalizadoMin: null } },
+  avisos: { lembreteVisita: true, retomada: false, resumo: { ativo: false, whatsapp: '', hora: 19 },
+    grupo: { ativo: false, id: '', eventos: { visita: false, robo: false } } },
+  followup: { primeiroMin: 10, segundoMin: 45, transferir: { quando: 'apos_primeiro', personalizadoMin: null }, templateSeteDias: null },
   crm: { ativo: true, etapaInicialId: null },
   etiquetas: { ativo: true, grupos: ['origem', 'interesse', 'pagamento', 'entrada', 'qualificacao'], entradaAlta: 5000, entradaBaixa: 1000 }
 };
@@ -1054,7 +1078,11 @@ function abrirApp() {
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
   { const av = c.avisos || {}, rs = av.resumo || {};
     $('avLembrete').checked = av.lembreteVisita !== false; $('avRetomada').checked = av.retomada === true; $('avResumo').checked = rs.ativo === true;
-    $('avResumoTel').value = rs.whatsapp || c.lead.whatsappGerente || ''; $('avResumoHora').value = String(rs.hora || 19); }
+    $('avResumoTel').value = rs.whatsapp || c.lead.whatsappGerente || ''; $('avResumoHora').value = String(rs.hora || 19);
+    const gp = av.grupo || {}, ge = gp.eventos || {};
+    $('avGrupo').checked = gp.ativo === true; $('avGrupoId').value = gp.id || '';
+    document.querySelectorAll('#avGrupoEv input').forEach(i => { i.checked = ge[i.value] === true; }); }
+  montarTemplates(c.followup.templateSeteDias);
   { const at = c.followup.ativas || {}; [1, 2, 3].forEach(n => { $('fuOn' + n).checked = at['s' + n] !== false; });
     const ld = Array.isArray(c.followup.lembretesDias) ? c.followup.lembretesDias.map(Number) : [7, 15, 30];
     document.querySelectorAll('#fuLemb input').forEach(i => { i.checked = ld.includes(+i.value); }); }
@@ -1492,10 +1520,14 @@ function coletar() {
     followup: { primeiroMin: +$('fu1').value, segundoMin: +$('fu2').value,
       ativas: { s1: $('fuOn1').checked, s2: $('fuOn2').checked, s3: $('fuOn3').checked },
       lembretesDias: [...document.querySelectorAll('#fuLemb input:checked')].map(i => +i.value).filter(d => CANAL !== 'waba' || d === 7),
-      transferir: { quando, personalizadoMin: quando === 'personalizado' ? persMin() : null } },
+      transferir: { quando, personalizadoMin: quando === 'personalizado' ? persMin() : null },
+      // V0.9 — template do 7º dia (só WhatsApp oficial). Em loja de QR code fica o que já estava salvo.
+      templateSeteDias: CANAL === 'waba' ? ($('fuTemplate').value || null) : ((CFG && CFG.followup && CFG.followup.templateSeteDias) || null) },
     crm: { ativo: $('crmAtivo').checked, etapaInicialId: $('crmEtapa').value ? +$('crmEtapa').value : null },
     avisos: { lembreteVisita: $('avLembrete').checked, retomada: $('avRetomada').checked,
-      resumo: { ativo: $('avResumo').checked, whatsapp: $('avResumoTel').value.replace(/\D/g, ''), hora: +$('avResumoHora').value || 19 } },
+      resumo: { ativo: $('avResumo').checked, whatsapp: $('avResumoTel').value.replace(/\D/g, ''), hora: +$('avResumoHora').value || 19 },
+      grupo: { ativo: $('avGrupo').checked, id: grupoLimpo($('avGrupoId').value),
+        eventos: Object.fromEntries([...document.querySelectorAll('#avGrupoEv input')].map(i => [i.value, i.checked])) } },
     etiquetas: { ativo: $('etqAtivo').checked, grupos: [...document.querySelectorAll('#etqGrupos input:checked')].map(i => i.value),
       entradaAlta: digitos($('etqAlta').value) || 5000, entradaBaixa: digitos($('etqBaixa').value) || 1000 }
   };
@@ -1532,7 +1564,66 @@ function atualizar() {
 
   renderFollowup(c);
   $('blocoResumo').hidden = !$('avResumo').checked;
+  $('blocoGrupo').hidden = !$('avGrupo').checked;
+  $('blocoTemplate').hidden = CANAL !== 'waba';
 }
+
+// ── V0.9 · grupo de notificações ──
+// Guarda só o número do grupo (o motor acrescenta "@g.us" na hora de enviar). Aceita colado com @g.us, espaços etc.
+function grupoLimpo(v) {
+  const s = String(v || '').trim().replace(/@g\.us$/i, '').replace(/[^\d-]/g, '');
+  return /^\d{10,}(-\d{6,})?$/.test(s) ? s : '';
+}
+$('btTestarGrupo').addEventListener('click', async () => {
+  const b = $('btTestarGrupo'); $('grupoErro').hidden = true; $('grupoOk').hidden = true;
+  const id = grupoLimpo($('avGrupoId').value);
+  if (!id) { $('grupoErro').hidden = false; $('grupoErro').textContent = 'Esse número não parece de grupo. Ele costuma começar com 120363 e ter uns 18 dígitos.'; return; }
+  b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    await chamar({ acao: 'testarGrupo', grupo: id });
+    $('grupoOk').hidden = false; $('grupoOk').textContent = '✅ Mensagem de teste enviada. Confira no grupo — se chegou, é só salvar a configuração.';
+  } catch (e) { $('grupoErro').hidden = false; $('grupoErro').textContent = 'Não chegou no grupo: ' + e.message; }
+  b.disabled = false; b.textContent = 'Mandar mensagem de teste';
+});
+
+// ── V0.9 · template do 7º dia (WhatsApp oficial) ──
+// A lista vem da LeadVox (j.leadvox.templates no "carregar"). O follow-up só preenche UMA variável: o nome do cliente.
+var TPL = [];
+const varsTemplate = (t) => new Set(String(t.preview || t.texto || '').match(/\{\{\s*\d+\s*\}\}/g) || []).size;
+function avaliarTemplate(t) {
+  const st = String(t.status || 'APPROVED').toUpperCase(), cat = String(t.categoria || t.category || '').toUpperCase(), nv = varsTemplate(t);
+  if (st !== 'APPROVED') return 'ainda não aprovado pela Meta (' + st.toLowerCase() + ')';
+  if (cat === 'AUTHENTICATION') return 'é de autenticação (código), não serve para conversa';
+  if (nv > 1) return 'tem ' + nv + ' variáveis — a IA só sabe preencher o nome do cliente';
+  return '';
+}
+const nomeTemplate = (id) => ((TPL.find(t => String(t.id) === String(id)) || {}).nome) || 'ID ' + id;
+function montarTemplates(escolhido) {
+  const lv = LV_BRUTO || {};
+  TPL = (Array.isArray(lv.templates) ? lv.templates : []).map(t => ({ ...t, id: String(t.id), nome: t.nome || t.name || ('ID ' + t.id) }));
+  const sel = $('fuTemplate'), atual = escolhido != null ? String(escolhido) : sel.value;
+  const ok = TPL.filter(t => !avaliarTemplate(t)), ruim = TPL.filter(t => avaliarTemplate(t));
+  sel.innerHTML = '<option value="">Não mandar template (só nota para o vendedor)</option>' +
+    ok.map(t => `<option value="${esc(t.id)}">${esc(t.nome)}${varsTemplate(t) ? ' · usa o nome do cliente' : ''}</option>`).join('') +
+    (ruim.length ? '<optgroup label="Não dá para usar">' + ruim.map(t => `<option value="${esc(t.id)}" disabled>${esc(t.nome)} — ${esc(avaliarTemplate(t))}</option>`).join('') + '</optgroup>' : '');
+  // template salvo que sumiu da LeadVox: mantém na lista para não perder a escolha sem o dono ver
+  if (atual && !TPL.some(t => t.id === atual)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(atual)}">Template salvo (ID ${esc(atual)}) — não apareceu na LeadVox agora</option>`);
+  sel.value = atual && [...sel.options].some(o => o.value === atual && !o.disabled) ? atual : '';
+  $('tplInfo').textContent = TPL.length ? ok.length + ' de ' + TPL.length + ' template(s) da conta podem ser usados aqui.' : 'Nenhum template veio da LeadVox. Crie e aprove um template na Meta e clique em Atualizar.';
+  previaTemplate();
+}
+function previaTemplate() {
+  const t = TPL.find(x => x.id === $('fuTemplate').value);
+  $('tplPrevia').hidden = !t;
+  if (t) $('tplPrevia').textContent = 'Como o cliente recebe:\n' + String(t.preview || t.texto || '(sem prévia)').replace(/\{\{\s*1\s*\}\}/g, 'João');
+}
+$('fuTemplate').addEventListener('change', () => { previaTemplate(); atualizar(); });
+$('btTemplates').addEventListener('click', async () => {
+  const b = $('btTemplates'); b.disabled = true; b.textContent = 'Buscando…';
+  try { const j = await chamar({ acao: 'carregar' }); LV_BRUTO = j.leadvox || LV_BRUTO; montarTemplates(); }
+  catch (e) { $('tplInfo').textContent = 'Não consegui buscar agora: ' + e.message; }
+  b.disabled = false; b.textContent = '↻ Atualizar da LeadVox';
+});
 // Follow-up: a transferência acontece na hora em que a PRÓXIMA tentativa sairia (o cliente não respondeu a anterior).
 // Mesmos valores que o Vigia já lê: apos_primeiro = 2ª tentativa, apos_segundo = 23 h, apos_terceiro = 24 h, personalizado = minutos.
 function renderFollowup(c) {
@@ -1569,7 +1660,7 @@ function renderFollowup(c) {
     (ven.length ? 'Depois disso o vendedor recebe lembretes em ' + ven.map(e => fmt(e.m)).join(', ') + '.' : 'Sem lembretes depois.') +
     ' <small class="muted">(Horário de exemplo, sem contar loja fechada.)</small>';
 }
-['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2' || e.target.id === 'avResumo' || /^fuOn\d$/.test(e.target.id) || e.target.closest('#fuLemb')) atualizar();
+['change', 'input'].forEach(evn => document.addEventListener(evn, (e) => { if (e.target.name === 'dist' || e.target.id === 'enviarAC' || e.target.name === 'fuTr' || e.target.id === 'fu1' || e.target.id === 'fu2' || e.target.id === 'avResumo' || e.target.id === 'avGrupo' || e.target.closest('#avGrupoEv') || /^fuOn\d$/.test(e.target.id) || e.target.closest('#fuLemb')) atualizar();
   if (e.target.id === 'persH' || e.target.id === 'persM') { const r = document.querySelector('input[name="fuTr"][value="personalizado"]'); if (!r.checked) r.checked = true; atualizar(); } }));
 
 // ── navegação entre etapas ──
@@ -1632,7 +1723,10 @@ function montarResumo() {
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
     ['Avisos', [c.avisos.lembreteVisita ? 'Lembra o cliente da visita' : 'Sem lembrete de visita', c.avisos.retomada ? 'retoma conversa parada no dia seguinte' : 'sem retomada',
       c.avisos.resumo.ativo ? 'resumo do dia às ' + c.avisos.resumo.hora + 'h para ' + (c.avisos.resumo.whatsapp || '(sem número)') : 'sem resumo do dia'].join('; ')],
-    ['Follow-up', 'Tentativas com ' + fmt(c.followup.primeiroMin) + ', ' + fmt(c.followup.segundoMin) + ' e 23 h; passa para o vendedor ' + tQ]
+    ['Grupo de notificações', (c.avisos.grupo && c.avisos.grupo.ativo) ? 'Avisa no grupo ' + (c.avisos.grupo.id || '(sem número)') + ' quando passa o cliente para a equipe' +
+      [c.avisos.grupo.eventos.visita ? ', quando marca visita' : '', c.avisos.grupo.eventos.robo ? ', quando pausa um robô' : ''].join('') : 'Desligado'],
+    ['Follow-up', 'Tentativas com ' + fmt(c.followup.primeiroMin) + ', ' + fmt(c.followup.segundoMin) + ' e 23 h; passa para o vendedor ' + tQ +
+      (CANAL === 'waba' ? '; 7º dia ' + (c.followup.templateSeteDias ? 'com o template ' + nomeTemplate(c.followup.templateSeteDias) : 'só como nota para o vendedor') : '')]
   ];
   $('resumo').innerHTML = linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('');
 }
@@ -1650,6 +1744,7 @@ $('btSalvar').addEventListener('click', async () => {
   const bt = $('btSalvar'); bt.disabled = true; bt.textContent = 'Salvando…'; $('erroSalvar').hidden = true; $('salvo').hidden = true; $('conflitoAcoes').hidden = true;
   try {
     const cfg = coletar();
+    if (cfg.avisos.grupo.ativo && !cfg.avisos.grupo.id) throw new Error('Grupo de notificações ligado sem o número do grupo. Cole o número (120363…) em Follow-up → Avisos automáticos, ou desligue a opção.');
     const j = await chamar({ acao: 'salvar', config: cfg, versaoBase: VERSAO });
     CFG = mesclar({ ...CFG, ...cfg });
     CONFIGURADA = true; renderLiga();
