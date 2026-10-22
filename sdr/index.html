@@ -604,11 +604,8 @@
       <div class="card">
         <h2>Para onde vai o lead</h2>
         <div id="blocoEnvioAC">
-          <label class="opcao" style="margin-top:12px"><input type="checkbox" id="enviarAC"><span>Enviar o lead para o AutoCerto<small>A IA cadastra o cliente no AutoCerto e avisa o gerente no WhatsApp.</small></span></label>
-          <div id="blocoGerente">
-            <label for="gerente">WhatsApp do gerente <small>(com 55 e DDD)</small></label>
-            <input id="gerente" inputmode="numeric" placeholder="5521999999999">
-          </div>
+          <label class="opcao" style="margin-top:12px"><input type="checkbox" id="enviarAC"><span>Enviar o lead para o AutoCerto<small>A IA cadastra o cliente no AutoCerto e passa o atendimento para a equipe. Quem acompanha esses leads recebe o aviso pelo <b>Grupo de notificações</b> (passo Follow-up → Avisos automáticos).</small></span></label>
+          <p class="fu-aviso" id="avisoSemGrupoAC" hidden style="margin-top:8px">Para ser avisado quando um lead for para o AutoCerto, ligue o <b>Grupo de notificações</b> no passo Follow-up → Avisos automáticos.</p>
         </div>
         <p class="muted" style="margin-top:12px" id="textoDestino"></p>
       </div>
@@ -1080,7 +1077,7 @@ function abrirApp() {
   $('jaAtendido').checked = c.regras.perguntaSeJaEAtendido !== false;
   document.querySelectorAll('#coleta input').forEach(i => i.checked = (c.regras.coletaFinanciamento || []).includes(i.value));
   montarEquipe(c); renderUnid(unids);
-  $('enviarAC').checked = !!c.lead.enviarAutoCerto; $('gerente').value = c.lead.whatsappGerente || '';
+  $('enviarAC').checked = !!c.lead.enviarAutoCerto;
   $('blocoEnvioAC').hidden = FONTE !== 'autocerto';
   $('fu1').value = String(c.followup.primeiroMin); $('fu2').value = String(c.followup.segundoMin);
   { const av = c.avisos || {}, rs = av.resumo || {};
@@ -1525,7 +1522,9 @@ function coletar() {
       responsavelVendaConsignacao: /^\d+$/.test($('respConsig').value) ? $('respConsig').value : null,
       setorVendaConsignacao: $('respConsig').value.startsWith('setor:') ? $('respConsig').value.slice(6) : null },
     lead: { enviarAutoCerto: FONTE === 'autocerto' && $('enviarAC').checked, codigoMidia: CFG.lead.codigoMidia || 12, interesse: CFG.lead.interesse || 2,
-      whatsappGerente: $('gerente').value.replace(/\D/g, '') },
+      // V0.9 — o campo do gerente saiu do painel: o aviso agora vai para o Grupo de notificações.
+      // Loja que ainda não ligou o grupo mantém o número antigo (se tinha), para não ficar sem aviso.
+      whatsappGerente: $('avGrupo').checked ? '' : String((CFG && CFG.lead && CFG.lead.whatsappGerente) || '') },
     followup: { primeiroMin: +$('fu1').value, segundoMin: +$('fu2').value,
       ativas: { s1: $('fuOn1').checked, s2: $('fuOn2').checked, s3: $('fuOn3').checked },
       lembretesDias: [...document.querySelectorAll('#fuLemb input:checked')].map(i => +i.value).filter(d => CANAL !== 'waba' || d === 7),
@@ -1565,11 +1564,11 @@ function atualizar() {
   $('blocoFinancia').hidden = !c.vendas.financia;
   const lt = document.querySelector('#coleta [data-troca]'); if (lt) lt.hidden = c.vendas.troca === 'nao';
   $('btAddFaq').disabled = document.querySelectorAll('[data-faq]').length >= 15;
-  $('blocoGerente').hidden = !$('enviarAC').checked;
+  $('avisoSemGrupoAC').hidden = !($('enviarAC').checked && !$('avGrupo').checked);
   $('blocoCrm').hidden = !$('crmAtivo').checked;
   renderEtiquetas(c);
   $('textoDestino').textContent = (FONTE === 'autocerto' && c.lead.enviarAutoCerto)
-    ? 'Quando o cliente estiver qualificado, a IA cadastra o lead no AutoCerto, avisa o gerente e passa o atendimento para a equipe.'
+    ? 'Quando o cliente estiver qualificado, a IA cadastra o lead no AutoCerto e passa o atendimento para a equipe' + ($('avGrupo').checked ? ', avisando no grupo de notificações.' : '.')
     : 'Quando o cliente estiver qualificado, a IA passa o atendimento para o departamento Comercial com um resumo da conversa.' + (FONTE !== 'autocerto' ? ' O envio para o AutoCerto só existe para lojas com estoque no AutoCerto.' : '');
 
   renderFollowup(c);
@@ -1734,7 +1733,7 @@ function montarResumo() {
     ['Perguntas frequentes', c.faq.length ? c.faq.length + ' cadastrada(s)' : 'nenhuma'],
     ['Departamentos', deps],
     ['Atendentes', new Set(c.distribuicao.vendedores.map(v => String(v.userId || v.nome))).size + ' no rodízio / cadastrado(s)'],
-    ['Lead', c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e avisa o gerente' : 'Transferido para o Comercial'],
+    ['Lead', (c.lead.enviarAutoCerto ? 'Vai para o AutoCerto e é transferido para a equipe' : 'Transferido para o Comercial') + (c.avisos.grupo && c.avisos.grupo.ativo ? ', com aviso no grupo' : '')],
     ['Funil (CRM)', c.crm.ativo ? 'Lança a oportunidade na etapa ' + ((LV.etapas.find(e => String(e.id) === String(c.crm.etapaInicialId)) || {}).nome || (c.crm.etapaInicialId ? 'ID ' + c.crm.etapaInicialId : 'inicial do funil')) : 'Não lança no funil'],
     ['Etiquetas', c.etiquetas.ativo ? 'Marca ' + (c.etiquetas.grupos.map(g => ({ origem: 'origem', interesse: 'tipo de veículo', pagamento: 'pagamento', entrada: 'faixa de entrada (alta a partir de ' + reais(c.etiquetas.entradaAlta) + ', baixa até ' + reais(c.etiquetas.entradaBaixa) + ')', qualificacao: 'troca, CNH e visita' }[g])).join(', ') || 'nada') : 'Não marca etiquetas'],
     ['Avisos', [c.avisos.lembreteVisita ? 'Lembra o cliente da visita' : 'Sem lembrete de visita', c.avisos.retomada ? 'retoma conversa parada no dia seguinte' : 'sem retomada',
