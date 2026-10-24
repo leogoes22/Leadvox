@@ -14,3 +14,5 @@ $('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{aw
 $('logout').addEventListener('click',async()=>{try{await api('logout',{});$('identity').textContent='';$('organization').replaceChildren();$('display-name').value='';setMode('login');status('Você saiu da conta.');}catch(err){status(err.message);}});
 if(location.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(location.hostname)){status('O login só está disponível por HTTPS. Não informe sua senha neste endereço.');$('account-form').hidden=true;$('links').hidden=true;}else loadAccount().catch(()=>{});
 
+if(new URLSearchParams(location.search).get('empresa')==='LeadVox')$('company').value='LeadVox';
+
