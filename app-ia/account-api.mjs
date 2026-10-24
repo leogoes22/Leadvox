@@ -1,4 +1,3 @@
-import {timingSafeEqual} from 'node:crypto';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
