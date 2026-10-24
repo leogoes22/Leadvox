@@ -1,3 +1,4 @@
+import {handleBilling} from './billing.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
@@ -58,7 +59,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
    let user;try{user=await upstream('/auth/v1/user',{token:decodeURIComponent(token)});}catch{throw {status:401,message:'Sessão expirada. Entre novamente.'};}
    if(!user?.id||!user.email_confirmed_at)throw {status:401,message:'Confirme seu e-mail antes de continuar.'};
    const authToken=decodeURIComponent(token);
-   if(action==='logout'&&req.method==='POST'){
+   if(action==='billing'){await handleBilling({req,body,user,authToken,upstream,send,res});}
+   else if(action==='logout'&&req.method==='POST'){
     await upstream('/auth/v1/logout',{method:'POST',token:authToken,body:{}});
     res.setHeader('Set-Cookie','__Host-lv_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');send(res,200,{ok:true});
    }else if(action==='password'&&req.method==='POST'){
