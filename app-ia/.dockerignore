@@ -1,0 +1,7 @@
+node_modules
+.git
+.env*
+work
+outputs
+tests
+README.md
