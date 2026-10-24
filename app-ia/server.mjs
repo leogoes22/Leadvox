@@ -1,13 +1,16 @@
+import {createAccountApi} from './account-api.mjs';
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.ico':'image/x-icon'};
-export function createApp() {
+export function createApp(options={}) {
+ const accountApi=createAccountApi(options);
  return http.createServer(async(req,res)=>{
   const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",'Cache-Control':'no-store'};
   Object.entries(headers).forEach(([k,v])=>res.setHeader(k,v));
+  if(await accountApi(req,res,new URL(req.url,'http://localhost').pathname))return;
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'});return res.end('Método não permitido');}
   let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);return res.end('Endereço inválido');}
   if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(req.method==='HEAD'?undefined:JSON.stringify({status:'ok',application:'leadvox-ia',mode:'demo',version:'0.1.0'}));}
@@ -25,3 +28,4 @@ if(process.argv[1]===fileURLToPath(import.meta.url)){
  const server=createApp();server.listen(port,host,()=>console.log('LeadVox IA: http://'+host+':'+port));
  const stop=()=>server.close(()=>process.exit(0));process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }
+
