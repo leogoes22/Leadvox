@@ -1,31 +1,27 @@
-# LeadVox IA — aplicativo em homologação
+# LeadVox IA — painel único (homologação)
 
-Versão 0.1.0. Esta entrega é a base navegável do produto, com servidor HTTP, endpoint de saúde e implantação por contêiner. Todos os indicadores, conversas, veículos, integrações e cobranças são demonstrativos.
+Versão 0.2.0. Um só endereço para o lojista: login da conta, empresa, os painéis de IA que já funcionam e o financeiro dos clientes.
+
+## Identidade visual
+Mesma de leadvox.com.br/agente-ia.html e /sdr/: fundo #070d1c, cartões #0e1730, linhas #1f2b4a, verde #2be87b, títulos em Syne e texto em DM Sans, abas em pílula. Tokens e componentes em `public/lv.css`. Não usar tema claro.
+
+## O que tem no painel (`public/index.html` + `public/painel.js`)
+- **Entrada**: login, criar conta, código por e-mail, esqueci a senha e nova senha (Supabase Auth via `account-api.mjs`, sessão em cookie HttpOnly).
+- **Início**: resumo da empresa e atalhos para os módulos.
+- **Agentes de IA** e **SDR automotivo**: abrem os painéis reais de leadvox.com.br dentro do app. Por enquanto cada um ainda pede o próprio login (n8n).
+- **Clientes e cobranças**: clientes, planos, recorrências, regras do funil e previsão de vencimentos, salvos por empresa (`billing.mjs`). Tudo em rascunho: não emite boleto, não manda mensagem, não move lead.
+- **Empresa**: nome de exibição, outra empresa na mesma conta, troca de senha.
+
+`conta.html` e `cobrancas.html` só redirecionam para o painel.
 
 ## Executar
-Requer Node.js 24. Sem dependências externas:
-```
-npm start
-npm test
-```
-Abrir http://127.0.0.1:4173. PORT e HOST são configuráveis.
-
-## O que já funciona nesta prévia
-Navegação responsiva; gráficos por período; busca e filtros; criação e edição de agentes/veículos; configuração de conhecimento; simulação de fontes de estoque; montagem de integração de site/plugin; cadastro e jornada de sete dias em demonstração; checkout ilustrativo sem cobrança; persistência apenas no navegador; exportação JSON de dados demonstrativos; limpeza de dados locais.
-
-A simulação não escreve nos bancos ou workflows existentes, não solicita credenciais de integradores e não processa pagamento. O servidor só atende GET/HEAD e não oferece API de clientes. Dados demonstrativos ficam separados por versão de armazenamento no navegador; não inserir dados de clientes reais.
+Node.js 24, sem dependências: `npm start` e `npm test`. Padrão http://127.0.0.1:4173. O login só funciona por HTTPS.
 
 ## Coolify / Hostinger
-Usar um recurso novo de homologação, com este diretório como contexto de build e o Dockerfile fornecido. Porta interna 3000. Verificar /api/health antes de vincular o domínio. O compose inclui processo sem root, filesystem somente leitura, limite de memória e remoção de capabilities. Antes de produção, verificar e fixar o digest da imagem base.
+Contexto de build = esta pasta, Dockerfile incluído, porta interna 3000. Conferir /api/health. O proxy deve sobrescrever X-Forwarded-Proto.
 
-## Integrações ainda necessárias
-- Autenticação real, recuperação confiável, organizações e permissões no servidor.
-- Backend de agentes e estoque com isolamento entre empresas.
-- Workers AutoCerto/Revenda Mais e sincronização.
-- ClickMass: instalação e permissões do plugin, transferência e pausa.
-- Eventos reais e relatórios, com definição de cada indicador.
-- Checkout e webhook autenticado do Asaas, idempotência e estados de assinatura.
-- Teste de sete dias controlado pelo servidor e limites de uso.
-- Backup externo e teste de restauração; monitoramento e teste de carga.
-
-Não publicar como produto operacional. A prévia pode ser implantada em homologação com dados fictícios. A aparência e os valores de planos são exemplos a validar, não uma oferta comercial aprovada.
+## Próximos passos
+1. Entrega do código por e-mail (SMTP próprio no Supabase) e a jornada completa de login com contato@leadvox.com.br.
+2. Entrar nos Agentes e no SDR com a mesma conta: o servidor guarda o vínculo empresa ↔ conta do n8n e fala com os webhooks, sem segundo login.
+3. Regras do funil escolhendo etapas e usuários reais da LeadVox pelo nome.
+4. Asaas sandbox: emissão idempotente, eventos autenticados e reconciliação.
