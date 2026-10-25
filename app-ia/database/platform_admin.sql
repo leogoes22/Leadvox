@@ -3,6 +3,7 @@
 create table if not exists leadvox_private.platform_admins(
  user_id uuid primary key references auth.users(id) on delete cascade
 );
+alter table leadvox_private.platform_admins enable row level security;
 revoke all on leadvox_private.platform_admins from public,anon,authenticated;
 create or replace function public.lv_is_platform_admin() returns boolean language sql stable security definer set search_path='' as $$
  select exists(select 1 from leadvox_private.platform_admins where user_id=(select auth.uid()));

@@ -7,6 +7,7 @@ create table if not exists leadvox_private.chat_credentials(
  secret_id uuid not null,
  updated_at timestamptz not null default now()
 );
+alter table leadvox_private.chat_credentials enable row level security;
 revoke all on leadvox_private.chat_credentials from public,anon,authenticated;
 
 -- Só dono ou admin da empresa grava. Valida host, ID e tamanho do token.
