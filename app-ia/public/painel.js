@@ -129,7 +129,7 @@ $('mProximo').onclick = async () => {
     } else {
       if (escolhaCobr === null) throw Error('Escolha uma das opções.');
       await salvarCfg({ billingEnabled: escolhaCobr, onboarded: true });
-      return abrirApp('inicio');
+      return abrirApp('agentes');
     }
     mostraPasso(passo + 1);
   } catch (err) { mostra($('mErro'), err.message); }
@@ -158,48 +158,146 @@ async function carregar() {
     try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); cfg = w.workspace?.[0]?.settings || {}; } catch {}
   }
   if (!empresa || !cfg.onboarded) return montar();
-  abrirApp(location.hash.slice(1) || 'inicio');
+  abrirApp(location.hash.slice(1) || 'agentes');
 }
 
-function abrirApp(aba) {
+const IC = {
+  robo: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/>',
+  grafico: '<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',
+  livro: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19V5"/>',
+  tag: '<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/>',
+  kanban: '<rect x="3" y="4" width="5" height="14" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/><rect x="17" y="4" width="4" height="11" rx="1"/>',
+  pessoas: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/>',
+  predio: '<path d="M4 21V5l8-2v18M12 9h8v12M8 8h.01M8 12h.01M8 16h.01M16 13h.01M16 17h.01M3 21h18"/>',
+  bandeira: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>',
+  arquivo: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+  zap: '<path d="M4 20l1.5-4A8 8 0 1 1 9 19.5z"/><path d="M9.5 9.5c.5 2 2 3.5 4 4l1-1 2 1-.5 1.5c-3 0-6.5-3.5-6.5-6.5L11 8l1 2z"/>',
+  chave: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M15 8l2 2"/>',
+  cartao: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  engrenagem: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+  escudo: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'
+};
+const MENU = [
+  ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
+  ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
+  ['conhecimento', 'Base de conhecimento', 'livro', 'O que a IA sabe e responde.'],
+  ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
+  ['status', 'Status do lead', 'kanban', 'As etapas do funil da sua LeadVox.'],
+  ['usuarios', 'Usuários LeadVox', 'pessoas', 'Quem atende na sua LeadVox.'],
+  ['departamentos', 'Departamentos', 'predio', 'Para onde a IA passa o cliente.'],
+  ['motivos', 'Motivos de fechamento', 'bandeira', 'Por que um atendimento termina.'],
+  ['arquivos', 'Arquivos da IA', 'arquivo', 'Materiais que a IA pode mandar.'],
+  ['canais', 'Canais WhatsApp', 'zap', 'Os números onde a IA atende.'],
+  ['credenciais', 'Credenciais de API', 'chave', 'A conexão com a sua LeadVox.'],
+  '-',
+  ['cobrancas', 'Cobranças', 'cartao', 'Clientes, planos e mensalidades.'],
+  ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
+  ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
+];
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', conhecimento: 'vConhecimento', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
+  departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
+const LISTA = {
+  etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
+  status: ['Seus status do lead aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
+  usuarios: ['Seus usuários aparecem aqui', 'Quem atende na sua LeadVox. A IA passa o cliente para a pessoa certa.'],
+  departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
+  motivos: ['Motivos de fechamento', 'Ex.: comprou, sem interesse, sem resposta. A IA marca o motivo quando o atendimento termina.'],
+  arquivos: ['Os arquivos ficam na base de conhecimento', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp.']
+};
+const CAPS = [['capAudioIn', 'Entende áudio'], ['capAudioOut', 'Responde com áudio'], ['capImage', 'Entende imagem'], ['capDoc', 'Entende documento'], ['capSheet', 'Entende planilhas']];
+const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
+const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
+
+function desenharMenu() {
+  $('menu').innerHTML = MENU.map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
+    ? `<button type="button" class="menu-it" data-pg="${m[0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
+  document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => abrir(b.dataset.pg));
+}
+
+function abrirApp(pg) {
   $('telaPorta').hidden = true; $('telaApp').hidden = false;
-  const nicho = NICHOS[cfg.niche] || NICHOS.outro;
-  const nome = cfg.displayName || empresa.name, ia = cfg.aiName || 'Sua IA';
-  $('nomeEmpresa').textContent = nome;
-  $('iOla').textContent = 'Olá, ' + nome + '!';
+  const nicho = NICHOS[cfg.niche] || NICHOS.outro, nome = cfg.displayName || empresa.name;
   const fim = empresa.trial_ends_at ? new Date(empresa.trial_ends_at) : null;
-  $('iTeste').textContent = (fim ? 'Período de teste até ' + fim.toLocaleDateString('pt-BR') + '. ' : '') + 'Negócio: ' + nicho.n + '.';
-  $('iIaTitulo').textContent = ia;
-  $('iIaTexto').textContent = ia + ' ' + nicho.ia;
+  $('rodape').innerHTML = `<b style="color:var(--texto)">${esc(nome)}</b><br>${esc(nicho.n)}${fim ? '<br>Teste até ' + fim.toLocaleDateString('pt-BR') : ''}`;
   const url = cfg.niche === 'automotivo' ? 'https://leadvox.com.br/sdr/' : 'https://leadvox.com.br/agente-ia.html';
   if ($('iaFrame').dataset.src !== url) { $('iaFrame').dataset.src = url; $('iaFrame').removeAttribute('src'); }
   $('iaCheia').href = url;
-  $('iCardCobr').hidden = !cfg.billingEnabled;
-  document.querySelector('[data-aba="cobrancas"]').hidden = !cfg.billingEnabled;
-  document.querySelector('[data-aba="leadvox"]').hidden = !conta.platformAdmin;
   $('cfNome').value = cfg.displayName || ''; $('cfNome').placeholder = empresa.name;
   $('cfNicho').value = cfg.niche || 'outro'; $('cfIa').value = cfg.aiName || ''; $('cfZap').value = cfg.whatsapp || '';
   $('cfCobr').checked = !!cfg.billingEnabled;
   $('emEmail').textContent = 'Você entrou como ' + conta.user.email + '.';
+  const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
+  $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
+  desenharAgente(); desenharMenu();
   fin = null;
-  abrir(aba);
+  abrir(pg);
 }
 
-const ABAS = { inicio: 'vInicio', ia: 'vIa', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
-let abaAtual = 'inicio';
-function abrir(aba) {
-  if (!ABAS[aba] || document.querySelector(`[data-aba="${aba}"]`)?.hidden) aba = 'inicio';
-  abaAtual = aba;
-  for (const [k, id] of Object.entries(ABAS)) $(id).hidden = k !== aba;
-  document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.aba === aba)));
-  if (aba === 'ia' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
-  if (cfg.billingEnabled && (aba === 'cobrancas' || aba === 'inicio')) carregarFin().catch(err => toast(err.message, true));
-  if (aba === 'leadvox') carregarLv().catch(err => toast(err.message, true));
-  if (location.hash.slice(1) !== aba) history.replaceState(null, '', '#' + aba);
+let abaAtual = 'agentes';
+function abrir(pg) {
+  if (!visivel(pg)) pg = 'agentes';
+  abaAtual = pg;
+  const item = MENU.find(m => m[0] === pg);
+  for (const id of new Set(Object.values(SECAO))) $(id).hidden = id !== SECAO[pg];
+  document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
+  if (LISTA[pg]) {
+    const [t, d] = LISTA[pg], ir = pg === 'arquivos' ? ['conhecimento', 'Abrir base de conhecimento'] : ['credenciais', 'Ver credenciais de API'];
+    $('listaVazio').innerHTML = `<b>${t}</b>${d}<br><button type="button" data-ir="${ir[0]}">${ir[1]}</button>`;
+    ligarIr($('listaVazio'));
+  }
+  if (pg === 'conhecimento' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
+  if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
+  if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
+  $('lateral').classList.remove('aberta');
+  if (location.hash.slice(1) !== pg) history.replaceState(null, '', '#' + pg);
+  scrollTo(0, 0);
 }
-document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => abrir(b.dataset.aba));
-document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => abrir(b.dataset.ir));
+const ligarIr = raiz => raiz.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => abrir(b.dataset.ir));
+ligarIr(document);
+$('btMenu').onclick = () => $('lateral').classList.toggle('aberta');
 addEventListener('hashchange', () => { if (conta && empresa && cfg.onboarded) abrir(location.hash.slice(1)); });
+
+/* agente */
+function desenharAgente() {
+  const ia = cfg.aiName || 'Sua IA', ativo = !!cfg.aiActive, nicho = NICHOS[cfg.niche] || NICHOS.outro;
+  $('agFoto').textContent = ia.trim().charAt(0).toUpperCase() || 'IA';
+  $('agNome').textContent = ia; $('agFuncao').textContent = cfg.aiRole || 'SDR';
+  $('agSt').textContent = ativo ? 'Ativo' : 'Desligado'; $('agSt').className = 'st' + (ativo ? ' on' : '');
+  $('agDados').innerHTML = `<div><span>Negócio</span>${esc(nicho.n)}</div><div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div>`
+    + `<div><span>Empresa</span>${esc(cfg.displayName || empresa.name)}</div>`;
+  $('agCaps').innerHTML = CAPS.map(([k, n]) => `<div>${n}<i class="${cfg[k] ? 'on' : ''}">${cfg[k] ? '✓ sim' : 'não'}</i></div>`).join('');
+  $('idNome').value = cfg.aiName || ''; $('idFuncao').value = cfg.aiRole || 'SDR'; $('idDesc').value = cfg.aiDescription || '';
+  $('idAtivo').setAttribute('aria-checked', String(ativo));
+  $('mmLista').innerHTML = CAPS.map(([k, n]) => `<div class="lin-sw"><span>${n}</span><button type="button" class="switch" role="switch" aria-checked="${!!cfg[k]}" data-cap="${k}" aria-label="${n}"><span></span></button></div>`).join('');
+  document.querySelectorAll('[data-cap], #idAtivo').forEach(s => s.onclick = () => s.setAttribute('aria-checked', String(s.getAttribute('aria-checked') !== 'true')));
+}
+document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  document.querySelectorAll('[data-agp]').forEach(p => p.hidden = p.dataset.agp !== b.dataset.ag);
+});
+document.querySelector('[data-ag="identidade"]').setAttribute('aria-pressed', 'true');
+$('agIdentidade').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await salvarCfg({ aiName: $('idNome').value.trim(), aiRole: $('idFuncao').value, aiDescription: $('idDesc').value.trim(), aiActive: $('idAtivo').getAttribute('aria-checked') === 'true' });
+    desenharAgente(); toast('Salvo.');
+  } catch (err) { toast(err.message, true); }
+};
+$('agMultimodal').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await salvarCfg(Object.fromEntries(CAPS.map(([k]) => [k, document.querySelector(`[data-cap="${k}"]`).getAttribute('aria-checked') === 'true'])));
+    desenharAgente(); toast('Salvo.');
+  } catch (err) { toast(err.message, true); }
+};
+
+/* dashboard */
+{
+  const hoje = new Date(), ini = new Date(hoje - 29 * 864e5), iso = d => d.toISOString().slice(0, 10);
+  $('dIni').value = iso(ini); $('dFim').value = iso(hoje);
+  $('dAplicar').onclick = () => toast('Ainda sem dados: a IA não está ligada a este painel.');
+}
 
 /* conta */
 $('formConfig').onsubmit = async e => {
@@ -258,9 +356,6 @@ async function carregarFin(forcar) {
   const rasc = fin.contracts.filter(c => c.status === 'draft').length;
   $('nClientes').textContent = fin.customers.length; $('nPlanos').textContent = fin.plans.length;
   $('nRascunhos').textContent = rasc; $('nPagos').textContent = dinheiro(pagos);
-  $('iCobr').textContent = fin.customers.length
-    ? fin.customers.length + ' cliente(s), ' + fin.plans.length + ' plano(s) e ' + rasc + ' recorrência(s) em rascunho. Ainda não emite boleto.'
-    : 'Clientes, planos e recorrências. Ainda não emite boleto nem manda mensagem.';
   if (abaAtual === 'cobrancas') desenharFin();
 }
 

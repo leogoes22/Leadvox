@@ -2,6 +2,8 @@ import {handleBilling} from './billing.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
+const AI_ROLES=['SDR','Atendimento','Recepção','Suporte','Pós-venda','Cobrança'];
+const AI_FLAGS=['aiActive','capAudioIn','capAudioOut','capImage','capDoc','capSheet'];
 // Explicit allowlist; CRM tokens and passwords are never accepted as workspace settings.
 export function cleanSettings(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('settings');
@@ -9,6 +11,9 @@ export function cleanSettings(input){
  for(const [k,v] of Object.entries(input)){
   if(k==='displayName'&&typeof v==='string')out[k]=v.trim().slice(0,100);
   else if(k==='aiName'&&typeof v==='string')out[k]=v.trim().slice(0,40);
+  else if(k==='aiRole'&&AI_ROLES.includes(v))out[k]=v;
+  else if(k==='aiDescription'&&typeof v==='string')out[k]=v.trim().slice(0,500);
+  else if(AI_FLAGS.includes(k)&&typeof v==='boolean')out[k]=v;
   else if(k==='niche'&&NICHES.includes(v))out[k]=v;
   else if(k==='whatsapp'&&typeof v==='string'&&/^\d{10,13}$/.test(v.replace(/\D/g,'')))out[k]=v.replace(/\D/g,'');
   else if(k==='whatsapp'&&v==='')out[k]='';

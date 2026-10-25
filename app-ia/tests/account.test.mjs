@@ -39,7 +39,8 @@ test('company creation does not ask for the inserted row before the owner member
 });
 test('workspace settings accept only known onboarding fields',()=>{
  assert.deepEqual(cleanSettings({niche:'automotivo',aiName:' Carol ',whatsapp:'(21) 99999-0000',billingEnabled:true,onboarded:true}),{niche:'automotivo',aiName:'Carol',whatsapp:'21999990000',billingEnabled:true,onboarded:true});
- for(const bad of [{niche:'cassino'},{token:'x'},{whatsapp:'123'},{billingEnabled:'sim'},[],null])assert.throws(()=>cleanSettings(bad));
+ assert.deepEqual(cleanSettings({aiRole:'SDR',aiDescription:' Atendo leads ',aiActive:false,capAudioIn:true}),{aiRole:'SDR',aiDescription:'Atendo leads',aiActive:false,capAudioIn:true});
+ for(const bad of [{aiRole:'Hacker'},{capAudioIn:'sim'},{niche:'cassino'},{token:'x'},{whatsapp:'123'},{billingEnabled:'sim'},[],null])assert.throws(()=>cleanSettings(bad));
 });
 test('"me" lists only own memberships and the owner area is closed to everyone else',async t=>{
  const base=await fixture(t,async url=>{
