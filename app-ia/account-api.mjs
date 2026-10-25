@@ -3,6 +3,14 @@ import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} fr
 import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
+// Error codes returned by the Motor IA functions (iag_*), in the client's words.
+const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
+ conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
+ sem_credencial:'Conecte sua LeadVox em Credenciais de API primeiro.',token_sem_sessao:'O token da LeadVox não traz o número (sessão). Gere a URL da API a partir do canal de WhatsApp.',
+ config_grande_demais:'A configuração ficou grande demais.',config_invalida:'Configuração inválida.',agente:'Agente não encontrado.'};
+export function jwtPayload(token){
+ try{const part=String(token).split('.')[1];return JSON.parse(Buffer.from(part.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));}catch{return null;}
+}
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
 const AI_ROLES=['SDR','Atendimento','Recepção','Suporte','Pós-venda','Cobrança'];
 const AI_FLAGS=['aiActive','capAudioIn','capAudioOut','capImage','capDoc','capSheet'];
@@ -101,6 +109,43 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});
     const workspaces=await upstream('/rest/v1/lv_workspace?select=organization_id,settings,updated_at&limit=500',{token:authToken});
     send(res,200,{organizations,workspaces});
+   }else if(action==='motor'){
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const org=req.method==='GET'?q.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args)=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});
+    const falha=(r,msg)=>{if(r&&r.ok===false)throw {status:400,message:MOTOR_ERROS[r.erro]||msg};return r;};
+    if(req.method==='GET'){
+     const agente=q.get('agente');
+     if(agente){if(!/^[a-z0-9-]{3,120}$/.test(agente))throw {status:400,message:'Agente inválido.'};const r=await rpc('lv_motor_agente',{agente});if(!r)throw {status:404,message:'Agente não encontrado.'};return send(res,200,r),true;}
+     let st;try{st=await rpc('lv_motor_status',{});}catch{return send(res,200,{setupPending:true}),true;}
+     return send(res,200,st),true;
+    }
+    const acao=body.acao;
+    // Uses the LeadVox connection saved in Credenciais: tenant and session come from the token itself.
+    const conectar=async()=>{
+     let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+     const c=rows?.[0];if(!c)return {ok:false,erro:'sem_credencial'};
+     const p=jwtPayload(c.token);
+     if(!Number.isInteger(p?.tenantId)||!Number.isInteger(p?.sessionId))return {ok:false,erro:'token_sem_sessao'};
+     return rpc('lv_motor_conectar',{tenant:p.tenantId,sessao:p.sessionId,url:c.api_root+'/api/external/'+c.api_id+'/?token='+encodeURIComponent(c.token)});
+    };
+    try{
+     if(acao==='vincular'){await rpc('lv_motor_vincular',{});const r=await conectar();if(r?.ok===false&&r.erro!=='sem_credencial')falha(r,'Conta criada, mas não deu para ligar a LeadVox.');}
+     else if(acao==='conectar')falha(await conectar(),'Não deu para ligar a LeadVox ao motor.');
+     else if(acao==='criar'){
+      if(!/^[a-z]{2,30}$/.test(body.tipo||''))throw {status:400,message:'Escolha o tipo de agente.'};
+      falha(await rpc('lv_motor_criar_agente',{tipo:body.tipo,config:{}}),'Não deu para criar o agente.');
+     }else if(acao==='salvar'){
+      if(!/^[a-z0-9-]{3,120}$/.test(body.agente||'')||!body.config||typeof body.config!=='object'||Array.isArray(body.config)||JSON.stringify(body.config).length>300000)throw {status:400,message:'Configuração inválida.'};
+      const r=await rpc('lv_motor_salvar_agente',{agente:body.agente,config:body.config,versao_base:Number.isInteger(body.versaoBase)?body.versaoBase:null,concluir:body.concluir===true});
+      falha(r,'Não deu para salvar o agente.');return send(res,200,r),true;
+     }else if(acao==='ativo'){
+      if(!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Agente inválido.'};
+      falha(await rpc('lv_motor_ativo',{agente:body.agente,ativo:body.ativo===true}),'Não deu para mudar o agente.');
+     }else throw {status:400,message:'Ação inválida.'};
+    }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
+    send(res,200,await rpc('lv_motor_status',{}));
    }else if(action==='integrations'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};

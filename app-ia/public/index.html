@@ -99,7 +99,8 @@
     <div class="pagina">
 
     <section id="vAgentes" hidden>
-      <div class="agente">
+      <div class="card" id="motorBox" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+      <div class="agente" id="agDetalhe" hidden style="margin-top:14px">
         <div class="card">
           <div class="ag-topo">
             <div class="ag-foto" id="agFoto">IA</div>
@@ -119,21 +120,25 @@
           </nav>
           <form class="card" id="agIdentidade" data-agp="identidade">
             <h3>Identidade do agente</h3>
-            <label for="idNome">Nome</label><input id="idNome" maxlength="40" placeholder="Carol">
-            <label for="idFuncao">Função</label>
-            <select id="idFuncao"><option>SDR</option><option>Atendimento</option><option>Recepção</option><option>Suporte</option><option>Pós-venda</option><option>Cobrança</option></select>
-            <label for="idDesc">Descrição <small>(como ela se apresenta e o que faz)</small></label>
-            <textarea id="idDesc" maxlength="500" placeholder="Atendo os clientes da loja no WhatsApp, tiro dúvidas e agendo visitas."></textarea>
+            <label for="idNome">Nome do agente</label><input id="idNome" maxlength="40" placeholder="Carol">
+            <label for="idDesc">Como ele se apresenta <small>(1 ou 2 frases)</small></label>
+            <textarea id="idDesc" maxlength="300" placeholder="Sou a Carol, da loja. Posso te ajudar a achar o carro certo e agendar sua visita."></textarea>
+            <label for="idTom">Jeito de falar</label>
+            <select id="idTom"><option value="amigavel">Amigável · próximo e simpático, sem exagero</option><option value="profissional">Profissional · mais formal e direto</option><option value="descontraido">Descontraído · leve, com gírias moderadas</option></select>
+            <div class="duas">
+              <div><label for="idEmoji">Emojis</label><select id="idEmoji"><option value="nao">Não usar</option><option value="pouco">Poucos</option><option value="sim">À vontade</option></select></div>
+              <div><label for="idTrat">Trata o cliente por</label><select id="idTrat"><option value="voce">Você</option><option value="senhor">Senhor / senhora</option></select></div>
+            </div>
             <div class="lin-sw" style="margin-top:12px"><span>Agente ativo<small>Desligado, a IA não responde ninguém.</small></span>
               <button type="button" class="switch" role="switch" aria-checked="false" id="idAtivo" aria-label="Agente ativo"><span></span></button></div>
             <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
           </form>
-          <form class="card" id="agMultimodal" data-agp="multimodal" hidden>
+          <div class="card" id="agMultimodal" data-agp="multimodal" hidden>
             <h3>Multimodal</h3>
-            <p class="muted">O que a IA entende e como ela responde.</p>
-            <div id="mmLista" style="margin-top:8px"></div>
-            <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
-          </form>
+            <p class="muted">O que o motor da sua IA já faz hoje com o que o cliente manda.</p>
+            <div class="caps" id="mmLista" style="margin-top:8px"></div>
+            <p class="dica">Responder em áudio e ler PDF e planilhas entram numa próxima etapa do motor.</p>
+          </div>
           <div class="card" data-agp="canais" hidden>
             <h3>Canais e gatilhos</h3>
             <div class="ag-dados" id="canaisDados"></div>

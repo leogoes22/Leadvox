@@ -204,7 +204,6 @@ const LISTA = {
   motivos: ['Motivos de fechamento', 'Ex.: comprou, sem interesse, sem resposta. A IA marca o motivo quando o atendimento termina.'],
   arquivos: ['Os arquivos ficam na base de conhecimento', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp.']
 };
-const CAPS = [['capAudioIn', 'Entende áudio'], ['capAudioOut', 'Responde com áudio'], ['capImage', 'Entende imagem'], ['capDoc', 'Entende documento'], ['capSheet', 'Entende planilhas']];
 const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
 
@@ -228,7 +227,8 @@ function abrirApp(pg) {
   $('emEmail').textContent = 'Você entrou como ' + conta.user.email + '.';
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
-  desenharAgente(); desenharMenu();
+  motor = null; agSel = null; agDados = null; desenharMenu();
+  carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); }).catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); });
   fin = null; chat = null; listas = {}; conexoes = null;
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
@@ -245,6 +245,7 @@ function abrir(pg) {
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
   if (LISTA[pg]) desenharLista(pg);
   if (pg === 'credenciais') { desenharCred(); desenharConexoes(); }
+  if (pg === 'agentes') desenharMotor();
   if (pg === 'conhecimento' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -257,38 +258,124 @@ ligarIr(document);
 $('btMenu').onclick = () => $('lateral').classList.toggle('aberta');
 addEventListener('hashchange', () => { if (conta && empresa && cfg.onboarded) abrir(location.hash.slice(1)); });
 
-/* agente */
-function desenharAgente() {
-  const ia = cfg.aiName || 'Sua IA', ativo = !!cfg.aiActive, nicho = NICHOS[cfg.niche] || NICHOS.outro;
-  $('agFoto').textContent = ia.trim().charAt(0).toUpperCase() || 'IA';
-  $('agNome').textContent = ia; $('agFuncao').textContent = cfg.aiRole || 'SDR';
-  $('agSt').textContent = ativo ? 'Ativo' : 'Desligado'; $('agSt').className = 'st' + (ativo ? ' on' : '');
-  $('agDados').innerHTML = `<div><span>Negócio</span>${esc(nicho.n)}</div><div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div>`
-    + `<div><span>Empresa</span>${esc(cfg.displayName || empresa.name)}</div>`;
-  $('agCaps').innerHTML = CAPS.map(([k, n]) => `<div>${n}<i class="${cfg[k] ? 'on' : ''}">${cfg[k] ? '✓ sim' : 'não'}</i></div>`).join('');
-  $('idNome').value = cfg.aiName || ''; $('idFuncao').value = cfg.aiRole || 'SDR'; $('idDesc').value = cfg.aiDescription || '';
-  $('idAtivo').setAttribute('aria-checked', String(ativo));
-  $('mmLista').innerHTML = CAPS.map(([k, n]) => `<div class="lin-sw"><span>${n}</span><button type="button" class="switch" role="switch" aria-checked="${!!cfg[k]}" data-cap="${k}" aria-label="${n}"><span></span></button></div>`).join('');
-  document.querySelectorAll('[data-cap], #idAtivo').forEach(s => s.onclick = () => s.setAttribute('aria-checked', String(s.getAttribute('aria-checked') !== 'true')));
+/* agente: lê e grava a configuração do Motor IA (tabelas iag_* pelo servidor) */
+let motor = null, agSel = null, agDados = null;
+const CAMPOS_PADRAO = {
+  sdr: [['Nome', true], ['Cidade ou bairro', false], ['O que procura', true], ['Para quando precisa', false], ['Forma de pagamento', false]],
+  recepcao: [['Nome', true], ['Assunto', true]],
+  suporte: [['Nome', true], ['Descrição do problema', true], ['Nº do pedido ou contrato', false]],
+  catalogo: [['Nome', true], ['Nome da empresa ou CNPJ', false], ['Cidade', true], ['Itens de interesse', true]],
+  agendamento: [['Nome', true], ['Serviço desejado', true], ['Dia e turno de preferência', true]]
+};
+// Mesma configuração-padrão do painel de agentes atual (agente-ia.html): campo que faltar não quebra o motor.
+function configPadrao(tipo, nome) {
+  const dia = { abre: '08:00', fecha: '18:00' };
+  return {
+    identidade: { nome: nome || '', apresentacao: '', tom: 'amigavel', emojis: 'pouco', tratamento: 'voce' },
+    empresa: { nome: cfg.displayName || empresa.name, segmento: '', descricao: '', publico: '', diferenciais: '', site: '', instagram: '', linkCatalogo: '', unidades: [] },
+    horario: { dias: { seg: dia, ter: dia, qua: dia, qui: dia, sex: dia, sab: { abre: '08:00', fecha: '12:00' }, dom: null }, foraDoHorario: 'responde_avisa' },
+    conhecimento: { faq: [], oficiais: [], proibido: [], extra: '' },
+    precos: { politica: tipo === 'suporte' ? 'nao_fala' : 'a_partir', lista: [] },
+    catalogo: { usar: tipo === 'catalogo', modo: tipo === 'catalogo' ? 'pedido' : 'vitrine', fotosPorVez: 1, pagamento: '', entrega: '', regras: '', pdfOrcamento: true },
+    materiais: [],
+    coleta: { campos: (CAMPOS_PADRAO[tipo] || []).map(([n, o]) => ({ nome: n, obrigatorio: o })), teto: tipo === 'recepcao' ? 3 : 5 },
+    setores: [], transferencia: { mensagem: '' },
+    followup: { ativo: false, toques: [{ minutos: 60, texto: '' }, { minutos: 1440, texto: '' }], janelaIni: '09:00', janelaFim: '20:00' },
+    crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true },
+    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
+  };
 }
+function mesclar(pad, c) {
+  const out = JSON.parse(JSON.stringify(pad));
+  for (const k of Object.keys(c || {})) {
+    if (c[k] && typeof c[k] === 'object' && !Array.isArray(c[k]) && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k])) out[k] = { ...out[k], ...c[k] };
+    else if (c[k] !== undefined) out[k] = c[k];
+  }
+  return out;
+}
+const nomeTipo = t => (motor?.tipos || []).find(x => x.codigo === t)?.nome || t;
+
+async function carregarMotor() { motor = await api('motor?organization=' + encodeURIComponent(empresa.id)); }
+async function acaoMotor(dados, ok) {
+  try { const r = await api('motor', { organization: empresa.id, ...dados }); if (r && r.vinculado !== undefined) motor = r; if (ok) toast(ok); return r; }
+  catch (err) { toast(err.message, true); throw err; }
+}
+
+function desenharMotor() {
+  const box = $('motorBox');
+  if (!motor) { box.innerHTML = '<p class="muted">Carregando sua IA…</p>'; $('agDetalhe').hidden = true; return; }
+  if (motor.setupPending) { box.innerHTML = '<h3>Falta liberar no banco</h3><p class="alerta">A ligação com o motor de IA precisa do SQL do motor antes de funcionar.</p>'; $('agDetalhe').hidden = true; return; }
+  if (!motor.vinculado) {
+    box.innerHTML = `<h3>Sua IA ainda não está ligada ao motor da LeadVox</h3>
+      <p class="muted" style="margin-top:6px">Ao ligar, criamos a sua conta no motor que atende o WhatsApp. Se a sua LeadVox já estiver conectada em Credenciais, o número já fica ligado.</p>
+      <button class="principal" type="button" id="mVincular" style="margin-top:12px">Ligar minha IA</button>`;
+    $('mVincular').onclick = async () => { $('mVincular').disabled = true; try { await acaoMotor({ acao: 'vincular' }, 'IA ligada ao motor.'); desenharMotor(); } catch { $('mVincular').disabled = false; } };
+    $('agDetalhe').hidden = true; return;
+  }
+  const cx = motor.conexao || {};
+  const linhaCx = cx.conectado
+    ? `<span class="st on">WhatsApp ligado</span> <small class="muted">LeadVox tenant ${esc(cx.tenantId)} · sessão ${esc(cx.sessionId)}</small>`
+    : `<span class="st rascunho">Sem WhatsApp</span> <button type="button" class="sm" id="mConectar">Ligar à minha LeadVox</button>`;
+  const ags = motor.agentes || [];
+  box.innerHTML = `<div class="lista-topo"><div><h3>Seus agentes de IA</h3><p class="muted" style="margin-top:4px">${linhaCx}</p></div>
+      <div class="form-bts" style="margin:0"><select id="mTipo" style="width:auto">${(motor.tipos || []).map(t => `<option value="${esc(t.codigo)}">${esc(t.nome)}</option>`).join('')}</select>
+      <button type="button" class="principal sm" id="mCriar" ${ags.length >= motor.limite ? 'disabled title="Limite de agentes"' : ''}>+ Novo agente</button></div></div>
+    <div style="margin-top:8px">${ags.map(a => `<div class="item"><div><b>${esc(a.nome || 'Agente sem nome')}${a.entrada ? ' <span class="st">porta de entrada</span>' : ''}</b>
+        <small>${esc(nomeTipo(a.tipo))} · versão ${esc(a.versao)}${a.configurado ? '' : ' · <span style="color:var(--amarelo)">configuração pendente</span>'}</small></div>
+        <div class="bts"><span class="st ${a.ativo ? 'on' : ''}">${a.ativo ? 'Ligado' : 'Desligado'}</span><button type="button" class="sm" data-abrir-ag="${esc(a.chave)}" ${a.chave === agSel ? 'aria-pressed="true"' : ''}>Abrir</button></div></div>`).join('')
+      || '<p class="muted" style="padding:12px 0">Nenhum agente ainda. Escolha o tipo e clique em Novo agente.</p>'}</div>`;
+  $('mConectar') && ($('mConectar').onclick = async () => { try { await acaoMotor({ acao: 'conectar' }, 'WhatsApp ligado ao motor.'); desenharMotor(); } catch {} });
+  $('mCriar').onclick = async () => { $('mCriar').disabled = true; try { await acaoMotor({ acao: 'criar', tipo: $('mTipo').value }, 'Agente criado.'); const novo = (motor.agentes || []).at(-1); desenharMotor(); if (novo) abrirAgenteMotor(novo.chave); } catch { $('mCriar').disabled = false; } };
+  document.querySelectorAll('[data-abrir-ag]').forEach(b => b.onclick = () => abrirAgenteMotor(b.dataset.abrirAg));
+  if (!agSel && ags.length) abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
+  if (!ags.length) $('agDetalhe').hidden = true;
+}
+
+async function abrirAgenteMotor(chave) {
+  try {
+    const a = await api('motor?organization=' + encodeURIComponent(empresa.id) + '&agente=' + encodeURIComponent(chave));
+    agSel = chave; agDados = { ...a, config: mesclar(configPadrao(a.tipo, a.nome), a.config || {}) };
+    desenharAgente(); $('agDetalhe').hidden = false;
+    document.querySelectorAll('[data-abrir-ag]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.abrirAg === chave)));
+  } catch (err) { toast(err.message, true); }
+}
+
+function desenharAgente() {
+  if (!agDados) return;
+  const c = agDados.config, id = c.identidade, nome = id.nome || agDados.nome || 'Agente sem nome';
+  $('agFoto').textContent = nome.trim().charAt(0).toUpperCase() || 'IA';
+  $('agNome').textContent = nome; $('agFuncao').textContent = nomeTipo(agDados.tipo);
+  $('agSt').textContent = agDados.ativo ? 'Ligado' : 'Desligado'; $('agSt').className = 'st' + (agDados.ativo ? ' on' : '');
+  $('agDados').innerHTML = `<div><span>Tipo</span>${esc(nomeTipo(agDados.tipo))}</div><div><span>Porta de entrada</span>${agDados.entrada ? 'Sim' : 'Não'}</div>`
+    + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`;
+  const caps = [['Entende áudio', true], ['Entende imagem', true], ['Responde com áudio', false], ['Entende PDF e documentos', false], ['Entende planilhas', false]];
+  const capsHtml = caps.map(([n, on]) => `<div>${n}<i class="${on ? 'on' : ''}">${on ? '✓ sim' : 'em breve'}</i></div>`).join('');
+  $('agCaps').innerHTML = capsHtml; $('mmLista').innerHTML = capsHtml;
+  $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
+  $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
+  $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
+}
+$('idAtivo').onclick = () => $('idAtivo').setAttribute('aria-checked', String($('idAtivo').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   document.querySelectorAll('[data-agp]').forEach(p => p.hidden = p.dataset.agp !== b.dataset.ag);
 });
 document.querySelector('[data-ag="identidade"]').setAttribute('aria-pressed', 'true');
 $('agIdentidade').onsubmit = async e => {
-  e.preventDefault();
+  e.preventDefault(); if (!agDados) return;
+  const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
   try {
-    await salvarCfg({ aiName: $('idNome').value.trim(), aiRole: $('idFuncao').value, aiDescription: $('idDesc').value.trim(), aiActive: $('idAtivo').getAttribute('aria-checked') === 'true' });
-    desenharAgente(); toast('Salvo.');
-  } catch (err) { toast(err.message, true); }
-};
-$('agMultimodal').onsubmit = async e => {
-  e.preventDefault();
-  try {
-    await salvarCfg(Object.fromEntries(CAPS.map(([k]) => [k, document.querySelector(`[data-cap="${k}"]`).getAttribute('aria-checked') === 'true'])));
-    desenharAgente(); toast('Salvo.');
-  } catch (err) { toast(err.message, true); }
+    const nome = $('idNome').value.trim();
+    if (nome.length < 2) throw Error('Dê um nome ao agente.');
+    const config = { ...agDados.config, identidade: { ...agDados.config.identidade, nome, apresentacao: $('idDesc').value.trim(), tom: $('idTom').value, emojis: $('idEmoji').value, tratamento: $('idTrat').value } };
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+    agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao };
+    const querAtivo = $('idAtivo').getAttribute('aria-checked') === 'true';
+    if (querAtivo !== !!agDados.ativo) { await acaoMotor({ acao: 'ativo', agente: agSel, ativo: querAtivo }); agDados.ativo = querAtivo; }
+    else await carregarMotor();
+    desenharMotor(); desenharAgente(); toast('Salvo no motor da IA.');
+  } catch (err) { if (!err.status) toast(err.message, true); }
+  finally { bt.disabled = false; }
 };
 
 /* conexão com a LeadVox: credenciais e listas */
