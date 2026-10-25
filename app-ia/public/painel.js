@@ -29,7 +29,7 @@ const MODOS = {
   login: { t: 'Sua IA na LeadVox', s: 'Entre com o e-mail cadastrado na LeadVox.', b: 'Entrar', email: 1, senha: 1 },
   signup: { t: 'Criar conta', s: 'Use uma senha de pelo menos 12 caracteres. Depois confirme o código que chega no seu e-mail.', b: 'Criar conta', email: 1, senha: 1 },
   recover: { t: 'Esqueci minha senha', s: 'Vamos mandar um código para o seu e-mail.', b: 'Receber código', email: 1 },
-  verify: { t: 'Confirmar código', s: 'Digite o código que chegou no seu e-mail.', b: 'Confirmar', email: 1, codigo: 1 },
+  verify: { t: 'Confirmar código', s: 'Digite o código que chegou no seu e-mail. Para trocar a senha, use "Esqueci minha senha".', b: 'Confirmar', email: 1, codigo: 1 },
   password: { t: 'Crie sua nova senha', s: 'Use de 12 a 128 caracteres.', b: 'Salvar senha e entrar', senha: 1 }
 };
 
@@ -133,13 +133,6 @@ addEventListener('hashchange', () => { if (conta && empresa) abrir(location.hash
 $('formConfig').onsubmit = async e => {
   e.preventDefault();
   try { await api('workspace', { organization: empresa.id, settings: { displayName: $('cfNome').value.trim() } }); await trocarEmpresa(); toast('Salvo.'); }
-  catch (err) { toast(err.message, true); }
-};
-$('formNovaEmpresa').onsubmit = async e => {
-  e.preventDefault();
-  try { const d = await api('organization', { name: $('neNome').value }); $('neNome').value = '';
-    const nova = d.organizations?.[0]; if (nova) sessionStorage.setItem('lv_empresa', nova.id);
-    await carregar(); toast('Empresa cadastrada.'); }
   catch (err) { toast(err.message, true); }
 };
 $('formSenha').onsubmit = async e => {

@@ -4,8 +4,8 @@ const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  const attempts=new Map();
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
- async function upstream(route,{method='GET',body,token}={}){
-  let r;try{r=await fetchImpl(URL_BASE+route,{method,headers:{apikey:KEY,Authorization:'Bearer '+(token||KEY),'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});}catch{throw {status:503,message:'Serviço temporariamente indisponível.'};}
+ async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
+  let r;try{r=await fetchImpl(URL_BASE+route,{method,headers:{apikey:KEY,Authorization:'Bearer '+(token||KEY),'Content-Type':'application/json',Prefer:prefer},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});}catch{throw {status:503,message:'Serviço temporariamente indisponível.'};}
   const data=await r.json().catch(()=>null);
   if(!r.ok)throw {status:r.status===429?429:400,message:r.status===429?'Muitas tentativas. Aguarde alguns minutos.':'Não foi possível concluir. Confira os dados e tente novamente.'};
   return data;
@@ -71,7 +71,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     send(res,200,{user:{id:user.id,email:user.email},organizations});
    }else if(action==='organization'&&req.method==='POST'){
     if(typeof body.name!=='string'||body.name.trim().length<2||body.name.trim().length>100)throw {status:400,message:'Informe o nome da empresa.'};
-    const organizations=await upstream('/rest/v1/lv_organizations',{method:'POST',token:authToken,body:{name:body.name.trim()}});
+    // return=minimal: the read policy depends on the owner membership, which the AFTER INSERT trigger creates only after RETURNING is checked.
+    await upstream('/rest/v1/lv_organizations',{method:'POST',token:authToken,body:{name:body.name.trim()},prefer:'return=minimal'});
+    const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&owner_id=eq.'+user.id,{token:authToken});
     send(res,201,{organizations});
    }else if(action==='workspace'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;

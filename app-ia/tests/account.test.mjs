@@ -25,6 +25,17 @@ test('forged/expired sessions and cross-company reads are denied before data fet
  assert.equal(r.status,403);assert.equal(workspaceReads,0);
  const invalid=await fixture(t,async()=>response({},401));assert.equal((await fetch(invalid+'/api/account/me',{headers:{Cookie:'__Host-lv_session=forged'}})).status,401);
 });
+test('company creation does not ask for the inserted row before the owner membership exists',async t=>{
+ const calls=[];const base=await fixture(t,async(url,init)=>{
+ if(url.endsWith('/auth/v1/user'))return response({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+ calls.push({url,method:init.method,prefer:init.headers.Prefer});
+ return init.method==='POST'?response(null,201):response([{id:'22222222-2222-4222-8222-222222222222',name:'LeadVox'}]);
+ });
+ const r=await fetch(base+'/api/account/organization',{method:'POST',headers:{Origin:base,Cookie:'__Host-lv_session=test'},body:JSON.stringify({name:'LeadVox'})});
+ assert.equal(r.status,201);assert.equal((await r.json()).organizations[0].name,'LeadVox');
+ assert.equal(calls[0].method,'POST');assert.equal(calls[0].prefer,'return=minimal');
+ assert.equal(calls[1].method,'GET');assert.match(calls[1].url,/owner_id=eq\.11111111-1111-4111-8111-111111111111/);
+});
 test('HTTP requests fail closed in production',async t=>{
  const s=createApp();await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  assert.equal((await fetch('http://127.0.0.1:'+s.address().port+'/api/account/me')).status,426);
