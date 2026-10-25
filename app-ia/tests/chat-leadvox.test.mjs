@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createChatClient,validateRule,parseChatUrl,pickList,normalizeItems} from '../integrations/chat-leadvox.mjs';
+import {createChatClient,validateRule,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from '../integrations/chat-leadvox.mjs';
 test('read-only client pins host, routes, auth and rejects redirects',async()=>{
  const calls=[];const c=createChatClient({apiId:'test-account',token:'test-secret',fetchImpl:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({success:true,data:[]})};}});
  await c.users();await c.tags();await c.pipelineSteps();
@@ -19,6 +19,12 @@ test('upstream failures never reflect credentials or raw response',async()=>{
 });
 test('LeadVox API URL is parsed only for the LeadVox host',()=>{
  assert.deepEqual(parseChatUrl(' https://chatapi.leadvox.com.br/v1/api/external/abc-123/?token=eyJhbGciOi.x.y '),{root:'https://chatapi.leadvox.com.br/v1',apiId:'abc-123',token:'eyJhbGciOi.x.y'});
+ assert.deepEqual(parseChatUrl('https://chatapi.leadvox.com.br/v1/api/external/abc-123','Bearer eyJ0b2tlbi1zZXBhcmFkbw'),{root:'https://chatapi.leadvox.com.br/v1',apiId:'abc-123',token:'eyJ0b2tlbi1zZXBhcmFkbw'});
+ assert.equal(parseChatUrl('https://chatapi.leadvox.com.br/v1/api/external/abc-123?token=1234567890abc').apiId,'abc-123');
+ assert.equal(chatUrlProblem('https://chatapi.leadvox.com.br/v1/api/external/abc'),'token');
+ assert.equal(chatUrlProblem('https://chatapi.leadvox.com.br/v1/'),'path');
+ assert.equal(chatUrlProblem('https://outro.com/v1/api/external/abc/?token=1234567890'),'host');
+ assert.equal(chatUrlProblem('https://chatapi.leadvox.com.br/v1/api/external/abc','1234567890abc'),null);
  for(const bad of ['https://evil.example/v1/api/external/abc/?token=1234567890','https://chatapi.leadvox.com.br/v1/api/external/../x/?token=1234567890','https://chatapi.leadvox.com.br/v1/api/external/abc/?token=curto',''])assert.throws(()=>parseChatUrl(bad));
 });
 test('departments try the candidate routes and lists are reduced to id, name and color',async()=>{

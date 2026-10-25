@@ -203,9 +203,11 @@
       <div class="card" id="credStatus"></div>
       <form class="card" id="credForm" hidden>
         <h3>Conectar sua LeadVox</h3>
-        <p class="muted" style="margin-top:6px">Cole a URL da API externa da sua LeadVox. É a mesma usada no SDR: começa com https://chatapi.leadvox.com.br/ e termina com ?token=…</p>
+        <p class="muted" style="margin-top:6px">Na sua LeadVox, abra a área de API e copie a URL da API externa. Ela começa com https://chatapi.leadvox.com.br/v1/api/external/ seguido do código da conta.</p>
         <label for="credUrl">URL da API da LeadVox</label>
-        <input id="credUrl" type="password" autocomplete="off" spellcheck="false" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…/?token=…">
+        <input id="credUrl" autocomplete="off" spellcheck="false" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…">
+        <label for="credToken">Token <small>(só se a LeadVox mostrar o token separado da URL)</small></label>
+        <input id="credToken" type="password" autocomplete="off" spellcheck="false">
         <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
         <p class="dica">Testamos com a LeadVox antes de salvar. O token fica criptografado no banco e não aparece de novo na tela.</p>
       </form>

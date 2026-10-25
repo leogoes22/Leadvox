@@ -313,8 +313,8 @@ function desenharCred() {
 $('credForm').onsubmit = async e => {
   e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true; bt.textContent = 'Testando…';
   try {
-    await api('chat-credentials', { organization: empresa.id, url: $('credUrl').value });
-    $('credUrl').value = ''; listas = {}; await carregarChat(); desenharCred(); toast('LeadVox conectada.');
+    await api('chat-credentials', { organization: empresa.id, url: $('credUrl').value, token: $('credToken').value });
+    $('credUrl').value = ''; $('credToken').value = ''; listas = {}; await carregarChat(); desenharCred(); toast('LeadVox conectada.');
   } catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; bt.textContent = 'Conectar e testar'; }
 };

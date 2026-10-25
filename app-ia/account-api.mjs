@@ -1,5 +1,5 @@
 import {handleBilling} from './billing.mjs';
-import {createChatClient,parseChatUrl,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
+import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
@@ -107,7 +107,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_status',{method:'POST',token:authToken,body:{org}});}catch{rows=null;}
      send(res,200,rows===null?{connected:false,setupPending:true}:{connected:!!rows[0],apiId:rows[0]?.api_id||null,updatedAt:rows[0]?.updated_at||null});
     }else if(action==='chat-credentials'&&req.method==='POST'){
-     let parsed;try{parsed=parseChatUrl(body.url);}catch{throw {status:400,message:'Cole a URL completa da API da LeadVox, com o token no final.'};}
+     const problem=chatUrlProblem(body.url,body.token);
+     if(problem)throw {status:400,message:{host:'A URL precisa ser do chatapi.leadvox.com.br.',path:'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.',token:'Faltou o token: cole no campo Token ou deixe no fim da URL, depois de ?token=.'}[problem]};
+     let parsed;try{parsed=parseChatUrl(body.url,body.token);}catch{throw {status:400,message:'Não entendi essa URL. Confira se copiou a URL inteira da API da LeadVox.'};}
      // Test before saving: a token the LeadVox rejects is never stored.
      try{await createChatClient({...parsed,fetchImpl}).users();}
      catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não aceitou esse token. Confira a URL e tente de novo.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}

@@ -6,8 +6,18 @@ export class ChatApiError extends Error {
 }
 // The LeadVox "external API" URL carries the account id and the token:
 // https://chatapi.leadvox.com.br/v1/api/external/<apiId>/?token=<token>
-export function parseChatUrl(value){
- const m=String(value??'').trim().match(/^(https:\/\/chatapi\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})\/?\?(?:[^#]*&)?token=([^&#\s]+)/);
+// Some LeadVox screens show the URL and the token apart: a separate token is accepted too.
+export function chatUrlProblem(value,separateToken=''){
+ const s=String(value??'').trim();
+ if(!s.includes('chatapi.leadvox.com.br'))return 'host';
+ if(!/\/api\/external\/[A-Za-z0-9_-]{1,100}/.test(s))return 'path';
+ if(!/[?&]token=[^&#\s]{10,}/.test(s)&&String(separateToken).trim().length<10)return 'token';
+ return null;
+}
+export function parseChatUrl(value,separateToken=''){
+ let s=String(value??'').trim();const t=String(separateToken??'').trim().replace(/^Bearer\s+/i,'');
+ if(t&&!/[?&]token=/.test(s))s=s.replace(/[?#].*$/,'').replace(/\/?$/,'/')+'?token='+encodeURIComponent(t);
+ const m=s.match(/^(https:\/\/chatapi\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})(?:\/[^?#]*)?\?(?:[^#]*&)?token=([^&#\s]+)/);
  if(!m)throw new Error('URL inválida');
  let token=m[3];try{token=decodeURIComponent(token);}catch{}
  if(token.length<10||token.length>4000||/[\r\n]/.test(token))throw new Error('URL inválida');
