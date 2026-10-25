@@ -1,5 +1,6 @@
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
+import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
@@ -100,6 +101,45 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});
     const workspaces=await upstream('/rest/v1/lv_workspace?select=organization_id,settings,updated_at&limit=500',{token:authToken});
     send(res,200,{organizations,workspaces});
+   }else if(action==='integrations'){
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(req.method==='GET'){
+     let rows;try{rows=await upstream('/rest/v1/rpc/lv_integrations',{method:'POST',token:authToken,body:{org}});}catch{return send(res,200,{setupPending:true}),true;}
+     const out={};for(const r of rows||[])out[r.provider]={...(r.settings||{}),connected:true,hasSecret:!!r.has_secret,updatedAt:r.updated_at};
+     return send(res,200,out),true;
+    }
+    const prov=body.provider;
+    let stored=null;const salvo=async()=>{if(stored===null){try{stored=(await upstream('/rest/v1/rpc/lv_integration_secret',{method:'POST',token:authToken,body:{org,prov}}))?.[0]||{};}catch{stored={};}}return stored;};
+    const str=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
+    let conf,sec='';
+    try{
+     if(prov==='estoque'){
+      const source=body.source;
+      if(source==='autocerto'){
+       const unidade=str(body.unidade,12),usuario=str(body.usuario,160);let senha=str(body.senha,500);
+       if(!/^\d{1,12}$/.test(unidade))throw {status:400,message:'Informe o código de unidade do AutoCerto (só números).'};
+       if(!usuario)throw {status:400,message:'Informe o usuário da API do AutoCerto.'};
+       if(!senha){const s=await salvo();if(s.settings?.source==='autocerto'&&s.secret)senha=s.secret;else throw {status:400,message:'Informe a senha da API do AutoCerto.'};}
+       await testAutoCerto({usuario,senha,fetchImpl});
+       conf={source,unidade,usuario,testedAt:new Date().toISOString()};sec=senha;
+      }else if(source==='revendamais'){
+       let feed=str(body.feedUrl,2000);
+       if(!feed){const s=await salvo();if(s.settings?.source==='revendamais'&&s.secret)feed=s.secret;else throw {status:400,message:'Cole a URL do feed JSON do Revenda Mais.'};}
+       const t=await testRevendaMais({feedUrl:feed,fetchImpl});
+       conf={source,feedHost:new URL(feed).hostname,vehicles:t.count,testedAt:new Date().toISOString()};sec=feed;
+      }else if(source==='leadvox')conf={source};
+      else throw {status:400,message:'Escolha de onde vem o estoque.'};
+     }else if(prov==='asaas'){
+      const environment=body.environment;let key=str(body.apiKey,500);
+      if(!key){const s=await salvo();if(s.settings?.environment===environment&&s.secret)key=s.secret;else throw {status:400,message:'Cole a chave de API do Asaas.'};}
+      await testAsaas({environment,apiKey:key,fetchImpl});
+      conf={environment,testedAt:new Date().toISOString()};sec=key;
+     }else throw {status:400,message:'Conexão inválida.'};
+    }catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
+    try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov,conf,sec},prefer:'return=minimal'});}
+    catch{throw {status:400,message:'Não deu para salvar. Só o dono da empresa pode mudar as conexões.'};}
+    send(res,200,{...conf,connected:true});
    }else if(action==='chat-credentials'||action==='chat'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};

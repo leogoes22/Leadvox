@@ -36,6 +36,8 @@ test('departments try the candidate routes and lists are reduced to id, name and
  assert.equal(tried.at(-1),'https://chatapi.leadvox.com.br/v1/api/external/queue/acc');
  assert.deepEqual(pickList({data:{tags:[{id:1}]}}),[{id:1}]);
  assert.deepEqual(normalizeItems([{id:2,nome:'Quente',cor:'javascript:1'}]),[{id:'2',name:'Quente',color:null}]);
+ assert.deepEqual(normalizeItems([{id:4,tag:'Financiamento',color:'#ffc861',tenantId:17}]),[{id:'4',name:'Financiamento',color:'#ffc861'}]);
+ assert.deepEqual(normalizeItems([{id:5,token:'segredo',createdAt:'2026-01-01',etiqueta:'Troca'}]),[{id:'5',name:'Troca',color:null}]);
 });
 test('rules reject foreign ids and unverified operations and remain disabled',()=>{
  const catalog={pipelineSteps:[{id:3}],users:[{id:7}],tags:[{id:9}]};

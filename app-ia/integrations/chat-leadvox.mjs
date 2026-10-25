@@ -64,11 +64,13 @@ export function pickList(body){
  }
  return Object.values(body).find(Array.isArray)||null;
 }
+// Last resort for unknown shapes: the first short text field that is not an id, color, date or token.
+const firstText=x=>Object.entries(x&&typeof x==='object'?x:{}).find(([k,v])=>typeof v==='string'&&v.trim()&&v.length<=120&&!/id$|color|cor$|token|key|secret|url|date|_at$|At$|status|type|email|phone|number/i.test(k))?.[1]??'';
 // Only id, name and color reach the browser.
 export function normalizeItems(list){
  return (list||[]).slice(0,500).map(x=>({
   id:String(x?.id??x?.value??x?.queueId??''),
-  name:String(x?.name??x?.nome??x?.title??x?.label??x?.queue??x?.description??'').slice(0,120),
+  name:String(x?.name??x?.nome??x?.tag??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
   color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null
  })).filter(x=>x.id||x.name);
 }

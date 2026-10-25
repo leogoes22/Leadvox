@@ -188,7 +188,7 @@ const MENU = [
   ['motivos', 'Motivos de fechamento', 'bandeira', 'Por que um atendimento termina.'],
   ['arquivos', 'Arquivos da IA', 'arquivo', 'Materiais que a IA pode mandar.'],
   ['canais', 'Canais WhatsApp', 'zap', 'Os números onde a IA atende.'],
-  ['credenciais', 'Credenciais de API', 'chave', 'A conexão com a sua LeadVox.'],
+  ['credenciais', 'Credenciais de API', 'chave', 'LeadVox, estoque e cobranças.'],
   '-',
   ['cobrancas', 'Cobranças', 'cartao', 'Clientes, planos e mensalidades.'],
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
@@ -229,7 +229,8 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   desenharAgente(); desenharMenu();
-  fin = null; chat = null; listas = {};
+  fin = null; chat = null; listas = {}; conexoes = null;
+  carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
   abrir(pg);
 }
@@ -243,7 +244,7 @@ function abrir(pg) {
   document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
   if (LISTA[pg]) desenharLista(pg);
-  if (pg === 'credenciais') desenharCred();
+  if (pg === 'credenciais') { desenharCred(); desenharConexoes(); }
   if (pg === 'conhecimento' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -317,6 +318,75 @@ $('credForm').onsubmit = async e => {
     $('credUrl').value = ''; $('credToken').value = ''; listas = {}; await carregarChat(); desenharCred(); toast('LeadVox conectada.');
   } catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; bt.textContent = 'Conectar e testar'; }
+};
+
+/* outras conexões: estoque e Asaas */
+let conexoes = null, estFonte = '';
+const FONTES = { autocerto: 'AutoCerto', revendamais: 'Revenda Mais', leadvox: 'Estoque LeadVox' };
+async function carregarConexoes() { conexoes = await api('integrations?organization=' + encodeURIComponent(empresa.id)); }
+const quandoBR = d => d ? new Date(d).toLocaleString('pt-BR') : '';
+
+function escolherFonte(f) {
+  estFonte = f;
+  document.querySelectorAll('[data-fonte]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fonte === f)));
+  $('estAC').hidden = f !== 'autocerto'; $('estRM').hidden = f !== 'revendamais'; $('estLV').hidden = f !== 'leadvox';
+  $('estSalvar').textContent = f === 'leadvox' ? 'Usar o Estoque LeadVox' : 'Salvar e testar';
+}
+document.querySelectorAll('[data-fonte]').forEach(b => b.onclick = () => escolherFonte(b.dataset.fonte));
+
+function desenharConexoes() {
+  const mostraEst = cfg.niche === 'automotivo', mostraAs = !!cfg.billingEnabled;
+  ['estTit', 'estStatus'].forEach(id => $(id).hidden = !mostraEst); if (!mostraEst) $('estForm').hidden = true;
+  ['asTit', 'asStatus'].forEach(id => $(id).hidden = !mostraAs); if (!mostraAs) $('asForm').hidden = true;
+  if (!conexoes) { $('estStatus').innerHTML = $('asStatus').innerHTML = '<p class="muted">Carregando…</p>'; return; }
+  if (conexoes.setupPending) {
+    $('estStatus').innerHTML = $('asStatus').innerHTML = '<p class="alerta" style="margin:0">Falta liberar no banco (o SQL das conexões) antes de salvar.</p>';
+    $('estForm').hidden = $('asForm').hidden = true; return;
+  }
+  const e = conexoes.estoque;
+  if (mostraEst) {
+    if (e?.connected) {
+      const det = e.source === 'autocerto' ? `<div><span>Unidade</span>${esc(e.unidade)}</div><div><span>Usuário da API</span>${esc(e.usuario)}</div>`
+        : e.source === 'revendamais' ? `<div><span>Feed</span>${esc(e.feedHost)}</div><div><span>Veículos no teste</span>${esc(e.vehicles ?? '—')}</div>` : '<div><span>Cadastro</span>Na vitrine da LeadVox</div>';
+      $('estStatus').innerHTML = `<h3>Estoque: ${esc(FONTES[e.source] || e.source)}</h3><div class="ag-dados">${det}<div><span>Atualizado em</span>${esc(quandoBR(e.updatedAt))}</div></div>
+        <div class="form-bts"><button type="button" class="sm" id="estTrocar">Trocar fonte de estoque</button></div>`;
+      $('estTrocar').onclick = () => { $('estForm').hidden = false; };
+      $('estForm').hidden = true;
+      $('estUnidade').value = e.unidade || ''; $('estUsuario').value = e.usuario || '';
+      escolherFonte(e.source);
+    } else {
+      $('estStatus').innerHTML = '<h3>Estoque ainda não configurado</h3><p class="muted">Sem o estoque, a IA não mostra os veículos da loja.</p>';
+      $('estForm').hidden = false; if (!estFonte) escolherFonte('autocerto');
+    }
+  }
+  const a = conexoes.asaas;
+  if (mostraAs) {
+    if (a?.connected) {
+      $('asStatus').innerHTML = `<h3>Asaas conectado</h3><div class="ag-dados"><div><span>Ambiente</span>${a.environment === 'production' ? 'Produção' : 'Teste (sandbox)'}</div><div><span>Atualizado em</span>${esc(quandoBR(a.updatedAt))}</div></div>
+        <div class="form-bts"><button type="button" class="sm" id="asTrocar">Trocar chave ou ambiente</button></div>`;
+      $('asTrocar').onclick = () => { $('asForm').hidden = false; };
+      $('asForm').hidden = true; $('asAmb').value = a.environment || 'sandbox';
+    } else {
+      $('asStatus').innerHTML = '<h3>Asaas ainda não conectado</h3><p class="muted">É pelo Asaas que as cobranças dos seus clientes vão ser emitidas.</p>';
+      $('asForm').hidden = false;
+    }
+  }
+}
+async function salvarConexao(form, dados, ok) {
+  const bt = form.querySelector('button[type=submit]'), txt = bt.textContent; bt.disabled = true; bt.textContent = 'Testando…';
+  try { await api('integrations', { organization: empresa.id, ...dados }); form.querySelectorAll('input[type=password]').forEach(i => i.value = ''); await carregarConexoes(); desenharConexoes(); toast(ok); }
+  catch (err) { toast(err.message, true); }
+  finally { bt.disabled = false; bt.textContent = txt; }
+}
+$('estForm').onsubmit = e => {
+  e.preventDefault();
+  if (!estFonte) return toast('Escolha de onde vem o estoque.', true);
+  salvarConexao(e.currentTarget, { provider: 'estoque', source: estFonte, unidade: $('estUnidade').value, usuario: $('estUsuario').value, senha: $('estSenha').value, feedUrl: $('estFeed').value },
+    estFonte === 'leadvox' ? 'Estoque LeadVox ativado.' : 'Estoque conectado.');
+};
+$('asForm').onsubmit = e => {
+  e.preventDefault();
+  salvarConexao(e.currentTarget, { provider: 'asaas', environment: $('asAmb').value, apiKey: $('asChave').value }, 'Asaas conectado.');
 };
 
 async function desenharLista(pg, forcar) {

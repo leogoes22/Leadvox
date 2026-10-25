@@ -175,3 +175,6 @@ textarea { min-height: 90px; resize: vertical; }
   .cab .dir .leve { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .lateral, .switch span { transition: none; } }
+.sec-tit { font-size: 16px; margin: 26px 0 0; color: var(--suave); }
+.tipos.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .tipos.tres { grid-template-columns: 1fr; } }
