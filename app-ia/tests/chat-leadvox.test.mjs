@@ -21,6 +21,9 @@ test('LeadVox API URL is parsed only for the LeadVox host',()=>{
  assert.deepEqual(parseChatUrl(' https://chatapi.leadvox.com.br/v1/api/external/abc-123/?token=eyJhbGciOi.x.y '),{root:'https://chatapi.leadvox.com.br/v1',apiId:'abc-123',token:'eyJhbGciOi.x.y'});
  assert.deepEqual(parseChatUrl('https://chatapi.leadvox.com.br/v1/api/external/abc-123','Bearer eyJ0b2tlbi1zZXBhcmFkbw'),{root:'https://chatapi.leadvox.com.br/v1',apiId:'abc-123',token:'eyJ0b2tlbi1zZXBhcmFkbw'});
  assert.equal(parseChatUrl('https://chatapi.leadvox.com.br/v1/api/external/abc-123?token=1234567890abc').apiId,'abc-123');
+ assert.deepEqual(parseChatUrl('https://chat2api.leadvox.com.br/v1/api/external/5ac8e8dc-40d6/?token=abcdefghij123'),{root:'https://chat2api.leadvox.com.br/v1',apiId:'5ac8e8dc-40d6',token:'abcdefghij123'});
+ assert.ok(createChatClient({root:'https://chat2api.leadvox.com.br/v1',apiId:'a',token:'secret-token'}));
+ assert.equal(chatUrlProblem('https://chatXapi.leadvox.com.br.evil.com/v1/api/external/abc/?token=1234567890'),'host');
  assert.equal(chatUrlProblem('https://chatapi.leadvox.com.br/v1/api/external/abc'),'token');
  assert.equal(chatUrlProblem('https://chatapi.leadvox.com.br/v1/'),'path');
  assert.equal(chatUrlProblem('https://outro.com/v1/api/external/abc/?token=1234567890'),'host');

@@ -15,7 +15,7 @@ create or replace function public.lv_set_chat_credentials(org uuid,root text,api
 declare sid uuid;
 begin
  if not exists(select 1 from public.lv_memberships where organization_id=org and user_id=auth.uid() and role in('owner','admin')) then raise exception 'forbidden'; end if;
- if root !~ '^https://chatapi\.leadvox\.com\.br/v[0-9]{1,2}$' or api !~ '^[A-Za-z0-9_-]{1,100}$' or length(tok) not between 10 and 4000 then raise exception 'invalid'; end if;
+ if root !~ '^https://chat[0-9]{0,2}api\.leadvox\.com\.br/v[0-9]{1,2}$' or api !~ '^[A-Za-z0-9_-]{1,100}$' or length(tok) not between 10 and 4000 then raise exception 'invalid'; end if;
  select secret_id into sid from leadvox_private.chat_credentials where organization_id=org;
  if sid is null then
   sid:=vault.create_secret(tok,'lv_chat_'||org::text,'Token do chat LeadVox');

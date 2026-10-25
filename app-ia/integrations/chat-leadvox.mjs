@@ -1,15 +1,16 @@
 // Server-only adapter. Never import from public/ or expose credentials to the browser.
 const HOST='https://chatapi.leadvox.com.br';
+const ROOT=/^https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\/v\d{1,2}$/;
 const id = value => {const s=String(value??'');if(!/^[a-zA-Z0-9_-]{1,100}$/.test(s))throw new Error('Identificador inválido');return s;};
 export class ChatApiError extends Error {
  constructor(code,status=502){super(code);this.code=code;this.status=status;}
 }
 // The LeadVox "external API" URL carries the account id and the token:
-// https://chatapi.leadvox.com.br/v1/api/external/<apiId>/?token=<token>
+// https://chatapi.leadvox.com.br/v1/api/external/<apiId>/?token=<token> (each server has its own host: chatapi, chat2api…)
 // Some LeadVox screens show the URL and the token apart: a separate token is accepted too.
 export function chatUrlProblem(value,separateToken=''){
  const s=String(value??'').trim();
- if(!s.includes('chatapi.leadvox.com.br'))return 'host';
+ if(!/^https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\//.test(s))return 'host';
  if(!/\/api\/external\/[A-Za-z0-9_-]{1,100}/.test(s))return 'path';
  if(!/[?&]token=[^&#\s]{10,}/.test(s)&&String(separateToken).trim().length<10)return 'token';
  return null;
@@ -17,14 +18,14 @@ export function chatUrlProblem(value,separateToken=''){
 export function parseChatUrl(value,separateToken=''){
  let s=String(value??'').trim();const t=String(separateToken??'').trim().replace(/^Bearer\s+/i,'');
  if(t&&!/[?&]token=/.test(s))s=s.replace(/[?#].*$/,'').replace(/\/?$/,'/')+'?token='+encodeURIComponent(t);
- const m=s.match(/^(https:\/\/chatapi\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})(?:\/[^?#]*)?\?(?:[^#]*&)?token=([^&#\s]+)/);
+ const m=s.match(/^(https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})(?:\/[^?#]*)?\?(?:[^#]*&)?token=([^&#\s]+)/);
  if(!m)throw new Error('URL inválida');
  let token=m[3];try{token=decodeURIComponent(token);}catch{}
  if(token.length<10||token.length>4000||/[\r\n]/.test(token))throw new Error('URL inválida');
  return {root:m[1],apiId:m[2],token};
 }
 export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) {
- if(!/^https:\/\/chatapi\.leadvox\.com\.br\/v\d{1,2}$/.test(root))throw new Error('Endereço inválido');
+ if(!ROOT.test(root))throw new Error('Endereço inválido');
  const api=id(apiId);
  if(typeof token!=='string'||!token.trim()||/[\r\n]/.test(token))throw new Error('Credencial inválida');
  // Same call shape as the SDR Motor in n8n: token in the query string and as Bearer.

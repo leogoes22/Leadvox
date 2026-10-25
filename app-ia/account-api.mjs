@@ -108,7 +108,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      send(res,200,rows===null?{connected:false,setupPending:true}:{connected:!!rows[0],apiId:rows[0]?.api_id||null,updatedAt:rows[0]?.updated_at||null});
     }else if(action==='chat-credentials'&&req.method==='POST'){
      const problem=chatUrlProblem(body.url,body.token);
-     if(problem)throw {status:400,message:{host:'A URL precisa ser do chatapi.leadvox.com.br.',path:'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.',token:'Faltou o token: cole no campo Token ou deixe no fim da URL, depois de ?token=.'}[problem]};
+     if(problem)throw {status:400,message:{host:'A URL precisa ser da API da LeadVox (chatapi ou chat2api.leadvox.com.br).',path:'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.',token:'Faltou o token: cole no campo Token ou deixe no fim da URL, depois de ?token=.'}[problem]};
      let parsed;try{parsed=parseChatUrl(body.url,body.token);}catch{throw {status:400,message:'Não entendi essa URL. Confira se copiou a URL inteira da API da LeadVox.'};}
      // Test before saving: a token the LeadVox rejects is never stored.
      try{await createChatClient({...parsed,fetchImpl}).users();}
