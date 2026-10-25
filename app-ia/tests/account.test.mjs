@@ -53,6 +53,25 @@ test('"me" lists only own memberships and the owner area is closed to everyone e
  assert.deepEqual(me.organizations.map(o=>o.name),['Loja']);assert.equal(me.platformAdmin,false);
  assert.equal((await fetch(base+'/api/account/admin',{headers:{Cookie:'__Host-lv_session=test'}})).status,403);
 });
+test('LeadVox connection is tested before saving and the token never returns to the browser',async t=>{
+ const org='22222222-2222-4222-8222-222222222222',url='https://chatapi.leadvox.com.br/v1/api/external/acc-1/?token=secret-token-123';
+ let saved=null,lvStatus=401;const base=await fixture(t,async(u,init)=>{
+ if(u.endsWith('/auth/v1/user'))return response({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+ if(u.startsWith('https://chatapi.leadvox.com.br/'))return lvStatus===200?response({data:[{id:3,name:'Quente',color:'#ff0000',extra:'x'}]}):{ok:false,status:lvStatus,json:async()=>({})};
+ if(u.includes('lv_set_chat_credentials')){saved=JSON.parse(init.body);return response(null,204);}
+ if(u.includes('lv_chat_secret'))return response(saved?[{api_root:saved.root,api_id:saved.api,token:saved.tok}]:[]);
+ return response([]);
+ });
+ const post=b=>fetch(base+'/api/account/chat-credentials',{method:'POST',headers:{Origin:base,Cookie:'__Host-lv_session=test'},body:JSON.stringify(b)});
+ assert.equal((await post({organization:org,url:'https://evil.example/v1/api/external/a/?token=1234567890'})).status,400);
+ assert.equal((await post({organization:org,url})).status,400);assert.equal(saved,null);
+ const get=()=>fetch(base+'/api/account/chat?organization='+org+'&kind=etiquetas',{headers:{Cookie:'__Host-lv_session=test'}});
+ assert.equal((await get()).status,409);
+ lvStatus=200;const ok=await post({organization:org,url});assert.equal(ok.status,200);assert.doesNotMatch(await ok.text(),/secret-token/);
+ assert.deepEqual(saved,{org,root:'https://chatapi.leadvox.com.br/v1',api:'acc-1',tok:'secret-token-123'});
+ const r=await get();const txt=await r.text();assert.equal(r.status,200);assert.doesNotMatch(txt,/secret-token/);
+ assert.deepEqual(JSON.parse(txt).items,[{id:'3',name:'Quente',color:'#ff0000'}]);
+});
 test('HTTP requests fail closed in production',async t=>{
  const s=createApp();await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  assert.equal((await fetch('http://127.0.0.1:'+s.address().port+'/api/account/me')).status,426);

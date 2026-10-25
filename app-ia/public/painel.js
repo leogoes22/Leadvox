@@ -229,7 +229,8 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   desenharAgente(); desenharMenu();
-  fin = null;
+  fin = null; chat = null; listas = {};
+  carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
   abrir(pg);
 }
 
@@ -241,11 +242,8 @@ function abrir(pg) {
   for (const id of new Set(Object.values(SECAO))) $(id).hidden = id !== SECAO[pg];
   document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
-  if (LISTA[pg]) {
-    const [t, d] = LISTA[pg], ir = pg === 'arquivos' ? ['conhecimento', 'Abrir base de conhecimento'] : ['credenciais', 'Ver credenciais de API'];
-    $('listaVazio').innerHTML = `<b>${t}</b>${d}<br><button type="button" data-ir="${ir[0]}">${ir[1]}</button>`;
-    ligarIr($('listaVazio'));
-  }
+  if (LISTA[pg]) desenharLista(pg);
+  if (pg === 'credenciais') desenharCred();
   if (pg === 'conhecimento' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -291,6 +289,62 @@ $('agMultimodal').onsubmit = async e => {
     desenharAgente(); toast('Salvo.');
   } catch (err) { toast(err.message, true); }
 };
+
+/* conexão com a LeadVox: credenciais e listas */
+let chat = null, listas = {};
+const DA_LEADVOX = { etiquetas: 1, status: 1, usuarios: 1, departamentos: 1 };
+async function carregarChat() { chat = await api('chat-credentials?organization=' + encodeURIComponent(empresa.id)); }
+
+function desenharCred() {
+  const st = $('credStatus'), f = $('credForm');
+  if (!chat) { st.innerHTML = '<p class="muted">Carregando…</p>'; f.hidden = true; return; }
+  if (chat.setupPending) {
+    st.innerHTML = '<h3>Falta liberar no banco</h3><p class="alerta">A conexão com a LeadVox precisa de um ajuste no banco (o SQL das credenciais) antes de salvar.</p>';
+    f.hidden = true; return;
+  }
+  if (chat.connected) {
+    const quando = chat.updatedAt ? new Date(chat.updatedAt).toLocaleString('pt-BR') : '';
+    st.innerHTML = `<h3>Conectado à sua LeadVox</h3><div class="ag-dados"><div><span>Conta</span>${esc(chat.apiId)}</div>${quando ? `<div><span>Atualizado em</span>${esc(quando)}</div>` : ''}</div>
+      <div class="form-bts"><button type="button" class="sm" id="credTrocar">Trocar conexão</button><button type="button" class="sm" data-ir="etiquetas">Ver etiquetas</button></div>`;
+    ligarIr(st); $('credTrocar').onclick = () => { f.hidden = false; $('credUrl').focus(); };
+    f.hidden = true;
+  } else { st.innerHTML = '<h3>Sua LeadVox ainda não está conectada</h3><p class="muted">Sem a conexão, a IA não enxerga suas etiquetas, status, usuários e departamentos.</p>'; f.hidden = false; }
+}
+$('credForm').onsubmit = async e => {
+  e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true; bt.textContent = 'Testando…';
+  try {
+    await api('chat-credentials', { organization: empresa.id, url: $('credUrl').value });
+    $('credUrl').value = ''; listas = {}; await carregarChat(); desenharCred(); toast('LeadVox conectada.');
+  } catch (err) { toast(err.message, true); }
+  finally { bt.disabled = false; bt.textContent = 'Conectar e testar'; }
+};
+
+async function desenharLista(pg, forcar) {
+  const [t, d] = LISTA[pg];
+  $('listaItens').innerHTML = ''; $('listaTopo').hidden = true;
+  const vazio = (titulo, texto, ir) => {
+    $('listaVazio').hidden = false;
+    $('listaVazio').innerHTML = `<b>${titulo}</b>${texto}` + (ir ? `<br><button type="button" data-ir="${ir[0]}">${ir[1]}</button>` : '');
+    ligarIr($('listaVazio'));
+  };
+  if (!DA_LEADVOX[pg]) return vazio(t, d, pg === 'arquivos' ? ['conhecimento', 'Abrir base de conhecimento'] : null);
+  if (!chat?.connected) return vazio(t, d, ['credenciais', 'Conectar minha LeadVox']);
+  $('listaVazio').hidden = true; $('listaTopo').hidden = false;
+  $('listaInfo').textContent = 'Da sua LeadVox · conta ' + chat.apiId; $('listaItens').innerHTML = '<p class="muted" style="padding:12px 0">Buscando na LeadVox…</p>';
+  try {
+    if (!listas[pg] || forcar) listas[pg] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + pg)).items;
+    if (abaAtual !== pg) return;
+    const itens = listas[pg];
+    $('listaInfo').textContent = itens.length + ' na sua LeadVox · conta ' + chat.apiId;
+    $('listaItens').innerHTML = itens.map(i => linha(
+      (i.color ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${i.color};margin-right:8px"></span>` : '') + esc(i.name || 'Sem nome'),
+      'ID ' + esc(i.id))).join('') || '<p class="muted" style="padding:12px 0">Nada cadastrado na sua LeadVox.</p>';
+  } catch (err) {
+    if (abaAtual !== pg) return;
+    $('listaItens').innerHTML = ''; vazio('Não deu para buscar agora', esc(err.message), ['credenciais', 'Ver conexão']);
+  }
+}
+$('listaAtualizar').onclick = () => desenharLista(abaAtual, true);
 
 /* dashboard */
 {

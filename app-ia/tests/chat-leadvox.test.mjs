@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createChatClient,validateRule} from '../integrations/chat-leadvox.mjs';
+import {createChatClient,validateRule,parseChatUrl,pickList,normalizeItems} from '../integrations/chat-leadvox.mjs';
 test('read-only client pins host, routes, auth and rejects redirects',async()=>{
  const calls=[];const c=createChatClient({apiId:'test-account',token:'test-secret',fetchImpl:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({success:true,data:[]})};}});
  await c.users();await c.tags();await c.pipelineSteps();
- assert.deepEqual(calls.map(c=>c.url),['https://chatapi.leadvox.com.br/v1/api/external/users/test-account','https://chatapi.leadvox.com.br/v1/api/external/test-account/tags','https://chatapi.leadvox.com.br/v1/api/external/test-account/pipeline-steps']);
+ const q='?token=test-secret';
+ assert.deepEqual(calls.map(c=>c.url),['https://chatapi.leadvox.com.br/v1/api/external/users/test-account'+q,'https://chatapi.leadvox.com.br/v1/api/external/test-account/tags'+q,'https://chatapi.leadvox.com.br/v1/api/external/test-account/pipeline-steps'+q]);
  for(const {options} of calls){assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,'Bearer test-secret');}
  assert.equal(c.sendMessage,undefined);assert.equal(c.updateOpportunity,undefined);
 });
@@ -14,6 +15,18 @@ test('upstream failures never reflect credentials or raw response',async()=>{
  await assert.rejects(c.tags(),e=>!e.message.includes('test-secret'));
  }
  assert.throws(()=>createChatClient({apiId:'../other',token:'secret'}));
+ assert.throws(()=>createChatClient({root:'https://evil.example/v1',apiId:'a',token:'secret'}));
+});
+test('LeadVox API URL is parsed only for the LeadVox host',()=>{
+ assert.deepEqual(parseChatUrl(' https://chatapi.leadvox.com.br/v1/api/external/abc-123/?token=eyJhbGciOi.x.y '),{root:'https://chatapi.leadvox.com.br/v1',apiId:'abc-123',token:'eyJhbGciOi.x.y'});
+ for(const bad of ['https://evil.example/v1/api/external/abc/?token=1234567890','https://chatapi.leadvox.com.br/v1/api/external/../x/?token=1234567890','https://chatapi.leadvox.com.br/v1/api/external/abc/?token=curto',''])assert.throws(()=>parseChatUrl(bad));
+});
+test('departments try the candidate routes and lists are reduced to id, name and color',async()=>{
+ const tried=[];const c=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async url=>{tried.push(url.split('?')[0]);return url.includes('/queue/acc')?{ok:true,json:async()=>({queues:[{id:5,queue:'Comercial',color:'#2be87b',token:'x'}]})}:{ok:false,status:404};}});
+ assert.deepEqual(normalizeItems(await c.departments()),[{id:'5',name:'Comercial',color:'#2be87b'}]);
+ assert.equal(tried.at(-1),'https://chatapi.leadvox.com.br/v1/api/external/queue/acc');
+ assert.deepEqual(pickList({data:{tags:[{id:1}]}}),[{id:1}]);
+ assert.deepEqual(normalizeItems([{id:2,nome:'Quente',cor:'javascript:1'}]),[{id:'2',name:'Quente',color:null}]);
 });
 test('rules reject foreign ids and unverified operations and remain disabled',()=>{
  const catalog={pipelineSteps:[{id:3}],users:[{id:7}],tags:[{id:9}]};

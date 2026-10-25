@@ -1,4 +1,5 @@
 import {handleBilling} from './billing.mjs';
+import {createChatClient,parseChatUrl,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
@@ -99,6 +100,32 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});
     const workspaces=await upstream('/rest/v1/lv_workspace?select=organization_id,settings,updated_at&limit=500',{token:authToken});
     send(res,200,{organizations,workspaces});
+   }else if(action==='chat-credentials'||action==='chat'){
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(action==='chat-credentials'&&req.method==='GET'){
+     let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_status',{method:'POST',token:authToken,body:{org}});}catch{rows=null;}
+     send(res,200,rows===null?{connected:false,setupPending:true}:{connected:!!rows[0],apiId:rows[0]?.api_id||null,updatedAt:rows[0]?.updated_at||null});
+    }else if(action==='chat-credentials'&&req.method==='POST'){
+     let parsed;try{parsed=parseChatUrl(body.url);}catch{throw {status:400,message:'Cole a URL completa da API da LeadVox, com o token no final.'};}
+     // Test before saving: a token the LeadVox rejects is never stored.
+     try{await createChatClient({...parsed,fetchImpl}).users();}
+     catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não aceitou esse token. Confira a URL e tente de novo.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+     try{await upstream('/rest/v1/rpc/lv_set_chat_credentials',{method:'POST',token:authToken,body:{org,root:parsed.root,api:parsed.apiId,tok:parsed.token},prefer:'return=minimal'});}
+     catch{throw {status:400,message:'Não deu para salvar a conexão. Só o dono da empresa pode conectar.'};}
+     send(res,200,{connected:true,apiId:parsed.apiId});
+    }else if(action==='chat'&&req.method==='GET'){
+     const kind=new URL(req.url,'https://localhost').searchParams.get('kind');
+     const call={etiquetas:'tags',status:'pipelineSteps',usuarios:'users',departamentos:'departments'}[kind];
+     if(!call)throw {status:400,message:'Lista inválida.'};
+     let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+     if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
+     let list;
+     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=call==='departments'?await c.departments():pickList(await c[call]());}
+     catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
+      :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+     send(res,200,{items:normalizeItems(list)});
+    }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='organization'&&req.method==='POST'){
     if(typeof body.name!=='string'||body.name.trim().length<2||body.name.trim().length>100)throw {status:400,message:'Informe o nome da empresa.'};
     // return=minimal: the read policy depends on the owner membership, which the AFTER INSERT trigger creates only after RETURNING is checked.
