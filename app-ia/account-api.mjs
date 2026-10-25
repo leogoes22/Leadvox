@@ -1,6 +1,22 @@
 import {handleBilling} from './billing.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
+export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
+// Explicit allowlist; CRM tokens and passwords are never accepted as workspace settings.
+export function cleanSettings(input){
+ if(!input||typeof input!=='object'||Array.isArray(input))throw Error('settings');
+ const out={};
+ for(const [k,v] of Object.entries(input)){
+  if(k==='displayName'&&typeof v==='string')out[k]=v.trim().slice(0,100);
+  else if(k==='aiName'&&typeof v==='string')out[k]=v.trim().slice(0,40);
+  else if(k==='niche'&&NICHES.includes(v))out[k]=v;
+  else if(k==='whatsapp'&&typeof v==='string'&&/^\d{10,13}$/.test(v.replace(/\D/g,'')))out[k]=v.replace(/\D/g,'');
+  else if(k==='whatsapp'&&v==='')out[k]='';
+  else if((k==='billingEnabled'||k==='onboarded')&&typeof v==='boolean')out[k]=v;
+  else throw Error('settings');
+ }
+ return out;
+}
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  const attempts=new Map();
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
@@ -10,6 +26,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   if(!r.ok)throw {status:r.status===429?429:400,message:r.status===429?'Muitas tentativas. Aguarde alguns minutos.':'Não foi possível concluir. Confira os dados e tente novamente.'};
   return data;
  }
+ // False until database/platform_admin.sql has been applied.
+ async function isPlatformAdmin(token){try{return (await upstream('/rest/v1/rpc/lv_is_platform_admin',{method:'POST',token,body:{}}))===true;}catch{return false;}}
  return async(req,res,pathname)=>{
   if(!pathname.startsWith('/api/account/'))return false;
   const host=req.headers.host||'';
@@ -67,8 +85,15 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     if(typeof body.password!=='string'||body.password.length<12||body.password.length>128)throw {status:400,message:'Use uma senha de 12 a 128 caracteres.'};
     await upstream('/auth/v1/user',{method:'PUT',token:authToken,body:{password:body.password}});send(res,200,{ok:true});
    }else if(action==='me'&&req.method==='GET'){
-    const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at',{token:authToken});
-    send(res,200,{user:{id:user.id,email:user.email},organizations});
+    // Through memberships: the platform owner can read every organization, but "me" lists only their own.
+    const rows=await upstream('/rest/v1/lv_memberships?select=role,lv_organizations(id,name,trial_ends_at,created_at)&user_id=eq.'+user.id,{token:authToken});
+    const organizations=(rows||[]).map(r=>r.lv_organizations).filter(Boolean);
+    send(res,200,{user:{id:user.id,email:user.email},organizations,platformAdmin:await isPlatformAdmin(authToken)});
+   }else if(action==='admin'&&req.method==='GET'){
+    if(!await isPlatformAdmin(authToken))throw {status:403,message:'Área exclusiva da LeadVox.'};
+    const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});
+    const workspaces=await upstream('/rest/v1/lv_workspace?select=organization_id,settings,updated_at&limit=500',{token:authToken});
+    send(res,200,{organizations,workspaces});
    }else if(action==='organization'&&req.method==='POST'){
     if(typeof body.name!=='string'||body.name.trim().length<2||body.name.trim().length>100)throw {status:400,message:'Informe o nome da empresa.'};
     // return=minimal: the read policy depends on the owner membership, which the AFTER INSERT trigger creates only after RETURNING is checked.
@@ -84,10 +109,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     if(req.method==='GET')send(res,200,{workspace:await upstream('/rest/v1/lv_workspace?select=settings,updated_at&organization_id=eq.'+org,{token:authToken})});
     else{
      if(!['owner','admin'].includes(memberships[0].role))throw {status:403,message:'Você não tem permissão para editar.'};
-     // Explicit allowlist; CRM tokens and passwords are never accepted as workspace settings.
-     if(!body.settings||typeof body.settings!=='object'||Array.isArray(body.settings)||Object.keys(body.settings).some(k=>!['displayName','timezone'].includes(k)))throw {status:400,message:'Configurações inválidas.'};
-     const settings={displayName:String(body.settings.displayName||'').slice(0,100),timezone:'America/Sao_Paulo'};
-     const existing=await upstream('/rest/v1/lv_workspace?select=organization_id&organization_id=eq.'+org,{token:authToken});
+     let changes;try{changes=cleanSettings(body.settings);}catch{throw {status:400,message:'Configurações inválidas.'};}
+     const existing=await upstream('/rest/v1/lv_workspace?select=organization_id,settings&organization_id=eq.'+org,{token:authToken});
+     const settings={...(existing[0]?.settings||{}),...changes,timezone:'America/Sao_Paulo'};
      await upstream('/rest/v1/lv_workspace'+(existing.length?'?organization_id=eq.'+org:''),{method:existing.length?'PATCH':'POST',token:authToken,body:existing.length?{settings}:{organization_id:org,settings}});
      send(res,200,{ok:true});
     }

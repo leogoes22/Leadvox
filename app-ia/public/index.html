@@ -17,7 +17,7 @@
 
 <!-- ═══════════ ENTRADA ═══════════ -->
 <div id="telaPorta" class="porta">
-  <div class="card">
+  <div class="card" id="cardLogin">
     <div class="marca-lv">Lead<b>Vox</b></div>
     <h1 id="pTitulo">Sua IA na LeadVox</h1>
     <p class="muted sub" id="pSub" style="margin-top:6px">Entre com o e-mail cadastrado na LeadVox.</p>
@@ -38,16 +38,46 @@
     <button class="leve" type="button" id="btVoltarPorta" style="margin-top:8px" hidden>← Voltar para o login</button>
   </div>
 
-  <div class="card" id="cardEmpresa" hidden>
+  <!-- formulário inicial: monta o painel antes do primeiro acesso -->
+  <div class="card largo" id="cardMontar" hidden>
     <div class="marca-lv">Lead<b>Vox</b></div>
-    <h1>Cadastre sua empresa</h1>
-    <p class="muted sub" style="margin-top:6px">É nela que ficam seus agentes, seus clientes e suas cobranças.</p>
-    <form id="formEmpresa">
-      <label for="eNome">Nome da empresa</label><input id="eNome" minlength="2" maxlength="100" required>
-      <button class="principal cheio" type="submit">Criar minha empresa</button>
-    </form>
-    <p id="eErro" class="erro" hidden></p>
-    <button class="leve" type="button" data-sair style="margin-top:8px">Sair</button>
+    <p class="passo-rot" id="mRot">Passo 1 de 4</p>
+    <div class="progresso" id="mProg"><span></span><span></span><span></span><span></span></div>
+
+    <div data-m="empresa">
+      <h1>Como se chama sua empresa?</h1>
+      <p class="muted" style="margin-top:6px">É o nome que aparece no seu painel.</p>
+      <label for="mEmpresa">Nome da empresa</label><input id="mEmpresa" minlength="2" maxlength="100" placeholder="Ex.: Auto Center Vassouras">
+    </div>
+
+    <div data-m="nicho" hidden>
+      <h1>Qual é o seu negócio?</h1>
+      <p class="muted" style="margin-top:6px">A IA já vem preparada para o seu ramo.</p>
+      <div class="tipos" id="mNichos"></div>
+    </div>
+
+    <div data-m="ia" hidden>
+      <h1>Sua IA</h1>
+      <p class="muted" style="margin-top:6px">Dá para mudar depois.</p>
+      <label for="mIa">Nome da sua IA <small>(como ela se apresenta no WhatsApp)</small></label><input id="mIa" maxlength="40" placeholder="Ex.: Carol">
+      <label for="mZap">WhatsApp da empresa <small>(com DDD)</small></label><input id="mZap" inputmode="tel" maxlength="20" placeholder="(21) 99999-0000">
+    </div>
+
+    <div data-m="cobranca" hidden>
+      <h1>Quer cobrar seus clientes pelo painel?</h1>
+      <p class="muted" style="margin-top:6px">Cadastre clientes, planos e mensalidades. Dá para ligar ou desligar depois.</p>
+      <div class="tipos um" id="mCobr">
+        <button type="button" class="tipo-op" data-cobr="sim" aria-pressed="false"><span class="ic">💳</span><span><b>Sim, quero usar</b><small>Aparece a aba Cobranças no seu painel.</small></span></button>
+        <button type="button" class="tipo-op" data-cobr="nao" aria-pressed="false"><span class="ic">⏭️</span><span><b>Agora não</b><small>Só a IA. Você liga depois em Conta.</small></span></button>
+      </div>
+    </div>
+
+    <p id="mErro" class="erro" hidden></p>
+    <div class="form-bts entre">
+      <button type="button" id="mVoltar">Voltar</button>
+      <button class="principal" type="button" id="mProximo">Próximo</button>
+    </div>
+    <button class="leve" type="button" data-sair style="margin-top:12px">Sair</button>
   </div>
 </div>
 
@@ -56,14 +86,14 @@
   <div class="wrap" id="wrapApp">
     <div class="topo">
       <div class="marca-lv">Lead<b>Vox</b> · <span id="nomeEmpresa"></span></div>
-      <div class="dir"><select id="selEmpresa" aria-label="Empresa" hidden></select><button class="leve" type="button" data-sair>Sair</button></div>
+      <div class="dir"><button class="leve" type="button" data-sair>Sair</button></div>
     </div>
     <nav class="abas" id="abas" aria-label="Seções">
       <button type="button" data-aba="inicio">Início</button>
-      <button type="button" data-aba="agentes">Agentes de IA</button>
-      <button type="button" data-aba="sdr">SDR automotivo</button>
-      <button type="button" data-aba="cobrancas">Clientes e cobranças</button>
-      <button type="button" data-aba="empresa">Empresa</button>
+      <button type="button" data-aba="ia">Minha IA</button>
+      <button type="button" data-aba="cobrancas" hidden>Cobranças</button>
+      <button type="button" data-aba="conta">Conta</button>
+      <button type="button" data-aba="leadvox" hidden>Painel LeadVox</button>
     </nav>
 
     <section id="vInicio">
@@ -72,34 +102,25 @@
         <p class="muted" id="iTeste"></p>
       </div>
       <div class="modulos">
-        <div class="card"><h3>Agentes de IA</h3><span class="st on">Funcionando</span>
-          <p>Seus atendentes de IA no WhatsApp: o que falam, o catálogo, os materiais e os pedidos.</p>
-          <button class="principal sm" type="button" data-ir="agentes">Abrir agentes</button></div>
-        <div class="card"><h3>SDR automotivo</h3><span class="st on">Funcionando</span>
-          <p>A IA que atende os leads da loja: configuração, estoque e o que aconteceu hoje.</p>
-          <button class="principal sm" type="button" data-ir="sdr">Abrir SDR</button></div>
-        <div class="card"><h3>Clientes e cobranças</h3><span class="st rascunho">Em rascunho</span>
-          <p id="iCobr">Clientes, planos e recorrências. Ainda não emite boleto nem manda mensagem.</p>
+        <div class="card"><h3 id="iIaTitulo">Sua IA</h3><span class="st on">Pronta para configurar</span>
+          <p id="iIaTexto"></p>
+          <button class="principal sm" type="button" data-ir="ia">Configurar minha IA</button></div>
+        <div class="card" id="iCardCobr" hidden><h3>Cobranças</h3><span class="st rascunho">Em rascunho</span>
+          <p id="iCobr">Clientes, planos e mensalidades. Ainda não emite boleto nem manda mensagem.</p>
           <button class="sm" type="button" data-ir="cobrancas">Abrir cobranças</button></div>
       </div>
     </section>
 
-    <section id="vAgentes" hidden>
-      <div class="moldura-topo"><span class="muted">Por enquanto o painel de agentes ainda pede o login dele.</span>
-        <a class="bt sm" href="https://leadvox.com.br/agente-ia.html" target="_blank" rel="noopener">Abrir em tela cheia ↗</a></div>
-      <div class="moldura"><iframe title="Seus agentes de IA" data-src="https://leadvox.com.br/agente-ia.html"></iframe></div>
-    </section>
-
-    <section id="vSdr" hidden>
-      <div class="moldura-topo"><span class="muted">Por enquanto o painel do SDR ainda pede o login dele.</span>
-        <a class="bt sm" href="https://leadvox.com.br/sdr/" target="_blank" rel="noopener">Abrir em tela cheia ↗</a></div>
-      <div class="moldura"><iframe title="SDR automotivo" data-src="https://leadvox.com.br/sdr/"></iframe></div>
+    <section id="vIa" hidden>
+      <div class="moldura-topo"><span class="muted" id="iaNota">Por enquanto a configuração da IA ainda pede o login dela.</span>
+        <a class="bt sm" id="iaCheia" href="#" target="_blank" rel="noopener">Abrir em tela cheia ↗</a></div>
+      <div class="moldura"><iframe title="Configuração da sua IA" id="iaFrame"></iframe></div>
     </section>
 
     <section id="vCobrancas" hidden>
       <div class="card">
-        <h2>Clientes e cobranças</h2>
-        <p class="muted">O financeiro dos clientes da sua empresa. É separado da assinatura que você paga à LeadVox.</p>
+        <h2>Cobranças</h2>
+        <p class="muted">Clientes, planos e mensalidades da sua empresa. É separado da assinatura que você paga à LeadVox.</p>
         <p class="alerta">Tudo aqui fica em rascunho: nenhum boleto é emitido, nenhuma mensagem é enviada e nenhum lead muda de etapa.</p>
         <div class="numeros">
           <div><b id="nClientes">0</b><small>clientes</small></div>
@@ -120,11 +141,17 @@
       <div class="card" id="cAgenda" hidden></div>
     </section>
 
-    <section id="vEmpresa" class="estreito" hidden>
+    <section id="vConta" class="estreito" hidden>
       <form class="card" id="formConfig">
         <h2>Sua empresa</h2>
         <p class="muted" id="emEmail"></p>
         <label for="cfNome">Nome que aparece no painel</label><input id="cfNome" maxlength="100">
+        <label for="cfNicho">Seu negócio</label><select id="cfNicho"></select>
+        <div class="duas">
+          <div><label for="cfIa">Nome da sua IA</label><input id="cfIa" maxlength="40"></div>
+          <div><label for="cfZap">WhatsApp da empresa</label><input id="cfZap" inputmode="tel" maxlength="20"></div>
+        </div>
+        <label class="check-lin"><input type="checkbox" id="cfCobr"> Usar Cobranças para cobrar meus clientes</label>
         <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
       </form>
       <form class="card" id="formSenha">
@@ -132,6 +159,30 @@
         <label for="nsSenha">Nova senha <small>(12 a 128 caracteres)</small></label><input id="nsSenha" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
         <button type="submit" style="margin-top:14px">Trocar senha</button>
       </form>
+    </section>
+
+    <section id="vLeadvox" hidden>
+      <div class="card">
+        <h2>Painel LeadVox</h2>
+        <p class="muted">Só você vê esta aba. Aqui ficam todos os clientes da plataforma.</p>
+        <div class="numeros" id="lvNumeros"></div>
+      </div>
+      <div class="card tabela-cli">
+        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Empresas cadastradas, o negócio de cada uma e o período de teste.</p></div>
+          <button class="sm" type="button" id="lvAtualizar">Atualizar</button></div>
+        <div id="lvLista" style="margin-top:10px"></div>
+      </div>
+      <div class="modulos">
+        <div class="card"><h3>Cobrar seus clientes</h3>
+          <p>As mensalidades dos seus clientes ficam na aba Cobranças da LeadVox: cadastre o cliente, o plano e a recorrência.</p>
+          <button class="principal sm" type="button" data-ir="cobrancas">Abrir cobranças</button></div>
+        <div class="card"><h3>Motores de IA</h3>
+          <p>Os administradores que você já usa para os agentes e para o SDR automotivo.</p>
+          <div class="form-bts" style="margin-top:8px">
+            <a class="bt sm" href="https://leadvox.com.br/admin-motor-ia.html" target="_blank" rel="noopener">Admin agentes ↗</a>
+            <a class="bt sm" href="https://leadvox.com.br/admin-motor-sdr.html" target="_blank" rel="noopener">Admin SDR ↗</a>
+          </div></div>
+      </div>
     </section>
   </div>
 </div>

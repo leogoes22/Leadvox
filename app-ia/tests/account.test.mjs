@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp} from '../server.mjs';
+import {cleanSettings} from '../account-api.mjs';
 async function fixture(t,fetchImpl){const s=createApp({allowLocal:true,fetchImpl});await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));return 'http://127.0.0.1:'+s.address().port;}
 const response=(data,status=200)=>({ok:status<400,status,json:async()=>data});
 test('anonymous access, CSRF and invalid input cannot access tenant records',async t=>{
@@ -35,6 +36,21 @@ test('company creation does not ask for the inserted row before the owner member
  assert.equal(r.status,201);assert.equal((await r.json()).organizations[0].name,'LeadVox');
  assert.equal(calls[0].method,'POST');assert.equal(calls[0].prefer,'return=minimal');
  assert.equal(calls[1].method,'GET');assert.match(calls[1].url,/owner_id=eq\.11111111-1111-4111-8111-111111111111/);
+});
+test('workspace settings accept only known onboarding fields',()=>{
+ assert.deepEqual(cleanSettings({niche:'automotivo',aiName:' Carol ',whatsapp:'(21) 99999-0000',billingEnabled:true,onboarded:true}),{niche:'automotivo',aiName:'Carol',whatsapp:'21999990000',billingEnabled:true,onboarded:true});
+ for(const bad of [{niche:'cassino'},{token:'x'},{whatsapp:'123'},{billingEnabled:'sim'},[],null])assert.throws(()=>cleanSettings(bad));
+});
+test('"me" lists only own memberships and the owner area is closed to everyone else',async t=>{
+ const base=await fixture(t,async url=>{
+ if(url.endsWith('/auth/v1/user'))return response({id:'11111111-1111-4111-8111-111111111111',email:'loja@example.invalid',email_confirmed_at:'2026-01-01'});
+ if(url.includes('/rpc/lv_is_platform_admin'))return response(false);
+ if(url.includes('lv_memberships'))return response([{role:'owner',lv_organizations:{id:'22222222-2222-4222-8222-222222222222',name:'Loja'}}]);
+ return response([{id:'other'}]);
+ });
+ const me=await (await fetch(base+'/api/account/me',{headers:{Cookie:'__Host-lv_session=test'}})).json();
+ assert.deepEqual(me.organizations.map(o=>o.name),['Loja']);assert.equal(me.platformAdmin,false);
+ assert.equal((await fetch(base+'/api/account/admin',{headers:{Cookie:'__Host-lv_session=test'}})).status,403);
 });
 test('HTTP requests fail closed in production',async t=>{
  const s=createApp();await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));

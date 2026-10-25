@@ -44,9 +44,9 @@ function setModo(m) {
   mostra($('pErro')); mostra($('pOk'));
 }
 
-function porta(cardEmpresa) {
+function porta(montar) {
   $('telaApp').hidden = true; $('telaPorta').hidden = false;
-  $('formPorta').closest('.card').hidden = !!cardEmpresa; $('cardEmpresa').hidden = !cardEmpresa;
+  $('cardLogin').hidden = !!montar; $('cardMontar').hidden = !montar;
 }
 
 document.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { tipoCodigo = 'signup'; setModo(b.dataset.modo); });
@@ -65,10 +65,75 @@ $('formPorta').onsubmit = async e => {
   finally { bt.disabled = false; }
 };
 
-$('formEmpresa').onsubmit = async e => {
-  e.preventDefault(); mostra($('eErro'));
-  try { await api('organization', { name: $('eNome').value }); await carregar(); toast('Empresa criada.'); }
-  catch (err) { mostra($('eErro'), err.message); }
+/* ═══════════ FORMULÁRIO INICIAL ═══════════ */
+const NICHOS = {
+  automotivo: { n: 'Automotivo', ic: '🚗', d: 'Loja de carros ou motos', ia: 'atende os leads da sua loja no WhatsApp, mostra o estoque e agenda visitas.' },
+  imoveis: { n: 'Imóveis', ic: '🏠', d: 'Imobiliária ou corretor', ia: 'atende quem procura imóvel, tira dúvidas e agenda visitas.' },
+  saude: { n: 'Saúde', ic: '🩺', d: 'Clínica, consultório ou estética', ia: 'atende pacientes, responde dúvidas e agenda consultas.' },
+  advocacia: { n: 'Advocacia', ic: '⚖️', d: 'Escritório de advocacia', ia: 'faz a triagem dos casos e agenda o atendimento.' },
+  educacao: { n: 'Educação', ic: '🎓', d: 'Escola ou curso', ia: 'apresenta os cursos, tira dúvidas e faz a matrícula andar.' },
+  varejo: { n: 'Varejo', ic: '🛍️', d: 'Loja física ou on-line', ia: 'mostra seus produtos, responde dúvidas e fecha pedidos.' },
+  viagens: { n: 'Viagens', ic: '✈️', d: 'Agência ou turismo', ia: 'apresenta os pacotes, tira dúvidas e passa o cliente para a equipe.' },
+  outro: { n: 'Outro negócio', ic: '✨', d: 'Qualquer outro ramo', ia: 'atende seus clientes no WhatsApp com o seu catálogo e seus materiais.' }
+};
+const PASSOS = ['empresa', 'nicho', 'ia', 'cobranca'];
+let passo = 0, escolhaNicho = '', escolhaCobr = null;
+
+$('mNichos').innerHTML = Object.entries(NICHOS).map(([k, v]) =>
+  `<button type="button" class="tipo-op" aria-pressed="false" data-nicho="${k}"><span class="ic">${v.ic}</span><span><b>${v.n}</b><small>${v.d}</small></span></button>`).join('');
+document.querySelectorAll('[data-nicho]').forEach(b => b.onclick = () => {
+  escolhaNicho = b.dataset.nicho;
+  document.querySelectorAll('[data-nicho]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+document.querySelectorAll('[data-cobr]').forEach(b => b.onclick = () => {
+  escolhaCobr = b.dataset.cobr === 'sim';
+  document.querySelectorAll('[data-cobr]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+$('cfNicho').replaceChildren(...Object.entries(NICHOS).map(([k, v]) => new Option(v.n, k)));
+
+function montar() {
+  porta(true);
+  if (new URLSearchParams(location.search).get('empresa') === 'LeadVox' && !$('mEmpresa').value) $('mEmpresa').value = 'LeadVox';
+  escolhaNicho = cfg.niche || escolhaNicho;
+  document.querySelectorAll('[data-nicho]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.nicho === escolhaNicho)));
+  if (cfg.aiName) $('mIa').value = cfg.aiName;
+  if (cfg.whatsapp) $('mZap').value = cfg.whatsapp;
+  mostraPasso(empresa ? Math.max(passo, 1) : 0);
+}
+function mostraPasso(i) {
+  passo = i; mostra($('mErro'));
+  document.querySelectorAll('[data-m]').forEach(s => s.hidden = s.dataset.m !== PASSOS[i]);
+  $('mRot').textContent = 'Passo ' + (i + 1) + ' de ' + PASSOS.length;
+  [...$('mProg').children].forEach((s, k) => s.classList.toggle('feito', k <= i));
+  $('mVoltar').hidden = i === 0 || (i === 1 && !!empresa);
+  $('mProximo').textContent = i === PASSOS.length - 1 ? 'Montar meu painel' : 'Próximo';
+}
+$('mVoltar').onclick = () => mostraPasso(Math.max(0, passo - 1));
+$('mProximo').onclick = async () => {
+  const bt = $('mProximo'); bt.disabled = true; mostra($('mErro'));
+  try {
+    const p = PASSOS[passo];
+    if (p === 'empresa') {
+      const nome = $('mEmpresa').value.trim();
+      if (nome.length < 2) throw Error('Digite o nome da empresa.');
+      const d = await api('organization', { name: nome });
+      empresa = d.organizations?.[0];
+      if (!empresa) throw Error('Não deu para criar a empresa. Tente de novo.');
+    } else if (p === 'nicho') {
+      if (!escolhaNicho) throw Error('Escolha o seu negócio.');
+      await salvarCfg({ niche: escolhaNicho });
+    } else if (p === 'ia') {
+      const zap = $('mZap').value.replace(/\D/g, '');
+      if (zap && (zap.length < 10 || zap.length > 13)) throw Error('Confira o WhatsApp: DDD e número.');
+      await salvarCfg({ aiName: $('mIa').value.trim(), whatsapp: zap });
+    } else {
+      if (escolhaCobr === null) throw Error('Escolha uma das opções.');
+      await salvarCfg({ billingEnabled: escolhaCobr, onboarded: true });
+      return abrirApp('inicio');
+    }
+    mostraPasso(passo + 1);
+  } catch (err) { mostra($('mErro'), err.message); }
+  finally { bt.disabled = false; }
 };
 
 document.querySelectorAll('[data-sair]').forEach(b => b.onclick = async () => {
@@ -76,70 +141,102 @@ document.querySelectorAll('[data-sair]').forEach(b => b.onclick = async () => {
   conta = null; setModo('login'); porta(false);
 });
 
+
 /* ═══════════ APP ═══════════ */
-let conta = null, empresa = null;
+let conta = null, empresa = null, cfg = {};
+
+async function salvarCfg(mudancas) {
+  await api('workspace', { organization: empresa.id, settings: mudancas });
+  cfg = { ...cfg, ...mudancas };
+}
 
 async function carregar() {
   conta = await api('me');
-  const orgs = conta.organizations || [];
-  if (!orgs.length) {
-    if (new URLSearchParams(location.search).get('empresa') === 'LeadVox') $('eNome').value = 'LeadVox';
-    return porta(true);
+  empresa = (conta.organizations || [])[0] || null;
+  cfg = {};
+  if (empresa) {
+    try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); cfg = w.workspace?.[0]?.settings || {}; } catch {}
   }
-  const guardada = sessionStorage.getItem('lv_empresa');
-  empresa = orgs.find(o => o.id === guardada) || orgs[0];
-  const sel = $('selEmpresa');
-  sel.replaceChildren(...orgs.map(o => new Option(o.name, o.id, false, o.id === empresa.id)));
-  sel.hidden = orgs.length < 2;
-  $('telaPorta').hidden = true; $('telaApp').hidden = false;
-  await trocarEmpresa();
-  abrir(location.hash.slice(1) || 'inicio');
+  if (!empresa || !cfg.onboarded) return montar();
+  abrirApp(location.hash.slice(1) || 'inicio');
 }
 
-$('selEmpresa').onchange = async () => {
-  empresa = conta.organizations.find(o => o.id === $('selEmpresa').value);
-  await trocarEmpresa(); abrir(abaAtual);
-};
-
-async function trocarEmpresa() {
-  sessionStorage.setItem('lv_empresa', empresa.id);
-  let nome = empresa.name;
-  try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); nome = w.workspace?.[0]?.settings?.displayName || nome; } catch {}
-  $('nomeEmpresa').textContent = nome; $('cfNome').value = nome === empresa.name ? '' : nome;
+function abrirApp(aba) {
+  $('telaPorta').hidden = true; $('telaApp').hidden = false;
+  const nicho = NICHOS[cfg.niche] || NICHOS.outro;
+  const nome = cfg.displayName || empresa.name, ia = cfg.aiName || 'Sua IA';
+  $('nomeEmpresa').textContent = nome;
   $('iOla').textContent = 'Olá, ' + nome + '!';
   const fim = empresa.trial_ends_at ? new Date(empresa.trial_ends_at) : null;
-  $('iTeste').textContent = fim ? 'Período de teste até ' + fim.toLocaleDateString('pt-BR') + '.' : '';
+  $('iTeste').textContent = (fim ? 'Período de teste até ' + fim.toLocaleDateString('pt-BR') + '. ' : '') + 'Negócio: ' + nicho.n + '.';
+  $('iIaTitulo').textContent = ia;
+  $('iIaTexto').textContent = ia + ' ' + nicho.ia;
+  const url = cfg.niche === 'automotivo' ? 'https://leadvox.com.br/sdr/' : 'https://leadvox.com.br/agente-ia.html';
+  if ($('iaFrame').dataset.src !== url) { $('iaFrame').dataset.src = url; $('iaFrame').removeAttribute('src'); }
+  $('iaCheia').href = url;
+  $('iCardCobr').hidden = !cfg.billingEnabled;
+  document.querySelector('[data-aba="cobrancas"]').hidden = !cfg.billingEnabled;
+  document.querySelector('[data-aba="leadvox"]').hidden = !conta.platformAdmin;
+  $('cfNome').value = cfg.displayName || ''; $('cfNome').placeholder = empresa.name;
+  $('cfNicho').value = cfg.niche || 'outro'; $('cfIa').value = cfg.aiName || ''; $('cfZap').value = cfg.whatsapp || '';
+  $('cfCobr').checked = !!cfg.billingEnabled;
   $('emEmail').textContent = 'Você entrou como ' + conta.user.email + '.';
   fin = null;
+  abrir(aba);
 }
 
-const ABAS = { inicio: 'vInicio', agentes: 'vAgentes', sdr: 'vSdr', cobrancas: 'vCobrancas', empresa: 'vEmpresa' };
+const ABAS = { inicio: 'vInicio', ia: 'vIa', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 let abaAtual = 'inicio';
 function abrir(aba) {
-  if (!ABAS[aba]) aba = 'inicio';
+  if (!ABAS[aba] || document.querySelector(`[data-aba="${aba}"]`)?.hidden) aba = 'inicio';
   abaAtual = aba;
   for (const [k, id] of Object.entries(ABAS)) $(id).hidden = k !== aba;
   document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.aba === aba)));
-  const fr = $(ABAS[aba]).querySelector('iframe[data-src]');
-  if (fr && !fr.src) fr.src = fr.dataset.src;
-  if (aba === 'cobrancas' || aba === 'inicio') carregarFin().catch(err => toast(err.message, true));
+  if (aba === 'ia' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
+  if (cfg.billingEnabled && (aba === 'cobrancas' || aba === 'inicio')) carregarFin().catch(err => toast(err.message, true));
+  if (aba === 'leadvox') carregarLv().catch(err => toast(err.message, true));
   if (location.hash.slice(1) !== aba) history.replaceState(null, '', '#' + aba);
 }
 document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => abrir(b.dataset.aba));
 document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => abrir(b.dataset.ir));
-addEventListener('hashchange', () => { if (conta && empresa) abrir(location.hash.slice(1)); });
+addEventListener('hashchange', () => { if (conta && empresa && cfg.onboarded) abrir(location.hash.slice(1)); });
 
-/* empresa */
+/* conta */
 $('formConfig').onsubmit = async e => {
   e.preventDefault();
-  try { await api('workspace', { organization: empresa.id, settings: { displayName: $('cfNome').value.trim() } }); await trocarEmpresa(); toast('Salvo.'); }
-  catch (err) { toast(err.message, true); }
+  try {
+    const zap = $('cfZap').value.replace(/\D/g, '');
+    if (zap && (zap.length < 10 || zap.length > 13)) throw Error('Confira o WhatsApp: DDD e número.');
+    await salvarCfg({ displayName: $('cfNome').value.trim(), niche: $('cfNicho').value, aiName: $('cfIa').value.trim(), whatsapp: zap, billingEnabled: $('cfCobr').checked });
+    abrirApp('conta'); toast('Salvo.');
+  } catch (err) { toast(err.message, true); }
 };
 $('formSenha').onsubmit = async e => {
   e.preventDefault();
   try { await api('password', { password: $('nsSenha').value }); $('nsSenha').value = ''; toast('Senha trocada.'); }
   catch (err) { toast(err.message, true); }
 };
+
+/* ═══════════ PAINEL LEADVOX (dono da plataforma) ═══════════ */
+async function carregarLv() {
+  const d = await api('admin');
+  const cfgDe = Object.fromEntries((d.workspaces || []).map(w => [w.organization_id, w.settings || {}]));
+  const agora = Date.now();
+  const minhas = new Set(conta.organizations.map(o => o.id));
+  const lista = (d.organizations || []).filter(o => !minhas.has(o.id)).map(o => ({ ...o, s: cfgDe[o.id] || {} }));
+  const emTeste = lista.filter(o => new Date(o.trial_ends_at) > agora).length;
+  const prontos = lista.filter(o => o.s.onboarded).length;
+  $('lvNumeros').innerHTML = `<div><b>${lista.length}</b><small>clientes</small></div><div><b>${emTeste}</b><small>em teste</small></div>
+    <div><b>${prontos}</b><small>com o painel montado</small></div><div><b>${lista.length - prontos}</b><small>ainda montando</small></div>`;
+  $('lvLista').innerHTML = lista.map(o => {
+    const fim = new Date(o.trial_ends_at), nicho = NICHOS[o.s.niche];
+    const sub = [nicho ? nicho.ic + ' ' + nicho.n : 'Ainda montando o painel', 'desde ' + new Date(o.created_at).toLocaleDateString('pt-BR'),
+      o.s.whatsapp ? 'WhatsApp ' + o.s.whatsapp : ''].filter(Boolean).join(' · ');
+    const st = fim > agora ? `<span class="st on">Teste até ${fim.toLocaleDateString('pt-BR')}</span>` : `<span class="st rascunho">Teste acabou</span>`;
+    return linha(esc(o.s.displayName || o.name) + (o.s.aiName ? ` <small style="display:inline">· IA ${esc(o.s.aiName)}</small>` : ''), esc(sub), st + (o.s.billingEnabled ? ' <span class="st">Cobranças</span>' : ''));
+  }).join('') || '<p class="muted" style="padding:16px 0">Nenhum cliente ainda.</p>';
+}
+$('lvAtualizar').onclick = () => carregarLv().then(() => toast('Atualizado.')).catch(err => toast(err.message, true));
 
 /* ═══════════ CLIENTES E COBRANÇAS ═══════════ */
 let fin = null, cAba = 'customers', editando = null;
