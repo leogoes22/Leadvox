@@ -99,7 +99,8 @@
     <div class="pagina">
 
     <section id="vAgentes" hidden>
-      <div class="card" id="motorBox" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+      <div class="card" id="prontoBox" style="margin-top:0" hidden></div>
+      <div class="card" id="motorBox"><p class="muted">Carregando sua IA…</p></div>
       <div class="agente" id="agDetalhe" hidden style="margin-top:14px">
         <div class="card">
           <div class="ag-topo">
@@ -336,8 +337,18 @@
       <div class="card">
         <h3>WhatsApp da empresa</h3>
         <div class="ag-dados" id="canaisZap"></div>
-        <div class="vazio"><b>Conexão com a LeadVox</b>Os números conectados na sua LeadVox ainda não são lidos pela API. Por enquanto vale o WhatsApp informado acima.
-          <br><button type="button" data-ir="credenciais">Ver credenciais de API</button></div>
+      </div>
+      <div class="card" id="evCard">
+        <h3>Receber as mensagens da LeadVox</h3>
+        <p class="muted" style="margin-top:4px">É por este endereço que a sua IA lê as mensagens do WhatsApp (do cliente e da equipe). Sem ele a IA não responde.</p>
+        <div id="evConteudo"><p class="muted">Carregando…</p></div>
+        <ol class="passos-ev">
+          <li>Na LeadVox, abra <b>Configurações → API</b> (a mesma conexão que você usou em Credenciais de API).</li>
+          <li>No campo <b>Webhook de eventos</b>, cole o endereço acima.</li>
+          <li>Marque o evento <b>Mensagem criada</b> e salve.</li>
+          <li>Mande um "oi" para o WhatsApp da empresa: aqui aparece <b>✓ Recebendo mensagens</b> em até 2 minutos.</li>
+        </ol>
+        <p class="dica">Não use o ChatFlow junto: com o webhook de eventos a IA já recebe tudo e não precisa dele.</p>
       </div>
     </section>
 

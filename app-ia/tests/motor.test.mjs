@@ -89,3 +89,16 @@ test('group test message goes to the group id with @g.us and explains a wrong gr
  assert.equal(envios[0].number,'120363000000000001@g.us');assert.match(envios[0].body,/Lilian/);
  assert.equal((await post({grupo:'120363000000000001'})).status,429);
 });
+test('events webhook address is built from the account token, or asks n8n to create it',async t=>{
+ const chamadas=[];let token='0123456789abcdef01234567';
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_motor_eventos'))return ok({vinculado:true,conta:'loja-teste-ab12',token,ultimoEvento:null});
+  chamadas.push(u);return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,get=()=>fetch(base+'/api/account/eventos?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}}).then(r=>r.json());
+ assert.equal((await get()).url,'https://webhook.lv-mktdeconversa.com/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
+ token=null;const r=await get();assert.equal(r.pendente,true);assert.equal(r.url,undefined);
+ assert.ok(chamadas.some(u=>u.endsWith('/webhook/iag-painel-endereco')));
+});

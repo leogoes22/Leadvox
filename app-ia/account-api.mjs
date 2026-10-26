@@ -5,6 +5,9 @@ import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integra
 import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
+// Webhook de eventos da LeadVox → Sentinela do Motor IA. Enquanto o motor novo roda na cópia de teste, o caminho é
+// iag-sentinela-v3; na troca para produção passa a ser iag-sentinela.
+const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
 const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
  conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
@@ -164,6 +167,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
+   }else if(action==='eventos'&&req.method==='GET'){
+    // Endereço do Webhook de eventos (Sentinela) da empresa e quando chegou o último evento.
+    const org=new URL(req.url,'https://localhost').searchParams.get('organization');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    let r;try{r=await upstream('/rest/v1/rpc/lv_motor_eventos',{method:'POST',token:authToken,body:{org}});}catch{return send(res,200,{setupPending:true}),true;}
+    if(!r?.vinculado)return send(res,200,{vinculado:false}),true;
+    if(!/^[0-9a-f]{24}$/.test(r.token||'')){
+     // o n8n calcula o token (o segredo do motor fica só lá); pede para gerar agora em vez de esperar a rodada de 2 min
+     try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
+     return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null}),true;
+    }
+    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null});
    }else if(action==='grupo-teste'&&req.method==='POST'){
     // Manda uma mensagem de teste para o grupo do WhatsApp pela conexão LeadVox da empresa (grupo = id + @g.us).
     const org=body.organization,grupo=String(body.grupo??'').replace(/@.*/,'').replace(/\D/g,'');

@@ -240,6 +240,22 @@ textarea { min-height: 90px; resize: vertical; }
 .ranking div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 6px 0; font-size: 14px; }
 .ranking i { grid-column: 1 / -1; height: 4px; border-radius: 99px; background: var(--verde); opacity: .8; }
 
+/* webhook de eventos e checklist */
+.ev-url { display: flex; gap: 8px; margin-top: 12px; }
+.ev-url input { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.ev-url button { flex: 0 0 auto; }
+.passos-ev { margin: 14px 0 0; padding-left: 20px; font-size: 14px; color: var(--texto); }
+.passos-ev li { margin: 4px 0; }
+.pronto-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pronto-barra { height: 6px; border-radius: 99px; background: var(--linha); margin-top: 10px; overflow: hidden; }
+.pronto-barra i { display: block; height: 100%; background: var(--verde); border-radius: 99px; }
+.pronto-lista { margin-top: 10px; }
+.pronto-lista div { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--linha); font-size: 14px; }
+.pronto-lista div:first-child { border-top: 0; }
+.pronto-lista .ok { color: var(--verde); font-weight: 700; }
+.pronto-lista .falta { color: var(--amarelo); font-weight: 700; }
+.pronto-lista small { display: block; color: var(--suave); font-size: 12.5px; }
+
 /* regras com @ */
 .rg-caixa { position: relative; margin-top: 12px; }
 .rg-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; margin-top: 4px; max-height: 280px; overflow-y: auto;

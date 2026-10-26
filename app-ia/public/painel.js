@@ -229,9 +229,10 @@ function abrirApp(pg) {
   motor = null; agSel = null; agDados = null; desenharMenu();
   carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
     .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); });
-  fin = null; chat = null; listas = {}; conexoes = null; estoque = null;
+  fin = null; chat = null; listas = {}; conexoes = null; estoque = null; eventos = null; prontoAberto = null;
+  carregarEventos().then(() => { if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); });
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
-  carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
+  carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); if (abaAtual === 'agentes') desenharPronto(); }).catch(() => {});
   abrir(pg);
 }
 
@@ -249,6 +250,7 @@ function abrir(pg) {
   if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'estoque') abrirEstoque();
   if (pg === 'dashboard') carregarDashboard();
+  if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
   $('lateral').classList.remove('aberta');
@@ -304,6 +306,7 @@ async function acaoMotor(dados, ok) {
 }
 
 function desenharMotor() {
+  desenharPronto();
   const box = $('motorBox');
   if (!motor) { box.innerHTML = '<p class="muted">Carregando sua IA…</p>'; $('agDetalhe').hidden = true; return; }
   if (motor.setupPending) { box.innerHTML = '<h3>Falta liberar no banco</h3><p class="alerta">A ligação com o motor de IA precisa do SQL do motor antes de funcionar.</p>'; $('agDetalhe').hidden = true; return; }
@@ -357,7 +360,7 @@ function desenharAgente() {
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
   $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
   desenharLugar();
-  desenharAcoes(); desenharComportamento();
+  desenharAcoes(); desenharComportamento(); desenharPronto();
 }
 // onde o agente atende: departamento da LeadVox (o motor só responde em ticket do departamento dele) e porta de entrada
 const lugarAtual = () => (motor?.agentes || []).find(a => a.chave === agSel) || {};
@@ -940,6 +943,67 @@ $('esForm').onsubmit = async e => {
   catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; }
 };
+
+/* webhook de eventos (Canais WhatsApp) e o checklist "Sua IA está pronta?" (Agentes) */
+let eventos = null;
+async function carregarEventos() { try { eventos = await api('eventos?organization=' + encodeURIComponent(empresa.id)); } catch { eventos = { erro: true }; } }
+const recebendo = () => !!eventos?.ultimoEvento && Date.now() - Date.parse(eventos.ultimoEvento) < 7 * 864e5;
+function desenharEventos() {
+  const el = $('evConteudo');
+  if (!eventos) { el.innerHTML = '<p class="muted">Carregando…</p>'; return; }
+  if (eventos.setupPending || eventos.erro) { el.innerHTML = '<p class="alerta">Falta liberar no banco (o SQL do webhook de eventos).</p>'; return; }
+  if (!eventos.vinculado) { el.innerHTML = '<p class="alerta">Primeiro ligue a sua IA em Agentes LeadVox IA. <button type="button" class="sm" data-ir="agentes">Ir para Agentes</button></p>'; ligarIr(el); return; }
+  if (eventos.pendente) {
+    el.innerHTML = '<p class="dica">Gerando o endereço da sua empresa… aparece em até 2 minutos. <button type="button" class="sm" id="evAtualizar">Atualizar</button></p>';
+    $('evAtualizar').onclick = async () => { await carregarEventos(); desenharEventos(); }; return;
+  }
+  const quando = eventos.ultimoEvento ? new Date(eventos.ultimoEvento).toLocaleString('pt-BR') : '';
+  el.innerHTML = `<div class="ev-url"><input id="evUrl" readonly aria-label="Endereço do webhook de eventos" value="${esc(eventos.url)}"><button type="button" class="principal sm" id="evCopiar">Copiar</button></div>
+    <p style="margin-top:10px;font-size:14px">${recebendo() ? `<span class="st on">✓ Recebendo mensagens</span> <small class="muted">última em ${esc(quando)}</small>`
+      : `<span class="st rascunho">Ainda não chegou nenhuma mensagem</span> <small class="muted">${quando ? 'última em ' + esc(quando) : 'por este endereço'}</small>`}</p>
+    <p class="muted" style="font-size:12.5px;margin-top:6px">Esse endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p>`;
+  $('evCopiar').onclick = async () => {
+    try { await navigator.clipboard.writeText(eventos.url); } catch { $('evUrl').select(); document.execCommand('copy'); }
+    toast('Endereço copiado. Cole na LeadVox em Configurações → API → Webhook de eventos.');
+  };
+}
+
+// Itens na ordem em que o dono resolve; cada um leva para o lugar certo do painel.
+function itensProntos() {
+  const ags = motor?.agentes || [], ag = ags.find(a => a.chave === agSel) || ags.find(a => a.entrada) || ags[0], c = agDados?.config || {};
+  const itens = [
+    ['LeadVox conectada', 'A IA conversa pela sua conta da LeadVox.', !!chat?.connected, 'credenciais'],
+    ['IA ligada ao WhatsApp', 'Cria a conta da IA e liga o número da LeadVox.', !!(motor?.vinculado && motor?.conexao?.conectado), 'agentes'],
+    ['Agente com nome e apresentação', 'Identidade do agente preenchida e salva.', !!ag?.configurado, 'agentes:identidade'],
+    ['Onde o agente atende', 'Departamento da LeadVox ou porta de entrada.', !!(ag && (ag.departamentoId || ag.entrada)), 'agentes:identidade'],
+    ['Mensagens da LeadVox chegando', 'Endereço do webhook de eventos colado na LeadVox.', recebendo(), 'canais'],
+    ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'conhecimento']
+  ];
+  if (cfg.niche === 'automotivo') itens.push(['Estoque com veículos', 'Veículos disponíveis e a IA usando o estoque.', !!(c.catalogo?.usar && (estoque?.itens || []).some(i => i.status === 'disponivel')), 'estoque']);
+  itens.push(['Agente ligado', 'Ligado, ele começa a responder os clientes.', !!ag?.ativo, 'agentes:identidade']);
+  return itens;
+}
+let prontoAberto = null;
+function desenharPronto() {
+  const box = $('prontoBox');
+  if (!motor || motor.setupPending) { box.hidden = true; return; }
+  if (cfg.niche === 'automotivo' && !estoque && motor.vinculado) api('estoque?organization=' + encodeURIComponent(empresa.id)).then(r => { estoque = r; desenharPronto(); }).catch(() => {});
+  const itens = itensProntos(), feitos = itens.filter(i => i[2]).length, tudo = feitos === itens.length;
+  const aberto = prontoAberto ?? !tudo;
+  box.hidden = false;
+  box.innerHTML = `<div class="pronto-topo"><div><h3>${tudo ? '✓ Sua IA está pronta' : 'Sua IA está pronta?'}</h3>
+      <p class="muted" style="margin-top:2px">${feitos} de ${itens.length} itens prontos${tudo ? '. Ela já atende os seus clientes.' : '. Resolva os que faltam para a IA atender sozinha.'}</p></div>
+      <button type="button" class="sm" id="prontoVer">${aberto ? 'Esconder' : 'Ver itens'}</button></div>
+    <div class="pronto-barra"><i style="width:${Math.round(feitos / itens.length * 100)}%"></i></div>
+    ${aberto ? `<div class="pronto-lista">${itens.map(([t, d, ok, ir]) => `<div><span class="${ok ? 'ok' : 'falta'}" aria-hidden="true">${ok ? '✓' : '○'}</span>
+      <span>${esc(t)}<small>${esc(d)}</small></span>${ok ? '<span class="st on">Pronto</span>' : `<button type="button" class="sm" data-resolver="${ir}">Resolver</button>`}</div>`).join('')}</div>` : ''}`;
+  $('prontoVer').onclick = () => { prontoAberto = !aberto; desenharPronto(); };
+  box.querySelectorAll('[data-resolver]').forEach(b => b.onclick = () => {
+    const [pg, aba] = b.dataset.resolver.split(':');
+    abrir(pg);
+    if (aba) { document.querySelector('[data-ag="' + aba + '"]')?.click(); $('agDetalhe').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+}
 
 /* outras conexões: estoque e Asaas */
 let conexoes = null, estFonte = '';
