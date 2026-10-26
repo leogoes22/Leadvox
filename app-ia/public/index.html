@@ -115,7 +115,7 @@
             <button type="button" data-ag="identidade">Identidade</button>
             <button type="button" data-ag="multimodal">Multimodal</button>
             <button type="button" data-ag="canais">Canais e gatilhos</button>
-            <button type="button" data-ag="automacoes">Automações</button>
+            <button type="button" data-ag="automacoes">Ações e regras</button>
             <button type="button" data-ir="dashboard">Dashboard</button>
           </nav>
           <form class="card" id="agIdentidade" data-agp="identidade">
@@ -145,11 +145,32 @@
             <div class="vazio"><b>Gatilhos chegam com a conexão da LeadVox</b>Em qual fila a IA entra, palavra que liga ou desliga a IA e horário de atendimento.
               <br><button type="button" data-ir="credenciais">Ver credenciais de API</button></div>
           </div>
-          <div class="card" data-agp="automacoes" hidden>
-            <h3>Automações</h3>
-            <div class="vazio"><b>O que a IA faz sozinha no funil</b>Ex.: lead qualificado → etiqueta Quente, status Visita agendada e departamento Comercial. Usa as etiquetas, os status e os departamentos da sua LeadVox.
-              <br><button type="button" data-ir="credenciais">Ver credenciais de API</button></div>
-          </div>
+          <form id="agAcoes" data-agp="automacoes" hidden>
+            <div class="card">
+              <h3>Regras da IA</h3>
+              <p class="muted">Escreva o que a IA deve fazer em cada situação. Digite <b>@</b> para escolher uma ação: etiqueta, etapa do funil, transferência, nota ou aviso.</p>
+              <div class="rg-caixa">
+                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar, @Adicionar etiqueta e @Mudar etapa do funil.&#10;Quando pedir para falar com o gerente, @Transferir para pessoa."></textarea>
+                <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
+              </div>
+              <div id="rgUsadas" class="rg-usadas"></div>
+              <p class="dica" id="rgAviso" hidden></p>
+            </div>
+            <div class="card">
+              <h3>Departamentos para onde a IA passa</h3>
+              <p class="muted">Nome e número da fila na LeadVox. A IA só transfere para os departamentos daqui.</p>
+              <div id="rgSetores"></div>
+              <label for="rgPadrao">Departamento padrão <small>(dúvida ou cliente pedindo uma pessoa)</small></label><select id="rgPadrao"></select>
+            </div>
+            <div class="card">
+              <h3>Avisos e funil</h3>
+              <label for="rgGrupo">Grupo de avisos no WhatsApp <small>(para a ação "Avisar no grupo")</small></label>
+              <input id="rgGrupo" inputmode="numeric" maxlength="40" placeholder="120363000000000000">
+              <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo.</p>
+              <label for="rgResp">Responsável pelas oportunidades do funil</label><select id="rgResp"></select>
+            </div>
+            <div class="salvar-barra"><span class="muted" id="rgSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar ações e regras</button></div>
+          </form>
         </div>
       </div>
     </section>

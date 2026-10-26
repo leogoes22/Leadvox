@@ -352,6 +352,7 @@ function desenharAgente() {
   $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
   $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
+  desenharAcoes();
 }
 $('idAtivo').onclick = () => $('idAtivo').setAttribute('aria-checked', String($('idAtivo').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
@@ -512,7 +513,149 @@ $('kForm').onsubmit = async e => {
   } catch (err) { if (!err.status) toast(err.message, true); }
   finally { bt.disabled = false; }
 };
-addEventListener('beforeunload', e => { if (kSujo) e.preventDefault(); });
+addEventListener('beforeunload', e => { if (kSujo || rgSujo) e.preventDefault(); });
+
+/* ações e regras: o cliente escreve as regras e digita @ para inserir a ação; o motor lê [CÓDIGO:valor] na resposta da IA */
+let rgSujo = false, rgAgente = null, rgSel = 0, rgOpcoes = [];
+const ACOES = [
+  { tipo: 'etiqueta', rot: 'Adicionar etiqueta', cod: 'ETIQUETA', lista: 'etiquetas' },
+  { tipo: 'tirar', rot: 'Tirar etiqueta', cod: 'TIRAR_ETIQUETA', lista: 'etiquetas' },
+  { tipo: 'etapa', rot: 'Mudar etapa do funil', cod: 'ETAPA', lista: 'status' },
+  { tipo: 'departamento', rot: 'Transferir para departamento', cod: 'DEPARTAMENTO', lista: 'setores' },
+  { tipo: 'pessoa', rot: 'Transferir para pessoa', cod: 'PESSOA', lista: 'usuarios' },
+  { tipo: 'nota', rot: 'Nota interna para a equipe', cod: 'NOTA', livre: 'resumo do que aconteceu' },
+  { tipo: 'avisar', rot: 'Avisar no grupo', cod: 'AVISAR', livre: 'o que a equipe precisa saber' }
+];
+const RE_ACAO = /\[(ETIQUETA|TIRAR_ETIQUETA|ETAPA|DEPARTAMENTO|PESSOA|NOTA|AVISAR)\s*:\s*([^\]\n]*)\]/g;
+const semAc = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const limpaNome = t => String(t || '').replace(/[\[\]\n]/g, ' ').replace(/\s+/g, ' ').trim();
+
+async function carregarListasIA() {
+  await Promise.all(['etiquetas', 'status', 'usuarios'].map(async k => {
+    if (listas[k]) return;
+    try { listas[k] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k)).items; } catch { listas[k] = null; }
+  }));
+}
+const setoresAtuais = () => ($('rgSetores')._ler ? $('rgSetores')._ler() : []).filter(x => limpaNome(x.nome));
+function itensDe(lista) {
+  if (lista === 'setores') return setoresAtuais().map(s => ({ id: Number(s.filaId) || null, name: limpaNome(s.nome) }));
+  return (listas[lista] || []).map(x => ({ id: x.id, name: limpaNome(x.name) })).filter(x => x.name);
+}
+
+function desenharAcoes() {
+  if (!agDados || (rgSujo && rgAgente === agSel)) return;
+  const c = agDados.config, r = c.regras || {};
+  rgAgente = agSel;
+  $('rgTexto').value = r.texto || '';
+  $('rgGrupo').value = r.grupo || '';
+  listaK($('rgSetores'), (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao })),
+    [{ k: 'nome', rot: 'Departamento', max: 60, ph: 'Ex.: Comercial' }, { k: 'filaId', rot: 'Nº da fila na LeadVox', max: 10, ph: 'Ex.: 66' }, { k: 'quando', rot: 'Quando a IA manda para cá', max: 200, ph: 'Ex.: cliente quer comprar ou simular' }],
+    { rotMais: 'Adicionar departamento', max: 12, grade: 'tres' });
+  desenharPadrao(); atualizarListasAcoes(); limparRg();
+  carregarListasIA().then(atualizarListasAcoes);
+}
+function desenharPadrao() {
+  const atual = $('rgPadrao').value || ((agDados.config.setores || []).find(s => s.padrao) || {}).nome || '';
+  const nomes = setoresAtuais().map(s => limpaNome(s.nome));
+  $('rgPadrao').innerHTML = nomes.length ? nomes.map(n => `<option ${semAc(n) === semAc(atual) ? 'selected' : ''}>${esc(n)}</option>`).join('') : '<option value="">Cadastre um departamento acima</option>';
+}
+function atualizarListasAcoes() {
+  const us = listas.usuarios || [], atual = String((agDados.config.regras || {}).usuarioId || '');
+  $('rgResp').innerHTML = us.length ? us.map(u => `<option value="${esc(u.id)}" ${String(u.id) === atual ? 'selected' : ''}>${esc(u.name)}</option>`).join('')
+    : '<option value="">Conecte a LeadVox em Credenciais de API</option>';
+  conferirAcoes();
+}
+// Lê as ações escritas no texto e confere cada uma com as listas da LeadVox.
+function lerAcoes() {
+  const out = [], ruins = [];
+  for (const m of $('rgTexto').value.matchAll(RE_ACAO)) {
+    const def = ACOES.find(a => a.cod === m[1]), valor = limpaNome(m[2]);
+    if (def.livre) { out.push({ tipo: def.tipo, cod: def.cod, nome: valor }); continue; }
+    const it = itensDe(def.lista).find(x => semAc(x.name) === semAc(valor));
+    if (it) out.push({ tipo: def.tipo, cod: def.cod, nome: it.name, id: it.id }); else ruins.push(def.rot + ': ' + (valor || '(vazio)'));
+  }
+  return { acoes: out, ruins };
+}
+function conferirAcoes() {
+  const { acoes, ruins } = lerAcoes(), vistos = new Set();
+  $('rgUsadas').innerHTML = acoes.filter(a => { const k = a.cod + a.nome; if (vistos.has(k)) return false; vistos.add(k); return true; })
+    .map(a => `<span>${esc(ACOES.find(x => x.cod === a.cod).rot)}${a.nome ? ': ' + esc(a.nome) : ''}</span>`).join('')
+    + ruins.map(r => `<span class="ruim" title="Não existe na sua LeadVox">${esc(r)}</span>`).join('');
+  const semGrupo = acoes.some(a => a.tipo === 'avisar') && !$('rgGrupo').value.replace(/\D/g, '');
+  mostra($('rgAviso'), ruins.length ? 'As ações em vermelho não batem com a sua LeadVox. Apague e escolha de novo pelo @.' : semGrupo ? 'Para "Avisar no grupo", preencha o número do grupo de avisos abaixo.' : '');
+}
+
+// menu do @: aparece enquanto a palavra antes do cursor começar com @
+function consultaArroba() {
+  const t = $('rgTexto'), antes = t.value.slice(0, t.selectionStart), m = antes.match(/@([^\s@\[\]]{0,30})$/);
+  return m ? { q: semAc(m[1]), ini: antes.length - m[0].length } : null;
+}
+function abrirMenu() {
+  const c = consultaArroba(); if (!c) return fecharMenu();
+  rgOpcoes = [];
+  for (const a of ACOES) {
+    const itens = a.livre ? [{ name: '' }] : itensDe(a.lista);
+    for (const it of itens) if (!c.q || semAc(a.rot + ' ' + it.name).includes(c.q)) rgOpcoes.push({ a, nome: it.name });
+  }
+  if (!rgOpcoes.length) return fecharMenu();
+  rgSel = Math.min(rgSel, rgOpcoes.length - 1);
+  let grupo = '';
+  $('rgMenu').innerHTML = rgOpcoes.map((o, i) => (o.a.rot !== grupo ? `<small>${esc(grupo = o.a.rot)}</small>` : '')
+    + `<button type="button" role="option" data-op="${i}" aria-selected="${i === rgSel}">${esc(o.nome || o.a.rot)}</button>`).join('')
+    + (ACOES.some(a => a.lista && !itensDe(a.lista).length) ? '<small>Etiquetas, etapas e pessoas vêm da LeadVox conectada; departamentos, do quadro abaixo.</small>' : '');
+  $('rgMenu').hidden = false;
+  $('rgMenu').querySelectorAll('[data-op]').forEach(b => b.onmousedown = e => { e.preventDefault(); inserirAcao(rgOpcoes[+b.dataset.op]); });
+  $('rgMenu').querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+function fecharMenu() { $('rgMenu').hidden = true; rgSel = 0; }
+function inserirAcao(o) {
+  const t = $('rgTexto'), c = consultaArroba(); if (!c) return fecharMenu();
+  const marca = '[' + o.a.cod + ':' + (o.a.livre || o.nome) + ']';
+  t.value = t.value.slice(0, c.ini) + marca + ' ' + t.value.slice(t.selectionStart);
+  // texto livre (nota, aviso) já vem selecionado para a pessoa trocar
+  if (o.a.livre) t.setSelectionRange(c.ini + o.a.cod.length + 2, c.ini + marca.length - 1);
+  else t.setSelectionRange(c.ini + marca.length + 1, c.ini + marca.length + 1);
+  t.focus(); fecharMenu(); marcarRg(); conferirAcoes();
+}
+$('rgTexto').addEventListener('input', () => { rgSel = 0; abrirMenu(); conferirAcoes(); });
+$('rgTexto').addEventListener('click', abrirMenu);
+$('rgTexto').addEventListener('blur', () => setTimeout(fecharMenu, 150));
+$('rgTexto').addEventListener('keydown', e => {
+  if ($('rgMenu').hidden) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); rgSel = (rgSel + (e.key === 'ArrowDown' ? 1 : -1) + rgOpcoes.length) % rgOpcoes.length; abrirMenu(); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); inserirAcao(rgOpcoes[rgSel]); }
+  else if (e.key === 'Escape') { e.preventDefault(); fecharMenu(); }
+});
+$('rgGrupo').addEventListener('input', conferirAcoes);
+$('rgSetores').addEventListener('click', () => setTimeout(desenharPadrao));
+$('rgSetores').addEventListener('input', desenharPadrao);
+function marcarRg() { rgSujo = true; $('rgSujo').textContent = 'Alterações não salvas.'; $('rgSujo').style.color = 'var(--amarelo)'; }
+function limparRg() { rgSujo = false; $('rgSujo').textContent = 'Tudo salvo.'; $('rgSujo').style.color = ''; }
+$('agAcoes').addEventListener('input', marcarRg);
+$('agAcoes').addEventListener('change', marcarRg);
+$('agAcoes').onsubmit = async e => {
+  e.preventDefault(); if (!agDados) return;
+  const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
+  try {
+    const { acoes, ruins } = lerAcoes();
+    if (ruins.length) throw Error('Corrija as ações em vermelho antes de salvar.');
+    const padrao = $('rgPadrao').value;
+    const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao) }));
+    if (setores.some(s => !s.filaId)) throw Error('Informe o número da fila de cada departamento.');
+    if (acoes.some(a => a.tipo === 'avisar') && !$('rgGrupo').value.replace(/\D/g, '')) throw Error('Preencha o número do grupo de avisos.');
+    const c = agDados.config, crm = c.crm || {};
+    // etiqueta usada numa regra entra na lista que o motor aceita (as que já estavam continuam)
+    const lista = (Array.isArray(crm.listaEtiquetas) ? crm.listaEtiquetas : []).map(x => typeof x === 'string' ? { nome: x } : x);
+    acoes.filter(a => a.tipo === 'etiqueta' || a.tipo === 'tirar').forEach(a => { if (!lista.some(x => semAc(x.nome) === semAc(a.nome))) lista.push({ nome: a.nome }); });
+    const unicas = acoes.filter((a, i) => a.id === undefined || acoes.findIndex(b => b.cod === a.cod && b.id === a.id) === i);
+    const config = { ...c, setores, crm: { ...crm, listaEtiquetas: lista },
+      regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), usuarioId: Number($('rgResp').value) || null, acoes: unicas } };
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+    agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
+    limparRg(); toast('Ações e regras salvas. A IA já usa na próxima mensagem.');
+  } catch (err) { if (!err.status) toast(err.message, true); }
+  finally { bt.disabled = false; }
+};
 
 /* conexão com a LeadVox: credenciais e listas */
 let chat = null, listas = {};
