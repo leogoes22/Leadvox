@@ -20,7 +20,7 @@ declare l jsonb; n int:=0;
 begin
  if jsonb_typeof(linhas)<>'array' or jsonb_array_length(linhas)>5000 then raise exception 'invalid'; end if;
  for l in select * from jsonb_array_elements(linhas) loop
-  if not exists(select 1 from public.iag_conta where chave=l->>'conta') or coalesce(l->>'dia','')!~'^\d{4}-\d{2}-\d{2}$' then continue; end if;
+  if not exists(select 1 from public.iag_conta where chave=l->>'conta') or coalesce(l->>'dia','')!~'^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then continue; end if;
   insert into public.iag_relatorio(conta,dia,metricas,uso,atualizado_em)
   values(l->>'conta',(l->>'dia')::date,coalesce(l->'metricas','{}'::jsonb),coalesce(l->'uso','{}'::jsonb),now())
   on conflict(conta,dia) do update set metricas=excluded.metricas,uso=excluded.uso,atualizado_em=now();
