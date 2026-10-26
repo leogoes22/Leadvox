@@ -120,25 +120,52 @@ test('test chat sends the message to the simulator with a fake phone and the age
  assert.match(envios[0].u,/iag-simulador\?k=loja-teste-ab12&t=0123456789abcdef01234567$/);
  assert.equal(envios[0].b.Departamento,66);assert.equal(envios[0].b.simulacao,true);assert.match(envios[0].b.sessionId,/^55000\d{8}$/);
 });
-test('pipeline page lists steps and opportunities, page by page, showing only what the card needs',async t=>{
- const tok=jwt({tenantId:17,sessionId:64});const pedidos=[];
- const opp=(id,status)=>({id,name:'Opp '+id,status,value:'1500.00',pipelineStepId:53,expectedCloseDate:'2026-11-02',updatedAt:'2026-10-26T02:38:55.625Z',
-  contact:{id:9,name:'Leonardo',number:'5521988943529',email:'x@y.com',profilePicUrl:'javascript:alert(1)'},responsible:{name:'Leonardo',email:'admin@x.com'}});
+const opp=(id,status,etapa=53)=>({id,name:'Opp '+id,status,value:'1500.00',pipelineStepId:etapa,expectedCloseDate:'2026-11-02',updatedAt:'2026-10-26T02:38:55.625Z',
+ contact:{id:9,name:'Leonardo',number:'5521988943529',email:'x@y.com',profilePicUrl:'javascript:alert(1)'},responsible:{name:'Leonardo',email:'admin@x.com'}});
+async function funilApp(t,rotas){
+ const tok=jwt({tenantId:17,sessionId:64});
  const s=createApp({allowLocal:true,fetchImpl:async(u)=>{
   if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
   if(u.includes('/rpc/lv_chat_secret'))return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8-e8dc',token:tok}]);
-  if(u.includes('/pipeline-steps'))return ok({data:[{id:53,name:'Negociando',color:'#2196F3'}]});
-  if(u.includes('/opportunities')){pedidos.push(u);const p=Number(new URL(u).searchParams.get('pageNumber'));
-   return ok(p===1?{data:[opp(1,'open'),opp(2,'won')],count:3,hasMore:true}:{data:[opp(3,'open')],count:3,hasMore:false});}
-  return ok({});
+  return rotas(new URL(u));
  }});
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
- const base='http://127.0.0.1:'+s.address().port,get=q=>fetch(base+'/api/account/oportunidades?organization='+org+q,{headers:{Cookie:'__Host-lv_session=x'}});
+ const base='http://127.0.0.1:'+s.address().port;
+ return q=>fetch(base+'/api/account/oportunidades?organization='+org+q,{headers:{Cookie:'__Host-lv_session=x'}});
+}
+test('pipeline page follows the LeadVox pipeline screen: picks the funnel, keeps step order and loads more pages per step',async t=>{
+ const pedidos=[];
+ const get=await funilApp(t,u=>{pedidos.push(u.pathname+u.search.replace(/token=[^&]+/,''));
+  if(u.pathname==='/pipelines')return ok([{id:33,name:'Comercial',isDefault:true,steps:[{id:144,name:'Negociando',order:2},{id:143,name:'Novo Lead',color:'#6deef7',order:1}]},
+   {id:40,name:'Pós-venda',steps:[{id:150,name:'Entregue',order:1}]}]);
+  if(u.pathname==='/opportunity/pipeline-startup')return ok({columns:{143:{opportunities:[opp(1,'open',143)],hasMore:false,count:1},144:{opportunities:[opp(2,'open',144)],hasMore:true,count:2}},
+   totals:{143:{count:1,totalValue:1500},144:{count:2,totalValue:3000}}});
+  if(u.pathname==='/opportunity')return ok(u.searchParams.get('pipelineId')==='40'?{opportunities:[opp(9,'open',150)],hasMore:false}:{opportunities:[opp(3,'open',144)],hasMore:false,count:2});
+  return ok({},404);
+ });
+ const d=await (await get('')).json();
+ assert.equal(d.funil,'33');assert.deepEqual(d.funis.map(f=>f.name),['Comercial','Pós-venda']);
+ assert.deepEqual(d.etapas.map(e=>e.name),['Novo Lead','Negociando']);assert.deepEqual(d.totais['144'],{count:2,valor:3000});
+ assert.deepEqual(d.oportunidades.map(o=>o.id).sort(),['1','2','3']);
+ assert.ok(pedidos.some(p=>p.startsWith('/opportunity/pipeline-startup?pipelineId=33&pipelineStepIds%5B%5D=143&pipelineStepIds%5B%5D=144&status%5B%5D=open')));
+ assert.ok(pedidos.some(p=>p.startsWith('/opportunity?pipelineId=33&pipelineStepId=144&pageNumber=2')));
+ const g=await (await get('&funil=40&status=all')).json();
+ assert.equal(g.funil,'40');assert.deepEqual(g.oportunidades.map(o=>o.id),['9']);
+ assert.equal((await get('&funil=abc')).status,400);
+});
+test('pipeline page falls back to the external API, page by page, showing only what the card needs',async t=>{
+ const pedidos=[];
+ const get=await funilApp(t,u=>{
+  if(u.pathname.endsWith('/pipeline-steps'))return ok({data:[{id:53,name:'Negociando',color:'#2196F3'}]});
+  if(u.pathname.endsWith('/opportunities')){pedidos.push(u.search);const p=Number(u.searchParams.get('pageNumber'))||1;
+   return ok(p===1?{data:[opp(1,'open'),opp(2,'won')],count:3,hasMore:true}:{data:[opp(3,'open')],count:3,hasMore:false});}
+  return ok({},404);
+ });
  assert.equal((await get('&status=xx')).status,400);
  const d=await (await get('')).json();
- assert.equal(pedidos.length,2);assert.match(pedidos[0],/opportunities\?pageNumber=1&page=1&token=/);
- assert.deepEqual(d.etapas,[{id:'53',name:'Negociando',color:'#2196F3'}]);
- assert.deepEqual(d.oportunidades.map(o=>o.id),['1','3']);assert.equal(d.total,3);
+ assert.equal(pedidos.length,2);assert.match(pedidos[1],/^\?pageNumber=2&token=/);
+ assert.deepEqual(d.funis,[]);assert.deepEqual(d.etapas,[{id:'53',name:'Negociando',color:'#2196F3'}]);
+ assert.deepEqual(d.oportunidades.map(o=>o.id),['1','3']);
  const o=d.oportunidades[0];assert.equal(o.valor,1500);assert.equal(o.foto,'');assert.equal(o.etapaId,'53');assert.equal(o.previsao,'2026-11-02');
  assert.doesNotMatch(JSON.stringify(d),/x@y\.com|admin@x\.com/);
  assert.deepEqual((await (await get('&status=all')).json()).oportunidades.map(o=>o.id),['1','2','3']);

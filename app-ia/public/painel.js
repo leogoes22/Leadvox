@@ -1387,7 +1387,14 @@ let opDados = null;
 async function carregarOportunidades() {
   const aviso = m => { $('opAviso').textContent = m || ''; $('opAviso').hidden = !m; };
   aviso(''); $('opResumo').textContent = 'Buscando na sua LeadVox…'; $('opAtualizar').disabled = true;
-  try { opDados = await api('oportunidades?organization=' + encodeURIComponent(empresa.id) + '&status=' + $('opStatus').value); desenharOportunidades(); }
+  try {
+    opDados = await api('oportunidades?organization=' + encodeURIComponent(empresa.id) + '&status=' + $('opStatus').value + '&funil=' + encodeURIComponent($('opFunilSel').value || ''));
+    // vários funis na LeadVox: escolhe qual mostrar (vem aberto no funil padrão)
+    $('opFunilCx').hidden = opDados.funis.length < 2;
+    $('opFunilSel').innerHTML = opDados.funis.map(f => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
+    $('opFunilSel').value = opDados.funil;
+    desenharOportunidades();
+  }
   catch (err) { opDados = null; $('opResumo').textContent = ''; $('opFunil').innerHTML = ''; aviso(err.message); }
   finally { $('opAtualizar').disabled = false; }
 }
@@ -1401,11 +1408,16 @@ function desenharOportunidades() {
   const STATUS = { won: ['Ganha', 'on'], lost: ['Perdida', 'perdida'] };
   const dataBR = d => d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
   const inicial = o => esc((o.contato || o.nome || '?').trim().charAt(0).toUpperCase());
-  $('opResumo').textContent = `${ops.length} oportunidade${ops.length === 1 ? '' : 's'} · ${soma(ops)}${opDados.incompleto ? ' · mostrando as mais recentes' : ''}`;
+  const tots = !busca && $('opStatus').value === 'open' ? Object.values(opDados.totais || {}) : [];
+  const n = tots.length ? tots.reduce((t, x) => t + x.count, 0) : ops.length;
+  $('opResumo').textContent = `${n} oportunidade${n === 1 ? '' : 's'} · ${tots.length ? preco(tots.reduce((t, x) => t + x.valor, 0)) : soma(ops)}${opDados.incompleto ? ' · nas colunas, as mais recentes' : ''}`;
   $('opFunil').innerHTML = etapas.map(e => {
     const l = ops.filter(o => e.id ? o.etapaId === e.id : !conhecida(o));
-    const [titulo, desc] = e.name.split('➤').map(s => s.trim());
-    return `<div class="fu-col" style="--cor:${e.color || 'var(--linha)'}"><div class="fu-cab"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}<span>${l.length} · ${soma(l)}</span></div>
+    const [titulo, desc] = e.name.split(/➤|→/).map(s => s.trim());
+    // sem busca, o topo da coluna usa o total da LeadVox (conta também o que não coube na tela)
+    const tot = !busca && $('opStatus').value === 'open' && opDados.totais?.[e.id];
+    const topo = tot ? `${tot.count} · ${preco(tot.valor)}` : `${l.length} · ${soma(l)}`;
+    return `<div class="fu-col" style="--cor:${e.color || 'var(--linha)'}"><div class="fu-cab"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}<span>${topo}</span></div>
       <div class="fu-cards">${l.map(o => `<div class="fu-card">
         <div class="fu-quem">${o.foto ? `<img src="${esc(o.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-inicial="${inicial(o)}">` : `<i>${inicial(o)}</i>`}
           <div><b>${esc(o.contato || o.nome)}</b>${o.numero ? `<small>${esc(zapFmt(o.numero.replace(/^55/, '')))}</small>` : ''}</div></div>
@@ -1417,6 +1429,7 @@ function desenharOportunidades() {
   $('opFunil').querySelectorAll('img[data-inicial]').forEach(i => i.onerror = () => { const x = document.createElement('i'); x.textContent = i.dataset.inicial; i.replaceWith(x); });
 }
 $('opStatus').onchange = carregarOportunidades;
+$('opFunilSel').onchange = carregarOportunidades;
 $('opAtualizar').onclick = carregarOportunidades;
 $('opBusca').oninput = desenharOportunidades;
 

@@ -3,7 +3,7 @@ const HOST='https://chatapi.leadvox.com.br';
 const ROOT=/^https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\/v\d{1,2}$/;
 const id = value => {const s=String(value??'');if(!/^[a-zA-Z0-9_-]{1,100}$/.test(s))throw new Error('Identificador inválido');return s;};
 export class ChatApiError extends Error {
- constructor(code,status=502){super(code);this.code=code;this.status=status;}
+ constructor(code,status=502,http=null){super(code);this.code=code;this.status=status;this.http=http;}
 }
 // The LeadVox "external API" URL carries the account id and the token:
 // https://chatapi.leadvox.com.br/v1/api/external/<apiId>/?token=<token> (each server has its own host: chatapi, chat2api…)
@@ -36,7 +36,7 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
    method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},
    redirect:'error',signal:AbortSignal.timeout(10000)});
   }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
-  if(!response.ok)throw new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502);
+  if(!response.ok)throw new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502,response.status);
   let body;try{body=await response.json();}catch{throw new ChatApiError('CHAT_INVALID_RESPONSE');}
   if(body?.success===false||body?.error)throw new ChatApiError('CHAT_REQUEST_FAILED');
   return body;
@@ -57,11 +57,19 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   departments:()=>firstList([ext(api+'/queues'),ext(api+'/queue'),ext('queue/'+api),ext('departments/'+api),ext(api+'/departments'),ext('whatsapp-queues/'+api),'/queue','/queues',['/queue/',true],['/queues/',true]],'CHAT_DEPARTMENTS_UNAVAILABLE'),
   // Origem do lead: também sem rota documentada; tenta as candidatas da API externa e as da tela.
   leadOrigins:()=>firstList([ext(api+'/lead-origins'),ext(api+'/lead-origin'),ext(api+'/origins'),ext('lead-origins/'+api),ext('lead-origin/'+api),'/lead-origin','/lead-origins',['/lead-origin/',true],['/lead-origins/',true]],'CHAT_ORIGINS_UNAVAILABLE'),
-  // Oportunidades do funil: lista paginada {data,count,hasMore}. Lê até 10 páginas e para se a página vier repetida (rota que ignora a paginação).
+  // Funis, como a tela Pipeline do chat (rotas fora do /v1): os funis com as etapas de cada um,
+  // a abertura do funil {columns:{[etapa]:{opportunities,hasMore,count}},totals:{[etapa]:{count,totalValue}}}
+  // e as páginas seguintes de uma etapa {opportunities,hasMore,count}.
+  pipelines:()=>get('/pipelines',true),
+  pipelineStartup:(pipelineId,stepIds,status)=>get('/opportunity/pipeline-startup?pipelineId='+id(pipelineId)
+   +stepIds.map(s=>'&pipelineStepIds%5B%5D='+id(s)).join('')+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
+  stepOpportunities:(pipelineId,stepId,status,page)=>get('/opportunity?pipelineId='+id(pipelineId)+'&pipelineStepId='+id(stepId)
+   +'&pageNumber='+Number(page)+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
+  // API externa: lista paginada {data,count,hasMore}, sem funil. Lê até 10 páginas e para se a página vier repetida (rota que ignora a paginação).
   opportunities:async()=>{
    const todas=[],vistos=new Set();let total=0,mais=false;
    for(let p=1;p<=10;p++){
-    const b=await get(ext(api+'/opportunities')+'?pageNumber='+p+'&page='+p);
+    const b=await get(ext(api+'/opportunities')+(p>1?'?pageNumber='+p:''));
     const novas=(pickList(b)||[]).filter(o=>o&&!vistos.has(String(o.id)));novas.forEach(o=>vistos.add(String(o.id)));todas.push(...novas);
     total=Number(b?.count)||total;mais=b?.hasMore===true;
     if(!mais||!novas.length)break;
@@ -89,6 +97,33 @@ export function normalizeItems(list){
   name:String(x?.name??x?.nome??x?.tag??x?.origin??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
   color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null
  })).filter(x=>x.id||x.name);
+}
+// Monta a tela do funil como a tela Pipeline do chat (vários funis, etapas na ordem, totais da LeadVox).
+// Se a LeadVox recusar essas rotas, usa a API externa: um funil só, com as etapas da conta.
+export async function lerFunil(c,{funil='',status='open'}={}){
+ const st=status==='all'?['open','won','lost']:[status];
+ try{
+  const funis=(pickList(await c.pipelines())||[]).filter(f=>f&&f.id!=null&&Array.isArray(f.steps));
+  if(!funis.length)throw new ChatApiError('CHAT_NO_PIPELINES');
+  const f=funis.find(x=>String(x.id)===String(funil))||funis.find(x=>x.isDefault)||funis[0];
+  const etapas=[...f.steps].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+  const todas=new Map(),totais={};let incompleto=false;
+  const junta=l=>(Array.isArray(l)?l:[]).forEach(o=>{if(o&&o.id!=null&&!todas.has(String(o.id)))todas.set(String(o.id),o);});
+  // em aberto: a abertura traz a primeira página de cada etapa e os totais; ganhas/perdidas vêm etapa por etapa
+  const abertura=status==='open'?await c.pipelineStartup(f.id,etapas.map(e=>e.id),st):null;
+  await Promise.all(etapas.map(async e=>{
+   const k=String(e.id),col=abertura?.columns?.[k],tot=abertura?.totals?.[k];
+   if(tot)totais[k]={count:Number(tot.count)||0,valor:Number(tot.totalValue)||0};
+   let mais=true,pag=1;
+   if(col){junta(col.opportunities);mais=col.hasMore===true;pag=2;}
+   for(;mais&&pag<=5;pag++){const b=await c.stepOpportunities(f.id,k,st,pag),antes=todas.size;junta(b?.opportunities??pickList(b));mais=b?.hasMore===true&&todas.size>antes;}
+   if(mais)incompleto=true;
+  }));
+  return {funis:funis.map(x=>({id:x.id,name:x.name,color:x.color})),funil:String(f.id),etapas,lista:[...todas.values()],totais,incompleto};
+ }catch{
+  const [etapas,opp]=await Promise.all([c.pipelineSteps().then(pickList),c.opportunities()]);
+  return {funis:[],funil:'',etapas,lista:opp.list,totais:{},incompleto:opp.hasMore};
+ }
 }
 // Oportunidade para a tela do funil: só o que o cartão mostra (sem e-mail, endereço nem dados internos do contato).
 export function normalizeOpportunities(list){
