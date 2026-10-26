@@ -240,8 +240,13 @@
           <div><label for="esPreco">Preço <small>(vazio = sob consulta)</small></label><input id="esPreco" maxlength="14" inputmode="decimal" placeholder="62.900"></div>
           <div><label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select></div>
         </div>
-        <label for="esFotos">Fotos <small>(endereço https de cada foto, uma por linha; a primeira é a capa)</small></label>
-        <textarea id="esFotos" style="min-height:70px" placeholder="https://..."></textarea>
+        <label>Fotos <small>(até 10; a primeira é a capa)</small></label>
+        <div class="fotos-grade" id="esGrade"></div>
+        <label class="bt sm foto-bt" for="esArquivo">📷 Tirar ou escolher fotos</label>
+        <input type="file" id="esArquivo" accept="image/*" multiple hidden>
+        <span class="muted" id="esEnviando" style="font-size:13px;margin-left:8px"></span>
+        <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Colar endereço de foto (https)</summary>
+          <textarea id="esFotos" style="min-height:60px;margin-top:6px" placeholder="https://... (um por linha)"></textarea></details>
         <label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
         <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea>
         <div class="form-bts"><button class="principal" type="submit">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>

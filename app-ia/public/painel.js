@@ -771,9 +771,43 @@ function editarVeiculo(i) {
   $('esId').value = i?.id || ''; $('esMarca').value = a.marca || ''; $('esModelo').value = a.modelo || ''; $('esVersao').value = a.versao || '';
   $('esAno').value = a.ano || ''; $('esKm').value = a.km || ''; $('esCor').value = a.cor || ''; $('esCambio').value = a.cambio || ''; $('esComb').value = a.combustivel || '';
   $('esCat').value = i?.categoria || ''; $('esPreco').value = i?.preco ? String(Number(i.preco)).replace('.', ',') : ''; $('esStatus').value = i?.status || 'disponivel';
-  $('esFotos').value = (i?.fotos || []).join('\n'); $('esObs').value = a.obs || '';
+  $('esFotos').value = (i?.fotos || []).join('\n'); $('esObs').value = a.obs || ''; desenharFotos();
   $('esForm').hidden = false; $('esForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('esMarca').focus();
 }
+// fotos: o campo de endereços é a lista (uma por linha); a grade mostra e o botão envia do aparelho
+const fotosForm = () => $('esFotos').value.split(/\s+/).filter(u => /^https:\/\//.test(u));
+function desenharFotos() {
+  const fs = fotosForm();
+  $('esGrade').innerHTML = fs.map((u, i) => `<div><img src="${esc(u)}" alt="Foto ${i + 1}" referrerpolicy="no-referrer">${i ? '' : '<span class="capa">capa</span>'}
+    <button type="button" aria-label="Tirar foto ${i + 1}" data-tira-foto="${i}">×</button></div>`).join('');
+  $('esGrade').querySelectorAll('[data-tira-foto]').forEach(b => b.onclick = () => { const l = fotosForm(); l.splice(+b.dataset.tiraFoto, 1); $('esFotos').value = l.join('\n'); desenharFotos(); });
+}
+// Reduz no próprio aparelho (lado maior até 1600 px, JPEG) para a foto subir rápido e caber no limite.
+async function reduzirFoto(arq) {
+  const img = await createImageBitmap(arq, { imageOrientation: 'from-image' }).catch(() => null);
+  if (!img) throw Error('Não consegui abrir essa foto. Tente uma em JPG ou PNG.');
+  for (const [lado, q] of [[1600, .82], [1280, .72], [1024, .65]]) {
+    const k = Math.min(1, lado / Math.max(img.width, img.height)), c = document.createElement('canvas');
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL('image/jpeg', q);
+    if (url.length < 2700000) return url;
+  }
+  throw Error('A foto é grande demais.');
+}
+$('esArquivo').onchange = async e => {
+  const arqs = [...e.target.files].filter(f => /^image\//.test(f.type)); e.target.value = '';
+  const vagas = 10 - fotosForm().length;
+  if (!arqs.length) return; if (vagas <= 0) return toast('Cada veículo pode ter até 10 fotos.', true);
+  let n = 0;
+  for (const arq of arqs.slice(0, vagas)) {
+    $('esEnviando').textContent = `Enviando foto ${++n} de ${Math.min(arqs.length, vagas)}…`;
+    try { const r = await api('estoque-foto', { organization: empresa.id, imagem: await reduzirFoto(arq) }); $('esFotos').value = [...fotosForm(), r.url].join('\n'); desenharFotos(); }
+    catch (err) { toast(err.message, true); }
+  }
+  $('esEnviando').textContent = '';
+  if (arqs.length > vagas) toast('Só cabem 10 fotos por veículo.', true);
+};
+$('esFotos').addEventListener('input', desenharFotos);
 $('esCancelar').onclick = () => { $('esForm').hidden = true; };
 $('esForm').onsubmit = async e => {
   e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;

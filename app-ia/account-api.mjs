@@ -1,3 +1,4 @@
+import {randomBytes} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
@@ -67,11 +68,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   const setSession=(session)=>res.setHeader('Set-Cookie','__Host-lv_session='+encodeURIComponent(session.access_token)+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age='+Math.min(Number(session.expires_in)||3600,3600));
   try{
    let body={};
+   const action=pathname.slice('/api/account/'.length);
    if(req.method==='POST'){
-    let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>110000)throw {status:413,message:'Dados muito grandes.'};}
+    // foto do estoque vem em base64 (já reduzida no aparelho): só essa ação aceita corpo maior
+    const limite=action==='estoque-foto'?2900000:110000;
+    let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>limite)throw {status:413,message:action==='estoque-foto'?'A foto é grande demais (até 2 MB).':'Dados muito grandes.'};}
     try{body=JSON.parse(raw||'{}');}catch{throw {status:400,message:'Dados inválidos.'};}
    }
-   const action=pathname.slice('/api/account/'.length);
    const publicActions=['login','signup','verify','recover'];
    if(publicActions.includes(action)){
     if(req.method!=='POST')throw {status:405,message:'Método não permitido.'};
@@ -153,6 +156,23 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
+   }else if(action==='estoque-foto'&&req.method==='POST'){
+    // Foto do veículo: confere que é imagem de verdade e grava na pasta da conta (lv-estoque/<conta>/...), com o login de quem enviou.
+    if(!/^[0-9a-f-]{36}$/.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};
+    const m=/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(typeof body.imagem==='string'?body.imagem:'');
+    if(!m)throw {status:400,message:'Envie uma foto em JPG, PNG ou WebP.'};
+    const bin=Buffer.from(m[2],'base64');
+    const tipo=bin[0]===0xff&&bin[1]===0xd8&&bin[2]===0xff?'jpeg':bin.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))?'png'
+     :bin.subarray(0,4).toString('latin1')==='RIFF'&&bin.subarray(8,12).toString('latin1')==='WEBP'?'webp':null;
+    if(!tipo||tipo!==m[1])throw {status:400,message:'Esse arquivo não é uma foto válida.'};
+    if(bin.length<500||bin.length>2097152)throw {status:400,message:'A foto precisa ter até 2 MB.'};
+    let st;try{st=await upstream('/rest/v1/rpc/lv_motor_status',{method:'POST',token:authToken,body:{org:body.organization}});}catch{st=null;}
+    if(!st?.vinculado||!/^[a-z0-9-]{3,60}$/.test(st.conta||''))throw {status:400,message:'Ligue a sua IA antes de enviar fotos.'};
+    const caminho=st.conta+'/'+Date.now().toString(36)+'-'+randomBytes(6).toString('hex')+'.'+(tipo==='jpeg'?'jpg':tipo);
+    let r;try{r=await fetchImpl(URL_BASE+'/storage/v1/object/lv-estoque/'+caminho,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+authToken,'Content-Type':'image/'+tipo,'x-upsert':'false','Cache-Control':'max-age=31536000'},
+     body:bin,signal:AbortSignal.timeout(20000),redirect:'error'});}catch{throw {status:503,message:'Não deu para enviar a foto agora. Tente de novo.'};}
+    if(!r.ok)throw {status:400,message:r.status===403||r.status===401?'Só o dono da empresa pode enviar fotos do estoque.':'Não deu para guardar a foto. Tente de novo.'};
+    send(res,200,{url:URL_BASE+'/storage/v1/object/public/lv-estoque/'+caminho});
    }else if(action==='estoque'){
     // Veículos do catálogo do motor: cadastro à mão (Estoque LeadVox) ou cópia do AutoCerto / Revenda Mais.
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;

@@ -29,6 +29,25 @@ test('AutoCerto stock is read with the saved login and unit',async()=>{
  await assert.rejects(buscarEstoque({source:'leadvox'}),/Estoque LeadVox/);
 });
 
+test('vehicle photos must be real images and go to the account folder with the user login',async t=>{
+ const ups=[];
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_motor_status'))return ok({vinculado:true,conta:'loja-teste-ab12'});
+  if(u.includes('/storage/v1/object/')){ups.push({u,h:init.headers,n:init.body.length});return ok({Key:'x'});}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=tok'};
+ const post=imagem=>fetch(base+'/api/account/estoque-foto',{method:'POST',headers:h,body:JSON.stringify({organization:org,imagem})});
+ const jpg=Buffer.concat([Buffer.from([0xff,0xd8,0xff,0xe0]),Buffer.alloc(800,1)]).toString('base64');
+ assert.equal((await post('data:image/jpeg;base64,'+Buffer.from('<svg onload=alert(1)>'.repeat(40)).toString('base64'))).status,400);
+ assert.equal((await post('data:image/png;base64,'+jpg)).status,400);
+ const r=await post('data:image/jpeg;base64,'+jpg);assert.equal(r.status,200);
+ assert.match((await r.json()).url,/^https:\/\/dcucemuewipfnneqpgxk\.supabase\.co\/storage\/v1\/object\/public\/lv-estoque\/loja-teste-ab12\/[a-z0-9]+-[0-9a-f]{12}\.jpg$/);
+ assert.equal(ups.length,1);assert.equal(ups[0].h.Authorization,'Bearer tok');assert.equal(ups[0].h['Content-Type'],'image/jpeg');
+ assert.equal((await fetch(base+'/api/account/estoque-foto',{method:'POST',headers:h,body:'x'.repeat(3000000)})).status,413);
+});
 test('panel saves manual vehicles and syncs the saved source into the catalog',async t=>{
  const calls=[];
  const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
