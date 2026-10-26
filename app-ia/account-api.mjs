@@ -8,6 +8,12 @@ const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. R
  conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
  sem_credencial:'Conecte sua LeadVox em Credenciais de API primeiro.',token_sem_sessao:'O token da LeadVox não traz o número (sessão). Gere a URL da API a partir do canal de WhatsApp.',
  config_grande_demais:'A configuração ficou grande demais.',config_invalida:'Configuração inválida.',agente:'Agente não encontrado.'};
+// Why the motor refuses to turn an agent on (iag__pendencias).
+const MOTOR_PENDENCIAS={nao_configurado:'preencha nome e "como ele se apresenta" e salve',sem_departamento:'escolha o departamento deste agente',sem_conexao:'ligue o WhatsApp (Credenciais de API)',conta_suspensa:'a conta está suspensa',arquivado:'o agente está arquivado'};
+function motorErro(r,msg){
+ if(r.erro==='pendencias'&&Array.isArray(r.pendencias))return 'Para ligar o agente: '+r.pendencias.map(p=>MOTOR_PENDENCIAS[p]||p).join('; ')+'.';
+ return MOTOR_ERROS[r.erro]||msg;
+}
 export function jwtPayload(token){
  try{const part=String(token).split('.')[1];return JSON.parse(Buffer.from(part.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));}catch{return null;}
 }
@@ -114,7 +120,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const org=req.method==='GET'?q.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
     const rpc=async(fn,args)=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});
-    const falha=(r,msg)=>{if(r&&r.ok===false)throw {status:400,message:MOTOR_ERROS[r.erro]||msg};return r;};
+    const falha=(r,msg)=>{if(r&&r.ok===false)throw {status:400,message:motorErro(r,msg)};return r;};
     if(req.method==='GET'){
      const agente=q.get('agente');
      if(agente){if(!/^[a-z0-9-]{3,120}$/.test(agente))throw {status:400,message:'Agente inválido.'};const r=await rpc('lv_motor_agente',{agente});if(!r)throw {status:404,message:'Agente não encontrado.'};return send(res,200,r),true;}

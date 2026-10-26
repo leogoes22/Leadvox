@@ -368,13 +368,15 @@ $('agIdentidade').onsubmit = async e => {
     const nome = $('idNome').value.trim();
     if (nome.length < 2) throw Error('Dê um nome ao agente.');
     const config = { ...agDados.config, identidade: { ...agDados.config.identidade, nome, apresentacao: $('idDesc').value.trim(), tom: $('idTom').value, emojis: $('idEmoji').value, tratamento: $('idTrat').value } };
-    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
-    agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao };
+    // Nome e apresentação preenchidos bastam para o motor aceitar ligar o agente.
+    const concluir = !!config.identidade.apresentacao;
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao, concluir });
+    agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao, configurado: agDados.configurado || !!r.configurado };
     const querAtivo = $('idAtivo').getAttribute('aria-checked') === 'true';
     if (querAtivo !== !!agDados.ativo) { await acaoMotor({ acao: 'ativo', agente: agSel, ativo: querAtivo }); agDados.ativo = querAtivo; }
     else await carregarMotor();
     desenharMotor(); desenharAgente(); toast('Salvo no motor da IA.');
-  } catch (err) { if (!err.status) toast(err.message, true); }
+  } catch (err) { if (!err.status) toast(err.message, true); desenharAgente(); }
   finally { bt.disabled = false; }
 };
 

@@ -11,7 +11,7 @@ test('tenant and session are read from the LeadVox token payload',()=>{
  assert.equal(jwtPayload('nao-e-jwt'),null);
 });
 
-async function fixture(t,{chat=null,erroSalvar=null}={}){
+async function fixture(t,{chat=null,erroSalvar=null,ativo=null}={}){
  const calls=[];
  const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
   if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
@@ -19,6 +19,7 @@ async function fixture(t,{chat=null,erroSalvar=null}={}){
   if(fn==='lv_chat_secret')return ok(chat?[chat]:[]);
   if(fn==='lv_motor_status')return ok({vinculado:true,conta:'loja-teste-ab12',agentes:[],tipos:[{codigo:'sdr',nome:'SDR'}]});
   if(fn==='lv_motor_salvar_agente')return ok(erroSalvar?{ok:false,erro:erroSalvar}:{ok:true,versao:4});
+  if(fn==='lv_motor_ativo'&&ativo)return ok(ativo);
   if(fn==='lv_motor_agente')return ok({chave:'loja-teste-ab12-x',tipo:'sdr',versao:3,config:{}});
   return ok({ok:true});
  }});
@@ -49,4 +50,11 @@ test('saving validates input, sends the version and maps motor conflicts',async 
  const g=await fixture(t,{erroSalvar:'conflito'});const c=await g.post({acao:'salvar',agente:'loja-teste-ab12-x',config:{},versaoBase:1});
  assert.equal(c.status,400);assert.match((await c.json()).error,/salvou este agente depois/);
  assert.equal((await f.get('&agente=loja-teste-ab12-x')).status,200);assert.equal((await f.get('&agente=../x')).status,400);
+});
+test('turning on an unfinished agent says what is missing',async t=>{
+ const f=await fixture(t,{ativo:{ok:false,erro:'pendencias',pendencias:['nao_configurado','sem_conexao']}});
+ const r=await f.post({acao:'ativo',agente:'loja-teste-ab12-x',ativo:true});
+ assert.equal(r.status,400);assert.match((await r.json()).error,/Para ligar o agente: preencha nome.*; ligue o WhatsApp/);
+ const g=await fixture(t);await g.post({acao:'salvar',agente:'loja-teste-ab12-x',config:{},versaoBase:3,concluir:true});
+ assert.equal(g.calls.find(c=>c.fn==='lv_motor_salvar_agente').body.concluir,true);
 });
