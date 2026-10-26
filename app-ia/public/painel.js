@@ -327,13 +327,27 @@ function desenharMotor() {
       <button type="button" class="principal sm" id="mCriar" ${ags.length >= motor.limite ? 'disabled title="Limite de agentes"' : ''}>+ Novo agente</button></div></div>
     <div style="margin-top:8px">${ags.map(a => `<div class="item"><div><b>${esc(a.nome || 'Agente sem nome')}${a.entrada ? ' <span class="st">porta de entrada</span>' : ''}</b>
         <small>${esc(nomeTipo(a.tipo))} · versão ${esc(a.versao)}${a.configurado ? '' : ' · <span style="color:var(--amarelo)">configuração pendente</span>'}</small></div>
-        <div class="bts"><span class="st ${a.ativo ? 'on' : ''}">${a.ativo ? 'Ligado' : 'Desligado'}</span><button type="button" class="sm" data-abrir-ag="${esc(a.chave)}" ${a.chave === agSel ? 'aria-pressed="true"' : ''}>Abrir</button></div></div>`).join('')
+        <div class="bts"><span class="liga"><button type="button" class="switch" role="switch" aria-checked="${!!a.ativo}" data-ligar-ag="${esc(a.chave)}" aria-label="IA ${esc(a.nome || '')} ligada"><span></span></button><b class="${a.ativo ? 'on' : ''}">${a.ativo ? 'Ligada' : 'Desligada'}</b></span><button type="button" class="sm" data-abrir-ag="${esc(a.chave)}" ${a.chave === agSel ? 'aria-pressed="true"' : ''}>Abrir</button></div></div>`).join('')
       || '<p class="muted" style="padding:12px 0">Nenhum agente ainda. Escolha o tipo e clique em Novo agente.</p>'}</div>`;
   $('mConectar') && ($('mConectar').onclick = async () => { try { await acaoMotor({ acao: 'conectar' }, 'WhatsApp ligado ao motor.'); desenharMotor(); } catch {} });
   $('mCriar').onclick = async () => { $('mCriar').disabled = true; try { await acaoMotor({ acao: 'criar', tipo: $('mTipo').value }, 'Agente criado.'); const novo = (motor.agentes || []).at(-1); desenharMotor(); if (novo) abrirAgenteMotor(novo.chave); } catch { $('mCriar').disabled = false; } };
   document.querySelectorAll('[data-abrir-ag]').forEach(b => b.onclick = () => abrirAgenteMotor(b.dataset.abrirAg));
+  document.querySelectorAll('[data-ligar-ag]').forEach(b => b.onclick = () => ligarAgente(b.dataset.ligarAg, b));
   if (!agSel && ags.length) abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
   if (!ags.length) $('agDetalhe').hidden = true;
+}
+
+// Liga/desliga a IA na hora (sem precisar de Salvar). Se faltar algo para ligar, o servidor explica o quê.
+async function ligarAgente(chave, bt) {
+  const a = (motor?.agentes || []).find(x => x.chave === chave); if (!a) return;
+  const ligar = !a.ativo, nome = a.nome || 'A IA';
+  if (!ligar && !confirm(`Desligar ${nome}? Ela para de responder os clientes no WhatsApp até você ligar de novo.`)) return;
+  bt.disabled = true;
+  try {
+    await acaoMotor({ acao: 'ativo', agente: chave, ativo: ligar }, ligar ? `${nome} ligada. Já está respondendo os clientes.` : `${nome} desligada. Parou de responder.`);
+    if (agDados && agSel === chave) agDados.ativo = ligar;
+  } catch {}
+  desenharMotor(); desenharAgente();
 }
 
 async function abrirAgenteMotor(chave) {
@@ -350,7 +364,9 @@ function desenharAgente() {
   const c = agDados.config, id = c.identidade, nome = id.nome || agDados.nome || 'Agente sem nome';
   $('agFoto').textContent = nome.trim().charAt(0).toUpperCase() || 'IA';
   $('agNome').textContent = nome; $('agFuncao').textContent = nomeTipo(agDados.tipo);
-  $('agSt').textContent = agDados.ativo ? 'Ligado' : 'Desligado'; $('agSt').className = 'st' + (agDados.ativo ? ' on' : '');
+  $('agLiga').setAttribute('aria-checked', String(!!agDados.ativo)); $('agLiga').disabled = false;
+  $('agSt').textContent = agDados.ativo ? 'IA ligada' : 'IA desligada'; $('agSt').className = agDados.ativo ? 'on' : '';
+  $('agStDica').textContent = agDados.ativo ? 'Respondendo os clientes no WhatsApp.' : 'Não responde ninguém. Toque para ligar.';
   $('agDados').innerHTML = `<div><span>Tipo</span>${esc(nomeTipo(agDados.tipo))}</div><div><span>Porta de entrada</span>${agDados.entrada ? 'Sim' : 'Não'}</div>`
     + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`;
   const caps = [['Entende áudio', true], ['Entende imagem', true], ['Responde com áudio', false], ['Entende PDF e documentos', false], ['Entende planilhas', false]];
@@ -358,7 +374,6 @@ function desenharAgente() {
   $('agCaps').innerHTML = capsHtml; $('mmLista').innerHTML = capsHtml;
   $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
-  $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
   desenharLugar();
   desenharAcoes(); desenharComportamento(); desenharPronto();
 }
@@ -371,7 +386,7 @@ function desenharLugar() {
   $('idDep').innerHTML = '<option value="">Nenhum departamento</option>' + opcoes.map(([id, n]) => `<option value="${esc(id)}" ${id === atual ? 'selected' : ''}>${esc(n)}</option>`).join('');
   $('idEntrada').setAttribute('aria-checked', String(!!l.entrada));
 }
-$('idAtivo').onclick = () => $('idAtivo').setAttribute('aria-checked', String($('idAtivo').getAttribute('aria-checked') !== 'true'));
+$('agLiga').onclick = () => agSel && ligarAgente(agSel, $('agLiga'));
 $('idEntrada').onclick = () => $('idEntrada').setAttribute('aria-checked', String($('idEntrada').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
@@ -391,9 +406,7 @@ $('agIdentidade').onsubmit = async e => {
     agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao, configurado: agDados.configurado || !!r.configurado };
     const l = lugarAtual(), dep = Number($('idDep').value) || null, entrada = $('idEntrada').getAttribute('aria-checked') === 'true';
     if (dep !== (Number(l.departamentoId) || null) || entrada !== !!l.entrada) await acaoMotor({ acao: 'lugar', agente: agSel, departamento: dep, entrada });
-    const querAtivo = $('idAtivo').getAttribute('aria-checked') === 'true';
-    if (querAtivo !== !!agDados.ativo) { await acaoMotor({ acao: 'ativo', agente: agSel, ativo: querAtivo }); agDados.ativo = querAtivo; }
-    else await carregarMotor();
+    await carregarMotor();
     desenharMotor(); desenharAgente(); toast('Salvo no motor da IA.');
   } catch (err) { if (!err.status) toast(err.message, true); desenharAgente(); }
   finally { bt.disabled = false; }
