@@ -521,17 +521,18 @@ const ACOES = [
   { tipo: 'etiqueta', rot: 'Adicionar etiqueta', cod: 'ETIQUETA', lista: 'etiquetas' },
   { tipo: 'tirar', rot: 'Tirar etiqueta', cod: 'TIRAR_ETIQUETA', lista: 'etiquetas' },
   { tipo: 'etapa', rot: 'Mudar etapa do funil', cod: 'ETAPA', lista: 'status' },
+  { tipo: 'origem', rot: 'Definir origem do lead', cod: 'ORIGEM', lista: 'origens' },
   { tipo: 'departamento', rot: 'Transferir para departamento', cod: 'DEPARTAMENTO', lista: 'setores' },
   { tipo: 'pessoa', rot: 'Transferir para pessoa', cod: 'PESSOA', lista: 'usuarios' },
   { tipo: 'nota', rot: 'Nota interna para a equipe', cod: 'NOTA', livre: 'resumo do que aconteceu' },
   { tipo: 'avisar', rot: 'Avisar no grupo', cod: 'AVISAR', livre: 'o que a equipe precisa saber' }
 ];
-const RE_ACAO = /\[(ETIQUETA|TIRAR_ETIQUETA|ETAPA|DEPARTAMENTO|PESSOA|NOTA|AVISAR)\s*:\s*([^\]\n]*)\]/g;
+const RE_ACAO = /\[(ETIQUETA|TIRAR_ETIQUETA|ETAPA|ORIGEM|DEPARTAMENTO|PESSOA|NOTA|AVISAR)\s*:\s*([^\]\n]*)\]/g;
 const semAc = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const limpaNome = t => String(t || '').replace(/[\[\]\n]/g, ' ').replace(/\s+/g, ' ').trim();
 
 async function carregarListasIA() {
-  await Promise.all(['etiquetas', 'status', 'usuarios'].map(async k => {
+  await Promise.all(['etiquetas', 'status', 'usuarios', 'origens', 'departamentos'].map(async k => {
     if (listas[k]) return;
     try { listas[k] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k)).items; } catch { listas[k] = null; }
   }));
@@ -559,7 +560,22 @@ function desenharPadrao() {
   const nomes = setoresAtuais().map(s => limpaNome(s.nome));
   $('rgPadrao').innerHTML = nomes.length ? nomes.map(n => `<option ${semAc(n) === semAc(atual) ? 'selected' : ''}>${esc(n)}</option>`).join('') : '<option value="">Cadastre um departamento acima</option>';
 }
+// Departamentos da LeadVox: o nome vira sugestão e o número da fila se preenche sozinho.
+function sugerirDepartamentos() {
+  const deps = listas.departamentos || [];
+  if (!$('rgDeps')) $('rgSetores').insertAdjacentHTML('afterend', '<datalist id="rgDeps"></datalist>');
+  $('rgDeps').innerHTML = deps.map(d => `<option value="${esc(d.name)}">`).join('');
+  $('rgSetores').querySelectorAll('[data-c="nome"]').forEach(i => i.setAttribute('list', 'rgDeps'));
+}
+$('rgSetores').addEventListener('input', e => {
+  if (e.target.dataset.c !== 'nome') return;
+  const d = (listas.departamentos || []).find(x => semAc(x.name) === semAc(e.target.value));
+  const fila = e.target.closest('.linha-lista')?.querySelector('[data-c="filaId"]');
+  if (d && fila) fila.value = d.id;
+});
+$('rgSetores').addEventListener('click', () => setTimeout(sugerirDepartamentos));
 function atualizarListasAcoes() {
+  sugerirDepartamentos();
   const us = listas.usuarios || [], atual = String((agDados.config.regras || {}).usuarioId || '');
   $('rgResp').innerHTML = us.length ? us.map(u => `<option value="${esc(u.id)}" ${String(u.id) === atual ? 'selected' : ''}>${esc(u.name)}</option>`).join('')
     : '<option value="">Conecte a LeadVox em Credenciais de API</option>';
@@ -602,7 +618,7 @@ function abrirMenu() {
   let grupo = '';
   $('rgMenu').innerHTML = rgOpcoes.map((o, i) => (o.a.rot !== grupo ? `<small>${esc(grupo = o.a.rot)}</small>` : '')
     + `<button type="button" role="option" data-op="${i}" aria-selected="${i === rgSel}">${esc(o.nome || o.a.rot)}</button>`).join('')
-    + (ACOES.some(a => a.lista && !itensDe(a.lista).length) ? '<small>Etiquetas, etapas e pessoas vêm da LeadVox conectada; departamentos, do quadro abaixo.</small>' : '');
+    + (ACOES.some(a => a.lista && !itensDe(a.lista).length) ? '<small>Etiquetas, etapas, origens e pessoas vêm da LeadVox conectada; departamentos, do quadro abaixo.</small>' : '');
   $('rgMenu').hidden = false;
   $('rgMenu').querySelectorAll('[data-op]').forEach(b => b.onmousedown = e => { e.preventDefault(); inserirAcao(rgOpcoes[+b.dataset.op]); });
   $('rgMenu').querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });

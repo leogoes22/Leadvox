@@ -148,7 +148,7 @@
           <form id="agAcoes" data-agp="automacoes" hidden>
             <div class="card">
               <h3>Regras da IA</h3>
-              <p class="muted">Uma regra por linha: a situação e, depois, as ações. Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
+              <p class="muted">Uma regra por linha: a situação e, depois, as ações. Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
               <div class="rg-caixa">
                 <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
                 <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
@@ -158,7 +158,7 @@
             </div>
             <div class="card">
               <h3>Departamentos para onde a IA passa</h3>
-              <p class="muted">Nome e número da fila na LeadVox. A IA só transfere para os departamentos daqui.</p>
+              <p class="muted">Escolha pelo nome (vem da sua LeadVox) e o número da fila se preenche sozinho. A IA só transfere para os departamentos daqui.</p>
               <div id="rgSetores"></div>
               <label for="rgPadrao">Departamento padrão <small>(dúvida ou cliente pedindo uma pessoa)</small></label><select id="rgPadrao"></select>
             </div>
