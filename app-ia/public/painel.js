@@ -532,6 +532,16 @@ $('kForm').onsubmit = async e => {
 };
 addEventListener('beforeunload', e => { if (kSujo || rgSujo || cpSujo) e.preventDefault(); });
 
+// "Mandar mensagem de teste": confere na hora se o número do grupo está certo
+document.querySelectorAll('[data-testar-grupo]').forEach(b => b.onclick = async () => {
+  const grupo = $(b.dataset.testarGrupo).value.trim();
+  if (!grupo) return toast('Cole o número do grupo primeiro.', true);
+  b.disabled = true; const txt = b.textContent; b.textContent = 'Mandando…';
+  try { await api('grupo-teste', { organization: empresa.id, grupo, ia: agDados?.config?.identidade?.nome || '' }); toast('Mensagem de teste enviada. Confira no grupo do WhatsApp.'); }
+  catch (err) { toast(err.message, true); }
+  finally { b.disabled = false; b.textContent = txt; }
+});
+
 /* comportamento: modelo, criatividade, espera, assinatura, follow-up, avisos e limites (campos que o motor lê) */
 let cpSujo = false, cpAgente = null;
 const TEMPOS = [[0, 'Desligado'], [15, '15 min'], [30, '30 min'], [60, '1 hora'], [120, '2 horas'], [240, '4 horas'], [1440, '1 dia'], [2880, '2 dias']];

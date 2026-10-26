@@ -41,7 +41,7 @@ export function cleanSettings(input){
  return out;
 }
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
- const attempts=new Map();
+ const attempts=new Map(),testesGrupo=new Map(); // testesGrupo: um teste de grupo a cada 20 s por empresa
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
   let r;try{r=await fetchImpl(URL_BASE+route,{method,headers:{apikey:KEY,Authorization:'Bearer '+(token||KEY),'Content-Type':'application/json',Prefer:prefer},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});}catch{throw {status:503,message:'Serviço temporariamente indisponível.'};}
@@ -164,6 +164,26 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
+   }else if(action==='grupo-teste'&&req.method==='POST'){
+    // Manda uma mensagem de teste para o grupo do WhatsApp pela conexão LeadVox da empresa (grupo = id + @g.us).
+    const org=body.organization,grupo=String(body.grupo??'').replace(/@.*/,'').replace(/\D/g,'');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(!/^\d{10,30}$/.test(grupo))throw {status:400,message:'Cole o número do grupo (começa com 120363).'};
+    const agora=Date.now(),ult=testesGrupo.get(org)||0;
+    if(agora-ult<20000)throw {status:429,message:'Espere alguns segundos para testar de novo.'};
+    testesGrupo.set(org,agora);if(testesGrupo.size>5000)testesGrupo.clear();
+    let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+    const c=rows?.[0];if(!c)throw {status:400,message:'Conecte sua LeadVox em Credenciais de API primeiro.'};
+    let parsed;try{parsed=parseChatUrl(c.api_root+'/api/external/'+c.api_id+'/?token='+encodeURIComponent(c.token));}catch{throw {status:400,message:'A conexão da LeadVox salva está inválida. Conecte de novo em Credenciais de API.'};}
+    const nome=String(body.ia||'').replace(/[^\p{L}\p{N} .-]/gu,'').slice(0,40)||'IA';
+    let r;try{r=await fetchImpl(parsed.root+'/api/external/'+parsed.apiId+'/?token='+encodeURIComponent(parsed.token),{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),
+     headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:'Bearer '+parsed.token},
+     body:JSON.stringify({number:grupo+'@g.us',externalKey:'iag-teste-grupo',body:'✅ *Teste da LeadVox IA*\nEste grupo vai receber os avisos de '+nome+' quando ela passar um cliente para a equipe.'})});}
+    catch{throw {status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+    if(r.status===404)throw {status:400,message:'A LeadVox não achou esse grupo. Confira se o número do grupo está certo e se o WhatsApp da empresa está no grupo.'};
+    if(r.status===401||r.status===403)throw {status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'};
+    if(!r.ok)throw {status:400,message:'A LeadVox não aceitou a mensagem (erro '+r.status+'). Confira o número do grupo.'};
+    send(res,200,{ok:true});
    }else if(action==='relatorio'&&req.method==='GET'){
     // Dashboard: números por dia da conta do motor (só totais, sem dados de cliente).
     const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');

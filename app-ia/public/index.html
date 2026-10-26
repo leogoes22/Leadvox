@@ -174,6 +174,7 @@
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpGrupo" aria-label="Avisar no grupo"><span></span></button></div>
               <div class="duas"><div><input id="cpGrupoId" inputmode="numeric" maxlength="40" placeholder="Número do grupo: 120363000000000000"></div>
                 <div><select id="cpGrupoQuando" aria-label="Quando avisar no grupo"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <button type="button" class="sm" data-testar-grupo="cpGrupoId" style="margin-top:8px">Mandar mensagem de teste</button>
               <p class="muted" style="font-size:13px;margin-top:4px">Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo (começa com 120363).</p>
               <div class="lin-sw" style="margin-top:8px"><span>Resumo do dia<small>Quantos clientes a IA atendeu, quantos passou e para quem.</small></span>
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpRes" aria-label="Resumo do dia"><span></span></button></div>
@@ -224,6 +225,7 @@
               <h3>Avisos e funil</h3>
               <label for="rgGrupo">Grupo de avisos no WhatsApp <small>(para a ação "Avisar no grupo")</small></label>
               <input id="rgGrupo" inputmode="numeric" maxlength="40" placeholder="120363000000000000">
+              <button type="button" class="sm" data-testar-grupo="rgGrupo" style="margin-top:8px">Mandar mensagem de teste</button>
               <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo.</p>
               <label for="rgModoResp">Responsável pela oportunidade no funil</label>
               <select id="rgModoResp"><option value="atendente">Quem está atendendo o cliente (o vendedor do ticket)</option><option value="fixo">Um responsável fixo</option></select>

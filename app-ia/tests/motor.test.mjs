@@ -73,3 +73,19 @@ test('agent department and entry point are validated and sent to the motor',asyn
  assert.equal((await f.post({acao:'lugar',agente:'loja-teste-ab12-x',departamento:66,entrada:true})).status,200);
  assert.deepEqual(f.calls.find(c=>c.fn==='lv_motor_lugar').body,{org,agente:'loja-teste-ab12-x',departamento:66,entrada:true});
 });
+test('group test message goes to the group id with @g.us and explains a wrong group',async t=>{
+ const tok=jwt({tenantId:17,sessionId:64});const envios=[];
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_chat_secret'))return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8-e8dc',token:tok}]);
+  if(u.startsWith('https://chat2api.leadvox.com.br/')){const b=JSON.parse(init.body);envios.push(b);return ok({},b.number.startsWith('999')?404:200);}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=x'};
+ const post=b=>fetch(base+'/api/account/grupo-teste',{method:'POST',headers:h,body:JSON.stringify({organization:org,ia:'Lilian',...b})});
+ assert.equal((await post({grupo:'123'})).status,400);
+ const r=await post({grupo:'120363000000000001@g.us'});assert.equal(r.status,200);
+ assert.equal(envios[0].number,'120363000000000001@g.us');assert.match(envios[0].body,/Lilian/);
+ assert.equal((await post({grupo:'120363000000000001'})).status,429);
+});
