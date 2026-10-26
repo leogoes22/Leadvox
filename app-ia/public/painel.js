@@ -595,7 +595,43 @@ async function carregarListasIA() {
     try { listas[k] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k)).items; } catch { listas[k] = null; }
   }));
 }
-const setoresAtuais = () => ($('rgSetores')._ler ? $('rgSetores')._ler() : []).filter(x => limpaNome(x.nome));
+// editor dos departamentos: nome, fila, quando e como o cliente chega aos vendedores (fila pendente ou rodízio)
+let setoresEd = [];
+const setoresAtuais = () => setoresEd.filter(x => limpaNome(x.nome));
+function desenharSetores() {
+  const us = listas.usuarios || [];
+  $('rgSetores').innerHTML = setoresEd.map((s, i) => `<div class="linha-lista" data-i="${i}"><button type="button" class="tirar" aria-label="Remover departamento" data-tira-set="${i}">×</button>
+    <div class="tres"><div><label for="sN${i}">Departamento</label><input id="sN${i}" data-c="nome" list="rgDeps" maxlength="60" placeholder="Ex.: Comercial" value="${esc(s.nome)}"></div>
+      <div><label for="sF${i}">Nº da fila na LeadVox</label><input id="sF${i}" data-c="filaId" maxlength="10" inputmode="numeric" placeholder="Ex.: 66" value="${esc(s.filaId)}"></div>
+      <div><label for="sQ${i}">Quando a IA manda para cá</label><input id="sQ${i}" data-c="quando" maxlength="200" placeholder="Ex.: cliente quer comprar" value="${esc(s.quando)}"></div></div>
+    <label for="sD${i}">Como o cliente chega aos vendedores</label>
+    <select id="sD${i}" data-c="distribuicao"><option value="fila">Fila do departamento: fica pendente e quem aceitar primeiro pega</option>
+      <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada vendedor, na ordem</option></select>
+    ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => `<label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${s.vendedores.some(v => String(v.id) === String(u.id)) ? 'checked' : ''}> ${esc(u.name)}</label>`).join('')
+      : '<p class="muted" style="font-size:13px">Conecte a LeadVox em Credenciais de API para escolher os vendedores.</p>'}
+      <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o vendedor.' : 'Marque os vendedores deste departamento, na ordem em que devem receber.'}</p></div>`}
+  </div>`).join('') + (setoresEd.length < 12 ? '<button type="button" class="leve" id="rgMaisSet">+ Adicionar departamento</button>' : '');
+  desenharPadrao();
+}
+$('rgSetores').addEventListener('input', e => {
+  const row = e.target.closest('[data-i]'), k = e.target.dataset.c; if (!row || !k || k === 'distribuicao') return;
+  const s = setoresEd[+row.dataset.i]; s[k] = e.target.value;
+  if (k === 'nome') { const d = (listas.departamentos || []).find(x => semAc(x.name) === semAc(e.target.value)); if (d) { s.filaId = String(d.id); row.querySelector('[data-c="filaId"]').value = d.id; } desenharPadrao(); }
+});
+$('rgSetores').addEventListener('change', e => {
+  const row = e.target.closest('[data-i]'); if (!row) return;
+  const s = setoresEd[+row.dataset.i];
+  if (e.target.dataset.c === 'distribuicao') { s.distribuicao = e.target.value; desenharSetores(); }
+  else if (e.target.dataset.vend) {
+    const id = e.target.dataset.vend, u = (listas.usuarios || []).find(x => String(x.id) === id);
+    s.vendedores = e.target.checked ? [...s.vendedores.filter(v => String(v.id) !== id), { id: Number(id) || id, nome: u ? limpaNome(u.name) : id }] : s.vendedores.filter(v => String(v.id) !== id);
+    desenharSetores();
+  }
+});
+$('rgSetores').addEventListener('click', e => {
+  if (e.target.id === 'rgMaisSet') { setoresEd.push({ nome: '', filaId: '', quando: '', distribuicao: 'fila', vendedores: [] }); desenharSetores(); marcarRg(); $('rgSetores').querySelector('.linha-lista:last-of-type input')?.focus(); }
+  else if (e.target.dataset.tiraSet !== undefined) { setoresEd.splice(+e.target.dataset.tiraSet, 1); desenharSetores(); marcarRg(); }
+});
 function itensDe(lista) {
   if (lista === 'setores') return setoresAtuais().map(s => ({ id: Number(s.filaId) || null, name: limpaNome(s.nome) }));
   return (listas[lista] || []).map(x => ({ id: x.id, name: limpaNome(x.name) })).filter(x => x.name);
@@ -608,10 +644,9 @@ function desenharAcoes() {
   $('rgTexto').value = r.texto || '';
   $('rgGrupo').value = r.grupo || '';
   $('rgModoResp').value = r.responsavel === 'fixo' ? 'fixo' : 'atendente'; modoResp();
-  listaK($('rgSetores'), (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao })),
-    [{ k: 'nome', rot: 'Departamento', max: 60, ph: 'Ex.: Comercial' }, { k: 'filaId', rot: 'Nº da fila na LeadVox', max: 10, ph: 'Ex.: 66' }, { k: 'quando', rot: 'Quando a IA manda para cá', max: 200, ph: 'Ex.: cliente quer comprar ou simular' }],
-    { rotMais: 'Adicionar departamento', max: 12, grade: 'tres' });
-  desenharPadrao(); atualizarListasAcoes(); limparRg();
+  setoresEd = (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao,
+    distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: Array.isArray(s.vendedores) ? s.vendedores.filter(v => v && v.id) : [] }));
+  desenharSetores(); atualizarListasAcoes(); limparRg();
   carregarListasIA().then(atualizarListasAcoes);
 }
 function desenharPadrao() {
@@ -624,17 +659,10 @@ function sugerirDepartamentos() {
   const deps = listas.departamentos || [];
   if (!$('rgDeps')) $('rgSetores').insertAdjacentHTML('afterend', '<datalist id="rgDeps"></datalist>');
   $('rgDeps').innerHTML = deps.map(d => `<option value="${esc(d.name)}">`).join('');
-  $('rgSetores').querySelectorAll('[data-c="nome"]').forEach(i => i.setAttribute('list', 'rgDeps'));
 }
-$('rgSetores').addEventListener('input', e => {
-  if (e.target.dataset.c !== 'nome') return;
-  const d = (listas.departamentos || []).find(x => semAc(x.name) === semAc(e.target.value));
-  const fila = e.target.closest('.linha-lista')?.querySelector('[data-c="filaId"]');
-  if (d && fila) fila.value = d.id;
-});
-$('rgSetores').addEventListener('click', () => setTimeout(sugerirDepartamentos));
 function atualizarListasAcoes() {
   sugerirDepartamentos();
+  if (setoresEd.some(s => s.distribuicao === 'rodizio')) desenharSetores(); // a lista de vendedores chegou
   const us = listas.usuarios || [], atual = String((agDados.config.regras || {}).usuarioId || '');
   $('rgResp').innerHTML = us.length ? us.map(u => `<option value="${esc(u.id)}" ${String(u.id) === atual ? 'selected' : ''}>${esc(u.name)}</option>`).join('')
     : '<option value="">Conecte a LeadVox em Credenciais de API</option>';
@@ -709,8 +737,6 @@ function modoResp() {
   $('rgRespDica').hidden = fixo;
 }
 $('rgModoResp').addEventListener('change', modoResp);
-$('rgSetores').addEventListener('click', () => setTimeout(desenharPadrao));
-$('rgSetores').addEventListener('input', desenharPadrao);
 function marcarRg() { rgSujo = true; $('rgSujo').textContent = 'Alterações não salvas.'; $('rgSujo').style.color = 'var(--amarelo)'; }
 function limparRg() { rgSujo = false; $('rgSujo').textContent = 'Tudo salvo.'; $('rgSujo').style.color = ''; }
 $('agAcoes').addEventListener('input', marcarRg);
@@ -722,7 +748,10 @@ $('agAcoes').onsubmit = async e => {
     const { acoes, ruins } = lerAcoes();
     if (ruins.length) throw Error('Corrija as ações em vermelho antes de salvar.');
     const padrao = $('rgPadrao').value;
-    const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao) }));
+    const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao),
+      distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome })).filter(v => v.id) : [] }));
+    const semVend = setores.find(s => s.distribuicao === 'rodizio' && !s.vendedores.length);
+    if (semVend) throw Error('Marque os vendedores do rodízio de ' + semVend.nome + '.');
     if (setores.some(s => !s.filaId)) throw Error('Informe o número da fila de cada departamento.');
     if (acoes.some(a => a.tipo === 'avisar') && !$('rgGrupo').value.replace(/\D/g, '')) throw Error('Preencha o número do grupo de avisos.');
     const c = agDados.config, crm = c.crm || {};
