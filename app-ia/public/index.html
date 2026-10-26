@@ -170,6 +170,11 @@
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpGer" aria-label="Avisar o gerente"><span></span></button></div>
               <div class="duas"><div><input id="cpGerZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
                 <div><select id="cpGerQuando" aria-label="Quando avisar"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <div class="lin-sw" style="margin-top:8px"><span>Avisar no grupo do WhatsApp<small>Toda vez que a IA passa um cliente, o grupo recebe: quem é, o motivo, para onde e para quem foi, e o resumo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpGrupo" aria-label="Avisar no grupo"><span></span></button></div>
+              <div class="duas"><div><input id="cpGrupoId" inputmode="numeric" maxlength="40" placeholder="Número do grupo: 120363000000000000"></div>
+                <div><select id="cpGrupoQuando" aria-label="Quando avisar no grupo"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <p class="muted" style="font-size:13px;margin-top:4px">Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo (começa com 120363).</p>
               <div class="lin-sw" style="margin-top:8px"><span>Resumo do dia<small>Quantos clientes a IA atendeu, quantos passou e para quem.</small></span>
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpRes" aria-label="Resumo do dia"><span></span></button></div>
               <div class="duas"><div><input id="cpResZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
@@ -201,7 +206,7 @@
           <form id="agAcoes" data-agp="automacoes" hidden>
             <div class="card">
               <h3>Regras da IA</h3>
-              <p class="muted">Uma regra por linha: a situação e, depois, as ações. Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
+              <p class="muted">Cada regra é a situação e, logo depois, as ações (uma por linha fica mais fácil de ler, mas não é obrigatório). Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
               <div class="rg-caixa">
                 <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
                 <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>

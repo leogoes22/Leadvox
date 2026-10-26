@@ -550,6 +550,7 @@ function desenharComportamento() {
   $('cpJIni').value = fu.janelaIni || '09:00'; $('cpJFim').value = fu.janelaFim || '20:00';
   sw('cpRet', av.retomada?.ativo); $('cpRetTxt').value = av.retomada?.texto || '';
   sw('cpGer', av.gerente?.ativo); $('cpGerZap').value = av.gerente?.whatsapp || ''; $('cpGerQuando').value = av.gerente?.quando || 'equipe';
+  sw('cpGrupo', av.grupo?.ativo); $('cpGrupoId').value = av.grupo?.id || (c.regras || {}).grupo || ''; $('cpGrupoQuando').value = av.grupo?.quando || 'equipe';
   sw('cpRes', av.resumo?.ativo); $('cpResZap').value = av.resumo?.whatsapp || ''; $('cpResHora').value = String(av.resumo?.hora || 19);
   $('cpLimH').value = lim.hora || 25; $('cpLimD').value = lim.dia || 50;
   mostrarFu(); limparCp();
@@ -568,6 +569,8 @@ $('agComportamento').onsubmit = async e => {
     const zap = id => { const d = $(id).value.replace(/\D/g, ''); return d.length === 10 || d.length === 11 ? '55' + d : d; }, zapOk = z => /^55\d{10,11}$/.test(z);
     if (ligado('cpGer') && !zapOk(zap('cpGerZap'))) throw Error('WhatsApp do gerente: use 55 + DDD + número.');
     if (ligado('cpRes') && !zapOk(zap('cpResZap'))) throw Error('WhatsApp do resumo: use 55 + DDD + número.');
+    const grupoId = $('cpGrupoId').value.replace(/@.*/, '').replace(/\D/g, '');
+    if (ligado('cpGrupo') && grupoId.length < 10) throw Error('Cole o número do grupo (começa com 120363).');
     const toques = [0, 1, 2].map(i => ({ minutos: Number($('cpT' + i).value), texto: $('cpTx' + i).value.trim() })).filter(t => t.minutos > 0).sort((a, b) => a.minutos - b.minutos);
     if (ligado('cpFu') && !toques.length) throw Error('Escolha quando sai a 1ª tentativa do follow-up.');
     const limH = Math.min(200, Math.max(5, Number($('cpLimH').value) || 25)), limD = Math.min(500, Math.max(limH, Number($('cpLimD').value) || 50));
@@ -577,7 +580,10 @@ $('agComportamento').onsubmit = async e => {
       followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00' },
       avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
         gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
-        resumo: { ativo: ligado('cpRes'), whatsapp: zap('cpResZap'), hora: Number($('cpResHora').value) } },
+        resumo: { ativo: ligado('cpRes'), whatsapp: zap('cpResZap'), hora: Number($('cpResHora').value) },
+        grupo: { ativo: ligado('cpGrupo'), id: grupoId, quando: $('cpGrupoQuando').value } },
+      // o mesmo grupo vale para a ação "Avisar no grupo" das regras, se lá ainda estiver vazio
+      regras: { ...(c.regras || {}), grupo: (c.regras || {}).grupo || grupoId },
       crm: { ...(c.crm || {}), limiteIA: { hora: limH, dia: limD } } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
     agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
