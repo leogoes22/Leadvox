@@ -150,6 +150,14 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       if(!/^[a-z0-9-]{3,120}$/.test(body.agente||'')||!body.config||typeof body.config!=='object'||Array.isArray(body.config)||JSON.stringify(body.config).length>300000)throw {status:400,message:'Configuração inválida.'};
       const r=await rpc('lv_motor_salvar_agente',{agente:body.agente,config:body.config,versao_base:Number.isInteger(body.versaoBase)?body.versaoBase:null,concluir:body.concluir===true});
       falha(r,'Não deu para salvar o agente.');return send(res,200,r),true;
+     }else if(acao==='lugar'){
+      // departamento da LeadVox onde o agente atende e se ele é a porta de entrada
+      if(!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Agente inválido.'};
+      const dep=body.departamento===null||body.departamento===''?null:Number(body.departamento);
+      if(dep!==null&&(!Number.isInteger(dep)||dep<1))throw {status:400,message:'Escolha o departamento.'};
+      let r;try{r=await rpc('lv_motor_lugar',{agente:body.agente,departamento:dep,entrada:body.entrada===true});}
+      catch{throw {status:400,message:'Não deu para salvar onde o agente atende. Falta liberar no banco (lugar.sql) ou só o dono pode mudar.'};}
+      falha(r,'Não deu para salvar onde o agente atende.');
      }else if(acao==='ativo'){
       if(!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Agente inválido.'};
       falha(await rpc('lv_motor_ativo',{agente:body.agente,ativo:body.ativo===true}),'Não deu para mudar o agente.');

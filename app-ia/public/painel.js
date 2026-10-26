@@ -356,9 +356,20 @@ function desenharAgente() {
   $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
   $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
+  desenharLugar();
   desenharAcoes(); desenharComportamento();
 }
+// onde o agente atende: departamento da LeadVox (o motor só responde em ticket do departamento dele) e porta de entrada
+const lugarAtual = () => (motor?.agentes || []).find(a => a.chave === agSel) || {};
+function desenharLugar() {
+  const l = lugarAtual(), deps = listas.departamentos || [], atual = l.departamentoId ? String(l.departamentoId) : '';
+  const opcoes = deps.map(d => [String(d.id), d.name]);
+  if (atual && !opcoes.some(([id]) => id === atual)) opcoes.unshift([atual, 'Departamento ' + atual]);
+  $('idDep').innerHTML = '<option value="">Nenhum departamento</option>' + opcoes.map(([id, n]) => `<option value="${esc(id)}" ${id === atual ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  $('idEntrada').setAttribute('aria-checked', String(!!l.entrada));
+}
 $('idAtivo').onclick = () => $('idAtivo').setAttribute('aria-checked', String($('idAtivo').getAttribute('aria-checked') !== 'true'));
+$('idEntrada').onclick = () => $('idEntrada').setAttribute('aria-checked', String($('idEntrada').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   document.querySelectorAll('[data-agp]').forEach(p => p.hidden = p.dataset.agp !== b.dataset.ag);
@@ -375,6 +386,8 @@ $('agIdentidade').onsubmit = async e => {
     const concluir = !!config.identidade.apresentacao;
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao, concluir });
     agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao, configurado: agDados.configurado || !!r.configurado };
+    const l = lugarAtual(), dep = Number($('idDep').value) || null, entrada = $('idEntrada').getAttribute('aria-checked') === 'true';
+    if (dep !== (Number(l.departamentoId) || null) || entrada !== !!l.entrada) await acaoMotor({ acao: 'lugar', agente: agSel, departamento: dep, entrada });
     const querAtivo = $('idAtivo').getAttribute('aria-checked') === 'true';
     if (querAtivo !== !!agDados.ativo) { await acaoMotor({ acao: 'ativo', agente: agSel, ativo: querAtivo }); agDados.ativo = querAtivo; }
     else await carregarMotor();
@@ -663,6 +676,7 @@ function sugerirDepartamentos() {
 function atualizarListasAcoes() {
   sugerirDepartamentos();
   if (setoresEd.some(s => s.distribuicao === 'rodizio')) desenharSetores(); // a lista de vendedores chegou
+  if (agDados) desenharLugar(); // a lista de departamentos chegou
   const us = listas.usuarios || [], atual = String((agDados.config.regras || {}).usuarioId || '');
   $('rgResp').innerHTML = us.length ? us.map(u => `<option value="${esc(u.id)}" ${String(u.id) === atual ? 'selected' : ''}>${esc(u.name)}</option>`).join('')
     : '<option value="">Conecte a LeadVox em Credenciais de API</option>';

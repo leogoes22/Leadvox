@@ -67,3 +67,9 @@ test('dashboard reads the account report for a valid period only',async t=>{
  assert.equal((await get('&ini=2026-10-01&fim=2026-10-26')).status,200);
  assert.deepEqual(f.calls.find(c=>c.fn==='lv_motor_relatorio').body,{org,ini:'2026-10-01',fim:'2026-10-26'});
 });
+test('agent department and entry point are validated and sent to the motor',async t=>{
+ const f=await fixture(t);
+ assert.equal((await f.post({acao:'lugar',agente:'loja-teste-ab12-x',departamento:'abc',entrada:true})).status,400);
+ assert.equal((await f.post({acao:'lugar',agente:'loja-teste-ab12-x',departamento:66,entrada:true})).status,200);
+ assert.deepEqual(f.calls.find(c=>c.fn==='lv_motor_lugar').body,{org,agente:'loja-teste-ab12-x',departamento:66,entrada:true});
+});

@@ -130,6 +130,11 @@
               <div><label for="idEmoji">Emojis</label><select id="idEmoji"><option value="nao">Não usar</option><option value="pouco">Poucos</option><option value="sim">À vontade</option></select></div>
               <div><label for="idTrat">Trata o cliente por</label><select id="idTrat"><option value="voce">Você</option><option value="senhor">Senhor / senhora</option></select></div>
             </div>
+            <label for="idDep">Onde este agente atende <small>(departamento da LeadVox)</small></label>
+            <select id="idDep"><option value="">Nenhum departamento</option></select>
+            <div class="lin-sw" style="margin-top:8px"><span>Porta de entrada<small>Atende as conversas novas, que ainda não têm departamento.</small></span>
+              <button type="button" class="switch" role="switch" aria-checked="false" id="idEntrada" aria-label="Porta de entrada"><span></span></button></div>
+            <p class="dica" style="margin-top:6px">A IA só responde num ticket que esteja no departamento dela. Se a sua LeadVox coloca as conversas novas num departamento (ex.: Recepção IA), escolha ele aqui.</p>
             <div class="lin-sw" style="margin-top:12px"><span>Agente ativo<small>Desligado, a IA não responde ninguém.</small></span>
               <button type="button" class="switch" role="switch" aria-checked="false" id="idAtivo" aria-label="Agente ativo"><span></span></button></div>
             <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
