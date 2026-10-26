@@ -152,6 +152,21 @@ test('pipeline page follows the LeadVox pipeline screen: picks the funnel, keeps
  const g=await (await get('&funil=40&status=all')).json();
  assert.equal(g.funil,'40');assert.deepEqual(g.oportunidades.map(o=>o.id),['9']);
  assert.equal((await get('&funil=abc')).status,400);
+ assert.ok(pedidos.some(p=>p.startsWith('/pipelines?includeSteps=true')));
+});
+test('pipeline page fetches the steps apart when the funnels come without them, and the error tells what each route answered',async t=>{
+ const get=await funilApp(t,u=>{
+  if(u.pathname==='/pipelines')return ok([{id:33,name:'Comercial',isDefault:true}]);
+  if(u.pathname==='/pipeline-step/')return ok([{id:143,name:'Novo Lead',order:1,pipelineId:33},{id:150,name:'Outro funil',order:1,pipelineId:40}]);
+  if(u.pathname==='/opportunity/pipeline-startup')return ok({columns:{143:{opportunities:[opp(1,'open',143)],hasMore:false}},totals:{}});
+  return ok({},404);
+ });
+ const d=await (await get('')).json();
+ assert.deepEqual(d.etapas.map(e=>e.name),['Novo Lead']);assert.deepEqual(d.oportunidades.map(o=>o.id),['1']);
+});
+test('when both the pipeline screen and the external list fail, the message says what each answered',async t=>{
+ const get=await funilApp(t,u=>u.pathname.endsWith('/pipeline-steps')?ok({data:[]}):ok({},404));
+ const r=await get('');assert.equal(r.status,502);assert.match((await r.json()).error,/funis 404, lista 404/);
 });
 test('pipeline page falls back to the external API, page by page, showing only what the card needs',async t=>{
  const pedidos=[];
@@ -163,7 +178,7 @@ test('pipeline page falls back to the external API, page by page, showing only w
  });
  assert.equal((await get('&status=xx')).status,400);
  const d=await (await get('')).json();
- assert.equal(pedidos.length,2);assert.match(pedidos[1],/^\?pageNumber=2&token=/);
+ assert.equal(pedidos.length,2);assert.match(pedidos[0],/^\?status=open&token=/);assert.match(pedidos[1],/^\?status=open&pageNumber=2&token=/);
  assert.deepEqual(d.funis,[]);assert.deepEqual(d.etapas,[{id:'53',name:'Negociando',color:'#2196F3'}]);
  assert.deepEqual(d.oportunidades.map(o=>o.id),['1','3']);
  const o=d.oportunidades[0];assert.equal(o.valor,1500);assert.equal(o.foto,'');assert.equal(o.etapaId,'53');assert.equal(o.previsao,'2026-11-02');

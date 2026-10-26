@@ -60,16 +60,19 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   // Funis, como a tela Pipeline do chat (rotas fora do /v1): os funis com as etapas de cada um,
   // a abertura do funil {columns:{[etapa]:{opportunities,hasMore,count}},totals:{[etapa]:{count,totalValue}}}
   // e as páginas seguintes de uma etapa {opportunities,hasMore,count}.
-  pipelines:()=>get('/pipelines',true),
+  pipelines:()=>get('/pipelines?includeSteps=true',true),
+  screenPipelineSteps:()=>get('/pipeline-step/',true),
   pipelineStartup:(pipelineId,stepIds,status)=>get('/opportunity/pipeline-startup?pipelineId='+id(pipelineId)
    +stepIds.map(s=>'&pipelineStepIds%5B%5D='+id(s)).join('')+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
   stepOpportunities:(pipelineId,stepId,status,page)=>get('/opportunity?pipelineId='+id(pipelineId)+'&pipelineStepId='+id(stepId)
    +'&pageNumber='+Number(page)+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
   // API externa: lista paginada {data,count,hasMore}, sem funil. Lê até 10 páginas e para se a página vier repetida (rota que ignora a paginação).
-  opportunities:async()=>{
+  // Com um status só, filtra como o motor da IA faz (?status=open).
+  opportunities:async(status='')=>{
    const todas=[],vistos=new Set();let total=0,mais=false;
    for(let p=1;p<=10;p++){
-    const b=await get(ext(api+'/opportunities')+(p>1?'?pageNumber='+p:''));
+    const q=[status?'status='+id(status):'',p>1?'pageNumber='+p:''].filter(Boolean).join('&');
+    const b=await get(ext(api+'/opportunities')+(q?'?'+q:''));
     const novas=(pickList(b)||[]).filter(o=>o&&!vistos.has(String(o.id)));novas.forEach(o=>vistos.add(String(o.id)));todas.push(...novas);
     total=Number(b?.count)||total;mais=b?.hasMore===true;
     if(!mais||!novas.length)break;
@@ -103,7 +106,13 @@ export function normalizeItems(list){
 export async function lerFunil(c,{funil='',status='open'}={}){
  const st=status==='all'?['open','won','lost']:[status];
  try{
-  const funis=(pickList(await c.pipelines())||[]).filter(f=>f&&f.id!=null&&Array.isArray(f.steps));
+  let funis=(pickList(await c.pipelines())||[]).filter(f=>f&&f.id!=null);
+  // funis vindos sem as etapas: busca as etapas à parte e separa por funil
+  if(funis.length&&!funis.some(f=>Array.isArray(f.steps)&&f.steps.length)){
+   const passos=pickList(await c.screenPipelineSteps())||[];
+   funis=funis.map(f=>({...f,steps:passos.filter(s=>String(s?.pipelineId)===String(f.id))}));
+  }
+  funis=funis.filter(f=>Array.isArray(f.steps));
   if(!funis.length)throw new ChatApiError('CHAT_NO_PIPELINES');
   const f=funis.find(x=>String(x.id)===String(funil))||funis.find(x=>x.isDefault)||funis[0];
   const etapas=[...f.steps].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
@@ -120,9 +129,15 @@ export async function lerFunil(c,{funil='',status='open'}={}){
    if(mais)incompleto=true;
   }));
   return {funis:funis.map(x=>({id:x.id,name:x.name,color:x.color})),funil:String(f.id),etapas,lista:[...todas.values()],totais,incompleto};
- }catch{
-  const [etapas,opp]=await Promise.all([c.pipelineSteps().then(pickList),c.opportunities()]);
-  return {funis:[],funil:'',etapas,lista:opp.list,totais:{},incompleto:opp.hasMore};
+ }catch(erroTela){
+  try{
+   const [etapas,opp]=await Promise.all([c.pipelineSteps().then(pickList),c.opportunities(status==='all'?'':status)]);
+   return {funis:[],funil:'',etapas,lista:opp.list,totais:{},incompleto:opp.hasMore};
+  }catch(e){
+   // as duas formas falharam: o erro diz o que cada uma respondeu, para achar a causa
+   if(e.code==='CHAT_UNAUTHORIZED')throw e;
+   throw new ChatApiError('CHAT_REQUEST_FAILED',502,'funis '+(erroTela.http||erroTela.code||'erro')+', lista '+(e.http||e.code||'erro'));
+  }
  }
 }
 // Oportunidade para a tela do funil: só o que o cartão mostra (sem e-mail, endereço nem dados internos do contato).
