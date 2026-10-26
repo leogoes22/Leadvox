@@ -202,7 +202,7 @@ const LISTA = {
   usuarios: ['Seus usuários aparecem aqui', 'Quem atende na sua LeadVox. A IA passa o cliente para a pessoa certa.'],
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
   motivos: ['Motivos de fechamento', 'Ex.: comprou, sem interesse, sem resposta. A IA marca o motivo quando o atendimento termina.'],
-  arquivos: ['Os arquivos ficam na base de conhecimento', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp.']
+  arquivos: ['Arquivos da IA chegam na próxima etapa', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp. Enquanto isso, preencha a base de conhecimento.']
 };
 const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
@@ -218,9 +218,6 @@ function abrirApp(pg) {
   const nicho = NICHOS[cfg.niche] || NICHOS.outro, nome = cfg.displayName || empresa.name;
   const fim = empresa.trial_ends_at ? new Date(empresa.trial_ends_at) : null;
   $('rodape').innerHTML = `<b style="color:var(--texto)">${esc(nome)}</b><br>${esc(nicho.n)}${fim ? '<br>Teste até ' + fim.toLocaleDateString('pt-BR') : ''}`;
-  const url = cfg.niche === 'automotivo' ? 'https://leadvox.com.br/sdr/' : 'https://leadvox.com.br/agente-ia.html';
-  if ($('iaFrame').dataset.src !== url) { $('iaFrame').dataset.src = url; $('iaFrame').removeAttribute('src'); }
-  $('iaCheia').href = url;
   $('cfNome').value = cfg.displayName || ''; $('cfNome').placeholder = empresa.name;
   $('cfNicho').value = cfg.niche || 'outro'; $('cfIa').value = cfg.aiName || ''; $('cfZap').value = cfg.whatsapp || '';
   $('cfCobr').checked = !!cfg.billingEnabled;
@@ -228,7 +225,8 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   motor = null; agSel = null; agDados = null; desenharMenu();
-  carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); }).catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); });
+  carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
+    .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); });
   fin = null; chat = null; listas = {}; conexoes = null;
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
@@ -246,7 +244,7 @@ function abrir(pg) {
   if (LISTA[pg]) desenharLista(pg);
   if (pg === 'credenciais') { desenharCred(); desenharConexoes(); }
   if (pg === 'agentes') desenharMotor();
-  if (pg === 'conhecimento' && !$('iaFrame').getAttribute('src')) $('iaFrame').src = $('iaFrame').dataset.src;
+  if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
   $('lateral').classList.remove('aberta');
@@ -379,6 +377,142 @@ $('agIdentidade').onsubmit = async e => {
   } catch (err) { if (!err.status) toast(err.message, true); desenharAgente(); }
   finally { bt.disabled = false; }
 };
+
+/* base de conhecimento: os campos empresa, horário, conhecimento e preços que o motor já põe no roteiro da IA */
+let kSujo = false;
+const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
+const SEGMENTOS = ['Loja de veículos', 'Locação', 'Atacado / distribuidora', 'Varejo', 'Clínica / saúde', 'Beleza e estética', 'Alimentação', 'Imobiliária', 'Educação', 'Serviços / manutenção', 'Eventos', 'Tecnologia', 'Igreja / associação'];
+const op = (v, t, d) => ({ v, t, d });
+const radios = (nome, opcoes, atual) => `<div class="opcoes" role="radiogroup">${opcoes.map(o => `<label class="opcao"><input type="radio" name="${nome}" value="${esc(o.v)}" ${o.v === atual ? 'checked' : ''}><span>${esc(o.t)}${o.d ? `<small>${esc(o.d)}</small>` : ''}</span></label>`).join('')}</div>`;
+const radioVal = nome => document.querySelector(`#kForm input[name="${nome}"]:checked`)?.value || '';
+const kv = id => $(id).value.trim();
+let kUid = 0;
+function campoK(c, val) {
+  const id = 'kc' + (++kUid), comum = `id="${id}" data-c="${c.k}" maxlength="${c.max || 200}" placeholder="${esc(c.ph || '')}"`;
+  return `<label for="${id}">${c.rot}</label>` + (c.tipo === 'textarea' ? `<textarea ${comum}>${esc(val)}</textarea>` : `<input ${comum} value="${esc(val)}">`);
+}
+// Lista editável (endereços, perguntas, preços…): guarda os itens no próprio elemento e devolve com el._ler().
+function listaK(el, itens, campos, opts = {}) {
+  itens = itens.map(x => typeof x === 'object' ? { ...x } : x);
+  const ler = () => {
+    el.querySelectorAll('.linha-lista').forEach(row => {
+      const i = +row.dataset.i, obj = {};
+      row.querySelectorAll('[data-c]').forEach(inp => obj[inp.dataset.c] = inp.value.trim());
+      itens[i] = opts.simples ? obj[campos[0].k] : { ...itens[i], ...obj };
+    });
+    return itens;
+  };
+  const desenhar = () => {
+    el.innerHTML = itens.map((it, i) => `<div class="linha-lista" data-i="${i}"><button type="button" class="tirar" aria-label="Remover" data-tirar="${i}">×</button>
+      ${opts.grade ? `<div class="${opts.grade}">` : ''}${campos.map(c => `<div>${campoK(c, typeof it === 'object' ? it[c.k] : it)}</div>`).join('')}${opts.grade ? '</div>' : ''}</div>`).join('')
+      + (itens.length < (opts.max || 50) ? `<button type="button" class="leve" data-mais>+ ${opts.rotMais || 'Adicionar'}</button>` : '');
+    el.querySelectorAll('[data-tirar]').forEach(b => b.onclick = () => { ler(); itens.splice(+b.dataset.tirar, 1); desenhar(); marcarK(); });
+    const m = el.querySelector('[data-mais]');
+    if (m) m.onclick = () => { ler(); itens.push(opts.simples ? '' : {}); desenhar(); marcarK(); el.querySelector('.linha-lista:last-of-type input, .linha-lista:last-of-type textarea')?.focus(); };
+  };
+  desenhar(); el._ler = () => ler().filter(x => typeof x === 'object' ? Object.values(x).some(v => String(v ?? '').trim()) : String(x).trim());
+}
+function marcarK() { kSujo = true; $('kSujo').textContent = 'Alterações não salvas.'; $('kSujo').style.color = 'var(--amarelo)'; }
+function limparK() { kSujo = false; $('kSujo').textContent = 'Tudo salvo.'; $('kSujo').style.color = ''; }
+
+async function abrirConhecimento() {
+  const topo = $('kTopo');
+  if (!motor) { topo.innerHTML = '<p class="muted">Carregando sua IA…</p>'; $('kForm').hidden = true; return; }
+  const ags = motor.agentes || [];
+  if (motor.setupPending || !motor.vinculado || !ags.length) {
+    topo.innerHTML = `<div class="vazio"><b>Primeiro crie o seu agente de IA</b>A base de conhecimento é o que o agente sabe sobre a sua empresa.<br><button type="button" data-ir="agentes">Ir para Agentes LeadVox IA</button></div>`;
+    ligarIr(topo); $('kForm').hidden = true; return;
+  }
+  if (kSujo && !$('kForm').hidden) return;            // voltou para a página: mantém o que não foi salvo
+  if (!agSel || !ags.some(a => a.chave === agSel)) await abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
+  if (!agDados) return;
+  desenharConhecimento();
+}
+
+function desenharConhecimento() {
+  const ags = motor.agentes || [], c = agDados.config;
+  $('kTopo').innerHTML = `<div class="lista-topo"><div><h3>O que a IA sabe</h3><p class="muted" style="margin-top:4px">Ela só responde com o que estiver aqui. O que não souber, passa para a sua equipe.</p></div>
+      ${ags.length > 1 ? `<div><label for="kAgente" style="margin:0 0 4px;font-size:13px">Agente</label><select id="kAgente" style="width:auto">${ags.map(a => `<option value="${esc(a.chave)}" ${a.chave === agSel ? 'selected' : ''}>${esc(a.nome || 'Agente sem nome')}</option>`).join('')}</select></div>` : ''}</div>
+    <div class="checklist" id="kCheck"></div>`;
+  if ($('kAgente')) $('kAgente').onchange = async e => {
+    if (kSujo && !confirm('Você tem alterações não salvas. Trocar de agente mesmo assim?')) { e.target.value = agSel; return; }
+    await abrirAgenteMotor(e.target.value); desenharConhecimento();
+  };
+  const ehAgenda = agDados.tipo === 'agendamento' || agDados.tipo === 'agenda';
+  $('kPaineis').innerHTML = `
+    <div class="card" data-kp="empresa"><h3>Empresa</h3><p class="muted">O que a IA precisa saber sobre o negócio.</p>
+      <div class="duas"><div><label for="kNome">Nome da empresa</label><input id="kNome" maxlength="80" value="${esc(c.empresa.nome)}"></div>
+        <div><label for="kSeg">Segmento</label><input id="kSeg" maxlength="60" list="kSegs" value="${esc(c.empresa.segmento)}" placeholder="Ex.: loja de veículos seminovos">
+        <datalist id="kSegs">${SEGMENTOS.map(s => `<option value="${s}">`).join('')}</datalist></div></div>
+      <label for="kDesc">O que a empresa faz</label><textarea id="kDesc" maxlength="1500" placeholder="Produtos, serviços, há quanto tempo, onde atende…">${esc(c.empresa.descricao)}</textarea>
+      <label for="kPub">Quem é o cliente <small>(ex.: quem procura o primeiro carro, empresas, pessoa física…)</small></label><input id="kPub" maxlength="300" value="${esc(c.empresa.publico)}">
+      <label for="kDif">Diferenciais <small>(a IA usa para convencer)</small></label><textarea id="kDif" maxlength="600" style="min-height:70px">${esc(c.empresa.diferenciais)}</textarea>
+      <div class="duas"><div><label for="kSite">Site</label><input id="kSite" maxlength="400" placeholder="https://" value="${esc(c.empresa.site)}"></div>
+        <div><label for="kInsta">Instagram</label><input id="kInsta" maxlength="120" placeholder="@empresa" value="${esc(c.empresa.instagram)}"></div></div>
+      <label for="kCatLink">Link de catálogo externo <small>(opcional, ex.: catálogo do WhatsApp)</small></label><input id="kCatLink" maxlength="400" placeholder="https://" value="${esc(c.empresa.linkCatalogo)}">
+      <h3 style="margin-top:20px">Endereços</h3><p class="muted">Lojas ou unidades. A IA só informa os endereços daqui.</p><div id="kUnid"></div></div>
+    <div class="card" data-kp="horario" hidden><h3>Horário da equipe</h3><p class="muted">A IA responde 24h. O horário define quando a sua equipe atende.</p>
+      <div style="margin-top:10px">${DIAS.map(([k, n]) => { const d = c.horario.dias?.[k]; return `<div class="dia"><label><input type="checkbox" data-dia="${k}" ${d ? 'checked' : ''}> ${n}</label>
+        <input type="time" aria-label="${n}, abre" data-abre="${k}" value="${d ? d.abre : '08:00'}" ${d ? '' : 'disabled'}><input type="time" aria-label="${n}, fecha" data-fecha="${k}" value="${d ? d.fecha : '18:00'}" ${d ? '' : 'disabled'}></div>`; }).join('')}</div>
+      <label>Fora do horário</label>${radios('kFora', [op('responde_avisa', 'A IA atende e avisa que a equipe retorna no próximo horário'), op('responde', 'A IA atende normalmente, sem falar de horário')], c.horario.foraDoHorario)}</div>
+    <div data-kp="perguntas" hidden>
+      <div class="card" style="margin-top:0"><h3>Perguntas frequentes</h3><p class="muted">O que os clientes sempre perguntam, com a resposta certa.</p><div id="kFaq"></div></div>
+      <div class="card"><h3>Respostas oficiais</h3><p class="muted">Assuntos delicados em que a IA <b>não pode improvisar</b> (garantia, troca, prazo, documentação…). Ela responde exatamente isso.</p><div id="kOfi"></div></div>
+      <div class="card"><h3>O que a IA nunca pode falar</h3><p class="muted">Ex.: "não prometer prazo de entrega", "não dar desconto", "não falar de concorrente".</p><div id="kProib"></div></div>
+      <div class="card"><h3>Informações extras</h3><label for="kExtra">Tudo mais que a IA deve saber <small>(políticas, regras, observações)</small></label><textarea id="kExtra" maxlength="4000" style="min-height:140px">${esc(c.conhecimento.extra)}</textarea></div>
+    </div>
+    <div class="card" data-kp="precos" hidden><h3>${ehAgenda ? 'Serviços e preços' : 'Preços'}</h3>
+      <label>A IA pode falar preço?</label>${radios('kPol', [op('livre', 'Sim, o valor exato'), op('a_partir', 'Só "a partir de"', 'O valor final a equipe confirma'), op('nao_fala', 'Não', 'Ela diz que a equipe passa o valor')], c.precos.politica)}
+      <p class="muted" style="margin-top:14px">${ehAgenda ? 'Serviços que você oferece:' : 'Lista de preços:'}</p><div id="kPrec"></div></div>`;
+  listaK($('kUnid'), c.empresa.unidades || [], [{ k: 'nome', rot: 'Nome', ph: 'Ex.: Matriz', max: 60 }, { k: 'endereco', rot: 'Endereço', max: 200 }, { k: 'mapa', rot: 'Link do Google Maps', ph: 'https://', max: 400 }], { rotMais: 'Adicionar endereço', max: 10 });
+  listaK($('kFaq'), c.conhecimento.faq || [], [{ k: 'p', rot: 'Pergunta', max: 200, ph: 'Ex.: Vocês aceitam carro na troca?' }, { k: 'r', rot: 'Resposta', tipo: 'textarea', max: 1000 }], { rotMais: 'Adicionar pergunta', max: 60 });
+  listaK($('kOfi'), c.conhecimento.oficiais || [], [{ k: 'tema', rot: 'Assunto', max: 120, ph: 'Ex.: garantia' }, { k: 'resposta', rot: 'Resposta oficial', tipo: 'textarea', max: 1500 }], { rotMais: 'Adicionar resposta oficial', max: 20 });
+  listaK($('kProib'), c.conhecimento.proibido || [], [{ k: 'v', rot: 'Regra', max: 300 }], { rotMais: 'Adicionar regra', max: 20, simples: true });
+  listaK($('kPrec'), c.precos.lista || [], [{ k: 'nome', rot: 'Produto ou serviço', max: 120 }, { k: 'preco', rot: 'Preço', max: 40, ph: 'R$ 0,00' }, { k: 'obs', rot: 'Observação', max: 200 }], { rotMais: 'Adicionar', max: 60, grade: 'tres' });
+  document.querySelectorAll('#kPaineis [data-dia]').forEach(cb => cb.onchange = () => { const k = cb.dataset.dia; $('kPaineis').querySelector(`[data-abre="${k}"]`).disabled = $('kPaineis').querySelector(`[data-fecha="${k}"]`).disabled = !cb.checked; });
+  $('kForm').hidden = false; limparK(); desenharCheck(c);
+}
+
+// Checklist do que já foi preenchido (baseado no checklist de onboarding do prompt).
+function desenharCheck(c) {
+  const itens = [['O que a empresa faz', c.empresa.descricao], ['Quem é o cliente', c.empresa.publico], ['Diferenciais', c.empresa.diferenciais],
+    ['Endereço', (c.empresa.unidades || []).length], ['Horário da equipe', Object.values(c.horario.dias || {}).some(Boolean)],
+    ['3 ou mais perguntas frequentes', (c.conhecimento.faq || []).length >= 3], ['Respostas oficiais', (c.conhecimento.oficiais || []).length],
+    ['Preços ou política de preço', c.precos.politica === 'nao_fala' || (c.precos.lista || []).length]];
+  const feitos = itens.filter(i => i[1]).length;
+  $('kCheck').innerHTML = `<b style="grid-column:1/-1;font-size:13px;color:var(--suave)">${feitos} de ${itens.length} itens preenchidos</b>`
+    + itens.map(([n, ok]) => `<span class="${ok ? 'ok' : ''}">${n}</span>`).join('');
+}
+
+function lerConhecimento() {
+  const c = agDados.config, dias = {};
+  document.querySelectorAll('#kPaineis [data-dia]').forEach(cb => { const k = cb.dataset.dia; dias[k] = cb.checked ? { abre: $('kPaineis').querySelector(`[data-abre="${k}"]`).value, fecha: $('kPaineis').querySelector(`[data-fecha="${k}"]`).value } : null; });
+  return { ...c,
+    empresa: { ...c.empresa, nome: kv('kNome'), segmento: kv('kSeg'), descricao: kv('kDesc'), publico: kv('kPub'), diferenciais: kv('kDif'), site: kv('kSite'), instagram: kv('kInsta'), linkCatalogo: kv('kCatLink'), unidades: $('kUnid')._ler() },
+    horario: { ...c.horario, dias, foraDoHorario: radioVal('kFora') || 'responde_avisa' },
+    conhecimento: { ...c.conhecimento, faq: $('kFaq')._ler(), oficiais: $('kOfi')._ler(), proibido: $('kProib')._ler(), extra: kv('kExtra') },
+    precos: { ...c.precos, politica: radioVal('kPol') || 'a_partir', lista: $('kPrec')._ler() } };
+}
+
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  document.querySelectorAll('[data-kp]').forEach(p => p.hidden = p.dataset.kp !== b.dataset.k);
+});
+$('kForm').addEventListener('input', marcarK);
+$('kForm').addEventListener('change', marcarK);
+$('kForm').onsubmit = async e => {
+  e.preventDefault(); if (!agDados) return;
+  const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
+  try {
+    const config = lerConhecimento();
+    if (!config.empresa.nome) throw Error('Informe o nome da empresa.');
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+    agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
+    limparK(); desenharCheck(config); desenharAgente(); toast('Base de conhecimento salva. A IA já usa na próxima mensagem.');
+  } catch (err) { if (!err.status) toast(err.message, true); }
+  finally { bt.disabled = false; }
+};
+addEventListener('beforeunload', e => { if (kSujo) e.preventDefault(); });
 
 /* conexão com a LeadVox: credenciais e listas */
 let chat = null, listas = {};

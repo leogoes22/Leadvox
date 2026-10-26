@@ -182,9 +182,17 @@
     </section>
 
     <section id="vConhecimento" hidden>
-      <div class="moldura-topo"><span class="muted" id="iaNota">Por enquanto a base de conhecimento ainda pede o login dela.</span>
-        <a class="bt sm" id="iaCheia" href="#" target="_blank" rel="noopener">Abrir em tela cheia ↗</a></div>
-      <div class="moldura"><iframe title="Base de conhecimento da sua IA" id="iaFrame"></iframe></div>
+      <div class="card" id="kTopo" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+      <form id="kForm" hidden>
+        <nav class="sub-abas" id="kAbas" aria-label="Base de conhecimento">
+          <button type="button" data-k="empresa" aria-pressed="true">Empresa</button>
+          <button type="button" data-k="horario">Horário</button>
+          <button type="button" data-k="perguntas">Perguntas e regras</button>
+          <button type="button" data-k="precos">Preços</button>
+        </nav>
+        <div id="kPaineis"></div>
+        <div class="salvar-barra"><span class="muted" id="kSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar base de conhecimento</button></div>
+      </form>
     </section>
 
     <section id="vLista" hidden>

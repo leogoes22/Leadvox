@@ -178,3 +178,27 @@ textarea { min-height: 90px; resize: vertical; }
 .sec-tit { font-size: 16px; margin: 26px 0 0; color: var(--suave); }
 .tipos.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 640px) { .tipos.tres { grid-template-columns: 1fr; } }
+
+/* base de conhecimento (mesmos componentes do agente-ia.html) */
+.tres { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 12px; }
+@media (max-width: 520px) { .tres { grid-template-columns: 1fr; } }
+.opcoes { display: grid; gap: 8px; margin-top: 6px; }
+.opcao { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; cursor: pointer; font-weight: 400; margin: 0; }
+.opcao input { width: auto; margin-top: 3px; }
+.opcao:has(input:checked) { border-color: var(--verde); background: var(--verde-fundo); }
+.opcao span small { display: block; color: var(--suave); }
+.linha-lista { border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 40px 12px 12px; margin-top: 10px; position: relative; background: var(--navy); }
+.linha-lista .tirar { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: var(--suave); font-size: 20px; padding: 2px 8px; }
+.linha-lista label { margin-top: 8px; }
+.linha-lista > div:first-of-type > label:first-child, .linha-lista .tres > div > label:first-child { margin-top: 0; }
+.linha-lista input, .linha-lista textarea { background: var(--painel); }
+.dia { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--linha); }
+.dia:first-of-type { border-top: 0; }
+.dia label { margin: 0; display: flex; gap: 8px; align-items: center; font-weight: 400; }
+.dia input[type=checkbox] { width: 18px; height: 18px; }
+.dia input[type=time]:disabled { opacity: .35; }
+.checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; margin-top: 10px; font-size: 13.5px; }
+.checklist span { color: var(--suave); } .checklist span::before { content: "○ "; }
+.checklist span.ok { color: var(--texto); } .checklist span.ok::before { content: "✓ "; color: var(--verde); }
+.salvar-barra { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 14px; padding: 12px 0; background: var(--navy); border-top: 1px solid var(--linha); }
