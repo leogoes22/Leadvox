@@ -1,4 +1,4 @@
-import {randomBytes} from 'node:crypto';
+import {randomBytes,createHash} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
@@ -44,7 +44,7 @@ export function cleanSettings(input){
  return out;
 }
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
- const attempts=new Map(),testesGrupo=new Map(); // testesGrupo: um teste de grupo a cada 20 s por empresa
+ const attempts=new Map(),testesGrupo=new Map(),simulacoes=new Map(); // testesGrupo: um teste de grupo a cada 20 s; simulacoes: uma mensagem de teste por vez
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
   let r;try{r=await fetchImpl(URL_BASE+route,{method,headers:{apikey:KEY,Authorization:'Bearer '+(token||KEY),'Content-Type':'application/json',Prefer:prefer},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});}catch{throw {status:503,message:'Serviço temporariamente indisponível.'};}
@@ -179,6 +179,27 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null}),true;
     }
     send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null});
+   }else if(action==='simular'&&req.method==='POST'){
+    // "Testar a IA": manda a mensagem para o motor de simulação (mesma IA, sem enviar nada para a LeadVox) e devolve o que ela responderia e faria.
+    const org=body.organization,agente=String(body.agente||''),mensagem=typeof body.mensagem==='string'?body.mensagem.trim().slice(0,2000):'',sessao=String(body.sessao||'');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(!/^[a-z0-9-]{3,120}$/.test(agente)||!mensagem||!/^[a-z0-9]{6,24}$/.test(sessao))throw {status:400,message:'Escreva a mensagem do teste.'};
+    const agora=Date.now();if(agora-(simulacoes.get(org)||0)<1500)throw {status:429,message:'Calma: espere a resposta da IA.'};
+    simulacoes.set(org,agora);if(simulacoes.size>5000)simulacoes.clear();
+    let ev,st;try{[ev,st]=await Promise.all([upstream('/rest/v1/rpc/lv_motor_eventos',{method:'POST',token:authToken,body:{org}}),upstream('/rest/v1/rpc/lv_motor_status',{method:'POST',token:authToken,body:{org}})]);}
+    catch{throw {status:400,message:'Só o dono da empresa pode testar a IA (ou falta liberar no banco).'};}
+    if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000)});}catch{}
+     throw {status:400,message:'A sua IA ainda está sendo preparada. Tente de novo em 1 minuto.'};}
+    const ag=(st?.agentes||[]).find(a=>a.chave===agente);if(!ag)throw {status:400,message:'Agente não encontrado.'};
+    // telefone de mentira e fixo por teste: a conversa tem memória própria e nunca cai no WhatsApp de ninguém
+    const tel='55000'+String(parseInt(createHash('sha256').update(org+':'+sessao).digest('hex').slice(0,12),16)).slice(0,8).padStart(8,'0');
+    let r;try{r=await fetchImpl(N8N_WEBHOOK+'iag-simulador?k='+encodeURIComponent(ev.conta)+'&t='+ev.token,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({sessionId:tel,chatInput:mensagem,Departamento:ag.departamentoId||null,ticketId:'',nomeContato:'Teste do painel',simulacao:true})});}
+    catch{throw {status:502,message:'A IA demorou demais para responder. Tente de novo.'};}
+    const d=await r.json().catch(()=>null);
+    if(!d||!r.ok)return send(res,200,{ok:false,envios:[],aviso:'A IA não respondeu. Confira se o agente está ligado e em qual departamento ele atende (aba Identidade).'}),true;
+    send(res,200,{ok:d.ok!==false,agente:String(d.agente||'').slice(0,60),envios:(Array.isArray(d.envios)?d.envios:[]).slice(0,10).map(e=>({texto:String(e.texto||'').slice(0,4000),midia:/^https:\/\//.test(e.midia||'')?String(e.midia):'',fila:e.fila||null,vendedor:e.vendedor||null})),
+     transf:d.transf||null,nota:String(d.nota||'').slice(0,3000),acoes:d.acoes||{},etiquetas:Array.isArray(d.etiquetas)?d.etiquetas.slice(0,20):[],aviso:d.aviso?String(d.aviso).slice(0,300):''});
    }else if(action==='grupo-teste'&&req.method==='POST'){
     // Manda uma mensagem de teste para o grupo do WhatsApp pela conexão LeadVox da empresa (grupo = id + @g.us).
     const org=body.organization,grupo=String(body.grupo??'').replace(/@.*/,'').replace(/\D/g,'');

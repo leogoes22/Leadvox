@@ -114,6 +114,7 @@
         <div>
           <nav class="sub-abas" id="agAbas" aria-label="Agente" style="padding-top:0">
             <button type="button" data-ag="identidade">Identidade</button>
+            <button type="button" data-ag="testar">💬 Testar a IA</button>
             <button type="button" data-ag="comportamento">Comportamento</button>
             <button type="button" data-ag="multimodal">Multimodal</button>
             <button type="button" data-ag="canais">Canais e gatilhos</button>
@@ -140,6 +141,13 @@
               <button type="button" class="switch" role="switch" aria-checked="false" id="idAtivo" aria-label="Agente ativo"><span></span></button></div>
             <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
           </form>
+          <div class="card" id="agTestar" data-agp="testar" hidden>
+            <div class="lista-topo"><div><h3>Testar a IA</h3><p class="muted" style="margin-top:2px">Converse como se fosse um cliente. Nada vai para o WhatsApp, a LeadVox nem o funil.</p></div>
+              <button type="button" class="sm" id="tsNovo">Começar de novo</button></div>
+            <div class="ts-chat" id="tsChat" aria-live="polite"></div>
+            <form class="ts-envio" id="tsForm"><input id="tsMsg" maxlength="2000" autocomplete="off" placeholder="Escreva como o cliente escreveria…" aria-label="Mensagem de teste"><button class="principal" type="submit">Enviar</button></form>
+            <p class="muted" style="font-size:12.5px;margin-top:8px">Usa a configuração salva do agente. Mudou algo nas outras abas? Salve antes de testar.</p>
+          </div>
           <form id="agComportamento" data-agp="comportamento" hidden>
             <div class="card">
               <h3>Como a IA responde</h3>

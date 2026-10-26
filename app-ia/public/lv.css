@@ -256,6 +256,20 @@ textarea { min-height: 90px; resize: vertical; }
 .pronto-lista .falta { color: var(--amarelo); font-weight: 700; }
 .pronto-lista small { display: block; color: var(--suave); font-size: 12.5px; }
 
+/* testar a IA */
+.ts-chat { margin-top: 12px; background: #0b141a; border: 1px solid var(--linha); border-radius: 12px; padding: 12px; min-height: 260px; max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.ts-chat .vazio-ts { color: var(--suave); font-size: 14px; text-align: center; margin: auto; padding: 20px; }
+.ts-b { max-width: 85%; padding: 8px 11px; border-radius: 10px; font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; }
+.ts-b.cli { align-self: flex-end; background: #005c4b; color: #e9edef; border-top-right-radius: 2px; }
+.ts-b.ia { align-self: flex-start; background: #202c33; color: #e9edef; border-top-left-radius: 2px; }
+.ts-b img { display: block; max-width: 240px; width: 100%; border-radius: 8px; margin-bottom: 6px; }
+.ts-faz { align-self: flex-start; max-width: 85%; font-size: 12.5px; color: var(--suave); border: 1px dashed var(--linha); border-radius: 8px; padding: 6px 10px; }
+.ts-faz b { color: var(--texto); font-weight: 600; }
+.ts-faz span { display: inline-block; margin: 2px 4px 2px 0; padding: 0 8px; border-radius: 99px; border: 1px solid rgba(43,232,123,.4); color: var(--verde); }
+.ts-digitando { align-self: flex-start; color: var(--suave); font-size: 13px; font-style: italic; }
+.ts-envio { display: flex; gap: 8px; margin-top: 10px; }
+.ts-envio input { flex: 1; }
+
 /* regras com @ */
 .rg-caixa { position: relative; margin-top: 12px; }
 .rg-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; margin-top: 4px; max-height: 280px; overflow-y: auto;

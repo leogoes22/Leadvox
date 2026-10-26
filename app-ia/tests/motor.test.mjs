@@ -102,3 +102,21 @@ test('events webhook address is built from the account token, or asks n8n to cre
  token=null;const r=await get();assert.equal(r.pendente,true);assert.equal(r.url,undefined);
  assert.ok(chamadas.some(u=>u.endsWith('/webhook/iag-painel-endereco')));
 });
+test('test chat sends the message to the simulator with a fake phone and the agent department',async t=>{
+ const envios=[];
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_motor_eventos'))return ok({vinculado:true,conta:'loja-teste-ab12',token:'0123456789abcdef01234567'});
+  if(u.includes('/rpc/lv_motor_status'))return ok({vinculado:true,agentes:[{chave:'loja-teste-ab12-x',departamentoId:66}]});
+  if(u.includes('/webhook/iag-simulador')){envios.push({u,b:JSON.parse(init.body)});return ok({ok:true,agente:'Lilian',envios:[{texto:'Oi!',midia:'javascript:alert(1)'}],etiquetas:['Quente']});}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=x'};
+ const post=b=>fetch(base+'/api/account/simular',{method:'POST',headers:h,body:JSON.stringify({organization:org,agente:'loja-teste-ab12-x',sessao:'abc12345',...b})});
+ assert.equal((await post({mensagem:''})).status,400);
+ const r=await post({mensagem:'Tem Corolla?'});assert.equal(r.status,200);const d=await r.json();
+ assert.equal(d.envios[0].texto,'Oi!');assert.equal(d.envios[0].midia,'');assert.deepEqual(d.etiquetas,['Quente']);
+ assert.match(envios[0].u,/iag-simulador\?k=loja-teste-ab12&t=0123456789abcdef01234567$/);
+ assert.equal(envios[0].b.Departamento,66);assert.equal(envios[0].b.simulacao,true);assert.match(envios[0].b.sessionId,/^55000\d{8}$/);
+});

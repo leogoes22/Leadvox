@@ -535,6 +535,56 @@ $('kForm').onsubmit = async e => {
 };
 addEventListener('beforeunload', e => { if (kSujo || rgSujo || cpSujo) e.preventDefault(); });
 
+// "Testar a IA": conversa com o agente pelo motor de simulação (nada vai para o WhatsApp nem para a LeadVox)
+let tsSessao = '', tsAgente = null;
+const novaSessao = () => { tsSessao = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => (b % 36).toString(36)).join(''); };
+function balao(classe, texto, midia) {
+  const b = document.createElement('div'); b.className = 'ts-b ' + classe;
+  if (midia) { const i = document.createElement('img'); i.src = midia; i.alt = ''; i.referrerPolicy = 'no-referrer'; i.onload = () => { $('tsChat').scrollTop = $('tsChat').scrollHeight; }; b.append(i); }
+  if (texto) b.append(document.createTextNode(texto.replace(/^\*([^*\n]+):\*\n/, '$1:\n')));
+  $('tsChat').append(b); return b;
+}
+// "O que a IA faria": etiquetas, etapa, origem, transferência, notas e avisos (só mostra, não executa)
+function oQueFaria(r) {
+  const itens = [], a = r.acoes || {};
+  (r.etiquetas || []).forEach(e => itens.push('Etiqueta: ' + e));
+  (a.tirar || []).forEach(e => itens.push('Tira etiqueta: ' + e));
+  if (a.etapa?.nome) itens.push('Etapa do funil: ' + a.etapa.nome);
+  if (a.origem?.nome) itens.push('Origem do lead: ' + a.origem.nome);
+  if (r.transf) itens.push('Passa para: ' + (r.transf.setor || 'equipe') + (r.transf.vendedor?.nome ? ' → ' + r.transf.vendedor.nome + ' (rodízio)' : '') + (r.transf.destAgente ? ' (agente ' + r.transf.destAgente + ')' : ''));
+  (a.notas || []).forEach(() => itens.push('Nota interna para a equipe'));
+  (a.avisos || []).forEach(() => itens.push('Aviso no grupo'));
+  if (!itens.length && !r.aviso) return;
+  const d = document.createElement('div'); d.className = 'ts-faz';
+  const t = document.createElement('b'); t.textContent = r.aviso ? r.aviso : 'Na conversa de verdade, a IA também faria: '; d.append(t);
+  itens.forEach(x => { const s = document.createElement('span'); s.textContent = x; d.append(s); });
+  $('tsChat').append(d);
+}
+function limparTeste() {
+  novaSessao(); tsAgente = agSel;
+  $('tsChat').innerHTML = '<div class="vazio-ts">Mande a primeira mensagem como se fosse um cliente chegando no WhatsApp.<br>Ex.: "Boa tarde, vocês têm Corolla?"</div>';
+}
+$('tsNovo').onclick = limparTeste;
+document.querySelector('[data-ag="testar"]').addEventListener('click', () => { if (tsAgente !== agSel) limparTeste(); setTimeout(() => $('tsMsg').focus(), 50); });
+$('tsForm').onsubmit = async e => {
+  e.preventDefault(); if (!agSel) return;
+  if (tsAgente !== agSel || !tsSessao) limparTeste();
+  const msg = $('tsMsg').value.trim(); if (!msg) return;
+  $('tsChat').querySelector('.vazio-ts')?.remove();
+  balao('cli', msg); $('tsMsg').value = '';
+  const dig = document.createElement('div'); dig.className = 'ts-digitando'; dig.textContent = (agDados?.config?.identidade?.nome || 'A IA') + ' está digitando…'; $('tsChat').append(dig);
+  $('tsChat').scrollTop = $('tsChat').scrollHeight;
+  const bt = e.currentTarget.querySelector('button'); bt.disabled = true;
+  try {
+    const r = await api('simular', { organization: empresa.id, agente: agSel, mensagem: msg, sessao: tsSessao });
+    dig.remove();
+    (r.envios || []).forEach(x => balao('ia', x.texto, x.midia));
+    if (!(r.envios || []).length && !r.aviso) r.aviso = 'A IA não respondeu nada a essa mensagem.';
+    oQueFaria(r);
+  } catch (err) { dig.remove(); const d = document.createElement('div'); d.className = 'ts-faz'; d.textContent = err.message; $('tsChat').append(d); }
+  finally { bt.disabled = false; $('tsChat').scrollTop = $('tsChat').scrollHeight; $('tsMsg').focus(); }
+};
+
 // "Mandar mensagem de teste": confere na hora se o número do grupo está certo
 document.querySelectorAll('[data-testar-grupo]').forEach(b => b.onclick = async () => {
   const grupo = $(b.dataset.testarGrupo).value.trim();
