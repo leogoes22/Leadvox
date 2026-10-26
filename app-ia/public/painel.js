@@ -355,7 +355,7 @@ function desenharAgente() {
   $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
   $('idAtivo').setAttribute('aria-checked', String(!!agDados.ativo));
-  desenharAcoes();
+  desenharAcoes(); desenharComportamento();
 }
 $('idAtivo').onclick = () => $('idAtivo').setAttribute('aria-checked', String($('idAtivo').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
@@ -516,7 +516,61 @@ $('kForm').onsubmit = async e => {
   } catch (err) { if (!err.status) toast(err.message, true); }
   finally { bt.disabled = false; }
 };
-addEventListener('beforeunload', e => { if (kSujo || rgSujo) e.preventDefault(); });
+addEventListener('beforeunload', e => { if (kSujo || rgSujo || cpSujo) e.preventDefault(); });
+
+/* comportamento: modelo, criatividade, espera, assinatura, follow-up, avisos e limites (campos que o motor lê) */
+let cpSujo = false, cpAgente = null;
+const TEMPOS = [[0, 'Desligado'], [15, '15 min'], [30, '30 min'], [60, '1 hora'], [120, '2 horas'], [240, '4 horas'], [1440, '1 dia'], [2880, '2 dias']];
+const sw = (id, on) => $(id).setAttribute('aria-checked', String(!!on));
+const ligado = id => $(id).getAttribute('aria-checked') === 'true';
+function desenharComportamento() {
+  if (!agDados || (cpSujo && cpAgente === agSel)) return;
+  cpAgente = agSel;
+  const c = agDados.config, cp = c.comportamento || {}, fu = c.followup || {}, av = c.avisos || {}, lim = (c.crm || {}).limiteIA || {};
+  $('cpModelo').value = cp.modelo || 'rapido'; $('cpCriat').value = cp.criatividade || 'equilibrada'; $('cpEspera').value = String(cp.espera || 10); sw('cpAssina', cp.assinatura);
+  sw('cpFu', fu.ativo);
+  const toques = Array.isArray(fu.toques) ? fu.toques : [];
+  $('cpToques').innerHTML = [0, 1, 2].map(i => { const t = toques[i] || {}, m = Number(t.minutos) || 0;
+    return `<div class="duas" style="grid-template-columns:150px minmax(0,1fr)"><div><label for="cpT${i}">${i + 1}ª tentativa, depois de</label><select id="cpT${i}">${TEMPOS.map(([v, n]) => `<option value="${v}" ${v === m ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <div><label for="cpTx${i}">Mensagem</label><input id="cpTx${i}" maxlength="400" value="${esc(t.texto || '')}" placeholder="Em branco: a IA escreve"></div></div>`; }).join('');
+  $('cpJIni').value = fu.janelaIni || '09:00'; $('cpJFim').value = fu.janelaFim || '20:00';
+  sw('cpRet', av.retomada?.ativo); $('cpRetTxt').value = av.retomada?.texto || '';
+  sw('cpGer', av.gerente?.ativo); $('cpGerZap').value = av.gerente?.whatsapp || ''; $('cpGerQuando').value = av.gerente?.quando || 'equipe';
+  sw('cpRes', av.resumo?.ativo); $('cpResZap').value = av.resumo?.whatsapp || ''; $('cpResHora').value = String(av.resumo?.hora || 19);
+  $('cpLimH').value = lim.hora || 25; $('cpLimD').value = lim.dia || 50;
+  mostrarFu(); limparCp();
+}
+const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); };
+function marcarCp() { cpSujo = true; $('cpSujo').textContent = 'Alterações não salvas.'; $('cpSujo').style.color = 'var(--amarelo)'; }
+function limparCp() { cpSujo = false; $('cpSujo').textContent = 'Tudo salvo.'; $('cpSujo').style.color = ''; }
+$('agComportamento').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarFu(); marcarCp(); });
+$('agComportamento').addEventListener('input', marcarCp);
+$('agComportamento').addEventListener('change', marcarCp);
+$('agComportamento').onsubmit = async e => {
+  e.preventDefault(); if (!agDados) return;
+  const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
+  try {
+    // aceita o número com ou sem 55 (DDD + número vira 55 + DDD + número)
+    const zap = id => { const d = $(id).value.replace(/\D/g, ''); return d.length === 10 || d.length === 11 ? '55' + d : d; }, zapOk = z => /^55\d{10,11}$/.test(z);
+    if (ligado('cpGer') && !zapOk(zap('cpGerZap'))) throw Error('WhatsApp do gerente: use 55 + DDD + número.');
+    if (ligado('cpRes') && !zapOk(zap('cpResZap'))) throw Error('WhatsApp do resumo: use 55 + DDD + número.');
+    const toques = [0, 1, 2].map(i => ({ minutos: Number($('cpT' + i).value), texto: $('cpTx' + i).value.trim() })).filter(t => t.minutos > 0).sort((a, b) => a.minutos - b.minutos);
+    if (ligado('cpFu') && !toques.length) throw Error('Escolha quando sai a 1ª tentativa do follow-up.');
+    const limH = Math.min(200, Math.max(5, Number($('cpLimH').value) || 25)), limD = Math.min(500, Math.max(limH, Number($('cpLimD').value) || 50));
+    const c = agDados.config;
+    const config = { ...c,
+      comportamento: { ...(c.comportamento || {}), modelo: $('cpModelo').value, criatividade: $('cpCriat').value, espera: Number($('cpEspera').value), assinatura: ligado('cpAssina') },
+      followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00' },
+      avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
+        gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
+        resumo: { ativo: ligado('cpRes'), whatsapp: zap('cpResZap'), hora: Number($('cpResHora').value) } },
+      crm: { ...(c.crm || {}), limiteIA: { hora: limH, dia: limD } } };
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+    agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
+    limparCp(); toast('Comportamento salvo. Vale a partir da próxima mensagem.');
+  } catch (err) { if (!err.status) toast(err.message, true); }
+  finally { bt.disabled = false; }
+};
 
 /* ações e regras: o cliente escreve as regras e digita @ para inserir a ação; o motor lê [CÓDIGO:valor] na resposta da IA */
 let rgSujo = false, rgAgente = null, rgSel = 0, rgOpcoes = [];

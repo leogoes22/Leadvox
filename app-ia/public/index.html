@@ -113,6 +113,7 @@
         <div>
           <nav class="sub-abas" id="agAbas" aria-label="Agente" style="padding-top:0">
             <button type="button" data-ag="identidade">Identidade</button>
+            <button type="button" data-ag="comportamento">Comportamento</button>
             <button type="button" data-ag="multimodal">Multimodal</button>
             <button type="button" data-ag="canais">Canais e gatilhos</button>
             <button type="button" data-ag="automacoes">Ações e regras</button>
@@ -132,6 +133,53 @@
             <div class="lin-sw" style="margin-top:12px"><span>Agente ativo<small>Desligado, a IA não responde ninguém.</small></span>
               <button type="button" class="switch" role="switch" aria-checked="false" id="idAtivo" aria-label="Agente ativo"><span></span></button></div>
             <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
+          </form>
+          <form id="agComportamento" data-agp="comportamento" hidden>
+            <div class="card">
+              <h3>Como a IA responde</h3>
+              <div class="duas">
+                <div><label for="cpModelo">Modelo</label><select id="cpModelo"><option value="rapido">Rápido e econômico</option><option value="inteligente">Mais inteligente (custa mais)</option></select></div>
+                <div><label for="cpCriat">Criatividade</label><select id="cpCriat"><option value="precisa">Precisa · segue o roteiro à risca</option><option value="equilibrada">Equilibrada</option><option value="criativa">Criativa · mais solta</option></select></div>
+              </div>
+              <label for="cpEspera">Tempo de espera antes de responder <small>(junta as mensagens que o cliente manda em seguida)</small></label>
+              <select id="cpEspera"><option value="5">5 segundos</option><option value="10">10 segundos</option><option value="15">15 segundos</option><option value="20">20 segundos</option><option value="30">30 segundos</option></select>
+              <div class="lin-sw" style="margin-top:12px"><span>Mostrar o nome da IA no começo da mensagem<small>Ex.: "*Carol:*" na primeira linha, como os atendentes da LeadVox.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpAssina" aria-label="Mostrar o nome da IA"><span></span></button></div>
+            </div>
+            <div class="card">
+              <h3>Quando o cliente para de responder</h3>
+              <div class="lin-sw"><span>Follow-up automático<small>A IA chama o cliente de novo, só dentro do horário abaixo e só enquanto ela está atendendo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpFu" aria-label="Follow-up automático"><span></span></button></div>
+              <div id="cpFuBox">
+                <div id="cpToques"></div>
+                <div class="duas"><div><label for="cpJIni">Mandar a partir de</label><input type="time" id="cpJIni" value="09:00"></div><div><label for="cpJFim">Até</label><input type="time" id="cpJFim" value="20:00"></div></div>
+                <p class="dica">Deixe a mensagem em branco para a IA escrever com base na conversa (ex.: lembrando do carro que o cliente viu).</p>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Avisos</h3>
+              <div class="lin-sw"><span>Retomar no dia seguinte<small>Se o cliente e a equipe ficaram quietos, a IA manda uma mensagem só, perto de 24 h depois.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpRet" aria-label="Retomar no dia seguinte"><span></span></button></div>
+              <input id="cpRetTxt" maxlength="400" placeholder="Mensagem (em branco = padrão: E aí, conseguiu resolver tudo? Sigo à disposição)">
+              <div class="lin-sw" style="margin-top:8px"><span>Avisar o gerente no WhatsApp<small>Quando a IA passa um cliente adiante, o gerente recebe quem é, para onde foi e o resumo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpGer" aria-label="Avisar o gerente"><span></span></button></div>
+              <div class="duas"><div><input id="cpGerZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
+                <div><select id="cpGerQuando" aria-label="Quando avisar"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <div class="lin-sw" style="margin-top:8px"><span>Resumo do dia<small>Quantos clientes a IA atendeu, quantos passou e para quem.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpRes" aria-label="Resumo do dia"><span></span></button></div>
+              <div class="duas"><div><input id="cpResZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
+                <div><select id="cpResHora" aria-label="Horário do resumo"><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option></select></div></div>
+            </div>
+            <div class="card">
+              <h3>Limites e equipe</h3>
+              <div class="duas">
+                <div><label for="cpLimH">Respostas da IA por contato, por hora</label><input id="cpLimH" type="number" min="5" max="200" inputmode="numeric"></div>
+                <div><label for="cpLimD">Por dia</label><input id="cpLimD" type="number" min="10" max="500" inputmode="numeric"></div>
+              </div>
+              <p class="muted" style="font-size:13px;margin-top:8px">Passou do limite, a IA para nesse contato e avisa a equipe (protege contra robôs e gasto).</p>
+              <p class="dica">Quando alguém da equipe escreve para o cliente, a IA <b>fica em silêncio</b> nessa conversa por 2 horas (renova a cada mensagem da equipe), mas continua lendo tudo. Para devolver à IA na hora, escreva <b>#ia</b> numa nota interna.</p>
+            </div>
+            <div class="salvar-barra"><span class="muted" id="cpSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar comportamento</button></div>
           </form>
           <div class="card" id="agMultimodal" data-agp="multimodal" hidden>
             <h3>Multimodal</h3>
