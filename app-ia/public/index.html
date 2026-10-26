@@ -229,24 +229,31 @@
           <div><label for="dIni">Início</label><input type="date" id="dIni"></div>
           <div><label for="dFim">Fim</label><input type="date" id="dFim"></div>
           <button class="principal" type="button" id="dAplicar">Aplicar</button>
+          <div class="periodos" role="group" aria-label="Período rápido"><button type="button" class="sm" data-dias="7">7 dias</button><button type="button" class="sm" data-dias="30">30 dias</button><button type="button" class="sm" data-dias="90">90 dias</button></div>
         </div>
-        <p class="alerta" id="dAviso">Os números aparecem quando a sua IA estiver ligada a este painel. Por enquanto a estrutura está pronta, sem dados.</p>
+        <p class="muted" id="dAtual" style="font-size:13px;margin-top:8px"></p>
+        <p class="alerta" id="dAviso" hidden></p>
       </div>
       <div class="grade">
-        <div class="met"><small>Conversas únicas</small><b data-d="conversas">—</b></div>
-        <div class="met"><small>Interações</small><b data-d="interacoes">—</b></div>
-        <div class="met"><small>Taxa de engajamento</small><b data-d="engajamento">—</b><span>respondem 2 ou mais vezes</span></div>
-        <div class="met"><small>Follow-up concluído</small><b data-d="followup">—</b></div>
+        <div class="met"><small>Conversas com a IA</small><b data-d="conversas">—</b><span>clientes diferentes por dia, somados</span></div>
+        <div class="met"><small>Clientes novos</small><b data-d="novos">—</b><span>nunca tinham falado com a IA</span></div>
+        <div class="met"><small>Passou para a equipe</small><b data-d="transferidos">—</b><span id="dTaxa">das conversas</span></div>
+        <div class="met"><small>Respostas da IA</small><b data-d="respostas">—</b><span id="dTeste"></span></div>
       </div>
       <div class="card">
-        <h3>Interações e contatos únicos por dia</h3>
-        <div class="vazio"><b>Sem dados no período</b>O gráfico aparece aqui, dia a dia.</div>
+        <h3>Conversas com a IA por dia</h3>
+        <div class="grafico" id="dGrafico"></div>
+        <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Ver em tabela</summary><div id="dTabela" style="overflow-x:auto"></div></details>
       </div>
       <div class="grade">
-        <div class="met"><small>Passou para humano</small><b data-d="humano">—</b><span>e para qual atendente</span></div>
-        <div class="met"><small>Custo total</small><b data-d="custo">—</b></div>
-        <div class="met"><small>Requisições de IA</small><b data-d="requisicoes">—</b></div>
-        <div class="met"><small>Custo por conversa</small><b data-d="custoConversa">—</b></div>
+        <div class="met"><small>Follow-ups enviados</small><b data-d="followups">—</b><span id="dRet">e recontatos</span></div>
+        <div class="met"><small>Passadas entre agentes</small><b data-d="passagens">—</b></div>
+        <div class="met"><small>Pedidos e orçamentos</small><b data-d="pedidos">—</b></div>
+        <div class="met"><small>Pausados por parecer robô</small><b data-d="robos">—</b><span>a IA parou e avisou a equipe</span></div>
+      </div>
+      <div class="duas-cards">
+        <div class="card"><h3>Para onde a IA passou</h3><div id="dSetores"></div></div>
+        <div class="card"><h3>Conversas por agente</h3><div id="dAgentes"></div></div>
       </div>
     </section>
 

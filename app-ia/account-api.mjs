@@ -156,6 +156,14 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
+   }else if(action==='relatorio'&&req.method==='GET'){
+    // Dashboard: números por dia da conta do motor (só totais, sem dados de cliente).
+    const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||''))throw {status:400,message:'Escolha o período.'};
+    let r;try{r=await upstream('/rest/v1/rpc/lv_motor_relatorio',{method:'POST',token:authToken,body:{org,ini,fim}});}catch{return send(res,200,{setupPending:true}),true;}
+    if(r?.erro==='periodo')throw {status:400,message:'Escolha um período de até 1 ano.'};
+    send(res,200,r);
    }else if(action==='estoque-foto'&&req.method==='POST'){
     // Foto do veículo: confere que é imagem de verdade e grava na pasta da conta (lv-estoque/<conta>/...), com o login de quem enviou.
     if(!/^[0-9a-f-]{36}$/.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};

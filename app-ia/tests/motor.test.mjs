@@ -58,3 +58,12 @@ test('turning on an unfinished agent says what is missing',async t=>{
  const g=await fixture(t);await g.post({acao:'salvar',agente:'loja-teste-ab12-x',config:{},versaoBase:3,concluir:true});
  assert.equal(g.calls.find(c=>c.fn==='lv_motor_salvar_agente').body.concluir,true);
 });
+test('dashboard reads the account report for a valid period only',async t=>{
+ const f=await fixture(t);
+ assert.equal((await f.get('')).status,200);
+ const base=(await f.get('')).url.replace(/\/api\/account\/motor.*/,'');
+ const get=q=>fetch(base+'/api/account/relatorio?organization='+org+q,{headers:{Cookie:'__Host-lv_session=x'}});
+ assert.equal((await get('&ini=2026-10-01')).status,400);
+ assert.equal((await get('&ini=2026-10-01&fim=2026-10-26')).status,200);
+ assert.deepEqual(f.calls.find(c=>c.fn==='lv_motor_relatorio').body,{org,ini:'2026-10-01',fim:'2026-10-26'});
+});

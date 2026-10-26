@@ -218,6 +218,26 @@ textarea { min-height: 90px; resize: vertical; }
 .fotos-grade .capa { position: absolute; left: 4px; bottom: 4px; font-size: 11px; background: var(--verde); color: var(--navy); border-radius: 99px; padding: 0 7px; font-weight: 700; }
 .foto-bt { cursor: pointer; }
 
+/* dashboard */
+.periodos { display: flex; gap: 6px; flex-wrap: wrap; }
+.periodos button[aria-pressed="true"] { border-color: var(--verde); color: var(--verde); }
+.grafico { position: relative; margin-top: 10px; }
+.grafico svg { display: block; width: 100%; height: 220px; }
+.grafico .eixo { fill: var(--suave); font-size: 11px; font-family: "DM Sans", sans-serif; }
+.grafico .grade-l { stroke: var(--linha); stroke-width: 1; }
+.grafico .barra { fill: var(--verde); }
+.grafico .alvo { fill: transparent; cursor: pointer; outline: none; }
+.grafico .alvo:hover + .barra, .grafico .alvo:focus + .barra { fill: #6ff0a6; }
+.grafico .dica-g { position: absolute; pointer-events: none; background: var(--painel2); border: 1px solid var(--linha); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; white-space: nowrap; transform: translate(-50%, -100%); }
+.grafico .dica-g b { display: block; font: 700 15px Syne, sans-serif; color: var(--texto); }
+.grafico .dica-g span { color: var(--suave); }
+.tabela-d { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.tabela-d th, .tabela-d td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--linha); }
+.tabela-d th:first-child, .tabela-d td:first-child { text-align: left; }
+.duas-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 14px; }
+.ranking div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 6px 0; font-size: 14px; }
+.ranking i { grid-column: 1 / -1; height: 4px; border-radius: 99px; background: var(--verde); opacity: .8; }
+
 /* regras com @ */
 .rg-caixa { position: relative; margin-top: 12px; }
 .rg-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; margin-top: 4px; max-height: 280px; overflow-y: auto;

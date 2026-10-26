@@ -248,6 +248,7 @@ function abrir(pg) {
   if (pg === 'agentes') desenharMotor();
   if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'estoque') abrirEstoque();
+  if (pg === 'dashboard') carregarDashboard();
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
   $('lateral').classList.remove('aberta');
@@ -969,11 +970,82 @@ async function desenharLista(pg, forcar) {
 }
 $('listaAtualizar').onclick = () => desenharLista(abaAtual, true);
 
-/* dashboard */
-{
-  const hoje = new Date(), ini = new Date(hoje - 29 * 864e5), iso = d => d.toISOString().slice(0, 10);
-  $('dIni').value = iso(ini); $('dFim').value = iso(hoje);
-  $('dAplicar').onclick = () => toast('Ainda sem dados: a IA não está ligada a este painel.');
+/* dashboard: números do motor por dia (Redis → iag_relatorio pelo n8n a cada 15 min) */
+const isoBR = d => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
+const nomeBonito = k => k.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+function periodo(dias) {
+  const hoje = new Date(); $('dFim').value = isoBR(hoje); $('dIni').value = isoBR(new Date(hoje - (dias - 1) * 864e5));
+  document.querySelectorAll('[data-dias]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.dias) === dias)));
+}
+periodo(30);
+document.querySelectorAll('[data-dias]').forEach(b => b.onclick = () => { periodo(Number(b.dataset.dias)); carregarDashboard(); });
+$('dAplicar').onclick = () => { document.querySelectorAll('[data-dias]').forEach(b => b.setAttribute('aria-pressed', 'false')); carregarDashboard(); };
+async function carregarDashboard() {
+  const aviso = m => { $('dAviso').textContent = m || ''; $('dAviso').hidden = !m; };
+  if ($('dIni').value > $('dFim').value) return aviso('A data de início precisa ser antes do fim.');
+  aviso(''); $('dAtual').textContent = 'Carregando…';
+  let r;
+  try { r = await api('relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + $('dIni').value + '&fim=' + $('dFim').value); }
+  catch (err) { $('dAtual').textContent = ''; return aviso(err.message); }
+  if (r.setupPending) { $('dAtual').textContent = ''; desenharDashboard([]); return aviso('Falta liberar no banco (o SQL do relatório) para os números aparecerem.'); }
+  if (!r.vinculado) { $('dAtual').textContent = ''; desenharDashboard([]); return aviso('Ligue a sua IA em Agentes LeadVox IA para ver os números.'); }
+  $('dAtual').textContent = r.atualizado ? 'Atualizado em ' + new Date(r.atualizado).toLocaleString('pt-BR') + ' · os números chegam a cada 15 minutos.' : 'Ainda não chegou nenhum número da IA.';
+  desenharDashboard(r.dias || []);
+}
+function desenharDashboard(dias) {
+  const soma = k => dias.reduce((s, d) => s + (Number((d.metricas || {})[k]) || 0), 0);
+  const somaU = k => dias.reduce((s, d) => s + (Number((d.uso || {})[k]) || 0), 0);
+  const fmt = n => Number(n).toLocaleString('pt-BR');
+  const conv = soma('conversas'), transf = soma('transferidos'), teste = somaU('contatosTeste');
+  const val = { conversas: conv, novos: soma('novos'), transferidos: transf, respostas: somaU('respostas'), followups: soma('followups'), passagens: soma('passagens'), pedidos: soma('pedidos'), robos: somaU('robos') };
+  document.querySelectorAll('#vDashboard [data-d]').forEach(b => { b.textContent = fmt(val[b.dataset.d] || 0); });
+  $('dTaxa').textContent = conv ? Math.round(transf / conv * 100) + '% das conversas' : 'das conversas';
+  $('dRet').textContent = soma('retomadas') ? 'e ' + fmt(soma('retomadas')) + ' recontatos no dia seguinte' : 'e recontatos';
+  $('dTeste').textContent = teste ? 'inclui conversas de números de teste' : 'mensagens que a IA mandou';
+  // um ponto por dia do período (dia sem conversa = 0)
+  const porDia = {}; dias.forEach(d => { porDia[String(d.dia).slice(0, 10)] = d; });
+  const serie = []; for (let t = Date.parse($('dIni').value + 'T12:00:00Z'); t <= Date.parse($('dFim').value + 'T12:00:00Z'); t += 864e5) {
+    const k = new Date(t).toISOString().slice(0, 10), d = porDia[k] || {};
+    serie.push({ k, conv: Number((d.metricas || {}).conversas) || 0, resp: Number((d.uso || {}).respostas) || 0, transf: Number((d.metricas || {}).transferidos) || 0 });
+  }
+  desenharGrafico(serie);
+  $('dTabela').innerHTML = '<table class="tabela-d"><thead><tr><th>Dia</th><th>Conversas</th><th>Passou p/ equipe</th><th>Respostas da IA</th></tr></thead><tbody>'
+    + serie.filter(s => s.conv || s.resp || s.transf).reverse().map(s => `<tr><td>${s.k.slice(8)}/${s.k.slice(5, 7)}</td><td>${fmt(s.conv)}</td><td>${fmt(s.transf)}</td><td>${fmt(s.resp)}</td></tr>`).join('')
+    + '</tbody></table>';
+  const ranking = (el, pre, vazio) => {
+    const tot = {}; dias.forEach(d => Object.entries(d.metricas || {}).forEach(([k, v]) => { if (k.startsWith(pre)) tot[k.slice(pre.length)] = (tot[k.slice(pre.length)] || 0) + (Number(v) || 0); }));
+    const lista = Object.entries(tot).sort((a, b) => b[1] - a[1]), max = lista[0]?.[1] || 1;
+    $(el).innerHTML = lista.length ? '<div class="ranking">' + lista.map(([k, v]) => `<div><span>${esc(nomeBonito(k))}</span><b>${fmt(v)}</b><i style="width:${Math.max(4, v / max * 100)}%"></i></div>`).join('') + '</div>'
+      : `<p class="muted" style="font-size:14px">${vazio}</p>`;
+  };
+  ranking('dSetores', 'setor_', 'Nenhuma passagem no período.');
+  ranking('dAgentes', 'ag_', 'Sem conversas no período.');
+}
+// Barras de conversas por dia (SVG, sem biblioteca). Cada barra tem área de toque maior que ela e mostra o valor no hover/foco.
+function desenharGrafico(serie) {
+  const el = $('dGrafico'), W = Math.max(300, el.clientWidth || 640), H = 220, mE = 30, mB = 22, mT = 8; // largura real: texto sem distorcer
+  if (!serie.some(s => s.conv)) { el.innerHTML = '<div class="vazio"><b>Sem conversas no período</b>Conversas de números de teste não entram neste gráfico.</div>'; return; }
+  const max = Math.max(...serie.map(s => s.conv)), passo = Math.max(1, Math.ceil(max / 4)), topo = passo * Math.ceil(max / passo);
+  const larg = (W - mE) / serie.length, barra = Math.max(2, Math.min(28, larg - 2)), y = v => mT + (H - mT - mB) * (1 - v / topo);
+  const rot = Math.ceil(serie.length / 8);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Conversas com a IA por dia">`;
+  for (let v = 0; v <= topo; v += passo) svg += `<line class="grade-l" x1="${mE}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text class="eixo" x="${mE - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  serie.forEach((s, i) => {
+    const x = mE + i * larg + (larg - barra) / 2, h = Math.max(0, H - mB - y(s.conv)), r = Math.min(4, barra / 2, h);
+    svg += `<rect class="alvo" x="${mE + i * larg}" y="${mT}" width="${larg}" height="${H - mT - mB}" tabindex="0" data-i="${i}"/>`;
+    svg += h ? `<path class="barra" d="M${x},${H - mB} v${-(h - r)} q0,${-r} ${r},${-r} h${barra - 2 * r} q${r},0 ${r},${r} v${h - r} z"/>` : '<g class="barra"></g>';
+    if (i % rot === 0) svg += `<text class="eixo" x="${mE + i * larg + larg / 2}" y="${H - 6}" text-anchor="middle">${s.k.slice(8)}/${s.k.slice(5, 7)}</text>`;
+  });
+  el.innerHTML = svg + '</svg><div class="dica-g" hidden></div>';
+  const dica = el.querySelector('.dica-g');
+  const mostrar = (alvo) => {
+    const s = serie[+alvo.dataset.i], caixa = el.getBoundingClientRect(), a = alvo.getBoundingClientRect();
+    dica.replaceChildren(); const b = document.createElement('b'); b.textContent = s.conv + (s.conv === 1 ? ' conversa' : ' conversas');
+    const sp = document.createElement('span'); sp.textContent = s.k.slice(8) + '/' + s.k.slice(5, 7) + ' · ' + s.transf + ' para a equipe · ' + s.resp + ' respostas';
+    dica.append(b, sp); dica.hidden = false;
+    dica.style.left = Math.min(Math.max(a.left - caixa.left + a.width / 2, 90), caixa.width - 90) + 'px'; dica.style.top = (y(s.conv) / H * caixa.height - 6) + 'px';
+  };
+  el.querySelectorAll('.alvo').forEach(a => { a.onpointerenter = () => mostrar(a); a.onfocus = () => mostrar(a); a.onpointerleave = a.onblur = () => { dica.hidden = true; }; });
 }
 
 /* conta */
