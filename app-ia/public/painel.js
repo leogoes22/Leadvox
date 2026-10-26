@@ -1382,7 +1382,8 @@ $('cForm').onsubmit = async e => {
 };
 
 /* ═══════════ OPORTUNIDADES ═══════════ */
-// Espelho do funil da LeadVox (só leitura): as colunas são as etapas, na ordem da LeadVox, com as oportunidades de cada uma.
+// Espelho do funil da LeadVox: as colunas são as etapas, na ordem da LeadVox, com as oportunidades de cada uma.
+// Arrastar o cartão (ou usar "Mover para…") muda a etapa lá na LeadVox, como a tela Pipeline do chat.
 let opDados = null;
 async function carregarOportunidades() {
   const aviso = m => { $('opAviso').textContent = m || ''; $('opAviso').hidden = !m; };
@@ -1417,16 +1418,58 @@ function desenharOportunidades() {
     // sem busca, o topo da coluna usa o total da LeadVox (conta também o que não coube na tela)
     const tot = !busca && $('opStatus').value === 'open' && opDados.totais?.[e.id];
     const topo = tot ? `${tot.count} · ${preco(tot.valor)}` : `${l.length} · ${soma(l)}`;
-    return `<div class="fu-col" style="--cor:${e.color || 'var(--linha)'}"><div class="fu-cab"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}<span>${topo}</span></div>
-      <div class="fu-cards">${l.map(o => `<div class="fu-card">
+    return `<div class="fu-col" style="--cor:${e.color || 'var(--linha)'}" ${e.id ? `data-etapa="${esc(e.id)}"` : ''}><div class="fu-cab"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}<span>${topo}</span></div>
+      <div class="fu-cards">${l.map(o => `<div class="fu-card" draggable="true" data-op="${esc(o.id)}">
         <div class="fu-quem">${o.foto ? `<img src="${esc(o.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-inicial="${inicial(o)}">` : `<i>${inicial(o)}</i>`}
           <div><b>${esc(o.contato || o.nome)}</b>${o.numero ? `<small>${esc(zapFmt(o.numero.replace(/^55/, '')))}</small>` : ''}</div></div>
         ${o.nome && o.nome !== o.contato ? `<p>${esc(o.nome)}</p>` : ''}
         <div class="fu-pe"><b>${preco(o.valor)}</b>${STATUS[o.status] ? `<span class="st ${STATUS[o.status][1]}">${STATUS[o.status][0]}</span>` : ''}${o.previsao ? `<small>Previsão ${dataBR(o.previsao)}</small>` : ''}</div>
-        ${o.responsavel ? `<small class="muted">Responsável: ${esc(o.responsavel)}</small>` : ''}</div>`).join('') || '<p class="muted fu-vazio">Nenhuma</p>'}</div></div>`;
+        ${o.responsavel ? `<small class="muted">Responsável: ${esc(o.responsavel)}</small>` : ''}
+        <select class="fu-mover" data-mover="${esc(o.id)}" aria-label="Mover ${esc(o.contato || o.nome)}">${opcoesMover(o)}</select></div>`).join('') || '<p class="muted fu-vazio">Nenhuma</p>'}</div></div>`;
   }).join('') || '<p class="muted">O funil da sua LeadVox ainda não tem etapas.</p>';
   // foto que não carrega vira a inicial do nome
   $('opFunil').querySelectorAll('img[data-inicial]').forEach(i => i.onerror = () => { const x = document.createElement('i'); x.textContent = i.dataset.inicial; i.replaceWith(x); });
+  // arrastar e soltar entre as colunas (computador); no celular, o "Mover para…" de cada cartão
+  $('opFunil').querySelectorAll('[data-op]').forEach(c => c.ondragstart = ev => { ev.dataTransfer.setData('text/plain', c.dataset.op); ev.dataTransfer.effectAllowed = 'move'; c.classList.add('arrastando'); });
+  $('opFunil').querySelectorAll('[data-op]').forEach(c => c.ondragend = () => c.classList.remove('arrastando'));
+  $('opFunil').querySelectorAll('[data-etapa]').forEach(col => {
+    col.ondragover = ev => { ev.preventDefault(); col.classList.add('alvo'); };
+    col.ondragleave = ev => { if (!col.contains(ev.relatedTarget)) col.classList.remove('alvo'); };
+    col.ondrop = ev => { ev.preventDefault(); col.classList.remove('alvo'); moverOportunidade(ev.dataTransfer.getData('text/plain'), col.dataset.etapa, 'open'); };
+  });
+  $('opFunil').querySelectorAll('[data-mover]').forEach(s => s.onchange = () => { const [st, et] = s.value.split(':'); if (st) moverOportunidade(s.dataset.mover, et, st); });
+}
+function opcoesMover(o) {
+  const etapa = o.etapaId || opDados.etapas[0]?.id || '';
+  const nome = e => e.name.split(/➤|→/)[0].trim();
+  return '<option value="">Mover para…</option>'
+    + opDados.etapas.filter(e => o.status !== 'open' || e.id !== o.etapaId).map(e => `<option value="open:${esc(e.id)}">${o.status === 'open' ? '' : 'Reabrir em '}${esc(nome(e))}</option>`).join('')
+    + (etapa && o.status !== 'won' ? `<option value="won:${esc(etapa)}">✅ Marcar como ganha</option>` : '')
+    + (etapa && o.status !== 'lost' ? `<option value="lost:${esc(etapa)}">❌ Marcar como perdida</option>` : '');
+}
+// Muda na tela na hora e manda para a LeadVox; se ela recusar, o cartão volta para onde estava.
+async function moverOportunidade(id, etapa, status) {
+  const o = opDados?.oportunidades.find(x => x.id === id);
+  if (!o || !etapa || (o.etapaId === etapa && o.status === status)) return desenharOportunidades();
+  const nome = o.contato || o.nome;
+  if (status !== 'open' && !confirm(`Marcar ${nome} como ${status === 'won' ? 'ganha' : 'perdida'} na LeadVox?`)) return desenharOportunidades();
+  const antes = { etapaId: o.etapaId, status: o.status, totais: JSON.stringify(opDados.totais || {}) };
+  const tot = opDados.totais || {}, conta = (k, sinal) => { if (tot[k]) { tot[k].count += sinal; tot[k].valor += sinal * o.valor; } };
+  if (o.status === 'open') conta(o.etapaId, -1);
+  Object.assign(o, { etapaId: etapa, status });
+  if (status === 'open') conta(etapa, 1);
+  const filtro = $('opStatus').value;
+  if (filtro !== 'all' && filtro !== status) opDados.oportunidades = opDados.oportunidades.filter(x => x !== o);
+  desenharOportunidades();
+  try {
+    await api('oportunidade-mover', { organization: empresa.id, id, etapa, status });
+    const e = opDados.etapas.find(x => x.id === etapa);
+    toast(status === 'open' ? `${nome} foi para ${e ? e.name.split(/➤|→/)[0].trim() : 'a nova etapa'}.` : `${nome} marcada como ${status === 'won' ? 'ganha' : 'perdida'}.`);
+  } catch (err) {
+    Object.assign(o, { etapaId: antes.etapaId, status: antes.status }); opDados.totais = JSON.parse(antes.totais);
+    if (!opDados.oportunidades.includes(o)) opDados.oportunidades.push(o);
+    desenharOportunidades(); toast(err.message, true);
+  }
 }
 $('opStatus').onchange = carregarOportunidades;
 $('opFunilSel').onchange = carregarOportunidades;

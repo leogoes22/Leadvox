@@ -41,6 +41,20 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   if(body?.success===false||body?.error)throw new ChatApiError('CHAT_REQUEST_FAILED');
   return body;
  }
+ // Escrita numa rota da tela (fora do /v1). Se a LeadVox recusar, devolve a mensagem dela (curta) para o painel mostrar.
+ async function put(path,data) {
+  let response;
+  try{response=await fetchImpl(root.replace(/\/v\d{1,2}$/,'')+path+'?token='+encodeURIComponent(token),{
+   method:'PUT',headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data),
+   redirect:'error',signal:AbortSignal.timeout(15000)});
+  }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+  let body=null;try{body=await response.json();}catch{}
+  if(!response.ok||body?.success===false){
+   const e=new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502,response.status);
+   const m=body?.message??body?.error;e.leadvox=typeof m==='string'?m.replace(/[\r\n<>]/g,' ').slice(0,200):'';throw e;
+  }
+  return body;
+ }
  const ext=p=>'/api/external/'+p;
  // Rotas não documentadas: fica com a primeira lista que vier. Token recusado na API externa é erro de credencial.
  async function firstList(paths,code){
@@ -66,6 +80,22 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
    +stepIds.map(s=>'&pipelineStepIds%5B%5D='+id(s)).join('')+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
   stepOpportunities:(pipelineId,stepId,status,page)=>get('/opportunity?pipelineId='+id(pipelineId)+'&pipelineStepId='+id(stepId)
    +'&pageNumber='+Number(page)+status.map(s=>'&status%5B%5D='+id(s)).join(''),true),
+  // Mover o cartão, como o arrastar da tela Pipeline: etapa nova e status (open, won ou lost).
+  moveOpportunity:(oppId,stepId,status)=>put('/opportunity/'+id(oppId)+'/status',{id:Number(id(oppId)),pipelineStepId:Number(id(stepId)),status:id(status)}),
+  // Etapas de todos os funis (para o menu @ da IA). Com mais de um funil, o nome leva o funil na frente.
+  allPipelineSteps:async()=>{
+   try{
+    let funis=(pickList(await get('/pipelines?includeSteps=true',true))||[]).filter(f=>f&&f.id!=null);
+    if(funis.length&&!funis.some(f=>Array.isArray(f.steps)&&f.steps.length)){
+     const passos=pickList(await get('/pipeline-step/',true))||[];
+     funis=funis.map(f=>({...f,steps:passos.filter(s=>String(s?.pipelineId)===String(f.id))}));
+    }
+    const ordem=l=>[...l].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+    const lista=funis.flatMap(f=>ordem(Array.isArray(f.steps)?f.steps:[]).map(s=>({...s,name:funis.length>1?f.name+' › '+s.name:s.name})));
+    if(lista.length)return lista;
+   }catch{}
+   return pickList(await get(ext(api+'/pipeline-steps')))||[];
+  },
   // API externa: lista paginada {data,count,hasMore}, sem funil. Lê até 10 páginas e para se a página vier repetida (rota que ignora a paginação).
   // Com um status só, filtra como o motor da IA faz (?status=open).
   opportunities:async(status='')=>{
@@ -79,7 +109,7 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
    }
    return {list:todas,count:Math.max(total,todas.length),hasMore:mais};
   },
-  // No mutation or messaging method is enabled until account-scoped auth and live validation.
+  // A única escrita liberada é mover a oportunidade (moveOpportunity), igual à tela Pipeline. Nada de mensagens por aqui.
  });
 }
 export function pickList(body){

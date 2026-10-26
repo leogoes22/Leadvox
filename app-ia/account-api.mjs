@@ -235,6 +235,17 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     for(const [k,v] of Object.entries(f.totais))if(/^[0-9]{1,12}$/.test(k))totais[k]={count:v.count,valor:v.valor};
     send(res,200,{funis:normalizeItems(f.funis),funil:f.funil,etapas:normalizeItems(f.etapas),totais,
      oportunidades:status==='all'?lista:lista.filter(o=>o.status===status),incompleto:f.incompleto});
+   }else if(action==='oportunidade-mover'&&req.method==='POST'){
+    // Arrastar o cartão no painel: muda a etapa (ou marca ganha/perdida) lá na LeadVox, como a tela Pipeline do chat.
+    const org=body.organization,opp=String(body.id??''),etapa=String(body.etapa??''),status=String(body.status||'open');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(!/^[0-9]{1,12}$/.test(opp)||!/^[0-9]{1,12}$/.test(etapa)||!['open','won','lost'].includes(status))throw {status:400,message:'Oportunidade ou etapa inválida.'};
+    let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+    if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
+    try{await createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl}).moveOpportunity(opp,etapa,status);}
+    catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou mover com o token salvo. Conecte de novo em Credenciais de API.'}
+     :{status:502,message:'A LeadVox não moveu a oportunidade'+(e.leadvox?': '+e.leadvox.replace(/[.\s]+$/,''):e.http?' (respondeu '+e.http+')':'')+'.'};}
+    send(res,200,{ok:true});
    }else if(action==='relatorio'&&req.method==='GET'){
     // Dashboard: números por dia da conta do motor (só totais, sem dados de cliente).
     const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');
@@ -345,12 +356,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      send(res,200,{connected:true,apiId:parsed.apiId});
     }else if(action==='chat'&&req.method==='GET'){
      const kind=new URL(req.url,'https://localhost').searchParams.get('kind');
-     const call={etiquetas:'tags',status:'pipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins'}[kind];
+     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins'}[kind];
      if(!call)throw {status:400,message:'Lista inválida.'};
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
      let list;
-     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=call==='departments'||call==='leadOrigins'?await c[call]():pickList(await c[call]());}
+     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=['departments','leadOrigins','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
      catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
       :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'}
       :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}

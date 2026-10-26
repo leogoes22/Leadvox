@@ -185,3 +185,28 @@ test('pipeline page falls back to the external API, page by page, showing only w
  assert.doesNotMatch(JSON.stringify(d),/x@y\.com|admin@x\.com/);
  assert.deepEqual((await (await get('&status=all')).json()).oportunidades.map(o=>o.id),['1','2','3']);
 });
+test('moving a card sends the new step and status to the LeadVox pipeline route and shows its refusal',async t=>{
+ const tok=jwt({tenantId:17,sessionId:64});const envios=[];let recusa=false;
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_chat_secret'))return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8-e8dc',token:tok}]);
+  if(u.startsWith('https://chat2api.leadvox.com.br/opportunity/')){envios.push({u:u.replace(/token=.*/,''),m:init.method,b:JSON.parse(init.body)});
+   return recusa?ok({message:'Há 1 task(s) obrigatória(s) pendente(s).'},400):ok({id:893});}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=x'};
+ const post=b=>fetch(base+'/api/account/oportunidade-mover',{method:'POST',headers:h,body:JSON.stringify({organization:org,...b})});
+ assert.equal((await post({id:'893',etapa:'x'})).status,400);
+ assert.equal((await post({id:'893',etapa:'54',status:'apagar'})).status,400);
+ assert.equal((await post({id:'893',etapa:'54'})).status,200);
+ assert.deepEqual(envios[0],{u:'https://chat2api.leadvox.com.br/opportunity/893/status?',m:'PUT',b:{id:893,pipelineStepId:54,status:'open'}});
+ await post({id:'893',etapa:'54',status:'won'});assert.equal(envios[1].b.status,'won');
+ recusa=true;const r=await post({id:'893',etapa:'55'});assert.equal(r.status,502);assert.match((await r.json()).error,/task\(s\) obrigatória/);
+});
+test('the @ menu lists the steps of every funnel, with the funnel name when there is more than one',async t=>{
+ const get=await funilApp(t,u=>u.pathname==='/pipelines'?ok([{id:33,name:'Comercial',steps:[{id:144,name:'Negociando',order:2},{id:143,name:'Novo Lead',order:1}]},{id:40,name:'Pós-venda',steps:[{id:150,name:'Entregue',order:1}]}]):ok({},404));
+ const base=(await get('')).url.replace(/\/api\/account\/.*/,'');
+ const r=await fetch(base+'/api/account/chat?organization='+org+'&kind=status',{headers:{Cookie:'__Host-lv_session=x'}});
+ assert.deepEqual((await r.json()).items.map(i=>i.id+' '+i.name),['143 Comercial › Novo Lead','144 Comercial › Negociando','150 Pós-venda › Entregue']);
+});
