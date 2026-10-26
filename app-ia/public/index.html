@@ -148,9 +148,9 @@
           <form id="agAcoes" data-agp="automacoes" hidden>
             <div class="card">
               <h3>Regras da IA</h3>
-              <p class="muted">Escreva o que a IA deve fazer em cada situação. Digite <b>@</b> para escolher uma ação: etiqueta, etapa do funil, transferência, nota ou aviso.</p>
+              <p class="muted">Uma regra por linha: a situação e, depois, as ações. Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
               <div class="rg-caixa">
-                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar, @Adicionar etiqueta e @Mudar etapa do funil.&#10;Quando pedir para falar com o gerente, @Transferir para pessoa."></textarea>
+                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
                 <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
               </div>
               <div id="rgUsadas" class="rg-usadas"></div>
