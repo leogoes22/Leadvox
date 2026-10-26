@@ -142,6 +142,24 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .filtro { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .filtro label { margin: 0 0 4px; font-size: 13px; }
 .filtro input { width: auto; }
+/* Oportunidades: funil em colunas; a faixa rola de lado sem arrastar a página */
+.funil { display: flex; gap: 12px; overflow-x: auto; margin-top: 14px; padding-bottom: 10px; align-items: flex-start; scroll-snap-type: x proximity; scrollbar-color: var(--linha) transparent; }
+.fu-col { flex: 0 0 272px; background: var(--painel); border: 1px solid var(--linha); border-top: 3px solid var(--cor); border-radius: 14px; padding: 12px; scroll-snap-align: start; }
+.fu-cab b { display: block; font-size: 14px; }
+.fu-cab small { display: block; color: var(--suave); font-size: 12px; line-height: 1.35; }
+.fu-cab span { display: block; color: var(--suave); font-size: 12px; margin-top: 6px; }
+.fu-cards { display: grid; gap: 8px; margin-top: 10px; max-height: 70vh; overflow-y: auto; scrollbar-color: var(--linha) transparent; }
+.fu-card { background: var(--painel2); border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px; font-size: 13px; display: grid; gap: 6px; }
+.fu-card p { color: var(--suave); }
+.fu-quem { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.fu-quem img, .fu-quem i { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; object-fit: cover; background: var(--verde-fundo); color: var(--verde); font-style: normal; font-weight: 700; display: grid; place-items: center; }
+.fu-quem div { min-width: 0; }
+.fu-quem b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fu-quem small, .fu-pe small { display: block; color: var(--suave); font-size: 12px; }
+.fu-pe { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fu-vazio { font-size: 13px; padding: 4px 2px; }
+.st.perdida { color: var(--erro); border-color: rgba(255,107,107,.4); }
+@media (max-width: 640px) { .fu-col { flex-basis: 82vw; } }
 .vazio { text-align: center; padding: 28px 12px; color: var(--suave); }
 .vazio b { display: block; color: var(--texto); font-family: Syne, sans-serif; font-size: 16px; margin-bottom: 4px; }
 .vazio button { margin-top: 12px; }

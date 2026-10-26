@@ -32,7 +32,7 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  // raiz=true: rotas que a tela da LeadVox usa, fora do /v1 (ex.: /lead-origin/).
  async function get(path,raiz=false) {
   let response;
-  try{response=await fetchImpl((raiz?root.replace(/\/v\d{1,2}$/,''):root)+path+'?token='+encodeURIComponent(token),{
+  try{response=await fetchImpl((raiz?root.replace(/\/v\d{1,2}$/,''):root)+path+(path.includes('?')?'&':'?')+'token='+encodeURIComponent(token),{
    method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},
    redirect:'error',signal:AbortSignal.timeout(10000)});
   }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
@@ -57,6 +57,17 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   departments:()=>firstList([ext(api+'/queues'),ext(api+'/queue'),ext('queue/'+api),ext('departments/'+api),ext(api+'/departments'),ext('whatsapp-queues/'+api),'/queue','/queues',['/queue/',true],['/queues/',true]],'CHAT_DEPARTMENTS_UNAVAILABLE'),
   // Origem do lead: também sem rota documentada; tenta as candidatas da API externa e as da tela.
   leadOrigins:()=>firstList([ext(api+'/lead-origins'),ext(api+'/lead-origin'),ext(api+'/origins'),ext('lead-origins/'+api),ext('lead-origin/'+api),'/lead-origin','/lead-origins',['/lead-origin/',true],['/lead-origins/',true]],'CHAT_ORIGINS_UNAVAILABLE'),
+  // Oportunidades do funil: lista paginada {data,count,hasMore}. Lê até 10 páginas e para se a página vier repetida (rota que ignora a paginação).
+  opportunities:async()=>{
+   const todas=[],vistos=new Set();let total=0,mais=false;
+   for(let p=1;p<=10;p++){
+    const b=await get(ext(api+'/opportunities')+'?pageNumber='+p+'&page='+p);
+    const novas=(pickList(b)||[]).filter(o=>o&&!vistos.has(String(o.id)));novas.forEach(o=>vistos.add(String(o.id)));todas.push(...novas);
+    total=Number(b?.count)||total;mais=b?.hasMore===true;
+    if(!mais||!novas.length)break;
+   }
+   return {list:todas,count:Math.max(total,todas.length),hasMore:mais};
+  },
   // No mutation or messaging method is enabled until account-scoped auth and live validation.
  });
 }
@@ -78,6 +89,16 @@ export function normalizeItems(list){
   name:String(x?.name??x?.nome??x?.tag??x?.origin??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
   color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null
  })).filter(x=>x.id||x.name);
+}
+// Oportunidade para a tela do funil: só o que o cartão mostra (sem e-mail, endereço nem dados internos do contato).
+export function normalizeOpportunities(list){
+ const txt=(v,n)=>String(v??'').slice(0,n),data=v=>/^\d{4}-\d{2}-\d{2}/.test(v||'')?String(v):'';
+ return (list||[]).slice(0,1000).map(o=>({
+  id:txt(o?.id,40),nome:txt(o?.name,120),contato:txt(o?.contact?.name,80),numero:txt(o?.contact?.number,20).replace(/\D/g,''),
+  foto:/^https:\/\/[^\s"'<>]+$/.test(o?.contact?.profilePicUrl||'')?txt(o.contact.profilePicUrl,1000):'',
+  etapaId:txt(o?.pipelineStepId,40),valor:Number(o?.value)||0,status:['open','won','lost'].includes(o?.status)?o.status:'open',
+  responsavel:txt(o?.responsible?.name,80),previsao:data(o?.expectedCloseDate).slice(0,10),atualizado:data(o?.updatedAt).slice(0,19)
+ })).filter(o=>o.id);
 }
 export const capabilities=Object.freeze({
  users:'documented',tags:'documented',pipelineSteps:'documented',

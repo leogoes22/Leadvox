@@ -120,3 +120,26 @@ test('test chat sends the message to the simulator with a fake phone and the age
  assert.match(envios[0].u,/iag-simulador\?k=loja-teste-ab12&t=0123456789abcdef01234567$/);
  assert.equal(envios[0].b.Departamento,66);assert.equal(envios[0].b.simulacao,true);assert.match(envios[0].b.sessionId,/^55000\d{8}$/);
 });
+test('pipeline page lists steps and opportunities, page by page, showing only what the card needs',async t=>{
+ const tok=jwt({tenantId:17,sessionId:64});const pedidos=[];
+ const opp=(id,status)=>({id,name:'Opp '+id,status,value:'1500.00',pipelineStepId:53,expectedCloseDate:'2026-11-02',updatedAt:'2026-10-26T02:38:55.625Z',
+  contact:{id:9,name:'Leonardo',number:'5521988943529',email:'x@y.com',profilePicUrl:'javascript:alert(1)'},responsible:{name:'Leonardo',email:'admin@x.com'}});
+ const s=createApp({allowLocal:true,fetchImpl:async(u)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_chat_secret'))return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8-e8dc',token:tok}]);
+  if(u.includes('/pipeline-steps'))return ok({data:[{id:53,name:'Negociando',color:'#2196F3'}]});
+  if(u.includes('/opportunities')){pedidos.push(u);const p=Number(new URL(u).searchParams.get('pageNumber'));
+   return ok(p===1?{data:[opp(1,'open'),opp(2,'won')],count:3,hasMore:true}:{data:[opp(3,'open')],count:3,hasMore:false});}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,get=q=>fetch(base+'/api/account/oportunidades?organization='+org+q,{headers:{Cookie:'__Host-lv_session=x'}});
+ assert.equal((await get('&status=xx')).status,400);
+ const d=await (await get('')).json();
+ assert.equal(pedidos.length,2);assert.match(pedidos[0],/opportunities\?pageNumber=1&page=1&token=/);
+ assert.deepEqual(d.etapas,[{id:'53',name:'Negociando',color:'#2196F3'}]);
+ assert.deepEqual(d.oportunidades.map(o=>o.id),['1','3']);assert.equal(d.total,3);
+ const o=d.oportunidades[0];assert.equal(o.valor,1500);assert.equal(o.foto,'');assert.equal(o.etapaId,'53');assert.equal(o.previsao,'2026-11-02');
+ assert.doesNotMatch(JSON.stringify(d),/x@y\.com|admin@x\.com/);
+ assert.deepEqual((await (await get('&status=all')).json()).oportunidades.map(o=>o.id),['1','2','3']);
+});

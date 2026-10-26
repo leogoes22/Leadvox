@@ -167,6 +167,7 @@ const IC = {
   livro: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19V5"/>',
   carro: '<path d="M5 16V11l2-5h10l2 5v5M3 16h18v3H3zM5 11h14"/><circle cx="7.5" cy="16" r="1.5"/><circle cx="16.5" cy="16" r="1.5"/>',
   tag: '<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/>',
+  funil: '<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
   kanban: '<rect x="3" y="4" width="5" height="14" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/><rect x="17" y="4" width="4" height="11" rx="1"/>',
   pessoas: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/>',
   predio: '<path d="M4 21V5l8-2v18M12 9h8v12M8 8h.01M8 12h.01M8 16h.01M16 13h.01M16 17h.01M3 21h18"/>',
@@ -181,6 +182,7 @@ const IC = {
 const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
+  ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
   ['conhecimento', 'Base de conhecimento', 'livro', 'O que a IA sabe e responde.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
@@ -196,7 +198,7 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', conhecimento: 'vConhecimento', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades',conhecimento: 'vConhecimento', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
@@ -250,6 +252,7 @@ function abrir(pg) {
   if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'estoque') abrirEstoque();
   if (pg === 'dashboard') carregarDashboard();
+  if (pg === 'oportunidades') carregarOportunidades();
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -1377,6 +1380,45 @@ $('cForm').onsubmit = async e => {
   } catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; }
 };
+
+/* ═══════════ OPORTUNIDADES ═══════════ */
+// Espelho do funil da LeadVox (só leitura): as colunas são as etapas, na ordem da LeadVox, com as oportunidades de cada uma.
+let opDados = null;
+async function carregarOportunidades() {
+  const aviso = m => { $('opAviso').textContent = m || ''; $('opAviso').hidden = !m; };
+  aviso(''); $('opResumo').textContent = 'Buscando na sua LeadVox…'; $('opAtualizar').disabled = true;
+  try { opDados = await api('oportunidades?organization=' + encodeURIComponent(empresa.id) + '&status=' + $('opStatus').value); desenharOportunidades(); }
+  catch (err) { opDados = null; $('opResumo').textContent = ''; $('opFunil').innerHTML = ''; aviso(err.message); }
+  finally { $('opAtualizar').disabled = false; }
+}
+function desenharOportunidades() {
+  if (!opDados) return;
+  const busca = $('opBusca').value.trim().toLowerCase(), digitos = busca.replace(/\D/g, '');
+  const ops = opDados.oportunidades.filter(o => !busca || [o.contato, o.nome, o.responsavel].some(t => t.toLowerCase().includes(busca)) || (digitos.length >= 4 && o.numero.includes(digitos)));
+  const conhecida = o => opDados.etapas.some(e => e.id === o.etapaId);
+  const etapas = ops.some(o => !conhecida(o)) ? [...opDados.etapas, { id: '', name: 'Sem etapa', color: null }] : opDados.etapas;
+  const soma = l => preco(l.reduce((t, o) => t + o.valor, 0));
+  const STATUS = { won: ['Ganha', 'on'], lost: ['Perdida', 'perdida'] };
+  const dataBR = d => d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
+  const inicial = o => esc((o.contato || o.nome || '?').trim().charAt(0).toUpperCase());
+  $('opResumo').textContent = `${ops.length} oportunidade${ops.length === 1 ? '' : 's'} · ${soma(ops)}${opDados.incompleto ? ' · mostrando as mais recentes' : ''}`;
+  $('opFunil').innerHTML = etapas.map(e => {
+    const l = ops.filter(o => e.id ? o.etapaId === e.id : !conhecida(o));
+    const [titulo, desc] = e.name.split('➤').map(s => s.trim());
+    return `<div class="fu-col" style="--cor:${e.color || 'var(--linha)'}"><div class="fu-cab"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}<span>${l.length} · ${soma(l)}</span></div>
+      <div class="fu-cards">${l.map(o => `<div class="fu-card">
+        <div class="fu-quem">${o.foto ? `<img src="${esc(o.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-inicial="${inicial(o)}">` : `<i>${inicial(o)}</i>`}
+          <div><b>${esc(o.contato || o.nome)}</b>${o.numero ? `<small>${esc(zapFmt(o.numero.replace(/^55/, '')))}</small>` : ''}</div></div>
+        ${o.nome && o.nome !== o.contato ? `<p>${esc(o.nome)}</p>` : ''}
+        <div class="fu-pe"><b>${preco(o.valor)}</b>${STATUS[o.status] ? `<span class="st ${STATUS[o.status][1]}">${STATUS[o.status][0]}</span>` : ''}${o.previsao ? `<small>Previsão ${dataBR(o.previsao)}</small>` : ''}</div>
+        ${o.responsavel ? `<small class="muted">Responsável: ${esc(o.responsavel)}</small>` : ''}</div>`).join('') || '<p class="muted fu-vazio">Nenhuma</p>'}</div></div>`;
+  }).join('') || '<p class="muted">O funil da sua LeadVox ainda não tem etapas.</p>';
+  // foto que não carrega vira a inicial do nome
+  $('opFunil').querySelectorAll('img[data-inicial]').forEach(i => i.onerror = () => { const x = document.createElement('i'); x.textContent = i.dataset.inicial; i.replaceWith(x); });
+}
+$('opStatus').onchange = carregarOportunidades;
+$('opAtualizar').onclick = carregarOportunidades;
+$('opBusca').oninput = desenharOportunidades;
 
 /* ═══════════ INÍCIO ═══════════ */
 const local = ['localhost', '127.0.0.1'].includes(location.hostname);

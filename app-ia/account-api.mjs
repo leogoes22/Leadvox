@@ -1,6 +1,6 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
-import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
+import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
@@ -220,6 +220,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     if(r.status===401||r.status===403)throw {status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'};
     if(!r.ok)throw {status:400,message:'A LeadVox não aceitou a mensagem (erro '+r.status+'). Confira o número do grupo.'};
     send(res,200,{ok:true});
+   }else if(action==='oportunidades'&&req.method==='GET'){
+    // Funil da LeadVox (espelho da tela Oportunidades do chat): as etapas em colunas e as oportunidades de cada uma. Só leitura.
+    const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),status=q.get('status')||'open';
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(!['open','won','lost','all'].includes(status))throw {status:400,message:'Filtro inválido.'};
+    let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+    if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
+    let etapas,opp;
+    try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});[etapas,opp]=await Promise.all([c.pipelineSteps().then(pickList),c.opportunities()]);}
+    catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}:{status:502,message:'Não deu para buscar as oportunidades na LeadVox agora. Tente de novo em instantes.'};}
+    const lista=normalizeOpportunities(opp.list);
+    send(res,200,{etapas:normalizeItems(etapas),oportunidades:status==='all'?lista:lista.filter(o=>o.status===status),total:opp.count,incompleto:opp.hasMore});
    }else if(action==='relatorio'&&req.method==='GET'){
     // Dashboard: números por dia da conta do motor (só totais, sem dados de cliente).
     const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');

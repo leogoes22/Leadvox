@@ -295,6 +295,18 @@
       </form>
     </section>
 
+    <section id="vOportunidades" hidden>
+      <div class="card" style="margin-top:0">
+        <div class="filtro">
+          <div><label for="opStatus">Mostrar</label><select id="opStatus" style="width:auto"><option value="open">Em aberto</option><option value="won">Ganhas</option><option value="lost">Perdidas</option><option value="all">Todas</option></select></div>
+          <div style="flex:1 1 200px"><label for="opBusca">Buscar</label><input type="search" id="opBusca" placeholder="Nome, telefone ou responsável" style="width:100%"></div>
+          <button type="button" id="opAtualizar">Atualizar</button>
+        </div>
+        <p class="muted" id="opResumo" style="font-size:13px;margin-top:8px"></p>
+        <p class="alerta" id="opAviso" hidden></p>
+      </div>
+      <div class="funil" id="opFunil"></div>
+    </section>
     <section id="vEstoque" hidden>
       <div class="card" id="esTopo" style="margin-top:0"><p class="muted">Carregando o estoque…</p></div>
       <form class="card" id="esForm" hidden>
