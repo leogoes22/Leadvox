@@ -8,7 +8,7 @@ const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
 export function createApp(options={}) {
  const accountApi=createAccountApi(options);
  return http.createServer(async(req,res)=>{
-  const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src https://leadvox.com.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",'Cache-Control':'no-store'};
+  const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src https://leadvox.com.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",'Cache-Control':'no-store'};
   Object.entries(headers).forEach(([k,v])=>res.setHeader(k,v));
   if(await accountApi(req,res,new URL(req.url,'http://localhost').pathname))return;
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'});return res.end('Método não permitido');}

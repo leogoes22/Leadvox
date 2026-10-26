@@ -165,6 +165,7 @@ const IC = {
   robo: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/>',
   grafico: '<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',
   livro: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19V5"/>',
+  carro: '<path d="M5 16V11l2-5h10l2 5v5M3 16h18v3H3zM5 11h14"/><circle cx="7.5" cy="16" r="1.5"/><circle cx="16.5" cy="16" r="1.5"/>',
   tag: '<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/>',
   kanban: '<rect x="3" y="4" width="5" height="14" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/><rect x="17" y="4" width="4" height="11" rx="1"/>',
   pessoas: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/>',
@@ -181,6 +182,7 @@ const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
   ['conhecimento', 'Base de conhecimento', 'livro', 'O que a IA sabe e responde.'],
+  ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
   ['status', 'Status do lead', 'kanban', 'As etapas do funil da sua LeadVox.'],
   ['usuarios', 'Usuários LeadVox', 'pessoas', 'Quem atende na sua LeadVox.'],
@@ -194,7 +196,7 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', conhecimento: 'vConhecimento', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', conhecimento: 'vConhecimento', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
@@ -227,7 +229,7 @@ function abrirApp(pg) {
   motor = null; agSel = null; agDados = null; desenharMenu();
   carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
     .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); });
-  fin = null; chat = null; listas = {}; conexoes = null;
+  fin = null; chat = null; listas = {}; conexoes = null; estoque = null;
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); }).catch(() => {});
   abrir(pg);
@@ -245,6 +247,7 @@ function abrir(pg) {
   if (pg === 'credenciais') { desenharCred(); desenharConexoes(); }
   if (pg === 'agentes') desenharMotor();
   if (pg === 'conhecimento') abrirConhecimento();
+  if (pg === 'estoque') abrirEstoque();
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
   $('lateral').classList.remove('aberta');
@@ -702,6 +705,86 @@ $('credForm').onsubmit = async e => {
   finally { bt.disabled = false; bt.textContent = 'Conectar e testar'; }
 };
 
+/* estoque: veículos do catálogo do motor (cadastro aqui ou cópia do AutoCerto / Revenda Mais) */
+let estoque = null;
+const preco = n => Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+async function abrirEstoque() {
+  $('esForm').hidden = true;
+  try {
+    await Promise.all([estoque ? null : api('estoque?organization=' + encodeURIComponent(empresa.id)).then(r => { estoque = r; }),
+      conexoes ? null : carregarConexoes().catch(() => {}), motor ? null : carregarMotor().catch(() => {})]);
+  } catch (err) { $('esTopo').innerHTML = '<p class="alerta" style="margin:0">' + esc(err.message) + '</p>'; return; }
+  const ags = motor?.agentes || [];
+  if (ags.length && !agDados) await abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
+  desenharEstoque();
+}
+function desenharEstoque() {
+  const topo = $('esTopo');
+  if (!estoque || estoque.setupPending) { topo.innerHTML = '<h3>Falta liberar no banco</h3><p class="alerta">O estoque precisa do SQL do estoque antes de funcionar.</p>'; $('esLista').hidden = true; return; }
+  if (!estoque.vinculado) {
+    topo.innerHTML = '<div class="vazio"><b>Primeiro ligue a sua IA</b>O estoque fica na conta do motor da sua IA.<br><button type="button" data-ir="agentes">Ir para Agentes LeadVox IA</button></div>';
+    ligarIr(topo); $('esLista').hidden = true; return;
+  }
+  const fonte = conexoes?.estoque?.connected ? conexoes.estoque.source : 'leadvox', externa = fonte === 'autocerto' || fonte === 'revendamais';
+  const itens = estoque.itens || [], disp = itens.filter(i => i.status === 'disponivel').length, usa = !!agDados?.config?.catalogo?.usar;
+  topo.innerHTML = `<div class="lista-topo"><div><h3>Estoque da IA · ${esc(FONTES[fonte] || fonte)}</h3>
+      <p class="muted" style="margin-top:4px">${externa ? 'Copiado do ' + esc(FONTES[fonte]) + ': atualiza sozinho a cada 30 minutos.' : 'Cadastre os veículos aqui. A IA só oferece o que estiver disponível.'}
+      ${itens.length} veículo${itens.length === 1 ? '' : 's'}, ${disp} disponíve${disp === 1 ? 'l' : 'is'}.</p></div>
+      <div class="form-bts" style="margin:0">${externa ? '<button type="button" class="principal sm" id="esSync">Atualizar agora</button>' : '<button type="button" class="principal sm" id="esNovo">+ Cadastrar veículo</button>'}
+      <button type="button" class="sm" data-ir="credenciais">Trocar fonte</button></div></div>
+    ${agDados ? `<div class="lin-sw" style="margin-top:10px"><span>${esc(agDados.config.identidade.nome || 'A IA')} usa o estoque<small>Mostra os veículos, manda foto e fala de preço conforme a regra de preço da base de conhecimento.</small></span>
+      <button type="button" class="switch" role="switch" aria-checked="${usa}" id="esUsar" aria-label="A IA usa o estoque"><span></span></button></div>`
+      : '<p class="dica">Crie o seu agente em Agentes LeadVox IA para ele usar o estoque.</p>'}`;
+  ligarIr(topo);
+  if ($('esNovo')) $('esNovo').onclick = () => editarVeiculo(null);
+  if ($('esSync')) $('esSync').onclick = async () => {
+    $('esSync').disabled = true; $('esSync').textContent = 'Atualizando…';
+    try { const r = await api('estoque', { organization: empresa.id, acao: 'sincronizar' }); estoque = r; const s = r.sincronizado || {};
+      toast(`Estoque atualizado: ${s.total ?? 0} veículos (${s.novos ?? 0} novos, ${s.removidos ?? 0} saíram).`); desenharEstoque(); }
+    catch (err) { toast(err.message, true); $('esSync').disabled = false; $('esSync').textContent = 'Atualizar agora'; }
+  };
+  if ($('esUsar')) $('esUsar').onclick = async () => {
+    const c = agDados.config, cat = { ...c.catalogo, usar: !usa, fotosPorVez: Math.max(Number(c.catalogo?.fotosPorVez) || 1, 2) };
+    if (agDados.tipo !== 'catalogo') cat.modo = 'vitrine';
+    try { const r = await acaoMotor({ acao: 'salvar', agente: agSel, config: { ...c, catalogo: cat }, versaoBase: agDados.versao });
+      agDados = { ...agDados, config: { ...c, catalogo: cat }, versao: r.versao ?? agDados.versao };
+      toast(cat.usar ? 'Pronto: a IA já oferece os veículos do estoque.' : 'A IA parou de usar o estoque.'); desenharEstoque(); } catch {}
+  };
+  $('esLista').hidden = false;
+  $('esLista').innerHTML = itens.length ? itens.map(i => {
+    const manual = !/^(ac|rm):/.test(i.codigo || ''), foto = (i.fotos || [])[0];
+    return `<div class="veic">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sem-foto">sem foto</div>'}
+      <div><b>${esc(i.nome)}</b><small>${esc(i.descricao || i.categoria || '')}</small>
+        <span class="valor">${i.preco ? preco(i.preco) : 'Sob consulta'}</span>${i.status !== 'disponivel' ? ` <span class="st rascunho">${i.status === 'reservado' ? 'Reservado' : 'Vendido'}</span>` : ''}</div>
+      <div class="bts">${manual ? `<button type="button" class="sm" data-es-ed="${i.id}">Editar</button><button type="button" class="sm perigo" data-es-ex="${i.id}">Excluir</button>` : ''}</div></div>`;
+  }).join('') : `<div class="vazio"><b>Nenhum veículo ainda</b>${externa ? 'Clique em Atualizar agora para trazer o estoque.' : 'Clique em Cadastrar veículo.'}</div>`;
+  $('esLista').querySelectorAll('[data-es-ed]').forEach(b => b.onclick = () => editarVeiculo(itens.find(i => String(i.id) === b.dataset.esEd)));
+  $('esLista').querySelectorAll('[data-es-ex]').forEach(b => b.onclick = async () => {
+    const it = itens.find(i => String(i.id) === b.dataset.esEx);
+    if (!confirm('Excluir ' + (it?.nome || 'este veículo') + ' do estoque?')) return;
+    try { estoque = await api('estoque', { organization: empresa.id, acao: 'excluir', id: Number(b.dataset.esEx) }); toast('Veículo excluído.'); desenharEstoque(); } catch (err) { toast(err.message, true); }
+  });
+}
+function editarVeiculo(i) {
+  const a = i?.atributos || {};
+  $('esFormTit').textContent = i ? 'Editar veículo' : 'Cadastrar veículo';
+  $('esId').value = i?.id || ''; $('esMarca').value = a.marca || ''; $('esModelo').value = a.modelo || ''; $('esVersao').value = a.versao || '';
+  $('esAno').value = a.ano || ''; $('esKm').value = a.km || ''; $('esCor').value = a.cor || ''; $('esCambio').value = a.cambio || ''; $('esComb').value = a.combustivel || '';
+  $('esCat').value = i?.categoria || ''; $('esPreco').value = i?.preco ? String(Number(i.preco)).replace('.', ',') : ''; $('esStatus').value = i?.status || 'disponivel';
+  $('esFotos').value = (i?.fotos || []).join('\n'); $('esObs').value = a.obs || '';
+  $('esForm').hidden = false; $('esForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('esMarca').focus();
+}
+$('esCancelar').onclick = () => { $('esForm').hidden = true; };
+$('esForm').onsubmit = async e => {
+  e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
+  const item = { id: Number($('esId').value) || undefined, marca: $('esMarca').value, modelo: $('esModelo').value, versao: $('esVersao').value, ano: $('esAno').value,
+    km: $('esKm').value, cor: $('esCor').value, cambio: $('esCambio').value, combustivel: $('esComb').value, categoria: $('esCat').value,
+    preco: $('esPreco').value, status: $('esStatus').value, fotos: $('esFotos').value, obs: $('esObs').value, tipo: /moto/i.test($('esCat').value) ? 'moto' : 'carro' };
+  try { estoque = await api('estoque', { organization: empresa.id, acao: 'salvar', item }); $('esForm').hidden = true; toast('Veículo salvo. A IA já pode oferecer.'); desenharEstoque(); }
+  catch (err) { toast(err.message, true); }
+  finally { bt.disabled = false; }
+};
+
 /* outras conexões: estoque e Asaas */
 let conexoes = null, estFonte = '';
 const FONTES = { autocerto: 'AutoCerto', revendamais: 'Revenda Mais', leadvox: 'Estoque LeadVox' };
@@ -729,7 +812,7 @@ function desenharConexoes() {
   if (mostraEst) {
     if (e?.connected) {
       const det = e.source === 'autocerto' ? `<div><span>Unidade</span>${esc(e.unidade)}</div><div><span>Usuário da API</span>${esc(e.usuario)}</div>`
-        : e.source === 'revendamais' ? `<div><span>Feed</span>${esc(e.feedHost)}</div><div><span>Veículos no teste</span>${esc(e.vehicles ?? '—')}</div>` : '<div><span>Cadastro</span>Na vitrine da LeadVox</div>';
+        : e.source === 'revendamais' ? `<div><span>Feed</span>${esc(e.feedHost)}</div><div><span>Veículos no teste</span>${esc(e.vehicles ?? '—')}</div>` : '<div><span>Cadastro</span>Aqui no painel, na página Estoque</div>';
       $('estStatus').innerHTML = `<h3>Estoque: ${esc(FONTES[e.source] || e.source)}</h3><div class="ag-dados">${det}<div><span>Atualizado em</span>${esc(quandoBR(e.updatedAt))}</div></div>
         <div class="form-bts"><button type="button" class="sm" id="estTrocar">Trocar fonte de estoque</button></div>`;
       $('estTrocar').onclick = () => { $('estForm').hidden = false; };

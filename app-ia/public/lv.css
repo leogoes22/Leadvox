@@ -200,6 +200,16 @@ textarea { min-height: 90px; resize: vertical; }
 .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; margin-top: 10px; font-size: 13.5px; }
 .checklist span { color: var(--suave); } .checklist span::before { content: "○ "; }
 .checklist span.ok { color: var(--texto); } .checklist span.ok::before { content: "✓ "; color: var(--verde); }
+/* estoque */
+.veic { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--linha); }
+.veic:first-of-type { border-top: 0; }
+.veic img, .veic .sem-foto { width: 72px; height: 54px; border-radius: 8px; object-fit: cover; background: var(--navy); border: 1px solid var(--linha); }
+.veic .sem-foto { display: grid; place-items: center; color: var(--suave); font-size: 11px; }
+.veic b { display: block; line-height: 1.25; overflow-wrap: anywhere; }
+.veic small { color: var(--suave); display: block; }
+.veic .valor { color: var(--verde); font-weight: 700; font-size: 14px; }
+@media (max-width: 560px) { .veic { grid-template-columns: 60px minmax(0, 1fr); } .veic .bts { grid-column: 1 / -1; } .veic img, .veic .sem-foto { width: 60px; height: 45px; } }
+
 /* regras com @ */
 .rg-caixa { position: relative; margin-top: 12px; }
 .rg-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; margin-top: 4px; max-height: 280px; overflow-y: auto;

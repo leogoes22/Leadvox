@@ -216,6 +216,39 @@
       </form>
     </section>
 
+    <section id="vEstoque" hidden>
+      <div class="card" id="esTopo" style="margin-top:0"><p class="muted">Carregando o estoque…</p></div>
+      <form class="card" id="esForm" hidden>
+        <h3 id="esFormTit">Cadastrar veículo</h3>
+        <input type="hidden" id="esId">
+        <div class="tres">
+          <div><label for="esMarca">Marca</label><input id="esMarca" maxlength="40" placeholder="Hyundai"></div>
+          <div><label for="esModelo">Modelo</label><input id="esModelo" maxlength="80" placeholder="HB20"></div>
+          <div><label for="esVersao">Versão</label><input id="esVersao" maxlength="80" placeholder="1.0 Comfort"></div>
+        </div>
+        <div class="tres">
+          <div><label for="esAno">Ano</label><input id="esAno" maxlength="9" inputmode="numeric" placeholder="2020/2021"></div>
+          <div><label for="esKm">Km</label><input id="esKm" maxlength="9" inputmode="numeric" placeholder="45000"></div>
+          <div><label for="esCor">Cor</label><input id="esCor" maxlength="30" placeholder="Prata"></div>
+        </div>
+        <div class="tres">
+          <div><label for="esCambio">Câmbio</label><select id="esCambio"><option value="">—</option><option>Manual</option><option>Automático</option><option>CVT</option><option>Automatizado</option></select></div>
+          <div><label for="esComb">Combustível</label><select id="esComb"><option value="">—</option><option>Flex</option><option>Gasolina</option><option>Diesel</option><option>Elétrico</option><option>Híbrido</option></select></div>
+          <div><label for="esCat">Categoria</label><input id="esCat" maxlength="40" list="esCats" placeholder="Hatch"><datalist id="esCats"><option value="Hatch"><option value="Sedã"><option value="SUV"><option value="Picape"><option value="Utilitário"><option value="Moto"></datalist></div>
+        </div>
+        <div class="duas">
+          <div><label for="esPreco">Preço <small>(vazio = sob consulta)</small></label><input id="esPreco" maxlength="14" inputmode="decimal" placeholder="62.900"></div>
+          <div><label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select></div>
+        </div>
+        <label for="esFotos">Fotos <small>(endereço https de cada foto, uma por linha; a primeira é a capa)</small></label>
+        <textarea id="esFotos" style="min-height:70px" placeholder="https://..."></textarea>
+        <label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
+        <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea>
+        <div class="form-bts"><button class="principal" type="submit">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>
+      </form>
+      <div class="card" id="esLista"></div>
+    </section>
+
     <section id="vLista" hidden>
       <div class="card">
         <div class="lista-topo" id="listaTopo" hidden><p class="muted" id="listaInfo"></p><button class="sm" type="button" id="listaAtualizar">Atualizar</button></div>

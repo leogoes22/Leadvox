@@ -1,6 +1,7 @@
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
+import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
@@ -152,6 +153,34 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
+   }else if(action==='estoque'){
+    // Veículos do catálogo do motor: cadastro à mão (Estoque LeadVox) ou cópia do AutoCerto / Revenda Mais.
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args)=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});
+    if(req.method==='GET'){
+     let r;try{r=await rpc('lv_motor_itens',{});}catch{return send(res,200,{setupPending:true}),true;}
+     return send(res,200,r),true;
+    }
+    try{
+     if(body.acao==='salvar'){
+      const r=await rpc('lv_motor_item_salvar',{item:itemManual(body.item)});
+      if(r?.ok===false)throw {status:400,message:{nome:'Informe o modelo do veículo.',limite_itens:'O estoque chegou ao limite de 2.000 veículos.'}[r.erro]||'Não deu para salvar o veículo.'};
+     }else if(body.acao==='excluir'){
+      if(!Number.isInteger(body.id)||body.id<1)throw {status:400,message:'Veículo inválido.'};
+      await rpc('lv_motor_item_excluir',{item_id:body.id});
+     }else if(body.acao==='sincronizar'){
+      let s;try{s=(await upstream('/rest/v1/rpc/lv_integration_secret',{method:'POST',token:authToken,body:{org,prov:'estoque'}}))?.[0];}catch{s=null;}
+      if(!s?.settings?.source)throw {status:400,message:'Escolha a fonte do estoque em Credenciais de API.'};
+      const itens=await buscarEstoque({source:s.settings.source,settings:s.settings,secret:s.secret,fetchImpl});
+      // lista vazia quase sempre é falha de leitura: não apaga o estoque que já está na IA
+      if(!itens.length)throw {status:400,message:'A fonte devolveu o estoque vazio. Nada foi apagado; tente de novo daqui a pouco.'};
+      const r=await rpc('lv_motor_estoque_importar',{fonte:s.settings.source,itens});
+      const lista=await rpc('lv_motor_itens',{});
+      return send(res,200,{...lista,sincronizado:r}),true;
+     }else throw {status:400,message:'Ação inválida.'};
+    }catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer no estoque.'};}
+    send(res,200,await rpc('lv_motor_itens',{}));
    }else if(action==='integrations'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
