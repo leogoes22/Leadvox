@@ -29,9 +29,10 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  const api=id(apiId);
  if(typeof token!=='string'||!token.trim()||/[\r\n]/.test(token))throw new Error('Credencial inválida');
  // Same call shape as the SDR Motor in n8n: token in the query string and as Bearer.
- async function get(path) {
+ // raiz=true: rotas que a tela da LeadVox usa, fora do /v1 (ex.: /lead-origin/).
+ async function get(path,raiz=false) {
   let response;
-  try{response=await fetchImpl(root+path+'?token='+encodeURIComponent(token),{
+  try{response=await fetchImpl((raiz?root.replace(/\/v\d{1,2}$/,''):root)+path+'?token='+encodeURIComponent(token),{
    method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},
    redirect:'error',signal:AbortSignal.timeout(10000)});
   }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
@@ -41,24 +42,28 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   return body;
  }
  const ext=p=>'/api/external/'+p;
+ // Rotas não documentadas: fica com a primeira lista que vier. Token recusado na API externa é erro de credencial.
+ async function firstList(paths,code){
+  for(const p of paths){const [path,raiz]=Array.isArray(p)?p:[p,false];
+   try{const list=pickList(await get(path,raiz));if(list)return list;}catch(e){if(e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))throw e;}
+  }
+  throw new ChatApiError(code);
+ }
  return Object.freeze({
   users:()=>get(ext('users/'+api)),
   tags:()=>get(ext(api+'/tags')),
   pipelineSteps:()=>get(ext(api+'/pipeline-steps')),
   // The departments (queues) route is not documented; like the SDR Motor, try the known candidates and keep the first list.
-  async departments(){
-   for(const path of [ext(api+'/queues'),ext(api+'/queue'),ext('queue/'+api),ext('departments/'+api),ext(api+'/departments'),ext('whatsapp-queues/'+api),'/queue','/queues']){
-    try{const list=pickList(await get(path));if(list)return list;}catch(e){if(e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))throw e;}
-   }
-   throw new ChatApiError('CHAT_DEPARTMENTS_UNAVAILABLE');
-  },
+  departments:()=>firstList([ext(api+'/queues'),ext(api+'/queue'),ext('queue/'+api),ext('departments/'+api),ext(api+'/departments'),ext('whatsapp-queues/'+api),'/queue','/queues',['/queue/',true],['/queues/',true]],'CHAT_DEPARTMENTS_UNAVAILABLE'),
+  // Origem do lead: também sem rota documentada; tenta as candidatas da API externa e as da tela.
+  leadOrigins:()=>firstList([ext(api+'/lead-origins'),ext(api+'/lead-origin'),ext(api+'/origins'),ext('lead-origins/'+api),ext('lead-origin/'+api),'/lead-origin','/lead-origins',['/lead-origin/',true],['/lead-origins/',true]],'CHAT_ORIGINS_UNAVAILABLE'),
   // No mutation or messaging method is enabled until account-scoped auth and live validation.
  });
 }
 export function pickList(body){
  if(Array.isArray(body))return body;
  if(!body||typeof body!=='object')return null;
- for(const k of ['data','tags','users','queues','queue','steps','pipelineSteps','pipeline_steps','departments','result','results','items']){
+ for(const k of ['data','tags','users','queues','queue','steps','pipelineSteps','pipeline_steps','departments','leadOrigins','origins','result','results','items']){
   if(Array.isArray(body[k]))return body[k];
   if(body[k]&&typeof body[k]==='object'){const inner=pickList(body[k]);if(inner)return inner;}
  }
@@ -70,7 +75,7 @@ const firstText=x=>Object.entries(x&&typeof x==='object'?x:{}).find(([k,v])=>typ
 export function normalizeItems(list){
  return (list||[]).slice(0,500).map(x=>({
   id:String(x?.id??x?.value??x?.queueId??''),
-  name:String(x?.name??x?.nome??x?.tag??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
+  name:String(x?.name??x?.nome??x?.tag??x?.origin??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
   color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null
  })).filter(x=>x.id||x.name);
 }

@@ -45,3 +45,11 @@ test('rules reject foreign ids and unverified operations and remain disabled',()
  assert.equal(validateRule(rule,catalog).enabled,false);
  for(const patch of [{pipelineStepId:4},{responsibleId:8},{tagIds:[10]},{queueId:50},{tagIds:[9]},{event:'arbitrary'}])assert.throws(()=>validateRule({...rule,...patch},catalog));
 });
+test('lead origins fall back to the screen route outside /v1',async()=>{
+ const urls=[];const c=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async url=>{urls.push(url);
+  return url.startsWith('https://chatapi.leadvox.com.br/lead-origin/?')?{ok:true,json:async()=>[{id:9,name:'Instagram'}]}:{ok:false,status:404,json:async()=>({})};}});
+ assert.deepEqual(normalizeItems(await c.leadOrigins()),[{id:'9',name:'Instagram',color:null}]);
+ assert.ok(urls.at(-1).startsWith('https://chatapi.leadvox.com.br/lead-origin/?token='));
+ const n=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})});
+ await assert.rejects(n.leadOrigins(),{code:'CHAT_ORIGINS_UNAVAILABLE'});
+});
