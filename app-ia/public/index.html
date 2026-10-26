@@ -215,7 +215,10 @@
               <label for="rgGrupo">Grupo de avisos no WhatsApp <small>(para a ação "Avisar no grupo")</small></label>
               <input id="rgGrupo" inputmode="numeric" maxlength="40" placeholder="120363000000000000">
               <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo.</p>
-              <label for="rgResp">Responsável pelas oportunidades do funil</label><select id="rgResp"></select>
+              <label for="rgModoResp">Responsável pela oportunidade no funil</label>
+              <select id="rgModoResp"><option value="atendente">Quem está atendendo o cliente (o vendedor do ticket)</option><option value="fixo">Um responsável fixo</option></select>
+              <label for="rgResp" id="rgRespRot">Se ninguém estiver atendendo ainda</label><select id="rgResp"></select>
+              <p class="muted" style="font-size:13px;margin-top:6px" id="rgRespDica">Se a IA passar o cliente para uma pessoa, a oportunidade fica com essa pessoa. Senão, com quem a LeadVox distribuiu o ticket.</p>
             </div>
             <div class="salvar-barra"><span class="muted" id="rgSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar ações e regras</button></div>
           </form>

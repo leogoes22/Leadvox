@@ -607,6 +607,7 @@ function desenharAcoes() {
   rgAgente = agSel;
   $('rgTexto').value = r.texto || '';
   $('rgGrupo').value = r.grupo || '';
+  $('rgModoResp').value = r.responsavel === 'fixo' ? 'fixo' : 'atendente'; modoResp();
   listaK($('rgSetores'), (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao })),
     [{ k: 'nome', rot: 'Departamento', max: 60, ph: 'Ex.: Comercial' }, { k: 'filaId', rot: 'Nº da fila na LeadVox', max: 10, ph: 'Ex.: 66' }, { k: 'quando', rot: 'Quando a IA manda para cá', max: 200, ph: 'Ex.: cliente quer comprar ou simular' }],
     { rotMais: 'Adicionar departamento', max: 12, grade: 'tres' });
@@ -701,6 +702,13 @@ $('rgTexto').addEventListener('keydown', e => {
   else if (e.key === 'Escape') { e.preventDefault(); fecharMenu(); }
 });
 $('rgGrupo').addEventListener('input', conferirAcoes);
+// responsável da oportunidade: o vendedor do ticket (com reserva) ou sempre a mesma pessoa
+function modoResp() {
+  const fixo = $('rgModoResp').value === 'fixo';
+  $('rgRespRot').textContent = fixo ? 'Quem fica com todas as oportunidades' : 'Se ninguém estiver atendendo ainda';
+  $('rgRespDica').hidden = fixo;
+}
+$('rgModoResp').addEventListener('change', modoResp);
 $('rgSetores').addEventListener('click', () => setTimeout(desenharPadrao));
 $('rgSetores').addEventListener('input', desenharPadrao);
 function marcarRg() { rgSujo = true; $('rgSujo').textContent = 'Alterações não salvas.'; $('rgSujo').style.color = 'var(--amarelo)'; }
@@ -723,7 +731,7 @@ $('agAcoes').onsubmit = async e => {
     acoes.filter(a => a.tipo === 'etiqueta' || a.tipo === 'tirar').forEach(a => { if (!lista.some(x => semAc(x.nome) === semAc(a.nome))) lista.push({ nome: a.nome }); });
     const unicas = acoes.filter((a, i) => a.id === undefined || acoes.findIndex(b => b.cod === a.cod && b.id === a.id) === i);
     const config = { ...c, setores, crm: { ...crm, listaEtiquetas: lista },
-      regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), usuarioId: Number($('rgResp').value) || null, acoes: unicas } };
+      regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), responsavel: $('rgModoResp').value, usuarioId: Number($('rgResp').value) || null, acoes: unicas } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
     agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
     limparRg(); toast('Ações e regras salvas. A IA já usa na próxima mensagem.');
