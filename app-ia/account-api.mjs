@@ -7,7 +7,7 @@ const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Webhook de eventos da LeadVox → Sentinela do Motor IA. Enquanto o motor novo roda na cópia de teste, o caminho é
 // iag-sentinela-v3; na troca para produção passa a ser iag-sentinela.
-const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+export const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
 const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
  conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
@@ -178,7 +178,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
      return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null}),true;
     }
-    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null});
+    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null,
+     // Plugin do Vendedor: o painel monta o link com o próprio endereço (/vendedor?k=&t=)
+     plugin:/^[0-9a-f]{24}$/.test(r.tokenPlugin||'')?{conta:r.conta,t:r.tokenPlugin}:null});
    }else if(action==='simular'&&req.method==='POST'){
     // "Testar a IA": manda a mensagem para o motor de simulação (mesma IA, sem enviar nada para a LeadVox) e devolve o que ela responderia e faria.
     const org=body.organization,agente=String(body.agente||''),mensagem=typeof body.mensagem==='string'?body.mensagem.trim().slice(0,2000):'',sessao=String(body.sessao||'');

@@ -230,3 +230,21 @@ test('ElevenLabs key is tested by listing voices, saved to the vault and never s
  const v=await (await fetch(base+'/api/account/elevenlabs-vozes?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}})).json();
  assert.deepEqual(v.vozes,[{id:'21m00Tcm4TlvDq8ikWAM',nome:'Rachel',detalhe:'female · american'}]);assert.doesNotMatch(JSON.stringify(v),/sk_/);
 });
+test('seller plugin opens only inside LeadVox and its API forwards only known fields to the motor',async t=>{
+ const envios=[];
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/webhook/iag-plugin-vendedor')){envios.push(JSON.parse(init.body));return ok({ok:true,ia:{estado:'atendendo'}});}
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port;
+ const pag=await fetch(base+'/vendedor');assert.equal(pag.status,200);assert.match(pag.headers.get('content-security-policy'),/frame-ancestors https:\/\/\*\.leadvox\.com\.br/);
+ const painel=await fetch(base+'/');assert.match(painel.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+ const post=b=>fetch(base+'/api/plugin',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify(b)});
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'x',acao:'contexto'})).status,400);
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'apagar'})).status,400);
+ const r=await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'contexto',tel:'5521988943529',ticketId:'108600',vendedor:'Leonardo',senha:'nao-vai'});
+ assert.equal(r.status,200);assert.equal((await r.json()).ia.estado,'atendendo');
+ assert.deepEqual(Object.keys(envios[0]).sort(),['acao','cliente','k','t','tel','ticketId','vendedor']);
+ assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
+});

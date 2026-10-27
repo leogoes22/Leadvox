@@ -1132,6 +1132,18 @@ function desenharEventos() {
     try { await navigator.clipboard.writeText(eventos.url); } catch { $('evUrl').select(); document.execCommand('copy'); }
     toast('Endereço copiado. Cole na LeadVox em Configurações → API → Webhook de eventos.');
   };
+  desenharPluginLink();
+}
+// link do Plugin do Vendedor (mesmo endereço deste painel, página /vendedor com a chave da loja)
+function desenharPluginLink() {
+  const el = $('pvConteudo'), p = eventos && eventos.plugin;
+  if (!p) { el.innerHTML = '<p class="dica">Gerando o link do plugin… aparece em até 2 minutos.</p>'; return; }
+  const link = location.origin + '/vendedor?k=' + encodeURIComponent(p.conta) + '&t=' + encodeURIComponent(p.t);
+  el.innerHTML = `<div class="ev-url"><input id="pvUrl" readonly aria-label="Link do Plugin do Vendedor" value="${esc(link)}"><button type="button" class="principal sm" id="pvCopiar">Copiar</button></div>`;
+  $('pvCopiar').onclick = async () => {
+    try { await navigator.clipboard.writeText(link); } catch { $('pvUrl').select(); document.execCommand('copy'); }
+    toast('Link do plugin copiado. Cole na LeadVox ao criar o plugin.');
+  };
 }
 
 // Itens na ordem em que o dono resolve; cada um leva para o lugar certo do painel.

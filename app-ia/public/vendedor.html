@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LeadVox · Plugin do Vendedor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/lv.css">
+<style>
+  /* Plugin na lateral da LeadVox: coluna estreita, tudo empilhado */
+  body { font-size: 14px; }
+  .pv { padding: 12px 12px 40px; max-width: 520px; margin: 0 auto; }
+  .pv-topo { display: flex; align-items: center; gap: 10px; }
+  .pv-topo img { width: 92px; height: auto; }
+  .pv-topo small { color: var(--suave); }
+  .pv-cli { margin-top: 10px; padding: 10px 12px; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
+  .pv-cli b { display: block; font-size: 15px; }
+  .pv-cli small { display: block; color: var(--suave); }
+  .pv .abas { padding-top: 10px; }
+  .pv .card { margin-top: 10px; padding: 12px; }
+  .pv h3 { font-size: 14px; }
+  .pv .st-ia { display: flex; align-items: flex-start; gap: 10px; }
+  .pv .st-ia i { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; margin-top: 5px; background: var(--suave); }
+  .pv .st-ia i.on { background: var(--verde); } .pv .st-ia i.pausa { background: var(--amarelo); } .pv .st-ia i.off { background: var(--erro); }
+  .pv .bt-largo { width: 100%; margin-top: 10px; }
+  .pv ul { margin: 6px 0 0; padding-left: 18px; }
+  .pv li { margin: 3px 0; }
+  .pv .msg { white-space: pre-wrap; background: var(--navy); border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px; margin-top: 6px; }
+  .pv .linha2 { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .pv .vazio-pv { text-align: center; padding: 30px 10px; color: var(--suave); }
+  .pv .breve { opacity: .55; }
+</style>
+</head>
+<body>
+<main class="pv">
+  <div class="pv-topo"><img src="/logo-leadvox.png" alt="LeadVox" width="92" height="28"><small>Plugin do Vendedor</small></div>
+  <div id="pvAviso" class="alerta" hidden></div>
+  <div id="pvCliente" class="pv-cli" hidden></div>
+  <nav class="abas" id="pvAbas" aria-label="Plugin">
+    <button type="button" data-aba="ia" aria-pressed="true">🤖 IA</button>
+    <button type="button" data-aba="estoque" class="breve" title="Em breve">🚗 Estoque</button>
+    <button type="button" data-aba="proposta" class="breve" title="Em breve">📄 Proposta</button>
+  </nav>
+  <section id="abaIa">
+    <div class="card" id="pvSituacao"><p class="muted">Abra um atendimento na LeadVox para ver a IA deste cliente.</p></div>
+    <div class="card" id="pvResumo" hidden></div>
+    <div class="card" id="pvOrientar" hidden>
+      <h3>✨ Orientação da IA</h3>
+      <p class="muted" style="font-size:13px;margin-top:4px">A IA lê a conversa e sugere o que fazer agora: resumo, próximos passos, tarefa e mensagem.</p>
+      <button type="button" class="principal bt-largo" id="pvGerar">Gerar orientação</button>
+      <div id="pvOrientacao"></div>
+    </div>
+    <div class="card breve" id="pvAgendar" hidden>
+      <h3>📅 Agendar follow-up da IA</h3>
+      <p class="muted" style="font-size:13px;margin-top:4px">Em breve: escolha data e hora, e a IA retoma a conversa com o cliente no contexto.</p>
+    </div>
+  </section>
+  <section id="abaEstoque" hidden><div class="card vazio-pv">🚗 Estoque chega na próxima etapa: buscar o carro e mandar fotos e ficha para o cliente em um toque.</div></section>
+  <section id="abaProposta" hidden><div class="card vazio-pv">📄 Proposta chega numa etapa seguinte: formulário rápido que gera e envia a proposta.</div></section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/vendedor.js"></script>
+</body>
+</html>
