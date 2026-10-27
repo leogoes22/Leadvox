@@ -43,3 +43,21 @@ export async function testAsaas({environment,apiKey,fetchImpl=fetch}){
  if(!r.ok)throw new ConnectionError('O Asaas respondeu com erro. Tente de novo em instantes.');
  return {ok:true};
 }
+
+// ElevenLabs (voz da IA): a chave precisa ler as vozes e gerar fala (Text to Speech).
+// Testar = listar as vozes da conta; o painel mostra essa lista para escolher a voz.
+const ELEVEN='https://api.elevenlabs.io/v1';
+export async function elevenLabsVoices({apiKey,fetchImpl=fetch}){
+ const key=typeof apiKey==='string'?apiKey.trim():'';
+ if(!/^[A-Za-z0-9_-]{20,200}$/.test(key))throw new ConnectionError('A chave da ElevenLabs parece incompleta. Copie de novo em Developers → API Keys.');
+ let r;try{r=await fetchImpl(ELEVEN+'/voices',{headers:{'xi-api-key':key,Accept:'application/json'},redirect:'error',signal:timeout()});}
+ catch{throw new ConnectionError('Não deu para falar com a ElevenLabs agora. Tente de novo em instantes.');}
+ if(r.status===401||r.status===403)throw new ConnectionError('A ElevenLabs não aceitou essa chave. Ao criar a chave, libere "Text to Speech" e "Voices" (leitura).');
+ if(!r.ok)throw new ConnectionError('A ElevenLabs respondeu com erro. Tente de novo em instantes.');
+ let body;try{body=await r.json();}catch{throw new ConnectionError('A ElevenLabs respondeu algo que não entendi. Tente de novo.');}
+ const txt=v=>typeof v==='string'?v.slice(0,40):'';
+ return (Array.isArray(body?.voices)?body.voices:[]).slice(0,200).map(v=>({
+  id:String(v?.voice_id||''),nome:String(v?.name||'Voz').slice(0,60),
+  detalhe:[txt(v?.labels?.gender),txt(v?.labels?.accent),txt(v?.labels?.age),txt(v?.labels?.language)].filter(Boolean).join(' · ')
+ })).filter(v=>/^[A-Za-z0-9]{10,40}$/.test(v.id));
+}

@@ -210,3 +210,23 @@ test('the @ menu lists the steps of every funnel, with the funnel name when ther
  const r=await fetch(base+'/api/account/chat?organization='+org+'&kind=status',{headers:{Cookie:'__Host-lv_session=x'}});
  assert.deepEqual((await r.json()).items.map(i=>i.id+' '+i.name+' (funil '+i.funil+')'),['143 Comercial › Novo Lead (funil 33)','144 Comercial › Negociando (funil 33)','150 Pós-venda › Entregue (funil 40)']);
 });
+test('ElevenLabs key is tested by listing voices, saved to the vault and never sent back; voices come without the key',async t=>{
+ const chamadas=[];let chaveCerta='sk_abcdefghijklmnopqrstuvwxyz123456';
+ const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.includes('/rpc/lv_set_integration')){chamadas.push(JSON.parse(init.body));return ok(null,204);}
+  if(u.includes('/rpc/lv_integration_secret'))return ok([{settings:{vozes:2},secret:chaveCerta}]);
+  if(u==='https://api.elevenlabs.io/v1/voices')return init.headers['xi-api-key']===chaveCerta
+   ?ok({voices:[{voice_id:'21m00Tcm4TlvDq8ikWAM',name:'Rachel',labels:{gender:'female',accent:'american'}},{voice_id:'x',name:'inválida'}]}):ok({},401);
+  return ok({});
+ }});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=x'};
+ const salvar=k=>fetch(base+'/api/account/integrations',{method:'POST',headers:h,body:JSON.stringify({organization:org,provider:'elevenlabs',apiKey:k})});
+ const errada=await salvar('sk_chaveerradaerradaerradaerrada');assert.equal(errada.status,400);assert.match((await errada.json()).error,/Text to Speech/);
+ const r=await salvar(chaveCerta);assert.equal(r.status,200);const d=await r.json();
+ assert.equal(d.vozes,1);assert.doesNotMatch(JSON.stringify(d),/sk_/);
+ assert.equal(chamadas[0].prov,'elevenlabs');assert.equal(chamadas[0].sec,chaveCerta);
+ const v=await (await fetch(base+'/api/account/elevenlabs-vozes?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}})).json();
+ assert.deepEqual(v.vozes,[{id:'21m00Tcm4TlvDq8ikWAM',nome:'Rachel',detalhe:'female · american'}]);assert.doesNotMatch(JSON.stringify(v),/sk_/);
+});

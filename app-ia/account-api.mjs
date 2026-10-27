@@ -1,7 +1,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
-import {testAutoCerto,testRevendaMais,testAsaas,ConnectionError} from './integrations/connections.mjs';
+import {testAutoCerto,testRevendaMais,testAsaas,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
@@ -333,11 +333,25 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       if(!key){const s=await salvo();if(s.settings?.environment===environment&&s.secret)key=s.secret;else throw {status:400,message:'Cole a chave de API do Asaas.'};}
       await testAsaas({environment,apiKey:key,fetchImpl});
       conf={environment,testedAt:new Date().toISOString()};sec=key;
+     }else if(prov==='elevenlabs'){
+      // Voz da IA: a chave vai para o Vault; só o motor a lê (iag_voz_elevenlabs), o painel nunca devolve a chave.
+      let key=str(body.apiKey,200);
+      if(!key){const s=await salvo();if(s.secret)key=s.secret;else throw {status:400,message:'Cole a chave de API da ElevenLabs.'};}
+      const vozes=await elevenLabsVoices({apiKey:key,fetchImpl});
+      conf={vozes:vozes.length,testedAt:new Date().toISOString()};sec=key;
      }else throw {status:400,message:'Conexão inválida.'};
     }catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
     try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov,conf,sec},prefer:'return=minimal'});}
     catch{throw {status:400,message:'Não deu para salvar. Só o dono da empresa pode mudar as conexões.'};}
     send(res,200,{...conf,connected:true});
+   }else if(action==='elevenlabs-vozes'&&req.method==='GET'){
+    // Vozes da conta ElevenLabs da empresa, para escolher na aba Multimodal (só nome e id; a chave fica no servidor).
+    const org=new URL(req.url,'https://localhost').searchParams.get('organization');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    let s;try{s=(await upstream('/rest/v1/rpc/lv_integration_secret',{method:'POST',token:authToken,body:{org,prov:'elevenlabs'}}))?.[0];}catch{s=null;}
+    if(!s?.secret)throw {status:409,message:'Conecte a ElevenLabs em Credenciais de API.'};
+    try{send(res,200,{vozes:await elevenLabsVoices({apiKey:s.secret,fetchImpl})});}
+    catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
    }else if(action==='chat-credentials'||action==='chat'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};

@@ -214,7 +214,14 @@
               <div class="mm-op" id="mmVozBox">
                 <label for="mmModo">Quando responder com voz</label>
                 <select id="mmModo"><option value="espelho">Quando o cliente mandar áudio</option><option value="sempre">Sempre</option></select>
-                <label for="mmVoz">Voz</label>
+                <label for="mmProv">Quem gera a voz</label>
+                <select id="mmProv"><option value="openai">OpenAI (já incluída)</option><option value="elevenlabs">ElevenLabs (mais natural, precisa da chave)</option></select>
+                <div id="mmElBox" hidden>
+                  <label for="mmElVoz">Voz da ElevenLabs</label>
+                  <select id="mmElVoz"><option value="">Carregando as suas vozes…</option></select>
+                  <p class="muted" id="mmElAviso" style="font-size:13px;margin-top:6px">Se a ElevenLabs falhar ou acabarem os créditos, a IA usa a voz da OpenAI abaixo.</p>
+                </div>
+                <label for="mmVoz" id="mmVozRot">Voz</label>
                 <select id="mmVoz">
                   <option value="nova">Nova: feminina, leve</option><option value="coral">Coral: feminina, calorosa</option><option value="shimmer">Shimmer: feminina, suave</option>
                   <option value="sage">Sage: feminina, calma</option><option value="alloy">Alloy: neutra</option><option value="ash">Ash: masculina, firme</option>
@@ -451,6 +458,16 @@
         </div>
         <p class="dica" id="estLV" hidden>Os veículos e as fotos são cadastrados na vitrine da LeadVox. Não precisa de senha.</p>
         <button class="principal" type="submit" style="margin-top:14px" id="estSalvar">Salvar e testar</button>
+      </form>
+
+      <h2 class="sec-tit">Voz da IA · ElevenLabs</h2>
+      <div class="card" id="elStatus"></div>
+      <form class="card" id="elForm" hidden>
+        <h3>Conectar a ElevenLabs</h3>
+        <p class="muted" style="margin-top:6px">Na ElevenLabs: Developers → API Keys → Create API Key. Libere <b>Text to Speech</b> e <b>Voices</b> (leitura), copie a chave e cole aqui.</p>
+        <label for="elChave">Chave de API da ElevenLabs</label><input id="elChave" type="password" autocomplete="off" spellcheck="false" placeholder="sk_…">
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">Testamos a chave lendo as suas vozes; depois é só escolher a voz na aba Multimodal do agente. O plano grátis da ElevenLabs não permite uso comercial: para atender clientes, use um plano pago.</p>
       </form>
 
       <h2 class="sec-tit" id="asTit">Cobranças · Asaas</h2>

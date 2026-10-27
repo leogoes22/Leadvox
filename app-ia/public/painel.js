@@ -380,6 +380,7 @@ function desenharAgente() {
     mmAgente = agSel;
     sw('mmOuve', mm.entendeAudio !== false); sw('mmVe', mm.entendeImagem !== false); sw('mmFala', !!falaTxt);
     $('mmModo').value = au.modo === 'sempre' ? 'sempre' : 'espelho'; $('mmVoz').value = au.voz || 'nova'; $('mmEstilo').value = au.estilo || '';
+    $('mmProv').value = au.provedor === 'elevenlabs' ? 'elevenlabs' : 'openai'; $('mmElVoz').dataset.quer = au.vozEleven || '';
     sw('mmDoc', mm.documentos?.ativo); $('mmDocPag').value = String(mm.documentos?.paginas || 10); $('mmDocLim').value = String(mm.documentos?.limite || 6000);
     sw('mmPlan', mm.planilhas?.ativo); $('mmPlanLin').value = String(mm.planilhas?.linhas || 100); $('mmPlanLim').value = String(mm.planilhas?.limite || 6000);
     mostrarMm(); limparMm();
@@ -628,18 +629,37 @@ const ligado = id => $(id).getAttribute('aria-checked') === 'true';
 /* aba Multimodal: cada capacidade é uma chave sim/não; as opções só aparecem com a chave ligada.
    Leitura de PDF e planilha tem limite: o texto fica na memória da conversa e gasta token a cada resposta. */
 let mmSujo = false, mmAgente = null;
-const mostrarMm = () => { $('mmVozBox').hidden = !ligado('mmFala'); $('mmDocBox').hidden = !ligado('mmDoc'); $('mmPlanBox').hidden = !ligado('mmPlan'); };
+const mostrarMm = () => {
+  $('mmVozBox').hidden = !ligado('mmFala'); $('mmDocBox').hidden = !ligado('mmDoc'); $('mmPlanBox').hidden = !ligado('mmPlan');
+  const el = $('mmProv').value === 'elevenlabs';
+  $('mmElBox').hidden = !el; $('mmVozRot').textContent = el ? 'Voz da OpenAI (reserva)' : 'Voz';
+  if (el && ligado('mmFala')) desenharVozesEl();
+};
+// vozes da conta ElevenLabs da empresa (o servidor guarda a chave; aqui chegam só nome e id)
+let elVozes = null;
+async function desenharVozesEl() {
+  const s = $('mmElVoz'), quer = s.value || s.dataset.quer || '';
+  try {
+    if (!elVozes) elVozes = (await api('elevenlabs-vozes?organization=' + encodeURIComponent(empresa.id))).vozes || [];
+    s.innerHTML = '<option value="">Escolha a voz</option>' + elVozes.map(v => `<option value="${esc(v.id)}">${esc(v.nome)}${v.detalhe ? ' · ' + esc(v.detalhe) : ''}</option>`).join('');
+    s.value = elVozes.some(v => v.id === quer) ? quer : '';
+    $('mmElAviso').textContent = elVozes.length ? 'Se a ElevenLabs falhar ou acabarem os créditos, a IA usa a voz da OpenAI abaixo.' : 'A sua conta ElevenLabs ainda não tem vozes. Adicione uma na ElevenLabs e volte aqui.';
+  } catch (err) { s.innerHTML = '<option value="">Sem vozes</option>'; $('mmElAviso').textContent = err.message; }
+}
 function marcarMm() { mmSujo = true; $('mmSujo').textContent = 'Alterações não salvas.'; $('mmSujo').style.color = 'var(--amarelo)'; }
 function limparMm() { mmSujo = false; $('mmSujo').textContent = 'Tudo salvo.'; $('mmSujo').style.color = ''; }
 $('mmAudio').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarMm(); marcarMm(); });
 $('mmAudio').addEventListener('input', marcarMm);
-$('mmAudio').addEventListener('change', marcarMm);
+$('mmAudio').addEventListener('change', e => { if (e.target.id === 'mmProv') mostrarMm(); marcarMm(); });
 $('mmAudio').onsubmit = async e => {
   e.preventDefault(); if (!agDados) return;
   const bt = e.submitter; bt.disabled = true;
   try {
+    const el = ligado('mmFala') && $('mmProv').value === 'elevenlabs';
+    if (el && !$('mmElVoz').value) throw Error('Escolha a voz da ElevenLabs (ou conecte a ElevenLabs em Credenciais de API).');
     const c = agDados.config, config = { ...c,
-      audio: { modo: ligado('mmFala') ? $('mmModo').value : 'desligado', voz: $('mmVoz').value, estilo: $('mmEstilo').value.trim().slice(0, 300) },
+      audio: { modo: ligado('mmFala') ? $('mmModo').value : 'desligado', provedor: $('mmProv').value, voz: $('mmVoz').value, estilo: $('mmEstilo').value.trim().slice(0, 300),
+        vozEleven: $('mmElVoz').value || (c.audio || {}).vozEleven || '' },
       multimodal: { entendeAudio: ligado('mmOuve'), entendeImagem: ligado('mmVe'),
         documentos: { ativo: ligado('mmDoc'), paginas: Number($('mmDocPag').value), limite: Number($('mmDocLim').value) },
         planilhas: { ativo: ligado('mmPlan'), linhas: Number($('mmPlanLin').value), limite: Number($('mmPlanLim').value) } } };
@@ -1127,10 +1147,10 @@ function desenharConexoes() {
   const mostraEst = cfg.niche === 'automotivo', mostraAs = !!cfg.billingEnabled;
   ['estTit', 'estStatus'].forEach(id => $(id).hidden = !mostraEst); if (!mostraEst) $('estForm').hidden = true;
   ['asTit', 'asStatus'].forEach(id => $(id).hidden = !mostraAs); if (!mostraAs) $('asForm').hidden = true;
-  if (!conexoes) { $('estStatus').innerHTML = $('asStatus').innerHTML = '<p class="muted">Carregando…</p>'; return; }
+  if (!conexoes) { $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = '<p class="muted">Carregando…</p>'; return; }
   if (conexoes.setupPending) {
-    $('estStatus').innerHTML = $('asStatus').innerHTML = '<p class="alerta" style="margin:0">Falta liberar no banco (o SQL das conexões) antes de salvar.</p>';
-    $('estForm').hidden = $('asForm').hidden = true; return;
+    $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = '<p class="alerta" style="margin:0">Falta liberar no banco (o SQL das conexões) antes de salvar.</p>';
+    $('estForm').hidden = $('asForm').hidden = $('elForm').hidden = true; return;
   }
   const e = conexoes.estoque;
   if (mostraEst) {
@@ -1147,6 +1167,16 @@ function desenharConexoes() {
       $('estStatus').innerHTML = '<h3>Estoque ainda não configurado</h3><p class="muted">Sem o estoque, a IA não mostra os veículos da loja.</p>';
       $('estForm').hidden = false; if (!estFonte) escolherFonte('autocerto');
     }
+  }
+  const el = conexoes.elevenlabs;
+  if (el?.connected) {
+    $('elStatus').innerHTML = `<h3>ElevenLabs conectada</h3><div class="ag-dados"><div><span>Vozes na conta</span>${esc(el.vozes ?? '—')}</div><div><span>Atualizado em</span>${esc(quandoBR(el.updatedAt))}</div></div>
+      <div class="form-bts"><button type="button" class="sm" id="elTrocar">Trocar chave</button></div>`;
+    $('elTrocar').onclick = () => { $('elForm').hidden = false; };
+    $('elForm').hidden = true;
+  } else {
+    $('elStatus').innerHTML = '<h3>ElevenLabs ainda não conectada</h3><p class="muted">Com ela, a IA responde em áudio com uma voz mais natural. Sem ela, usa a voz da OpenAI.</p>';
+    $('elForm').hidden = false;
   }
   const a = conexoes.asaas;
   if (mostraAs) {
@@ -1176,6 +1206,10 @@ $('estForm').onsubmit = e => {
 $('asForm').onsubmit = e => {
   e.preventDefault();
   salvarConexao(e.currentTarget, { provider: 'asaas', environment: $('asAmb').value, apiKey: $('asChave').value }, 'Asaas conectado.');
+};
+$('elForm').onsubmit = e => {
+  e.preventDefault(); elVozes = null;
+  salvarConexao(e.currentTarget, { provider: 'elevenlabs', apiKey: $('elChave').value }, 'ElevenLabs conectada. Escolha a voz na aba Multimodal do agente.');
 };
 
 async function desenharLista(pg, forcar) {
