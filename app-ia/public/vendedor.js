@@ -159,7 +159,8 @@ const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency
 const kmTxt = n => n === null || n === undefined ? '' : Number(n) === 0 ? '0 km' : Number(n).toLocaleString('pt-BR') + ' km';
 const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const codigo = c => String(c || '').replace(/^[a-z]{1,4}:/i, '');
-const titulo = v => [v.marca, v.modelo, v.versao].filter(Boolean).join(' ') || v.nome;
+// marca + modelo + versão, sem repetir o que já está no título (ex.: versão "G 310 GS" igual ao modelo)
+const titulo = v => [v.marca, v.modelo, v.versao].reduce((t, p) => p && !semAcento(t).includes(semAcento(p)) ? (t + ' ' + p).trim() : t, '') || v.nome;
 const achar = id => (esItens || []).find(v => v.id === String(id));
 const primeiroNome = () => ((ticket && ticket.cliente) || '').trim().split(/\s+/)[0] || 'o cliente';
 const IC = {
