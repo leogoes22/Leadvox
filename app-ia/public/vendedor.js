@@ -26,7 +26,7 @@ window.addEventListener('message', ev => {
   if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
   let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
   const t = m && m.type === 'DEFAULT_DATA' && m.data ? lerTicket(m.data.ticket) : null;
-  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; abrirTicket(); }
+  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; $('esLista').innerHTML = ''; abrirTicket(); }
 });
 
 async function chamar(acao, extra) {
@@ -151,9 +151,49 @@ async function alternar(e) {
   catch (err) { toast(err.message, true); desenhar(); }
   finally { ocupado = false; }
 }
+// ── aba Estoque: busca no catálogo da loja e manda fotos + ficha para o cliente do atendimento ──
+let esItens = null;
+const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+async function buscarEstoque(e) {
+  if (e) e.preventDefault();
+  if (!ticket) { toast('Abra um atendimento na LeadVox primeiro.', true); return; }
+  $('esLista').innerHTML = '<p class="muted" style="margin-top:10px">Buscando no estoque…</p>';
+  try { const j = await chamar('estoque', { busca: $('esTermo').value.trim() }); esItens = j.itens || []; desenharEstoque(j); }
+  catch (err) { $('esLista').innerHTML = `<p class="alerta">${esc(err.message)}</p>`; }
+}
+// quantas fotos mandar: só a ficha, 3, 5, 10 (até o que o carro tem); já vem marcado até 5
+function opcoesFotos(total) {
+  const ns = [...new Set([0, ...[3, 5, 10].filter(n => n <= total), ...(total > 0 && total <= 10 ? [total] : [])])].sort((a, b) => a - b);
+  const pre = Math.max(...ns.filter(n => n <= 5));
+  return ns.map(n => `<option value="${n}"${n === pre ? ' selected' : ''}>${n ? n + (n === 1 ? ' foto' : ' fotos') + ' + ficha' : 'Só a ficha'}</option>`).join('');
+}
+function desenharEstoque(j) {
+  if (!esItens.length) { $('esLista').innerHTML = `<div class="card vazio-pv">${j && j.semAgente ? 'A loja ainda não tem agente de IA com estoque.' : 'Nenhum veículo encontrado' + (j && j.busca ? ' para “' + esc(j.busca) + '”' : '') + '.'}</div>`; return; }
+  $('esLista').innerHTML = esItens.map(i => `<div class="card carro">
+    ${i.foto ? `<img src="${esc(i.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sem-foto" aria-hidden="true">🚗</div>'}
+    <div><b>${esc(i.nome)}</b><div class="preco">${i.preco ? esc(brl(i.preco)) : 'Valor sob consulta'}</div>
+      <small>${esc([i.ano, i.km ? Number(i.km).toLocaleString('pt-BR') + ' km' : '', i.cambio].filter(Boolean).join(' · '))}</small></div>
+    <div class="envio">
+      <label class="muted" style="font-size:12px;margin:0" for="esF${esc(i.id)}">Fotos</label>
+      <select id="esF${esc(i.id)}">${opcoesFotos(i.nFotos)}</select>
+      <button type="button" class="principal sm" data-enviar="${esc(i.id)}">📤 Enviar ao cliente</button>
+    </div></div>`).join('');
+  document.querySelectorAll('[data-enviar]').forEach(b => b.onclick = () => enviarCarro(b));
+}
+async function enviarCarro(b) {
+  const it = esItens.find(i => i.id === b.dataset.enviar), fotos = Number($('esF' + it.id).value) || 0;
+  if (ocupado || !confirm(`Mandar ${fotos ? fotos + (fotos === 1 ? ' foto' : ' fotos') + ' e a ficha' : 'a ficha'} do ${it.nome} para ${ticket.cliente || 'o cliente'}?`)) return;
+  ocupado = true; b.disabled = true; b.textContent = 'Enviando…';
+  try { const j = await chamar('enviar_carro', { itemId: it.id, fotos }); toast(j.enviados < j.total ? `Saíram ${j.enviados} de ${j.total} mensagens.` : 'Enviado para o cliente. Ficou registrado em nota interna.'); b.textContent = '✓ Enviado'; }
+  catch (err) { toast(err.message, true); b.disabled = false; b.textContent = '📤 Enviar ao cliente'; }
+  finally { ocupado = false; }
+}
+$('esBusca').onsubmit = buscarEstoque;
+
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba; });
+  if (b.dataset.aba === 'estoque' && ticket && !esItens) buscarEstoque();
 });
 
 // início: sem a chave da loja não há o que fazer; fora da LeadVox, explica como abrir

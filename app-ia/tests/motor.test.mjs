@@ -256,5 +256,11 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'agendar',quando:'2026-11-03T10:30',assunto:'Retomar o financiamento',tel:'5521988943529'})).status,200);
  assert.deepEqual({q:envios[1].quando,a:envios[1].assunto},{q:'2026-11-03T10:30',a:'Retomar o financiamento'});
  assert.equal(envios.length,2);
+ // estoque: a busca vai cortada; enviar_carro só com veículo da lista e no máximo 10 fotos
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'estoque',busca:'corolla'.repeat(20)});
+ assert.equal(envios[2].busca.length,60);
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'x'})).status,400);
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',fotos:50,mediaUrl:'https://outro.site/x.jpg'});
+ assert.deepEqual({i:envios[3].itemId,f:envios[3].fotos,m:envios[3].mediaUrl},{i:'38',f:10,m:undefined});
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });
