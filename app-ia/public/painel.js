@@ -213,7 +213,7 @@ const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : '
 
 function desenharMenu() {
   $('menu').innerHTML = MENU.map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
-    ? `<button type="button" class="menu-it" data-pg="${m[0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
+    ? `<button type="button" class="menu-it" data-pg="${m[0]}" title="${m[1]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
   document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => abrir(b.dataset.pg));
 }
 
@@ -262,7 +262,17 @@ function abrir(pg) {
 }
 const ligarIr = raiz => raiz.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => abrir(b.dataset.ir));
 ligarIr(document);
-$('btMenu').onclick = () => $('lateral').classList.toggle('aberta');
+// ☰: no celular abre a gaveta do menu; no computador recolhe o menu para só os ícones (e lembra a escolha)
+const menuRecolhido = on => {
+  $('telaApp').classList.toggle('recolhido', on);
+  $('btMenu').setAttribute('aria-label', on ? 'Abrir menu' : 'Recolher menu');
+  try { localStorage.setItem('lv_menu_recolhido', on ? '1' : '0'); } catch {}
+};
+try { if (localStorage.getItem('lv_menu_recolhido') === '1') menuRecolhido(true); } catch {}
+$('btMenu').onclick = () => {
+  if (matchMedia('(max-width: 760px)').matches) $('lateral').classList.toggle('aberta');
+  else menuRecolhido(!$('telaApp').classList.contains('recolhido'));
+};
 addEventListener('hashchange', () => { if (conta && empresa && cfg.onboarded) abrir(location.hash.slice(1)); });
 
 /* agente: lê e grava a configuração do Motor IA (tabelas iag_* pelo servidor) */
@@ -459,8 +469,10 @@ function listaK(el, itens, campos, opts = {}) {
   };
   desenhar(); el._ler = () => ler().filter(x => typeof x === 'object' ? Object.values(x).some(v => String(v ?? '').trim()) : String(x).trim());
 }
-function marcarK() { kSujo = true; $('kSujo').textContent = 'Alterações não salvas.'; $('kSujo').style.color = 'var(--amarelo)'; }
-function limparK() { kSujo = false; $('kSujo').textContent = 'Tudo salvo.'; $('kSujo').style.color = ''; }
+// aviso de alteração não salva; com alteração pendente, a barra de salvar gruda embaixo da tela
+function avisoSujo(id, on) { const e = $(id); e.textContent = on ? 'Alterações não salvas.' : 'Tudo salvo.'; e.style.color = on ? 'var(--amarelo)' : ''; e.closest('.salvar-barra')?.classList.toggle('sujo', on); }
+function marcarK() { kSujo = true; avisoSujo('kSujo', true); }
+function limparK() { kSujo = false; avisoSujo('kSujo', false); }
 
 async function abrirConhecimento() {
   const topo = $('kTopo');
@@ -646,8 +658,8 @@ async function desenharVozesEl() {
     $('mmElAviso').textContent = elVozes.length ? 'Se a ElevenLabs falhar ou acabarem os créditos, a IA usa a voz da OpenAI abaixo.' : 'A sua conta ElevenLabs ainda não tem vozes. Adicione uma na ElevenLabs e volte aqui.';
   } catch (err) { s.innerHTML = '<option value="">Sem vozes</option>'; $('mmElAviso').textContent = err.message; }
 }
-function marcarMm() { mmSujo = true; $('mmSujo').textContent = 'Alterações não salvas.'; $('mmSujo').style.color = 'var(--amarelo)'; }
-function limparMm() { mmSujo = false; $('mmSujo').textContent = 'Tudo salvo.'; $('mmSujo').style.color = ''; }
+function marcarMm() { mmSujo = true; avisoSujo('mmSujo', true); }
+function limparMm() { mmSujo = false; avisoSujo('mmSujo', false); }
 $('mmAudio').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarMm(); marcarMm(); });
 $('mmAudio').addEventListener('input', marcarMm);
 $('mmAudio').addEventListener('change', e => { if (e.target.id === 'mmProv') mostrarMm(); marcarMm(); });
@@ -690,8 +702,8 @@ function desenharComportamento() {
   mostrarFu(); limparCp();
 }
 const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); };
-function marcarCp() { cpSujo = true; $('cpSujo').textContent = 'Alterações não salvas.'; $('cpSujo').style.color = 'var(--amarelo)'; }
-function limparCp() { cpSujo = false; $('cpSujo').textContent = 'Tudo salvo.'; $('cpSujo').style.color = ''; }
+function marcarCp() { cpSujo = true; avisoSujo('cpSujo', true); }
+function limparCp() { cpSujo = false; avisoSujo('cpSujo', false); }
 $('agComportamento').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarFu(); marcarCp(); });
 $('agComportamento').addEventListener('input', marcarCp);
 $('agComportamento').addEventListener('change', marcarCp);
@@ -891,8 +903,8 @@ function modoResp() {
   $('rgRespDica').hidden = fixo;
 }
 $('rgModoResp').addEventListener('change', modoResp);
-function marcarRg() { rgSujo = true; $('rgSujo').textContent = 'Alterações não salvas.'; $('rgSujo').style.color = 'var(--amarelo)'; }
-function limparRg() { rgSujo = false; $('rgSujo').textContent = 'Tudo salvo.'; $('rgSujo').style.color = ''; }
+function marcarRg() { rgSujo = true; avisoSujo('rgSujo', true); }
+function limparRg() { rgSujo = false; avisoSujo('rgSujo', false); }
 $('agAcoes').addEventListener('input', marcarRg);
 $('agAcoes').addEventListener('change', marcarRg);
 $('agAcoes').onsubmit = async e => {

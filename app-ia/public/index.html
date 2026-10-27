@@ -102,13 +102,14 @@
       <div class="card" id="motorBox" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
       <div class="card" id="prontoBox" hidden></div>
       <div class="agente" id="agDetalhe" hidden style="margin-top:14px">
+        <div class="card ag-cab">
+          <div class="ag-foto" id="agFoto">IA</div>
+          <div class="ag-quem"><h2 id="agNome" style="margin:0"></h2><p class="muted" id="agFuncao"></p></div>
+          <div class="liga-ia"><div><b id="agSt"></b><small id="agStDica"></small></div>
+            <button type="button" class="switch grande" role="switch" aria-checked="false" id="agLiga" aria-label="IA ligada"><span></span></button></div>
+        </div>
         <div class="card">
-          <div class="ag-topo">
-            <div class="ag-foto" id="agFoto">IA</div>
-            <div><h2 id="agNome" style="margin:0"></h2><p class="muted" id="agFuncao"></p></div>
-            <div class="liga-ia"><div><b id="agSt"></b><small id="agStDica"></small></div>
-              <button type="button" class="switch grande" role="switch" aria-checked="false" id="agLiga" aria-label="IA ligada"><span></span></button></div>
-          </div>
+          <h3>Resumo</h3>
           <div class="ag-dados" id="agDados"></div>
           <h3 style="margin-top:16px">Status e capacidades</h3>
           <div class="caps" id="agCaps"></div>
