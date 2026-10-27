@@ -205,7 +205,24 @@
             <h3>Multimodal</h3>
             <p class="muted">O que o motor da sua IA já faz hoje com o que o cliente manda.</p>
             <div class="caps" id="mmLista" style="margin-top:8px"></div>
-            <p class="dica">Responder em áudio e ler PDF e planilhas entram numa próxima etapa do motor.</p>
+            <form id="mmAudio" style="margin-top:16px">
+              <h3 style="font-size:15px">Responder em áudio</h3>
+              <label for="mmModo">Quando a IA responde com voz</label>
+              <select id="mmModo"><option value="desligado">Nunca: só texto</option><option value="espelho">Quando o cliente mandar áudio</option><option value="sempre">Sempre</option></select>
+              <div id="mmVozBox">
+                <label for="mmVoz">Voz</label>
+                <select id="mmVoz">
+                  <option value="nova">Nova: feminina, leve</option><option value="coral">Coral: feminina, calorosa</option><option value="shimmer">Shimmer: feminina, suave</option>
+                  <option value="sage">Sage: feminina, calma</option><option value="alloy">Alloy: neutra</option><option value="ash">Ash: masculina, firme</option>
+                  <option value="echo">Echo: masculina, suave</option><option value="onyx">Onyx: masculina, grave</option><option value="ballad">Ballad: masculina, expressiva</option>
+                </select>
+                <label for="mmEstilo">Jeito de falar <small>(opcional)</small></label>
+                <input id="mmEstilo" maxlength="300" placeholder="Ex.: animada e próxima, fala sem pressa">
+              </div>
+              <p class="dica">A IA fala em português do Brasil. Foto, PDF e a mensagem de transferência continuam em texto. Se a voz falhar, o cliente recebe o texto.</p>
+              <div class="salvar-barra"><span class="muted" id="mmSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar áudio</button></div>
+            </form>
+            <p class="dica">Ler PDF e planilhas entra numa próxima etapa do motor.</p>
           </div>
           <div class="card" data-agp="canais" hidden>
             <h3>Canais e gatilhos</h3>
