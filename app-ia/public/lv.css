@@ -208,7 +208,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--linha) var(--navy); }
 .liga-ia b { display: block; font-size: 15px; color: var(--suave); }
 .liga-ia small { display: block; color: var(--suave); font-size: 12px; max-width: 220px; }
 /* topo do agente: foto, nome e a chave da IA numa faixa de largura total, acima do resumo e das abas */
-.ag-cab { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; }
+.ag-cab { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.ag-teste { flex: 1 1 100%; border-top: 1px solid var(--linha); padding-top: 4px; }
+.ag-teste .lin-sw { border-top: 0; padding-bottom: 4px; }
 .ag-quem { flex: 1 1 auto; min-width: 0; }
 .ag-quem h2, .ag-quem p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .ag-cab { flex-wrap: wrap; } .liga-ia { margin-left: 0; width: 100%; justify-content: space-between; } }

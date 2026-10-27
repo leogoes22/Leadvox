@@ -363,6 +363,27 @@ async function ligarAgente(chave, bt) {
   desenharMotor(); desenharAgente();
 }
 
+// Modo de teste: a IA ligada responde só os números da lista (o motor ignora os outros; o follow-up também).
+let testeSujo = false;
+const zapCurto = v => { let d = String(v || '').replace(/\D/g, ''); if (d.startsWith('55') && d.length >= 12) d = d.slice(2); return d.length >= 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, -4) + '-' + d.slice(-4) : d; };
+const zapCompleto = v => { const d = String(v || '').replace(/\D/g, ''); return d.length === 10 || d.length === 11 ? '55' + d : (d.startsWith('55') && (d.length === 12 || d.length === 13) ? d : ''); };
+async function salvarModoTeste(ativo) {
+  if (!agDados) return;
+  const brutos = $('agTesteNum').value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  const numeros = [...new Set(brutos.map(zapCompleto).filter(Boolean))].slice(0, 10);
+  if (ativo && !numeros.length) { $('agTesteBox').hidden = false; $('agTesteNum').focus(); testeSujo = true; return toast('Coloque pelo menos um número de teste (com DDD) e toque em Salvar.', true); }
+  if (brutos.length > numeros.length) return toast('Confira os números: use DDD + número, por exemplo (21) 98894-3529.', true);
+  try {
+    const c = agDados.config, config = { ...c, modoTeste: { ativo, numeros } };
+    const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+    agDados = { ...agDados, config, versao: r.versao ?? agDados.versao }; testeSujo = false; desenharAgente();
+    toast(ativo ? `Modo de teste ligado: ${agDados.nome || 'a IA'} responde só ${numeros.map(zapCurto).join(', ')}.` : 'Modo de teste desligado: a IA ligada responde todos os clientes.');
+  } catch (err) { if (!err.status) toast(err.message, true); }
+}
+$('agTesteSw').onclick = () => { const on = !ligado('agTesteSw'); sw('agTesteSw', on); $('agTesteBox').hidden = !on; salvarModoTeste(on); };
+$('agTesteSalvar').onclick = () => { sw('agTesteSw', true); salvarModoTeste(true); };
+$('agTesteNum').addEventListener('input', () => { testeSujo = true; });
+
 async function abrirAgenteMotor(chave) {
   try {
     const a = await api('motor?organization=' + encodeURIComponent(empresa.id) + '&agente=' + encodeURIComponent(chave));
@@ -378,8 +399,11 @@ function desenharAgente() {
   $('agFoto').textContent = nome.trim().charAt(0).toUpperCase() || 'IA';
   $('agNome').textContent = nome; $('agFuncao').textContent = nomeTipo(agDados.tipo);
   $('agLiga').setAttribute('aria-checked', String(!!agDados.ativo)); $('agLiga').disabled = false;
-  $('agSt').textContent = agDados.ativo ? 'IA ligada' : 'IA desligada'; $('agSt').className = agDados.ativo ? 'on' : '';
-  $('agStDica').textContent = agDados.ativo ? 'Respondendo os clientes no WhatsApp.' : 'Não responde ninguém. Toque para ligar.';
+  const mt = c.modoTeste || {}, nums = (mt.numeros || []).map(zapCurto);
+  const emTeste = agDados.ativo && mt.ativo && nums.length;
+  $('agSt').textContent = !agDados.ativo ? 'IA desligada' : emTeste ? 'IA em teste' : 'IA ligada'; $('agSt').className = agDados.ativo ? 'on' : '';
+  $('agStDica').textContent = !agDados.ativo ? 'Não responde ninguém. Toque para ligar.' : emTeste ? 'Responde só: ' + nums.join(', ') + '.' : 'Respondendo os clientes no WhatsApp.';
+  if (!testeSujo) { sw('agTesteSw', mt.ativo); $('agTesteBox').hidden = !mt.ativo; $('agTesteNum').value = nums.length ? nums.join(', ') : zapCurto(cfg.whatsapp || ''); }
   $('agDados').innerHTML = `<div><span>Tipo</span>${esc(nomeTipo(agDados.tipo))}</div><div><span>Porta de entrada</span>${agDados.entrada ? 'Sim' : 'Não'}</div>`
     + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`;
   const au = c.audio || {}, mm = c.multimodal || {}, falaTxt = { espelho: '✓ quando o cliente manda áudio', sempre: '✓ sempre' }[au.modo];

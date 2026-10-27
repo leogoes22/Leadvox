@@ -107,6 +107,14 @@
           <div class="ag-quem"><h2 id="agNome" style="margin:0"></h2><p class="muted" id="agFuncao"></p></div>
           <div class="liga-ia"><div><b id="agSt"></b><small id="agStDica"></small></div>
             <button type="button" class="switch grande" role="switch" aria-checked="false" id="agLiga" aria-label="IA ligada"><span></span></button></div>
+          <div class="ag-teste">
+            <div class="lin-sw"><span>🧪 Modo de teste<small>Ligado, a IA responde só os números de teste. Os outros clientes não recebem resposta, follow-up nem troca de vendedor da IA.</small></span>
+              <button type="button" class="switch" role="switch" aria-checked="false" id="agTesteSw" aria-label="Modo de teste"><span></span></button></div>
+            <div id="agTesteBox" hidden>
+              <label for="agTesteNum">Números de teste <small>(com DDD, separados por vírgula)</small></label>
+              <div class="form-bts" style="margin-top:0;flex-wrap:nowrap"><input id="agTesteNum" inputmode="tel" placeholder="Ex.: (21) 98894-3529, (21) 98108-1044"><button type="button" class="principal sm" id="agTesteSalvar">Salvar</button></div>
+            </div>
+          </div>
         </div>
         <div class="card">
           <h3>Resumo</h3>
