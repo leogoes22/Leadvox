@@ -31,6 +31,16 @@
   .pv .linha2 { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .pv .vazio-pv { text-align: center; padding: 30px 10px; color: var(--suave); }
   .pv .breve { opacity: .55; }
+  /* painelzinho do cliente: números que já estão guardados, sem IA */
+  .pv .nums { display: grid; gap: 8px; margin-top: 8px; }
+  .pv .num { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; background: var(--navy); border: 1px solid var(--linha); border-radius: var(--raio); }
+  .pv .num > span { font-size: 16px; line-height: 20px; }
+  .pv .num b { display: block; font-size: 13px; }
+  .pv .num small { display: block; color: var(--suave); font-size: 12px; }
+  .pv .num.alerta-num { border-color: var(--amarelo); }
+  .pv .atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .pv .atalhos button { padding: 4px 10px; font-size: 12px; }
+  .pv textarea { min-height: 60px; }
 </style>
 </head>
 <body>
@@ -45,11 +55,9 @@
   </nav>
   <section id="abaIa">
     <div class="card" id="pvSituacao"><p class="muted">Abra um atendimento na LeadVox para ver a IA deste cliente.</p></div>
+    <div class="card" id="pvPainel" hidden></div>
+    <div class="card" id="pvAgendar" hidden></div>
     <div class="card" id="pvResumo" hidden></div>
-    <div class="card breve" id="pvAgendar" hidden>
-      <h3>📅 Agendar follow-up da IA</h3>
-      <p class="muted" style="font-size:13px;margin-top:4px">Em breve: escolha data e hora, e a IA retoma a conversa com o cliente no contexto.</p>
-    </div>
   </section>
   <section id="abaEstoque" hidden><div class="card vazio-pv">🚗 Estoque chega na próxima etapa: buscar o carro e mandar fotos e ficha para o cliente em um toque.</div></section>
   <section id="abaProposta" hidden><div class="card vazio-pv">📄 Proposta chega numa etapa seguinte: formulário rápido que gera e envia a proposta.</div></section>

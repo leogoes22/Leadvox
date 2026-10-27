@@ -245,7 +245,7 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'apagar'})).status,400);
  const r=await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'contexto',tel:'5521988943529',ticketId:'108600',vendedor:'Leonardo',senha:'nao-vai'});
  assert.equal(r.status,200);assert.equal((await r.json()).ia.estado,'atendendo');
- assert.deepEqual(Object.keys(envios[0]).sort(),['acao','cliente','k','t','tel','ticketId','vendedor']);
+ assert.deepEqual(Object.keys(envios[0]).sort(),['acao','cliente','contactId','k','t','tel','ticketId','vendedor']);
  // a orientação saiu do plugin (vai virar extra pago): o servidor nem repassa mais
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'orientar'})).status,400);
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'agendar',quando:'amanhã'})).status,400);

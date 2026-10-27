@@ -43,7 +43,7 @@ export function createApp(options={}) {
   let b;try{b=JSON.parse(raw||'{}');}catch{return responder(400,{ok:false,erro:'Pedido inválido.'});}
   const txt=(v,n)=>typeof v==='string'||typeof v==='number'?String(v).slice(0,n):'';
   if(!/^[a-z0-9-]{1,24}-[0-9a-f]{8}$/.test(txt(b.k,40))||!/^[0-9a-f]{24}$/.test(txt(b.t,30))||!PLUGIN_ACOES.has(b.acao))return responder(400,{ok:false,erro:'Link do plugin incompleto. Peça o link ao gestor.'});
-  const corpo={k:b.k,t:b.t,acao:b.acao,tel:txt(b.tel,20),ticketId:txt(b.ticketId,12),vendedor:txt(b.vendedor,60),cliente:txt(b.cliente,80)};
+  const corpo={k:b.k,t:b.t,acao:b.acao,tel:txt(b.tel,20),ticketId:txt(b.ticketId,12),vendedor:txt(b.vendedor,60),cliente:txt(b.cliente,80),contactId:txt(b.contactId,12)};
   // agendar: data e hora locais do vendedor (AAAA-MM-DDTHH:MM) e o assunto que a IA deve retomar
   if(b.acao==='agendar'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(txt(b.quando,20)))return responder(400,{ok:false,erro:'Escolha a data e a hora do follow-up.'});corpo.quando=b.quando;corpo.assunto=txt(b.assunto,300);}
   let r;try{r=await fetchImpl(N8N_WEBHOOK+'iag-plugin-vendedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:AbortSignal.timeout(70000),redirect:'error'});}
