@@ -35,6 +35,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .ok-msg { color: var(--verde); font-size: 14px; margin-top: 10px; }
 .dica { background: var(--verde-fundo); border: 1px solid rgba(43,232,123,.25); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
 .alerta { background: rgba(255,200,97,.08); border: 1px solid rgba(255,200,97,.35); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+/* aviso de conexão com a LeadVox no topo de todas as páginas (envio recusado ou eventos parados) */
+.saude { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 14px; border-radius: var(--raio); font-size: 14px;
+  background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.45); }
+.saude.aviso { background: rgba(255,200,97,.08); border-color: rgba(255,200,97,.45); }
+.saude > span { font-size: 20px; line-height: 22px; }
+.saude b { display: block; }
+.saude p { margin: 3px 0 0; color: var(--suave); }
+.saude .bts { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* porta (login) */
 .porta { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }

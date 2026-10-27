@@ -19,6 +19,11 @@ function motorErro(r,msg){
  if(r.erro==='pendencias'&&Array.isArray(r.pendencias))return 'Para ligar o agente: '+r.pendencias.map(p=>MOTOR_PENDENCIAS[p]||p).join('; ')+'.';
  return MOTOR_ERROS[r.erro]||msg;
 }
+// Último envio da IA (aceito ou recusado pela LeadVox), só com os campos que o painel mostra.
+function envioDe(r){
+ const e=r?.ultimoEnvio;if(!e||typeof e!=='object'||!Number(e.ts))return null;
+ return {ok:e.ok===true,ts:Number(e.ts),status:Number(e.status)||0,erro:String(e.erro||'').slice(0,200)};
+}
 export function jwtPayload(token){
  try{const part=String(token).split('.')[1];return JSON.parse(Buffer.from(part.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));}catch{return null;}
 }
@@ -176,9 +181,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     if(!/^[0-9a-f]{24}$/.test(r.token||'')){
      // o n8n calcula o token (o segredo do motor fica só lá); pede para gerar agora em vez de esperar a rodada de 2 min
      try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
-     return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null}),true;
+     return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null,ultimoEnvio:envioDe(r)}),true;
     }
-    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null,
+    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null,ultimoEnvio:envioDe(r),
      // Plugin do Vendedor: o painel monta o link com o próprio endereço (/vendedor?k=&t=)
      plugin:/^[0-9a-f]{24}$/.test(r.tokenPlugin||'')?{conta:r.conta,t:r.tokenPlugin}:null});
    }else if(action==='simular'&&req.method==='POST'){

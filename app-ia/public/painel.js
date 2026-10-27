@@ -229,10 +229,11 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   motor = null; agSel = null; agDados = null; desenharMenu();
-  carregarMotor().then(() => { if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
+  carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
     .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); });
   fin = null; chat = null; listas = {}; conexoes = null; estoque = null; eventos = null; prontoAberto = null;
-  carregarEventos().then(() => { if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); });
+  $('saudeAviso').hidden = true;
+  carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); });
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); if (abaAtual === 'agentes') desenharPronto(); }).catch(() => {});
   abrir(pg);
@@ -1114,6 +1115,37 @@ $('esForm').onsubmit = async e => {
 let eventos = null;
 async function carregarEventos() { try { eventos = await api('eventos?organization=' + encodeURIComponent(empresa.id)); } catch { eventos = { erro: true }; } }
 const recebendo = () => !!eventos?.ultimoEvento && Date.now() - Date.parse(eventos.ultimoEvento) < 7 * 864e5;
+
+// Saúde da conexão: a LeadVox recusou o último envio da IA, ou parou de mandar mensagens em horário comercial.
+function saudeConexao() {
+  if (!eventos || !eventos.vinculado) return null;
+  const e = eventos.ultimoEnvio, quando = ms => new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
+  if (e && e.ok === false) {
+    const t = (e.erro || '') + ' ' + e.status;
+    if (/SESSION|session|desconect|disconnect/i.test(t) || e.status === 404) return { nivel: 'erro', titulo: 'O WhatsApp da loja está desconectado na LeadVox',
+      texto: 'Desde ' + quando(e.ts) + ' a IA não consegue mandar mensagens. Na LeadVox, abra Conexões e reconecte o número (QR code). O aviso some sozinho no próximo envio que der certo.' };
+    if ([401, 403].includes(e.status)) return { nivel: 'erro', titulo: 'A LeadVox recusou a chave da IA', ir: ['credenciais', 'Abrir Credenciais'],
+      texto: 'Desde ' + quando(e.ts) + ' a IA não consegue mandar mensagens. Gere a URL da API de novo no canal de WhatsApp da LeadVox e cole em Credenciais de API.' };
+    return { nivel: 'erro', titulo: 'A LeadVox recusou o último envio da IA', texto: 'Em ' + quando(e.ts) + ' (código ' + (e.status || '?') + '). Confira a conexão do WhatsApp na LeadVox.' };
+  }
+  // eventos parados: só com agente ligado, de segunda a sábado, das 9h às 20h (horário de Brasília)
+  const sp = new Date(Date.now() - 3 * 3600e3), h = sp.getUTCHours(), ligado = (motor?.agentes || []).some(a => a.ativo);
+  const ult = eventos.ultimoEvento ? Date.parse(eventos.ultimoEvento) : 0, horas = ult ? (Date.now() - ult) / 3600e3 : 0;
+  if (ligado && ult && horas >= 3 && sp.getUTCDay() !== 0 && h >= 9 && h < 20) return { nivel: 'aviso', titulo: 'A LeadVox não manda mensagens para a IA há ' + Math.floor(horas) + ' h', ir: ['canais', 'Ver o webhook'],
+    texto: 'Se a loja teve conversas nesse tempo, o webhook de eventos pode ter sido desligado pela LeadVox. Na LeadVox, abra Configurações → API, edite a integração e deixe "Ativo" ligado.' };
+  return null;
+}
+function desenharSaude() {
+  const s = saudeConexao(), el = $('saudeAviso');
+  el.hidden = !s; if (!s) return;
+  el.className = 'saude' + (s.nivel === 'aviso' ? ' aviso' : '');
+  el.innerHTML = `<span aria-hidden="true">${s.nivel === 'aviso' ? '⚠️' : '🔴'}</span><div><b>${esc(s.titulo)}</b><p>${esc(s.texto)}</p>
+    <div class="bts">${s.ir ? `<button type="button" class="sm" data-ir="${s.ir[0]}">${esc(s.ir[1])}</button>` : ''}<button type="button" class="sm leve" id="saudeAtualizar">Verificar de novo</button></div></div>`;
+  ligarIr(el);
+  $('saudeAtualizar').onclick = async () => { await carregarEventos(); desenharSaude(); if (!saudeConexao()) toast('Conexão em dia.'); };
+}
+// confere de novo a cada 3 minutos enquanto o painel está aberto
+setInterval(() => { if (empresa && !document.hidden && !$('telaApp').hidden) carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'canais') desenharEventos(); }); }, 180000);
 function desenharEventos() {
   const el = $('evConteudo');
   if (!eventos) { el.innerHTML = '<p class="muted">Carregando…</p>'; return; }

@@ -93,12 +93,16 @@ test('events webhook address is built from the account token, or asks n8n to cre
  const chamadas=[];let token='0123456789abcdef01234567';
  const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
   if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
-  if(u.includes('/rpc/lv_motor_eventos'))return ok({vinculado:true,conta:'loja-teste-ab12',token,ultimoEvento:null});
+  if(u.includes('/rpc/lv_motor_eventos'))return ok({vinculado:true,conta:'loja-teste-ab12',token,ultimoEvento:null,
+   ultimoEnvio:{ok:false,ts:1793142318345,status:404,erro:'{"error":"ERR_SESSION_NOT_FOUND"}',extra:'nao-vai'}});
   chamadas.push(u);return ok({});
  }});
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  const base='http://127.0.0.1:'+s.address().port,get=()=>fetch(base+'/api/account/eventos?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}}).then(r=>r.json());
- assert.equal((await get()).url,'https://webhook.lv-mktdeconversa.com/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
+ const r0=await get();
+ assert.equal(r0.url,'https://webhook.lv-mktdeconversa.com/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
+ // último envio recusado pela LeadVox chega ao painel só com os campos do aviso
+ assert.deepEqual(r0.ultimoEnvio,{ok:false,ts:1793142318345,status:404,erro:'{"error":"ERR_SESSION_NOT_FOUND"}'});
  token=null;const r=await get();assert.equal(r.pendente,true);assert.equal(r.url,undefined);
  assert.ok(chamadas.some(u=>u.endsWith('/webhook/iag-painel-endereco')));
 });

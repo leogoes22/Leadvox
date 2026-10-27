@@ -80,6 +80,8 @@ const quandoBR = ms => new Date(ms).toLocaleString('pt-BR', { timeZone: 'America
 const vezes = n => n === 1 ? '1 vez' : n + ' vezes';
 function desenharPainel() {
   const p = ctx.painel; if (!p) { $('pvPainel').hidden = true; return; }
+  // a LeadVox recusou o último envio da IA (WhatsApp desconectado, chave inválida): o vendedor avisa o gestor
+  aviso(p.alerta ? '🔴 ' + p.alerta : '');
   const item = (ic, titulo, sub, cls) => `<div class="num${cls ? ' ' + cls : ''}"><span>${ic}</span><div><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`;
   const espera = p.esperando
     ? item('⏱️', 'Cliente esperando ' + esc(ha(p.esperando)), 'A última mensagem foi dele.', 'alerta-num')
