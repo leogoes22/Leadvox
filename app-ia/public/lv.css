@@ -197,6 +197,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .lin-sw { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--linha); }
 .lin-sw:first-of-type { border-top: 0; }
 .lin-sw small { display: block; color: var(--suave); }
+.mm-op { margin: 0 0 8px; padding: 2px 14px 14px; border-left: 2px solid var(--verde); background: var(--painel2); border-radius: 0 var(--raio) var(--raio) 0; }
 textarea { min-height: 90px; resize: vertical; }
 .agente > * { min-width: 0; }
 @media (max-width: 900px) { .agente { grid-template-columns: minmax(0, 1fr); } }

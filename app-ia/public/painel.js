@@ -372,11 +372,18 @@ function desenharAgente() {
   $('agStDica').textContent = agDados.ativo ? 'Respondendo os clientes no WhatsApp.' : 'Não responde ninguém. Toque para ligar.';
   $('agDados').innerHTML = `<div><span>Tipo</span>${esc(nomeTipo(agDados.tipo))}</div><div><span>Porta de entrada</span>${agDados.entrada ? 'Sim' : 'Não'}</div>`
     + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`;
-  const au = c.audio || {}, falaTxt = { espelho: '✓ quando o cliente manda áudio', sempre: '✓ sempre' }[au.modo];
-  const caps = [['Entende áudio', true], ['Entende imagem', true], ['Responde com áudio', !!falaTxt, falaTxt || 'desligado'], ['Entende PDF e documentos', false], ['Entende planilhas', false]];
-  const capsHtml = caps.map(([n, on, txt]) => `<div>${n}<i class="${on ? 'on' : ''}">${txt || (on ? '✓ sim' : 'em breve')}</i></div>`).join('');
-  $('agCaps').innerHTML = capsHtml; $('mmLista').innerHTML = capsHtml;
-  if (!mmSujo || mmAgente !== agSel) { mmAgente = agSel; $('mmModo').value = au.modo || 'desligado'; $('mmVoz').value = au.voz || 'nova'; $('mmEstilo').value = au.estilo || ''; mostrarVoz(); limparMm(); }
+  const au = c.audio || {}, mm = c.multimodal || {}, falaTxt = { espelho: '✓ quando o cliente manda áudio', sempre: '✓ sempre' }[au.modo];
+  const caps = [['Entende áudio', mm.entendeAudio !== false], ['Entende imagem', mm.entendeImagem !== false], ['Responde com áudio', !!falaTxt, falaTxt],
+    ['Entende PDF e documentos', !!mm.documentos?.ativo], ['Entende planilhas', !!mm.planilhas?.ativo]];
+  $('agCaps').innerHTML = caps.map(([n, on, txt]) => `<div>${n}<i class="${on ? 'on' : ''}">${on ? txt || '✓ sim' : 'não'}</i></div>`).join('');
+  if (!mmSujo || mmAgente !== agSel) {
+    mmAgente = agSel;
+    sw('mmOuve', mm.entendeAudio !== false); sw('mmVe', mm.entendeImagem !== false); sw('mmFala', !!falaTxt);
+    $('mmModo').value = au.modo === 'sempre' ? 'sempre' : 'espelho'; $('mmVoz').value = au.voz || 'nova'; $('mmEstilo').value = au.estilo || '';
+    sw('mmDoc', mm.documentos?.ativo); $('mmDocPag').value = String(mm.documentos?.paginas || 10); $('mmDocLim').value = String(mm.documentos?.limite || 6000);
+    sw('mmPlan', mm.planilhas?.ativo); $('mmPlanLin').value = String(mm.planilhas?.linhas || 100); $('mmPlanLim').value = String(mm.planilhas?.limite || 6000);
+    mostrarMm(); limparMm();
+  }
   $('idNome').value = id.nome || ''; $('idDesc').value = id.apresentacao || '';
   $('idTom').value = id.tom || 'amigavel'; $('idEmoji').value = id.emojis || 'pouco'; $('idTrat').value = id.tratamento || 'voce';
   desenharLugar();
@@ -618,22 +625,28 @@ let cpSujo = false, cpAgente = null;
 const TEMPOS = [[0, 'Desligado'], [15, '15 min'], [30, '30 min'], [60, '1 hora'], [120, '2 horas'], [240, '4 horas'], [1440, '1 dia'], [2880, '2 dias']];
 const sw = (id, on) => $(id).setAttribute('aria-checked', String(!!on));
 const ligado = id => $(id).getAttribute('aria-checked') === 'true';
-/* responder em áudio (aba Multimodal): o motor transforma o texto da IA em voz com a OpenAI */
+/* aba Multimodal: cada capacidade é uma chave sim/não; as opções só aparecem com a chave ligada.
+   Leitura de PDF e planilha tem limite: o texto fica na memória da conversa e gasta token a cada resposta. */
 let mmSujo = false, mmAgente = null;
-const mostrarVoz = () => { $('mmVozBox').hidden = $('mmModo').value === 'desligado'; };
+const mostrarMm = () => { $('mmVozBox').hidden = !ligado('mmFala'); $('mmDocBox').hidden = !ligado('mmDoc'); $('mmPlanBox').hidden = !ligado('mmPlan'); };
 function marcarMm() { mmSujo = true; $('mmSujo').textContent = 'Alterações não salvas.'; $('mmSujo').style.color = 'var(--amarelo)'; }
 function limparMm() { mmSujo = false; $('mmSujo').textContent = 'Tudo salvo.'; $('mmSujo').style.color = ''; }
-$('mmAudio').addEventListener('input', () => { mostrarVoz(); marcarMm(); });
-$('mmAudio').addEventListener('change', () => { mostrarVoz(); marcarMm(); });
+$('mmAudio').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarMm(); marcarMm(); });
+$('mmAudio').addEventListener('input', marcarMm);
+$('mmAudio').addEventListener('change', marcarMm);
 $('mmAudio').onsubmit = async e => {
   e.preventDefault(); if (!agDados) return;
   const bt = e.submitter; bt.disabled = true;
   try {
-    const c = agDados.config, config = { ...c, audio: { modo: $('mmModo').value, voz: $('mmVoz').value, estilo: $('mmEstilo').value.trim().slice(0, 300) } };
+    const c = agDados.config, config = { ...c,
+      audio: { modo: ligado('mmFala') ? $('mmModo').value : 'desligado', voz: $('mmVoz').value, estilo: $('mmEstilo').value.trim().slice(0, 300) },
+      multimodal: { entendeAudio: ligado('mmOuve'), entendeImagem: ligado('mmVe'),
+        documentos: { ativo: ligado('mmDoc'), paginas: Number($('mmDocPag').value), limite: Number($('mmDocLim').value) },
+        planilhas: { ativo: ligado('mmPlan'), linhas: Number($('mmPlanLin').value), limite: Number($('mmPlanLim').value) } } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
     agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
     limparMm(); desenharAgente();
-    toast(config.audio.modo === 'desligado' ? 'Áudio desligado: a IA responde só em texto.' : 'Áudio salvo. Vale a partir da próxima mensagem.');
+    toast('Multimodal salvo. Vale a partir da próxima mensagem.');
   } catch (err) { if (!err.status) toast(err.message, true); }
   finally { bt.disabled = false; }
 };

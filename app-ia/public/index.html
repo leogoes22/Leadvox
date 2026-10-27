@@ -203,13 +203,17 @@
           </form>
           <div class="card" id="agMultimodal" data-agp="multimodal" hidden>
             <h3>Multimodal</h3>
-            <p class="muted">O que o motor da sua IA já faz hoje com o que o cliente manda.</p>
-            <div class="caps" id="mmLista" style="margin-top:8px"></div>
-            <form id="mmAudio" style="margin-top:16px">
-              <h3 style="font-size:15px">Responder em áudio</h3>
-              <label for="mmModo">Quando a IA responde com voz</label>
-              <select id="mmModo"><option value="desligado">Nunca: só texto</option><option value="espelho">Quando o cliente mandar áudio</option><option value="sempre">Sempre</option></select>
-              <div id="mmVozBox">
+            <p class="muted">Ligue só o que esta IA deve fazer com o que o cliente manda. As opções aparecem quando você liga.</p>
+            <form id="mmAudio" style="margin-top:8px">
+              <div class="lin-sw"><span>Entende áudio<small>Ouve o áudio do cliente e responde. Desligado, pede para ele escrever.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="true" id="mmOuve" aria-label="Entende áudio"><span></span></button></div>
+              <div class="lin-sw"><span>Entende imagem<small>Vê a foto que o cliente manda. Desligado, pede para ele descrever.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="true" id="mmVe" aria-label="Entende imagem"><span></span></button></div>
+              <div class="lin-sw"><span>Responde com áudio<small>A IA manda a resposta em voz, em português do Brasil.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmFala" aria-label="Responde com áudio"><span></span></button></div>
+              <div class="mm-op" id="mmVozBox">
+                <label for="mmModo">Quando responder com voz</label>
+                <select id="mmModo"><option value="espelho">Quando o cliente mandar áudio</option><option value="sempre">Sempre</option></select>
                 <label for="mmVoz">Voz</label>
                 <select id="mmVoz">
                   <option value="nova">Nova: feminina, leve</option><option value="coral">Coral: feminina, calorosa</option><option value="shimmer">Shimmer: feminina, suave</option>
@@ -218,11 +222,31 @@
                 </select>
                 <label for="mmEstilo">Jeito de falar <small>(opcional)</small></label>
                 <input id="mmEstilo" maxlength="300" placeholder="Ex.: animada e próxima, fala sem pressa">
+                <p class="dica">Foto, PDF e a mensagem de transferência continuam em texto. Se a voz falhar, o cliente recebe o texto.</p>
               </div>
-              <p class="dica">A IA fala em português do Brasil. Foto, PDF e a mensagem de transferência continuam em texto. Se a voz falhar, o cliente recebe o texto.</p>
-              <div class="salvar-barra"><span class="muted" id="mmSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar áudio</button></div>
+              <div class="lin-sw"><span>Entende PDF e documentos<small>Lê PDF e arquivo de texto (.txt). Word ainda não.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmDoc" aria-label="Entende PDF e documentos"><span></span></button></div>
+              <div class="mm-op" id="mmDocBox">
+                <div class="duas">
+                  <div><label for="mmDocPag">Páginas lidas, no máximo</label>
+                    <select id="mmDocPag"><option value="5">5 páginas</option><option value="10">10 páginas</option><option value="20">20 páginas</option></select></div>
+                  <div><label for="mmDocLim">Quanto a IA lê</label>
+                    <select id="mmDocLim"><option value="3000">Pouco: 3 mil letras (1 página)</option><option value="6000">Médio: 6 mil letras (2 a 3 páginas)</option><option value="12000">Muito: 12 mil letras (5 páginas)</option></select></div>
+                </div>
+                <p class="dica">Arquivo maior que o limite: a IA lê só o começo e segue a conversa. Quanto mais ela lê, mais caro fica cada resposta, porque o texto fica na memória da conversa.</p>
+              </div>
+              <div class="lin-sw"><span>Entende planilhas<small>Lê Excel (.xlsx, .xls) e CSV: a primeira aba, linha por linha.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmPlan" aria-label="Entende planilhas"><span></span></button></div>
+              <div class="mm-op" id="mmPlanBox">
+                <div class="duas">
+                  <div><label for="mmPlanLin">Linhas lidas, no máximo</label>
+                    <select id="mmPlanLin"><option value="50">50 linhas</option><option value="100">100 linhas</option><option value="200">200 linhas</option></select></div>
+                  <div><label for="mmPlanLim">Quanto a IA lê</label>
+                    <select id="mmPlanLim"><option value="3000">Pouco: 3 mil letras</option><option value="6000">Médio: 6 mil letras</option><option value="12000">Muito: 12 mil letras</option></select></div>
+                </div>
+              </div>
+              <div class="salvar-barra"><span class="muted" id="mmSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar multimodal</button></div>
             </form>
-            <p class="dica">Ler PDF e planilhas entra numa próxima etapa do motor.</p>
           </div>
           <div class="card" data-agp="canais" hidden>
             <h3>Canais e gatilhos</h3>
