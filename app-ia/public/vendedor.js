@@ -26,7 +26,7 @@ window.addEventListener('message', ev => {
   if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
   let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
   const t = m && m.type === 'DEFAULT_DATA' && m.data ? lerTicket(m.data.ticket) : null;
-  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; $('esLista').innerHTML = ''; abrirTicket(); }
+  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
 });
 
 async function chamar(acao, extra) {
@@ -151,49 +151,70 @@ async function alternar(e) {
   catch (err) { toast(err.message, true); desenhar(); }
   finally { ocupado = false; }
 }
-// ── aba Estoque: busca no catálogo da loja e manda fotos + ficha para o cliente do atendimento ──
-let esItens = null;
+// ── aba Estoque: o estoque inteiro da loja chega uma vez; busca e filtros na hora; Ficha / Fotos / Vídeo para o cliente ──
+let esItens = null, esFiltro = 'todos';
 const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-async function buscarEstoque(e) {
-  if (e) e.preventDefault();
+const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const codigo = c => String(c || '').replace(/^[a-z]{1,4}:/i, '');
+function cabecalhoEstoque() {
+  const nome = (ticket && ticket.cliente) || 'Cliente', primeiro = nome.trim().split(/\s+/)[0];
+  $('esAv').textContent = primeiro.charAt(0).toUpperCase() || '?';
+  $('esPara').textContent = nome;
+  $('esTermo').placeholder = 'Buscar veículo para ' + primeiro;
+}
+async function carregarEstoque() {
   if (!ticket) { toast('Abra um atendimento na LeadVox primeiro.', true); return; }
-  $('esLista').innerHTML = '<p class="muted" style="margin-top:10px">Buscando no estoque…</p>';
-  try { const j = await chamar('estoque', { busca: $('esTermo').value.trim() }); esItens = j.itens || []; desenharEstoque(j); }
-  catch (err) { $('esLista').innerHTML = `<p class="alerta">${esc(err.message)}</p>`; }
+  cabecalhoEstoque();
+  $('esTotal').textContent = ''; $('esLista').innerHTML = '<p class="muted" style="margin-top:10px">Carregando o estoque…</p>';
+  try { const j = await chamar('estoque'); esItens = j.itens || []; desenharEstoque(); }
+  catch (err) { esItens = null; $('esLista').innerHTML = `<p class="alerta">${esc(err.message)}</p>`; }
 }
-// quantas fotos mandar: só a ficha, 3, 5, 10 (até o que o carro tem); já vem marcado até 5
-function opcoesFotos(total) {
-  const ns = [...new Set([0, ...[3, 5, 10].filter(n => n <= total), ...(total > 0 && total <= 10 ? [total] : [])])].sort((a, b) => a - b);
-  const pre = Math.max(...ns.filter(n => n <= 5));
-  return ns.map(n => `<option value="${n}"${n === pre ? ' selected' : ''}>${n ? n + (n === 1 ? ' foto' : ' fotos') + ' + ficha' : 'Só a ficha'}</option>`).join('');
-}
-function desenharEstoque(j) {
-  if (!esItens.length) { $('esLista').innerHTML = `<div class="card vazio-pv">${j && j.semAgente ? 'A loja ainda não tem agente de IA com estoque.' : 'Nenhum veículo encontrado' + (j && j.busca ? ' para “' + esc(j.busca) + '”' : '') + '.'}</div>`; return; }
-  $('esLista').innerHTML = esItens.map(i => `<div class="card carro">
-    ${i.foto ? `<img src="${esc(i.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sem-foto" aria-hidden="true">🚗</div>'}
-    <div><b>${esc(i.nome)}</b><div class="preco">${i.preco ? esc(brl(i.preco)) : 'Valor sob consulta'}</div>
-      <small>${esc([i.ano, i.km ? Number(i.km).toLocaleString('pt-BR') + ' km' : '', i.cambio].filter(Boolean).join(' · '))}</small></div>
-    <div class="envio">
-      <label class="muted" style="font-size:12px;margin:0" for="esF${esc(i.id)}">Fotos</label>
-      <select id="esF${esc(i.id)}">${opcoesFotos(i.nFotos)}</select>
-      <button type="button" class="principal sm" data-enviar="${esc(i.id)}">📤 Enviar ao cliente</button>
-    </div></div>`).join('');
+function desenharEstoque() {
+  if (!esItens) return;
+  const termos = semAcento($('esTermo').value).split(/\s+/).filter(Boolean);
+  const lista = esItens.filter(i => (esFiltro === 'todos' || (esFiltro === 'destaque' ? i.destaque : i.tipo === esFiltro))
+    && termos.every(t => semAcento([i.nome, codigo(i.codigo), i.ano, i.cor, i.categoria].join(' ')).includes(t)));
+  $('esTotal').textContent = lista.length === 1 ? '1 veículo' : lista.length + ' veículos';
+  if (!lista.length) { $('esLista').innerHTML = `<div class="card vazio-pv">${esItens.length ? 'Nenhum veículo com esse filtro.' : 'O estoque da loja está vazio.'}</div>`; return; }
+  $('esLista').innerHTML = lista.slice(0, 80).map(i => `<article class="card pv-veic">
+    <div class="pv-veic-topo">
+      <div class="pv-veic-foto">${i.foto ? `<img src="${esc(i.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span aria-hidden="true" style="position:static;background:none;font-size:26px">🚗</span>'}${i.nFotos ? `<span>${i.nFotos} ${i.nFotos === 1 ? 'foto' : 'fotos'}</span>` : ''}</div>
+      <div><b>${esc(i.nome)}</b>
+        <small>${esc([i.ano, i.km ? Number(i.km).toLocaleString('pt-BR') + ' km' : '', i.cor].filter(Boolean).join(' · '))}</small>
+        <div class="pv-veic-preco"><strong>${i.preco ? esc(brl(i.preco)) : 'Sob consulta'}</strong>${i.destaque ? '<span class="selo dest">Destaque</span>' : ''}</div>
+        ${i.codigo ? `<small><span class="selo">Cód. ${esc(codigo(i.codigo))}</span></small>` : ''}</div>
+    </div>
+    <div class="pv-veic-acoes">
+      <button type="button" data-enviar="${esc(i.id)}" data-modo="ficha">📄 Ficha</button>
+      <button type="button" data-enviar="${esc(i.id)}" data-modo="fotos"${i.nFotos ? '' : ' disabled'}>🖼️ Fotos (${i.nFotos})</button>
+      <button type="button" data-enviar="${esc(i.id)}" data-modo="video"${i.video ? '' : ' disabled title="Sem vídeo no estoque"'}>🎬 Vídeo</button>
+    </div></article>`).join('') + (lista.length > 80 ? '<p class="muted" style="margin-top:10px;font-size:13px">Mostrando 80. Busque pelo modelo para achar os outros.</p>' : '');
   document.querySelectorAll('[data-enviar]').forEach(b => b.onclick = () => enviarCarro(b));
 }
 async function enviarCarro(b) {
-  const it = esItens.find(i => i.id === b.dataset.enviar), fotos = Number($('esF' + it.id).value) || 0;
-  if (ocupado || !confirm(`Mandar ${fotos ? fotos + (fotos === 1 ? ' foto' : ' fotos') + ' e a ficha' : 'a ficha'} do ${it.nome} para ${ticket.cliente || 'o cliente'}?`)) return;
-  ocupado = true; b.disabled = true; b.textContent = 'Enviando…';
-  try { const j = await chamar('enviar_carro', { itemId: it.id, fotos }); toast(j.enviados < j.total ? `Saíram ${j.enviados} de ${j.total} mensagens.` : 'Enviado para o cliente. Ficou registrado em nota interna.'); b.textContent = '✓ Enviado'; }
-  catch (err) { toast(err.message, true); b.disabled = false; b.textContent = '📤 Enviar ao cliente'; }
+  const it = esItens.find(i => i.id === b.dataset.enviar), modo = b.dataset.modo, fotos = Math.min(10, it.nFotos);
+  const oQue = modo === 'fotos' ? (fotos === 1 ? 'a foto' : (it.nFotos > 10 ? 'as 10 primeiras fotos' : 'as ' + fotos + ' fotos')) : modo === 'video' ? 'o vídeo' : 'a ficha';
+  if (ocupado || !confirm(`Mandar ${oQue} do ${it.nome} para ${ticket.cliente || 'o cliente'}?`)) return;
+  const antes = b.textContent; ocupado = true; b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    const j = await chamar('enviar_carro', { itemId: it.id, modo, fotos });
+    toast(j.enviados < j.total ? `Saíram ${j.enviados} de ${j.total} mensagens.` : 'Enviado para o cliente. Ficou registrado em nota interna.');
+    b.textContent = '✓ ' + antes.replace(/^\S+\s/, ''); b.classList.add('feito'); b.disabled = false;
+  } catch (err) { toast(err.message, true); b.disabled = false; b.textContent = antes; }
   finally { ocupado = false; }
 }
-$('esBusca').onsubmit = buscarEstoque;
+$('esBusca').onsubmit = e => { e.preventDefault(); desenharEstoque(); };
+$('esTermo').oninput = desenharEstoque;
+document.querySelectorAll('.es-chips [data-f]').forEach(b => b.onclick = () => {
+  esFiltro = b.dataset.f;
+  document.querySelectorAll('.es-chips [data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  desenharEstoque();
+});
 
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba; });
-  if (b.dataset.aba === 'estoque' && ticket && !esItens) buscarEstoque();
+  if (b.dataset.aba === 'estoque' && ticket) { cabecalhoEstoque(); if (!esItens) carregarEstoque(); }
 });
 
 // início: sem a chave da loja não há o que fazer; fora da LeadVox, explica como abrir

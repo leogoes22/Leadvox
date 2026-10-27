@@ -261,6 +261,8 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.equal(envios[2].busca.length,60);
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'x'})).status,400);
  await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',fotos:50,mediaUrl:'https://outro.site/x.jpg'});
- assert.deepEqual({i:envios[3].itemId,f:envios[3].fotos,m:envios[3].mediaUrl},{i:'38',f:10,m:undefined});
+ assert.deepEqual({i:envios[3].itemId,f:envios[3].fotos,m:envios[3].mediaUrl,modo:envios[3].modo},{i:'38',f:10,m:undefined,modo:'ficha'});
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',modo:'fotos'});
+ assert.equal(envios[4].modo,'fotos');
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

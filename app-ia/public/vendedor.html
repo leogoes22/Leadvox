@@ -41,15 +41,36 @@
   .pv .atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .pv .atalhos button { padding: 4px 10px; font-size: 12px; }
   .pv textarea { min-height: 60px; }
-  /* aba Estoque: cartão do carro com a 1ª foto, preço e o envio para o cliente */
-  .pv .carro { display: grid; grid-template-columns: 76px 1fr; gap: 10px; }
-  .pv .carro img, .pv .carro .sem-foto { width: 76px; height: 57px; object-fit: cover; border-radius: 8px; background: var(--navy); border: 1px solid var(--linha); }
-  .pv .carro .sem-foto { display: grid; place-items: center; font-size: 22px; }
-  .pv .carro b { display: block; font-size: 13px; line-height: 1.3; }
-  .pv .carro .preco { color: var(--verde); font-weight: 700; margin-top: 2px; }
-  .pv .carro small { display: block; color: var(--suave); font-size: 12px; }
-  .pv .envio { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .pv .envio select { width: auto; padding: 4px 8px; font-size: 12px; }
+  /* aba Estoque: para quem vai, busca, filtros e o cartão do veículo com Ficha / Fotos / Vídeo */
+  .pv .es-para { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
+  .pv .es-av { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: var(--navy); background: var(--verde); }
+  .pv .es-para > div { min-width: 0; flex: 1; }
+  .pv .es-para small { display: block; color: var(--suave); font-size: 11px; }
+  .pv .es-para b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pv .es-marca { font-weight: 700; font-size: 12px; white-space: nowrap; } .pv .es-marca em { font-style: normal; color: var(--verde); }
+  .pv .es-busca { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 0 12px; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
+  .pv .es-busca input { border: 0; background: transparent; padding: 11px 0; box-shadow: none; }
+  .pv .es-chips { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .pv .es-chips button { border-radius: 999px; padding: 6px 14px; font-size: 13px; white-space: nowrap; }
+  .pv .es-chips button[aria-pressed="true"] { background: var(--verde); color: var(--navy); border-color: var(--verde); font-weight: 700; }
+  .pv .es-total { font-size: 13px; margin: 10px 0 0; }
+  .pv .pv-veic { margin-top: 10px; padding: 0; overflow: hidden; }
+  .pv .pv-veic-topo { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 10px; }
+  .pv .pv-veic-foto { position: relative; width: 112px; height: 84px; border-radius: 8px; overflow: hidden; background: var(--navy); border: 1px solid var(--linha); display: grid; place-items: center; font-size: 26px; }
+  .pv .pv-veic-foto img { width: 100%; height: 100%; object-fit: cover; }
+  .pv .pv-veic-foto span { position: absolute; right: 4px; bottom: 4px; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,.65); color: #fff; }
+  .pv .pv-veic b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.3; text-transform: uppercase; }
+  .pv .pv-veic small { display: block; color: var(--suave); font-size: 12px; margin-top: 3px; }
+  .pv .pv-veic-preco { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .pv .pv-veic-preco strong { color: var(--verde); font-size: 15px; }
+  .pv .selo { font-size: 11px; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--linha); color: var(--suave); }
+  .pv .selo.dest { color: var(--verde); border-color: rgba(43,232,123,.4); background: var(--verde-fundo); }
+  .pv .pv-veic-acoes { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--linha); }
+  .pv .pv-veic-acoes button { border: 0; border-radius: 0; background: transparent; padding: 10px 4px; font-size: 13px; font-weight: 600; }
+  .pv .pv-veic-acoes button + button { border-left: 1px solid var(--linha); }
+  .pv .pv-veic-acoes button:hover:not(:disabled) { background: var(--verde-fundo); }
+  .pv .pv-veic-acoes button:disabled { opacity: .4; }
+  .pv .pv-veic-acoes button.feito { color: var(--verde); }
 </style>
 </head>
 <body>
@@ -69,11 +90,15 @@
     <div class="card" id="pvResumo" hidden></div>
   </section>
   <section id="abaEstoque" hidden>
-    <form class="card" id="esBusca" role="search">
-      <h3>🚗 Estoque da loja</h3>
-      <p class="muted" style="font-size:13px;margin-top:4px">Ache o carro e mande fotos e ficha para o cliente deste atendimento.</p>
-      <div class="ev-url" style="margin-top:8px"><input id="esTermo" type="search" maxlength="60" placeholder="Marca, modelo ou ano (ex.: corolla 2019)" aria-label="Buscar no estoque"><button type="submit" class="principal sm">Buscar</button></div>
+    <div class="es-para"><span class="es-av" id="esAv" aria-hidden="true">?</span><div><small>Enviando para</small><b id="esPara">—</b></div><span class="es-marca">Estoque <em>LeadVox</em></span></div>
+    <form class="es-busca" id="esBusca" role="search">
+      <span aria-hidden="true">🔍</span><input id="esTermo" type="search" maxlength="60" placeholder="Buscar veículo" aria-label="Buscar veículo no estoque">
     </form>
+    <div class="es-chips" role="group" aria-label="Filtrar estoque">
+      <button type="button" data-f="todos" aria-pressed="true">Todos</button><button type="button" data-f="destaque" aria-pressed="false">Destaques</button>
+      <button type="button" data-f="carro" aria-pressed="false">Carros</button><button type="button" data-f="moto" aria-pressed="false">Motos</button>
+    </div>
+    <p class="muted es-total" id="esTotal" aria-live="polite"></p>
     <div id="esLista"></div>
   </section>
   <section id="abaProposta" hidden><div class="card vazio-pv">📄 Proposta chega numa etapa seguinte: formulário rápido que gera e envia a proposta.</div></section>
