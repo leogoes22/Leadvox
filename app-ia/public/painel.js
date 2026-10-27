@@ -774,7 +774,11 @@ function desenharSetores() {
       <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada vendedor, na ordem</option></select>
     ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => `<label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${s.vendedores.some(v => String(v.id) === String(u.id)) ? 'checked' : ''}> ${esc(u.name)}</label>`).join('')
       : '<p class="muted" style="font-size:13px">Conecte a LeadVox em Credenciais de API para escolher os vendedores.</p>'}
-      <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o vendedor.' : 'Marque os vendedores deste departamento, na ordem em que devem receber.'}</p></div>`}
+      <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o vendedor. Cliente que volta fica com o mesmo vendedor.' : 'Marque os vendedores deste departamento, na ordem em que devem receber.'}</p>
+      <label for="sT${i}">Se o vendedor não responder o cliente</label>
+      <select id="sT${i}" data-c="trocaMin">${[[0, 'Não trocar de vendedor'], ...[15, 20, 30, 40, 50, 60].map(m => [m, 'Passar para o próximo vendedor depois de ' + m + ' min'])]
+        .map(([v, t]) => `<option value="${v}" ${Number(s.trocaMin) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <p class="muted" style="font-size:13px;margin-top:6px">Conta só dentro do horário de atendimento, troca uma vez por atendimento e fica registrado em nota interna. Cliente sem responder nunca troca o vendedor.</p></div>`}
   </div>`).join('') + (setoresEd.length < 12 ? '<button type="button" class="leve" id="rgMaisSet">+ Adicionar departamento</button>' : '');
   desenharPadrao();
 }
@@ -810,7 +814,8 @@ function desenharAcoes() {
   $('rgGrupo').value = r.grupo || '';
   $('rgModoResp').value = r.responsavel === 'fixo' ? 'fixo' : 'atendente'; modoResp();
   setoresEd = (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao,
-    distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: Array.isArray(s.vendedores) ? s.vendedores.filter(v => v && v.id) : [] }));
+    distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: Array.isArray(s.vendedores) ? s.vendedores.filter(v => v && v.id) : [],
+    trocaMin: Number(s.trocaMin) || 0 }));
   desenharSetores(); atualizarListasAcoes(); limparRg();
   carregarListasIA().then(atualizarListasAcoes);
 }
@@ -915,7 +920,8 @@ $('agAcoes').onsubmit = async e => {
     if (ruins.length) throw Error('Corrija as ações em vermelho antes de salvar.');
     const padrao = $('rgPadrao').value;
     const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao),
-      distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome })).filter(v => v.id) : [] }));
+      distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome })).filter(v => v.id) : [],
+      trocaMin: s.distribuicao === 'rodizio' && [15, 20, 30, 40, 50, 60].includes(Number(s.trocaMin)) ? Number(s.trocaMin) : 0 }));
     const semVend = setores.find(s => s.distribuicao === 'rodizio' && !s.vendedores.length);
     if (semVend) throw Error('Marque os vendedores do rodízio de ' + semVend.nome + '.');
     if (setores.some(s => !s.filaId)) throw Error('Informe o número da fila de cada departamento.');
