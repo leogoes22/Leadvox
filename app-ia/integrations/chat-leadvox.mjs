@@ -91,7 +91,7 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
      funis=funis.map(f=>({...f,steps:passos.filter(s=>String(s?.pipelineId)===String(f.id))}));
     }
     const ordem=l=>[...l].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
-    const lista=funis.flatMap(f=>ordem(Array.isArray(f.steps)?f.steps:[]).map(s=>({...s,name:funis.length>1?f.name+' › '+s.name:s.name})));
+    const lista=funis.flatMap(f=>ordem(Array.isArray(f.steps)?f.steps:[]).map(s=>({...s,pipelineId:f.id,name:funis.length>1?f.name+' › '+s.name:s.name})));
     if(lista.length)return lista;
    }catch{}
    return pickList(await get(ext(api+'/pipeline-steps')))||[];
@@ -128,7 +128,9 @@ export function normalizeItems(list){
  return (list||[]).slice(0,500).map(x=>({
   id:String(x?.id??x?.value??x?.queueId??''),
   name:String(x?.name??x?.nome??x?.tag??x?.origin??x?.tagName??x?.title??x?.label??x?.queue??x?.text??x?.description??firstText(x)).slice(0,120),
-  color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null
+  color:/^#[0-9a-f]{3,8}$/i.test(x?.color??x?.cor??'')?(x.color??x.cor):null,
+  // etapa: de qual funil ela é (o motor transfere de funil quando a etapa nova é de outro)
+  ...(/^[0-9]{1,12}$/.test(String(x?.pipelineId??''))?{funil:String(x.pipelineId)}:{})
  })).filter(x=>x.id||x.name);
 }
 // Monta a tela do funil como a tela Pipeline do chat (vários funis, etapas na ordem, totais da LeadVox).

@@ -732,7 +732,7 @@ $('rgSetores').addEventListener('click', e => {
 });
 function itensDe(lista) {
   if (lista === 'setores') return setoresAtuais().map(s => ({ id: Number(s.filaId) || null, name: limpaNome(s.nome) }));
-  return (listas[lista] || []).map(x => ({ id: x.id, name: limpaNome(x.name) })).filter(x => x.name);
+  return (listas[lista] || []).map(x => ({ id: x.id, name: limpaNome(x.name), funil: x.funil })).filter(x => x.name);
 }
 
 function desenharAcoes() {
@@ -774,7 +774,7 @@ function lerAcoes() {
     const def = ACOES.find(a => a.cod === m[1]), valor = limpaNome(m[2]);
     if (def.livre) { out.push({ tipo: def.tipo, cod: def.cod, nome: valor }); continue; }
     const it = itensDe(def.lista).find(x => semAc(x.name) === semAc(valor));
-    if (it) out.push({ tipo: def.tipo, cod: def.cod, nome: it.name, id: it.id }); else ruins.push(def.rot + ': ' + (valor || '(vazio)'));
+    if (it) out.push({ tipo: def.tipo, cod: def.cod, nome: it.name, id: it.id, ...(it.funil ? { funil: it.funil } : {}) }); else ruins.push(def.rot + ': ' + (valor || '(vazio)'));
   }
   return { acoes: out, ruins };
 }
@@ -858,8 +858,11 @@ $('agAcoes').onsubmit = async e => {
     const lista = (Array.isArray(crm.listaEtiquetas) ? crm.listaEtiquetas : []).map(x => typeof x === 'string' ? { nome: x } : x);
     acoes.filter(a => a.tipo === 'etiqueta' || a.tipo === 'tirar').forEach(a => { if (!lista.some(x => semAc(x.nome) === semAc(a.nome))) lista.push({ nome: a.nome }); });
     const unicas = acoes.filter((a, i) => a.id === undefined || acoes.findIndex(b => b.cod === a.cod && b.id === a.id) === i);
+    // de qual funil é cada etapa: o motor transfere a oportunidade quando a etapa nova é de outro funil
+    const funis = Object.fromEntries((listas.status || []).filter(e => e.funil).map(e => [String(e.id), e.funil]));
     const config = { ...c, setores, crm: { ...crm, listaEtiquetas: lista },
-      regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), responsavel: $('rgModoResp').value, usuarioId: Number($('rgResp').value) || null, acoes: unicas } };
+      regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), responsavel: $('rgModoResp').value, usuarioId: Number($('rgResp').value) || null, acoes: unicas,
+        ...(Object.keys(funis).length ? { funis } : {}) } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
     agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
     limparRg(); toast('Ações e regras salvas. A IA já usa na próxima mensagem.');

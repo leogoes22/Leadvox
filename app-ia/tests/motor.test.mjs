@@ -208,5 +208,5 @@ test('the @ menu lists the steps of every funnel, with the funnel name when ther
  const get=await funilApp(t,u=>u.pathname==='/pipelines'?ok([{id:33,name:'Comercial',steps:[{id:144,name:'Negociando',order:2},{id:143,name:'Novo Lead',order:1}]},{id:40,name:'Pós-venda',steps:[{id:150,name:'Entregue',order:1}]}]):ok({},404));
  const base=(await get('')).url.replace(/\/api\/account\/.*/,'');
  const r=await fetch(base+'/api/account/chat?organization='+org+'&kind=status',{headers:{Cookie:'__Host-lv_session=x'}});
- assert.deepEqual((await r.json()).items.map(i=>i.id+' '+i.name),['143 Comercial › Novo Lead','144 Comercial › Negociando','150 Pós-venda › Entregue']);
+ assert.deepEqual((await r.json()).items.map(i=>i.id+' '+i.name+' (funil '+i.funil+')'),['143 Comercial › Novo Lead (funil 33)','144 Comercial › Negociando (funil 33)','150 Pós-venda › Entregue (funil 40)']);
 });
