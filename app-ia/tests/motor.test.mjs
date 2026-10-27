@@ -260,9 +260,11 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'estoque',busca:'corolla'.repeat(20)});
  assert.equal(envios[2].busca.length,60);
  assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'x'})).status,400);
- await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',fotos:50,mediaUrl:'https://outro.site/x.jpg'});
- assert.deepEqual({i:envios[3].itemId,f:envios[3].fotos,m:envios[3].mediaUrl,modo:envios[3].modo},{i:'38',f:10,m:undefined,modo:'ficha'});
- await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',modo:'fotos'});
- assert.equal(envios[4].modo,'fotos');
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',itens:[{body:'  '}]})).status,400);
+ // só texto e mídia https, no máximo 11 mensagens; o resto do pedido não passa
+ const fotos=Array.from({length:15},(_,i)=>({body:i?'':'🚗 *Corolla*',mediaUrl:'https://autocerto.com/fotos/'+i+'.jpg',extra:'x'}));
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',modo:'fotos',itens:[{body:'oi',mediaUrl:'javascript:alert(1)'},...fotos]});
+ assert.equal(envios[3].modo,'fotos');assert.equal(envios[3].itens.length,11);
+ assert.deepEqual(envios[3].itens[0],{body:'oi',mediaUrl:''});assert.deepEqual(Object.keys(envios[3].itens[1]).sort(),['body','mediaUrl']);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

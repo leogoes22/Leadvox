@@ -48,7 +48,13 @@ export function createApp(options={}) {
   if(b.acao==='agendar'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(txt(b.quando,20)))return responder(400,{ok:false,erro:'Escolha a data e a hora do follow-up.'});corpo.quando=b.quando;corpo.assunto=txt(b.assunto,300);}
   // estoque: busca no catálogo da loja; enviar_carro: ficha + até 10 fotos para o cliente do atendimento
   if(b.acao==='estoque')corpo.busca=txt(b.busca,60);
-  if(b.acao==='enviar_carro'){if(!/^\d{1,12}$/.test(txt(b.itemId,12)))return responder(400,{ok:false,erro:'Escolha um veículo da lista.'});corpo.itemId=String(b.itemId);corpo.fotos=Math.max(0,Math.min(10,Number(b.fotos)||0));corpo.modo=['ficha','fotos','video'].includes(b.modo)?b.modo:'ficha';}
+  // enviar_carro: as mensagens que o vendedor aprovou (texto editado + foto/vídeo); o n8n confere que a mídia é do próprio veículo
+  if(b.acao==='enviar_carro'){
+   if(!/^\d{1,12}$/.test(txt(b.itemId,12)))return responder(400,{ok:false,erro:'Escolha um veículo da lista.'});
+   const itens=(Array.isArray(b.itens)?b.itens:[]).slice(0,11).map(x=>({body:txt(x?.body,3000),mediaUrl:/^https:\/\/\S{1,490}$/.test(txt(x?.mediaUrl,500))?String(x.mediaUrl):''})).filter(x=>x.body.trim()||x.mediaUrl);
+   if(!itens.length)return responder(400,{ok:false,erro:'Escreva o texto da mensagem.'});
+   corpo.itemId=String(b.itemId);corpo.modo=['ficha','completa','fotos','video'].includes(b.modo)?b.modo:'ficha';corpo.itens=itens;
+  }
   let r;try{r=await fetchImpl(N8N_WEBHOOK+'iag-plugin-vendedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:AbortSignal.timeout(70000),redirect:'error'});}
   catch{return responder(502,{ok:false,erro:'O motor da IA não respondeu. Tente de novo em instantes.'});}
   const dados=await r.json().catch(()=>null);

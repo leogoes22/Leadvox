@@ -55,7 +55,67 @@
   .pv .es-chips button[aria-pressed="true"] { background: var(--verde); color: var(--navy); border-color: var(--verde); font-weight: 700; }
   .pv .es-total { font-size: 13px; margin: 10px 0 0; }
   .pv .pv-veic { margin-top: 10px; padding: 0; overflow: hidden; }
-  .pv .pv-veic-topo { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 10px; }
+  .pv .pv-veic-topo { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 10px; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 0; color: inherit; font: inherit; cursor: pointer; }
+  .pv .pv-veic-topo:hover { background: rgba(255,255,255,.02); }
+  .pv .pv-veic-info { display: block; min-width: 0; }
+  .pv .pv-veic-foto svg { width: 34px; height: 34px; color: var(--suave); }
+  .pv .pv-veic-preco em { font-style: normal; color: var(--suave); font-size: 12px; }
+  .pv .pv-veic-acoes button { display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .pv .pv-veic-acoes svg { width: 15px; height: 15px; color: var(--verde); flex: none; }
+  .pv .es-esq { height: 140px; border-radius: 12px; margin-top: 10px; background: linear-gradient(90deg, var(--painel) 0, rgba(255,255,255,.05) 40%, var(--painel) 80%); background-size: 300% 100%; animation: es-brilho 1.3s linear infinite; }
+  @keyframes es-brilho { to { background-position: -100% 0; } }
+  .pv .es-aviso { margin-top: 10px; border: 1px dashed var(--linha); border-radius: 12px; padding: 22px 16px; text-align: center; color: var(--suave); }
+  .pv .es-aviso strong { display: block; color: inherit; font-size: 15px; margin-bottom: 4px; color: #fff; }
+  .pv .es-aviso button { margin-top: 12px; }
+  /* folha que sobe: detalhe do veículo e "vai chegar assim" */
+  .fundo { position: fixed; inset: 0; background: rgba(3,6,14,.6); opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 20; }
+  .fundo.on { opacity: 1; pointer-events: auto; }
+  .folha { position: fixed; left: 0; right: 0; bottom: 0; max-height: 92%; display: flex; flex-direction: column; background: var(--painel); border-top: 1px solid var(--linha); border-radius: 16px 16px 0 0; transform: translateY(102%); transition: transform .22s ease-out; z-index: 21; max-width: 520px; margin: 0 auto; }
+  .folha.on { transform: none; }
+  @media (prefers-reduced-motion: reduce) { .folha, .fundo { transition: none; } }
+  .folha-topo { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
+  .folha-topo h2 { flex: 1; font-size: 16px; line-height: 1.25; margin: 0; }
+  .fechar { width: 32px; height: 32px; padding: 0; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .fechar svg { width: 16px; height: 16px; }
+  .folha-meio { flex: 1; overflow-y: auto; padding: 0 14px 14px; }
+  .folha-pe { flex: none; display: flex; gap: 8px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--linha); }
+  .folha .btn { flex: 1; min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; }
+  .folha .btn.principal { background: var(--verde); border-color: var(--verde); color: var(--navy); }
+  .folha .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .folha .btn svg { width: 16px; height: 16px; }
+  .galeria { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .foto { position: relative; aspect-ratio: 4/3; padding: 0; border-radius: 8px; overflow: hidden; background: var(--navy); border: 2px solid transparent; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .foto[aria-pressed="true"] { border-color: var(--verde); }
+  .foto .marcar { position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(7,13,28,.75); border: 2px solid #fff; display: grid; place-items: center; }
+  .foto[aria-pressed="true"] .marcar { background: var(--verde); border-color: var(--verde); }
+  .foto .marcar svg { width: 11px; height: 11px; color: var(--navy); opacity: 0; }
+  .foto[aria-pressed="true"] .marcar svg { opacity: 1; }
+  .foto .num { position: absolute; left: 4px; bottom: 4px; font-size: 10px; font-weight: 700; background: rgba(7,13,28,.75); padding: 1px 5px; border-radius: 4px; color: #fff; }
+  .sel { display: flex; justify-content: space-between; align-items: center; color: var(--suave); font-size: 12px; margin: 2px 0 8px; }
+  .sel button { color: var(--verde); font-weight: 700; font-size: 12px; background: none; border: 0; padding: 0; }
+  .secao { margin-top: 16px; }
+  .secao h3 { font-size: 13px; color: var(--suave); margin: 0 0 6px; }
+  .ficha-l { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--linha); font-size: 13px; }
+  .ficha-l span:first-child { color: var(--suave); }
+  .ficha-l span:last-child { text-align: right; font-weight: 500; }
+  .ops { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ops span { background: var(--navy); border-radius: 5px; padding: 3px 7px; font-size: 12px; }
+  .obs { white-space: pre-line; font-size: 13px; color: #c9d2e6; }
+  .video-box { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--linha); border-radius: 10px; font-size: 13px; }
+  .video-box svg { width: 22px; height: 22px; color: var(--verde); flex: none; }
+  .previa-rot { color: var(--suave); font-size: 12px; margin: 0 0 6px; }
+  .anexo { display: flex; align-items: center; gap: 8px; background: var(--navy); border: 1px solid var(--linha); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 8px 10px; font-size: 12.5px; font-weight: 500; }
+  .anexo img { width: 44px; height: 33px; object-fit: cover; border-radius: 5px; }
+  .anexo svg { width: 18px; height: 18px; color: var(--verde); }
+  textarea.texto { width: 100%; min-height: 150px; resize: vertical; background: var(--navy); border: 1px solid var(--linha); border-radius: 0 0 10px 10px; padding: 10px; font-size: 13px; line-height: 1.5; margin: 0; }
+  textarea.texto:focus { outline: none; border-color: var(--verde); }
+  .opcao { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; cursor: pointer; }
+  .opcao input { width: 18px; height: 18px; accent-color: var(--verde); margin: 0; }
+  .folha .dica { color: var(--suave); font-size: 12px; margin-top: 8px; background: none; border: 0; padding: 0; }
+  .progresso { height: 4px; border-radius: 2px; background: var(--linha); overflow: hidden; margin-top: 12px; }
+  .toast { z-index: 30; }
+  .progresso i { display: block; height: 100%; width: 0; background: var(--verde); transition: width .4s; }
   .pv .pv-veic-foto { position: relative; width: 112px; height: 84px; border-radius: 8px; overflow: hidden; background: var(--navy); border: 1px solid var(--linha); display: grid; place-items: center; font-size: 26px; }
   .pv .pv-veic-foto img { width: 100%; height: 100%; object-fit: cover; }
   .pv .pv-veic-foto span { position: absolute; right: 4px; bottom: 4px; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,.65); color: #fff; }
@@ -103,6 +163,15 @@
   </section>
   <section id="abaProposta" hidden><div class="card vazio-pv">📄 Proposta chega numa etapa seguinte: formulário rápido que gera e envia a proposta.</div></section>
 </main>
+<div class="fundo" id="fundo"></div>
+<section class="folha" id="folha" role="dialog" aria-modal="true" aria-labelledby="folhaTitulo" aria-hidden="true">
+  <div class="folha-topo">
+    <h2 id="folhaTitulo"></h2>
+    <button class="fechar" type="button" data-fechar aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="folha-meio" id="folhaMeio"></div>
+  <div class="folha-pe" id="folhaPe"></div>
+</section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/vendedor.js"></script>
 </body>

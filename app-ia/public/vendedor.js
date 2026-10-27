@@ -151,65 +151,195 @@ async function alternar(e) {
   catch (err) { toast(err.message, true); desenhar(); }
   finally { ocupado = false; }
 }
-// ── aba Estoque: o estoque inteiro da loja chega uma vez; busca e filtros na hora; Ficha / Fotos / Vídeo para o cliente ──
-let esItens = null, esFiltro = 'todos';
+// ── aba Estoque (mesma experiência do plugin Estoque LeadVox): lista com busca e filtros na hora; o detalhe abre a galeria
+// para marcar as fotos; Ficha / Fotos / Vídeo mostram "vai chegar assim" com o texto editável e o preço opcional. ──
+let esItens = null, esFiltro = 'todos', esAberto = null, esEnviando = false;
+const MAX_FOTOS = 10;
 const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const kmTxt = n => n === null || n === undefined ? '' : Number(n) === 0 ? '0 km' : Number(n).toLocaleString('pt-BR') + ' km';
 const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const codigo = c => String(c || '').replace(/^[a-z]{1,4}:/i, '');
+const titulo = v => [v.marca, v.modelo, v.versao].filter(Boolean).join(' ') || v.nome;
+const achar = id => (esItens || []).find(v => v.id === String(id));
+const primeiroNome = () => ((ticket && ticket.cliente) || '').trim().split(/\s+/)[0] || 'o cliente';
+const IC = {
+  ficha: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  fotos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>',
+  video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>',
+  enviar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 3 10.5l7 2.5 2.5 7L21 3z"/><path d="m10 13 4-4"/></svg>',
+  carro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M9.5 17h5M5 12h14"/></svg>'
+};
+
+// mensagens no mesmo padrão da IA
+const linhaPreco = (v, com) => com && v.preco ? '\n◽ *' + brl(v.preco) + '*' : '';
+const fichaCurta = (v, com) => '🚗 *' + titulo(v) + '*' + (v.ano ? '\n◽ ' + v.ano : '') + (v.cor ? '\n◽ Cor: ' + v.cor : '') + (v.km !== null && v.km !== undefined ? '\n◽ ' + kmTxt(v.km) : '') + linhaPreco(v, com);
+function fichaCompleta(v, com) {
+  let t = fichaCurta(v, false) + (v.cambio ? '\n◽ Câmbio: ' + v.cambio : '') + (v.combustivel ? '\n◽ Combustível: ' + v.combustivel : '') + linhaPreco(v, com);
+  if (v.opcionais && v.opcionais.length) t += '\n\n*Itens do veículo:*\n' + v.opcionais.map(o => '• ' + o).join('\n');
+  if (v.obs) t += '\n\n' + v.obs;
+  return t;
+}
+const textoVideo = v => '🎥 *' + titulo(v) + '*' + (v.ano ? ' ' + v.ano : '');
+
 function cabecalhoEstoque() {
-  const nome = (ticket && ticket.cliente) || 'Cliente', primeiro = nome.trim().split(/\s+/)[0];
-  $('esAv').textContent = primeiro.charAt(0).toUpperCase() || '?';
+  const nome = (ticket && ticket.cliente) || 'Cliente', p = primeiroNome();
+  $('esAv').textContent = nome.trim().charAt(0).toUpperCase() || '?';
   $('esPara').textContent = nome;
-  $('esTermo').placeholder = 'Buscar veículo para ' + primeiro;
+  $('esTermo').placeholder = 'Buscar veículo para ' + (p === 'o cliente' ? 'o cliente' : p);
 }
 async function carregarEstoque() {
   if (!ticket) { toast('Abra um atendimento na LeadVox primeiro.', true); return; }
   cabecalhoEstoque();
-  $('esTotal').textContent = ''; $('esLista').innerHTML = '<p class="muted" style="margin-top:10px">Carregando o estoque…</p>';
+  $('esTotal').textContent = ''; $('esLista').innerHTML = '<div class="es-esq"></div><div class="es-esq"></div><div class="es-esq"></div>';
   try { const j = await chamar('estoque'); esItens = j.itens || []; desenharEstoque(); }
-  catch (err) { esItens = null; $('esLista').innerHTML = `<p class="alerta">${esc(err.message)}</p>`; }
+  catch (err) { esItens = null; $('esLista').innerHTML = `<div class="es-aviso"><strong>Não consegui carregar o estoque</strong>${esc(err.message)}<br><button type="button" class="sm" id="esDeNovo">Tentar de novo</button></div>`; $('esDeNovo').onclick = carregarEstoque; }
 }
 function desenharEstoque() {
   if (!esItens) return;
   const termos = semAcento($('esTermo').value).split(/\s+/).filter(Boolean);
-  const lista = esItens.filter(i => (esFiltro === 'todos' || (esFiltro === 'destaque' ? i.destaque : i.tipo === esFiltro))
-    && termos.every(t => semAcento([i.nome, codigo(i.codigo), i.ano, i.cor, i.categoria].join(' ')).includes(t)));
+  const lista = esItens.filter(v => (esFiltro === 'todos' || (esFiltro === 'destaque' ? v.destaque : v.tipo === esFiltro))
+    && termos.every(t => semAcento([v.nome, v.marca, v.modelo, v.versao, codigo(v.codigo), v.ano, v.cor, v.categoria].join(' ')).includes(t)));
   $('esTotal').textContent = lista.length === 1 ? '1 veículo' : lista.length + ' veículos';
-  if (!lista.length) { $('esLista').innerHTML = `<div class="card vazio-pv">${esItens.length ? 'Nenhum veículo com esse filtro.' : 'O estoque da loja está vazio.'}</div>`; return; }
-  $('esLista').innerHTML = lista.slice(0, 80).map(i => `<article class="card pv-veic">
-    <div class="pv-veic-topo">
-      <div class="pv-veic-foto">${i.foto ? `<img src="${esc(i.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span aria-hidden="true" style="position:static;background:none;font-size:26px">🚗</span>'}${i.nFotos ? `<span>${i.nFotos} ${i.nFotos === 1 ? 'foto' : 'fotos'}</span>` : ''}</div>
-      <div><b>${esc(i.nome)}</b>
-        <small>${esc([i.ano, i.km ? Number(i.km).toLocaleString('pt-BR') + ' km' : '', i.cor].filter(Boolean).join(' · '))}</small>
-        <div class="pv-veic-preco"><strong>${i.preco ? esc(brl(i.preco)) : 'Sob consulta'}</strong>${i.destaque ? '<span class="selo dest">Destaque</span>' : ''}</div>
-        ${i.codigo ? `<small><span class="selo">Cód. ${esc(codigo(i.codigo))}</span></small>` : ''}</div>
-    </div>
+  if (!lista.length) { $('esLista').innerHTML = `<div class="es-aviso"><strong>${esItens.length ? 'Nenhum veículo encontrado' : 'Nenhum veículo no estoque'}</strong>${esItens.length ? 'Tente outra marca ou modelo, ou toque em Todos.' : 'Os veículos aparecem aqui assim que a loja cadastra o estoque.'}</div>`; return; }
+  $('esLista').innerHTML = lista.slice(0, 80).map(v => `<article class="card pv-veic">
+    <button type="button" class="pv-veic-topo" data-abrir="${esc(v.id)}" aria-label="Ver detalhes de ${esc(titulo(v))}">
+      <span class="pv-veic-foto">${v.capa ? `<img src="${esc(v.capa)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : IC.carro}${v.fotos > 1 ? `<span>${v.fotos} fotos</span>` : ''}</span>
+      <span class="pv-veic-info"><b>${esc(titulo(v))}</b>
+        <small>${esc([v.ano, kmTxt(v.km), v.cor].filter(Boolean).join(' · '))}</small>
+        <span class="pv-veic-preco">${v.preco ? `<strong>${esc(brl(v.preco))}</strong>` : '<em>Sem preço</em>'}${v.destaque ? '<span class="selo dest">Destaque</span>' : ''}${v.video ? '<span class="selo">Vídeo</span>' : ''}${v.codigo ? `<span class="selo">Cód. ${esc(codigo(v.codigo))}</span>` : ''}</span></span>
+    </button>
     <div class="pv-veic-acoes">
-      <button type="button" data-enviar="${esc(i.id)}" data-modo="ficha">📄 Ficha</button>
-      <button type="button" data-enviar="${esc(i.id)}" data-modo="fotos"${i.nFotos ? '' : ' disabled'}>🖼️ Fotos (${i.nFotos})</button>
-      <button type="button" data-enviar="${esc(i.id)}" data-modo="video"${i.video ? '' : ' disabled title="Sem vídeo no estoque"'}>🎬 Vídeo</button>
-    </div></article>`).join('') + (lista.length > 80 ? '<p class="muted" style="margin-top:10px;font-size:13px">Mostrando 80. Busque pelo modelo para achar os outros.</p>' : '');
-  document.querySelectorAll('[data-enviar]').forEach(b => b.onclick = () => enviarCarro(b));
+      <button type="button" data-ficha="${esc(v.id)}">${IC.ficha}Ficha</button>
+      <button type="button" data-fotos="${esc(v.id)}"${v.fotos ? '' : ' disabled'}>${IC.fotos}Fotos${v.fotos ? ' (' + v.fotos + ')' : ''}</button>
+      <button type="button" data-video="${esc(v.id)}"${v.video ? '' : ' disabled title="Este veículo não tem vídeo"'}>${IC.video}Vídeo</button>
+    </div></article>`).join('') + (lista.length > 80 ? '<p class="muted" style="font-size:13px">Mostrando 80. Busque pelo modelo para achar os outros.</p>' : '');
 }
-async function enviarCarro(b) {
-  const it = esItens.find(i => i.id === b.dataset.enviar), modo = b.dataset.modo, fotos = Math.min(10, it.nFotos);
-  const oQue = modo === 'fotos' ? (fotos === 1 ? 'a foto' : (it.nFotos > 10 ? 'as 10 primeiras fotos' : 'as ' + fotos + ' fotos')) : modo === 'video' ? 'o vídeo' : 'a ficha';
-  if (ocupado || !confirm(`Mandar ${oQue} do ${it.nome} para ${ticket.cliente || 'o cliente'}?`)) return;
-  const antes = b.textContent; ocupado = true; b.disabled = true; b.textContent = 'Enviando…';
+
+// ── folha que sobe: detalhe do veículo e "vai chegar assim" ──
+let focoAntes = null;
+function abrirFolha(t, meio, pe) {
+  focoAntes = document.activeElement;
+  $('folhaTitulo').textContent = t; $('folhaMeio').innerHTML = meio; $('folhaPe').innerHTML = pe; $('folhaMeio').scrollTop = 0;
+  $('folha').classList.add('on'); $('fundo').classList.add('on'); $('folha').setAttribute('aria-hidden', 'false');
+  setTimeout(() => { const f = $('folha').querySelector('.fechar'); if (f) f.focus(); }, 60);
+}
+function fecharFolha() {
+  if (esEnviando) return;
+  $('folha').classList.remove('on'); $('fundo').classList.remove('on'); $('folha').setAttribute('aria-hidden', 'true'); esAberto = null;
+  if (focoAntes && focoAntes.focus) try { focoAntes.focus(); } catch (e) {}
+}
+const lin = (k, v) => v || v === 0 ? `<div class="ficha-l"><span>${esc(k)}</span><span>${esc(v)}</span></div>` : '';
+function detalhe(id) {
+  const v = achar(id); if (!v) return;
+  esAberto = { v, sel: v.galeria.slice(0, MAX_FOTOS).map((_, i) => i) };
+  const gal = v.galeria.length
+    ? `<div class="sel"><span id="contaSel"></span><button type="button" data-todas>Marcar todas</button></div><div class="galeria">${v.galeria.map((f, i) =>
+      `<button type="button" class="foto" data-foto="${i}" aria-pressed="${i < MAX_FOTOS}" aria-label="Foto ${i + 1}"><img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="marcar">${IC.check}</span><span class="num">${i + 1}</span></button>`).join('')}</div>`
+    : '<div class="es-aviso"><strong>Sem fotos</strong>A loja ainda não colocou fotos deste veículo.</div>';
+  const video = v.video ? `<div class="secao"><h3>Vídeo</h3><div class="video-box">${IC.video}<span>Vídeo do anúncio</span></div></div>` : '';
+  const ficha = '<div class="secao"><h3>Ficha técnica</h3>' + lin('Ano', v.ano) + lin('Quilometragem', kmTxt(v.km)) + lin('Cor', v.cor) + lin('Câmbio', v.cambio) +
+    lin('Combustível', v.combustivel) + lin('Categoria', v.categoria) + lin('Preço', v.preco ? brl(v.preco) : 'Sem preço no estoque') + lin('Código', codigo(v.codigo)) + '</div>';
+  const ops = v.opcionais && v.opcionais.length ? `<div class="secao"><h3>Itens e opcionais</h3><div class="ops">${v.opcionais.map(o => `<span>${esc(o)}</span>`).join('')}</div></div>` : '';
+  const obs = v.obs ? `<div class="secao"><h3>Observações</h3><p class="obs">${esc(v.obs)}</p></div>` : '';
+  abrirFolha(titulo(v), gal + video + ficha + ops + obs,
+    `<button type="button" class="btn" data-ficha-completa="${esc(v.id)}">${IC.ficha}Ficha completa</button>` +
+    (v.galeria.length ? `<button type="button" class="btn principal" id="btnEnviarFotos" data-enviar-fotos>${IC.fotos}Enviar fotos</button>` : ''));
+  contarSel();
+}
+function contarSel() {
+  if (!esAberto || !$('contaSel')) return;
+  const n = esAberto.sel.length;
+  $('contaSel').textContent = n + (n === 1 ? ' foto marcada' : ' fotos marcadas') + (n >= MAX_FOTOS ? ' (máximo ' + MAX_FOTOS + ')' : '');
+  const b = $('btnEnviarFotos'); if (b) { b.disabled = !n; b.innerHTML = IC.fotos + (n ? 'Enviar ' + n + (n === 1 ? ' foto' : ' fotos') : 'Marque as fotos'); }
+}
+function marcarFoto(i) {
+  const k = esAberto.sel.indexOf(i);
+  if (k > -1) esAberto.sel.splice(k, 1);
+  else { if (esAberto.sel.length >= MAX_FOTOS) return toast('Máximo de ' + MAX_FOTOS + ' fotos por envio.', true); esAberto.sel.push(i); esAberto.sel.sort((a, b) => a - b); }
+  document.querySelectorAll('#folha .foto').forEach(el => el.setAttribute('aria-pressed', String(esAberto.sel.includes(Number(el.dataset.foto)))));
+  contarSel();
+}
+
+// "vai chegar assim": anexo, texto editável e o preço só se o vendedor marcar
+function confirmar(v, modo, fotos) {
+  const plano = { v, modo, fotos: fotos || [] }, temPreco = !!v.preco && modo !== 'video';
+  const texto = modo === 'video' ? textoVideo(v) : modo === 'completa' ? fichaCompleta(v, false) : fichaCurta(v, false);
+  let anexo;
+  if (modo === 'galeria') anexo = `<img src="${esc(plano.fotos[0])}" alt="" referrerpolicy="no-referrer">${plano.fotos.length}${plano.fotos.length === 1 ? ' foto' : ' fotos'}, o texto vai na primeira`;
+  else if (modo === 'video') anexo = IC.video + 'Vídeo do veículo';
+  else anexo = v.capa ? `<img src="${esc(v.capa)}" alt="" referrerpolicy="no-referrer">Foto de capa + texto` : IC.ficha + 'Só texto (veículo sem foto)';
+  const nome = modo === 'galeria' ? 'Enviar fotos' : modo === 'video' ? 'Enviar vídeo' : modo === 'completa' ? 'Enviar ficha completa' : 'Enviar ficha';
+  abrirFolha(nome,
+    `<p class="previa-rot">Vai chegar assim para <b>${esc(primeiroNome())}</b>. Você pode editar o texto.</p>
+    <div class="anexo">${anexo}</div>
+    <textarea class="texto" id="textoEnvio" aria-label="Texto da mensagem" maxlength="3000">${esc(texto)}</textarea>
+    ${temPreco ? `<label class="opcao"><input type="checkbox" id="comPreco"> Incluir o preço (${esc(brl(v.preco))})</label>` : ''}
+    ${!v.preco && modo !== 'video' ? '<p class="dica">Este veículo está sem preço no estoque.</p>' : ''}
+    <div class="progresso" id="progresso" hidden><i id="barra"></i></div>`,
+    `<button type="button" class="btn" data-voltar>Voltar</button><button type="button" class="btn principal" data-confirmar>${IC.enviar}Enviar agora</button>`);
+  $('folha').plano = plano;
+  const cp = $('comPreco');
+  if (cp) cp.onchange = () => {
+    const t = $('textoEnvio'), comp = plano.modo === 'completa', base = comp ? fichaCompleta(v, cp.checked) : fichaCurta(v, cp.checked), antes = comp ? fichaCompleta(v, !cp.checked) : fichaCurta(v, !cp.checked);
+    const linha = '\n◽ *' + brl(v.preco) + '*';
+    t.value = t.value === antes ? base : (cp.checked ? t.value + linha : t.value.replace(linha, ''));
+  };
+}
+async function enviarAgora() {
+  const plano = $('folha').plano; if (!plano || esEnviando) return;
+  if (!ticket) return toast('Abra o plugin dentro de um atendimento para enviar.', true);
+  const v = plano.v, texto = ($('textoEnvio').value || '').trim();
+  let itens = plano.restante;
+  if (!itens) {
+    if (plano.modo === 'galeria') itens = plano.fotos.map((f, i) => ({ mediaUrl: f, body: i === 0 ? texto : '' }));
+    else if (plano.modo === 'video') itens = [{ mediaUrl: v.video, body: texto }];
+    else itens = [v.capa ? { mediaUrl: v.capa, body: texto } : { body: texto }];
+  }
+  if (!itens.some(x => x.mediaUrl || x.body)) return toast('Escreva o texto da mensagem.', true);
+  esEnviando = true;
+  const pe = $('folhaPe'), bt = pe.querySelector('[data-confirmar]');
+  pe.querySelectorAll('button').forEach(b => { b.disabled = true; });
+  bt.textContent = itens.length > 1 ? 'Enviando ' + itens.length + ' mensagens…' : 'Enviando…';
+  $('progresso').hidden = itens.length < 2; $('barra').style.width = '35%';
   try {
-    const j = await chamar('enviar_carro', { itemId: it.id, modo, fotos });
-    toast(j.enviados < j.total ? `Saíram ${j.enviados} de ${j.total} mensagens.` : 'Enviado para o cliente. Ficou registrado em nota interna.');
-    b.textContent = '✓ ' + antes.replace(/^\S+\s/, ''); b.classList.add('feito'); b.disabled = false;
-  } catch (err) { toast(err.message, true); b.disabled = false; b.textContent = antes; }
-  finally { ocupado = false; }
+    const j = await chamar('enviar_carro', { itemId: v.id, modo: plano.modo === 'galeria' ? 'fotos' : plano.modo === 'capa' ? 'ficha' : plano.modo, itens });
+    $('barra').style.width = '100%';
+    if (j.seguidas < j.total) { plano.restante = itens.slice(j.seguidas); throw new Error('Saíram ' + j.seguidas + ' de ' + j.total + ' mensagens.'); }
+    esEnviando = false; fecharFolha();
+    toast(itens.length > 1 ? itens.length + ' mensagens enviadas para ' + primeiroNome() + '.' : 'Enviado para ' + primeiroNome() + '. Ficou registrado em nota interna.');
+  } catch (err) {
+    esEnviando = false; pe.querySelectorAll('button').forEach(b => { b.disabled = false; });
+    bt.innerHTML = IC.enviar + (plano.restante ? 'Enviar o resto' : 'Tentar de novo');
+    toast(err.message, true);
+  }
 }
+
+// eventos da aba e da folha
 $('esBusca').onsubmit = e => { e.preventDefault(); desenharEstoque(); };
-$('esTermo').oninput = desenharEstoque;
+let esTb; $('esTermo').oninput = () => { clearTimeout(esTb); esTb = setTimeout(desenharEstoque, 140); };
 document.querySelectorAll('.es-chips [data-f]').forEach(b => b.onclick = () => {
   esFiltro = b.dataset.f;
   document.querySelectorAll('.es-chips [data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   desenharEstoque();
 });
+document.addEventListener('click', e => {
+  const a = e.target.closest('button'); if (!a || !a.closest('#abaEstoque, #folha')) return;
+  const d = n => a.getAttribute(n);
+  if (d('data-abrir')) return detalhe(d('data-abrir'));
+  if (d('data-ficha')) { const v = achar(d('data-ficha')); return v && confirmar(v, 'capa'); }
+  if (d('data-fotos')) return detalhe(d('data-fotos'));
+  if (d('data-video')) { const v = achar(d('data-video')); return v && confirmar(v, 'video'); }
+  if (d('data-ficha-completa')) { const v = achar(d('data-ficha-completa')); return v && confirmar(v, 'completa'); }
+  if (a.hasAttribute('data-foto')) return marcarFoto(Number(d('data-foto')));
+  if (a.hasAttribute('data-todas')) { esAberto.sel = esAberto.v.galeria.slice(0, MAX_FOTOS).map((_, i) => i); document.querySelectorAll('#folha .foto').forEach(el => el.setAttribute('aria-pressed', String(Number(el.dataset.foto) < MAX_FOTOS))); return contarSel(); }
+  if (a.hasAttribute('data-enviar-fotos')) { const g = esAberto.v; return confirmar(g, 'galeria', esAberto.sel.map(i => g.galeria[i])); }
+  if (a.hasAttribute('data-voltar')) { const p = $('folha').plano; if (p && (p.modo === 'galeria' || p.modo === 'completa')) return detalhe(p.v.id); return fecharFolha(); }
+  if (a.hasAttribute('data-confirmar')) return enviarAgora();
+  if (a.hasAttribute('data-fechar')) return fecharFolha();
+});
+$('fundo').onclick = fecharFolha;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharFolha(); });
 
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
