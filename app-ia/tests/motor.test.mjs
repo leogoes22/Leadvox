@@ -246,5 +246,11 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  const r=await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'contexto',tel:'5521988943529',ticketId:'108600',vendedor:'Leonardo',senha:'nao-vai'});
  assert.equal(r.status,200);assert.equal((await r.json()).ia.estado,'atendendo');
  assert.deepEqual(Object.keys(envios[0]).sort(),['acao','cliente','k','t','tel','ticketId','vendedor']);
+ // a orientação saiu do plugin (vai virar extra pago): o servidor nem repassa mais
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'orientar'})).status,400);
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'agendar',quando:'amanhã'})).status,400);
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'agendar',quando:'2026-11-03T10:30',assunto:'Retomar o financiamento',tel:'5521988943529'})).status,200);
+ assert.deepEqual({q:envios[1].quando,a:envios[1].assunto},{q:'2026-11-03T10:30',a:'Retomar o financiamento'});
+ assert.equal(envios.length,2);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

@@ -38,7 +38,7 @@ async function chamar(acao) {
 }
 
 function abrirTicket() {
-  aviso(''); $('pvOrientacao').innerHTML = '';
+  aviso('');
   $('pvCliente').hidden = false;
   $('pvCliente').innerHTML = `<b>${esc(ticket.cliente || 'Cliente')}</b><small>${esc(fone(ticket.tel))}${ticket.depto ? ' · ' + esc(ticket.depto) : ''}</small>
     <small>Vendedor: ${esc(ticket.vendedor || 'ninguém assumiu ainda')}</small>`;
@@ -65,7 +65,7 @@ function desenhar() {
     <div class="ag-dados" style="margin-top:6px"><div><span>Nome</span>${esc(r.nome || ticket.cliente || '—')}</div><div><span>Mensagens guardadas</span>${esc(r.mensagens || 0)}</div></div>
     ${vistos ? '<p class="muted" style="font-size:13px;margin-top:8px">Viu com a IA:</p><ul>' + vistos + '</ul>' : ''}
     ${r.ultimaCliente ? `<p class="muted" style="font-size:13px;margin-top:8px">Última mensagem do cliente${r.ultimaCliente.ts ? ' (' + esc(dataBR(r.ultimaCliente.ts)) + ')' : ''}:</p><div class="msg">${esc(r.ultimaCliente.texto)}</div>` : ''}`;
-  $('pvOrientar').hidden = false; $('pvAgendar').hidden = false;
+  $('pvAgendar').hidden = false;
 }
 async function alternar(e) {
   if (ocupado) return; const acao = e.currentTarget.dataset.acao;
@@ -75,22 +75,6 @@ async function alternar(e) {
   catch (err) { toast(err.message, true); desenhar(); }
   finally { ocupado = false; }
 }
-$('pvGerar').onclick = async () => {
-  if (ocupado || !ticket) return; ocupado = true; const bt = $('pvGerar'); bt.disabled = true; bt.textContent = 'A IA está lendo a conversa…';
-  try {
-    const j = await chamar('orientar'), o = j.orientacao || {};
-    const tarefa = o.tarefa && o.tarefa.titulo ? `${o.tarefa.titulo}${o.tarefa.quando ? ' — ' + o.tarefa.quando.split(' ').map((p, i) => i ? p : p.split('-').reverse().join('/')).join(' às ') : ''}` : '';
-    $('pvOrientacao').innerHTML = `<p style="margin-top:10px">${esc(o.resumo)}</p>
-      ${(o.proximos || []).length ? '<h3 style="margin-top:12px">Próximos passos</h3><ul>' + o.proximos.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' : ''}
-      ${tarefa ? `<h3 style="margin-top:12px">Tarefa sugerida</h3><div class="msg" id="pvTarefa">${esc(tarefa)}</div><div class="linha2"><button type="button" class="sm" data-copiar="pvTarefa">Copiar tarefa</button></div>` : ''}
-      ${o.mensagem ? `<h3 style="margin-top:12px">Mensagem para o cliente</h3><div class="msg" id="pvMsg">${esc(o.mensagem)}</div><div class="linha2"><button type="button" class="principal sm" data-copiar="pvMsg">Copiar mensagem</button></div>` : ''}`;
-    $('pvOrientacao').querySelectorAll('[data-copiar]').forEach(b => b.onclick = async () => {
-      try { await navigator.clipboard.writeText($(b.dataset.copiar).textContent); toast('Copiado. É só colar na conversa.'); }
-      catch (err) { const s = getSelection(), rg = document.createRange(); rg.selectNodeContents($(b.dataset.copiar)); s.removeAllRanges(); s.addRange(rg); toast('Selecionei o texto: aperte Ctrl+C para copiar.'); }
-    });
-  } catch (err) { toast(err.message, true); }
-  finally { ocupado = false; bt.disabled = false; bt.textContent = 'Gerar orientação de novo'; }
-};
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba; });
