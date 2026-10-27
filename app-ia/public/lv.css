@@ -117,7 +117,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 /* app com coluna lateral */
 .app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
-.lateral { background: var(--painel); border-right: 1px solid var(--linha); padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.lateral { background: var(--painel); border-right: 1px solid var(--linha); padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: none; }
+/* o menu rola com a roda do mouse ou o dedo, sem a barra de rolagem dividindo a tela */
+.lateral::-webkit-scrollbar { display: none; }
+/* barra de rolagem da página: fina e na cor do painel */
+html { scrollbar-width: thin; scrollbar-color: var(--linha) var(--navy); }
 .lateral .logo { font: 700 22px Syne, sans-serif; color: var(--texto); padding: 2px 10px 18px; text-decoration: none; }
 .lateral .logo b { color: var(--verde); }
 .lateral .logo img { display: block; width: 100%; max-width: 196px; height: auto; }
