@@ -427,7 +427,7 @@ async function gerarProposta(modo) {
   try {
     const j = await chamar('proposta', dadosProposta(modo));
     $('prPreviaBox').innerHTML = j.pdfUrl ? `<p style="margin-top:8px"><a href="${esc(j.pdfUrl)}" target="_blank" rel="noopener">📄 Abrir o PDF${modo === 'previa' ? ' (prévia)' : ''}</a></p>` : '';
-    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' : 'Convite enviado para ' + primeiroNome() + '. Ficou registrado em nota interna.');
+    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' : 'Convite enviado para ' + primeiroNome() + '. Ficou registrado em nota interna.' + (j.funil ? ' ' + j.funil : ''));
   } catch (err) { toast(err.message, true); }
   finally { ocupado = false; bt.disabled = false; bt.textContent = antes; }
 }
@@ -586,7 +586,7 @@ async function gerarOrcamento(modo) {
       desconto: orc.desc, frete: ehServico() ? { tipo: 'combinar' } : orc.frete, pagamento: textoPagamento(), entrega: orc.entrega, validadeDias: orc.validade,
       documento: orc.doc, obs: orc.obs, mensagem: orc.msg });
     $('orLink').innerHTML = j.pdfUrl ? `<p style="margin-top:10px"><a href="${esc(j.pdfUrl)}" target="_blank" rel="noopener">📄 Abrir o PDF nº ${esc(j.numero || '')}${modo === 'previa' ? ' (prévia)' : ''}</a></p>` : '';
-    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' + (j.aviso ? ' Obs.: ' + j.aviso + '.' : '') : 'Proposta enviada para ' + primeiroNome() + '. Ficou registrado em nota interna.');
+    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' + (j.aviso ? ' Obs.: ' + j.aviso + '.' : '') : 'Proposta enviada para ' + primeiroNome() + '. Ficou registrado em nota interna.' + (j.funil ? ' ' + j.funil : ''));
   } catch (err) { toast(err.message, true); }
   finally { ocupado = false; bt.disabled = false; bt.textContent = antes; }
 }
