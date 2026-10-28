@@ -116,8 +116,8 @@ export function gerarPropostaPdf(d) {
   y -= contatoCli || contatoVend ? 50 : 38;
 
   // ── itens ──
-  const C = { nome: M + 8, qtd: M + LARG * 0.58, un: M + LARG * 0.64, vu: M + LARG * 0.82, tot: L - M - 8 };
-  const larNome = LARG * 0.52;
+  const C = { nome: M + 8, qtd: M + LARG * 0.53, un: M + LARG * 0.59, vu: M + LARG * 0.76, tot: L - M - 8 };
+  const larNome = LARG * 0.47;
   const cabTabela = () => {
     ret(M, y - 20, LARG, 20, clara(acento, 0.86));
     texto(servico ? 'Serviço' : 'Produto', C.nome, y - 13.5, 8.5, true, ESCURO);

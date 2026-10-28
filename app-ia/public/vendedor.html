@@ -115,6 +115,29 @@
   .folha .dica { color: var(--suave); font-size: 12px; margin-top: 8px; background: none; border: 0; padding: 0; }
   .progresso { height: 4px; border-radius: 2px; background: var(--linha); overflow: hidden; margin-top: 12px; }
   .toast { z-index: 30; }
+  /* proposta comercial (produtos e serviços) */
+  .pv .or-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .pv .or-it { padding: 10px 0; border-bottom: 1px solid var(--linha); display: grid; gap: 8px; }
+  .pv .or-it:last-child { border-bottom: 0; }
+  .pv .or-it-nome { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .pv .or-it-nome b { font-size: 13.5px; line-height: 1.3; }
+  .pv .or-it-nome input { flex: 1; }
+  .pv .or-x { padding: 2px 9px; font-size: 16px; line-height: 1; }
+  .pv .or-ctl { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .pv .or-stp { display: flex; align-items: center; border: 1px solid var(--linha); border-radius: 10px; overflow: hidden; }
+  .pv .or-stp button { border: 0; border-radius: 0; padding: 6px 11px; font-size: 16px; background: transparent; }
+  .pv .or-stp input { width: 56px; text-align: center; border: 0; border-radius: 0; padding: 6px 2px; background: transparent; }
+  .pv .or-preco { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--suave); }
+  .pv .or-preco input { padding: 6px 8px; }
+  .pv .or-sub { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pv .or-aviso { color: var(--amarelo); font-size: 12px; }
+  .pv .or-linha { display: flex; gap: 8px; align-items: center; }
+  .pv .or-linha .es-chips { margin: 0; }
+  .pv .or-linha input { flex: 1; }
+  .pv .or-resumo div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; font-variant-numeric: tabular-nums; }
+  .pv .or-resumo .grande { font-size: 18px; font-weight: 700; color: var(--verde); border-top: 1px solid var(--linha); margin-top: 6px; padding-top: 8px; }
+  .pv .add-or { font-size: 12.5px; }
+  .pv .add-or.dentro { color: var(--verde); border-color: rgba(43,232,123,.45); }
   /* aba Proposta (convite para test drive) */
   .pv .pr-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .pv .pr-duas > div { min-width: 0; }
@@ -166,12 +189,52 @@
     <form class="es-busca" id="esBusca" role="search">
       <span aria-hidden="true">🔍</span><input id="esTermo" type="search" maxlength="60" placeholder="Buscar veículo" aria-label="Buscar veículo no estoque">
     </form>
-    <div class="es-chips" role="group" aria-label="Filtrar estoque">
+    <div class="es-chips" role="group" aria-label="Filtrar estoque" id="esChips">
       <button type="button" data-f="todos" aria-pressed="true">Todos</button><button type="button" data-f="destaque" aria-pressed="false">Destaques</button>
       <button type="button" data-f="carro" aria-pressed="false">Carros</button><button type="button" data-f="moto" aria-pressed="false">Motos</button>
     </div>
     <p class="muted es-total" id="esTotal" aria-live="polite"></p>
     <div id="esLista"></div>
+  </section>
+  <!-- proposta comercial / orçamento (segmentos que não são de veículos), no modelo Gran Rio -->
+  <section id="abaOrcamento" hidden>
+    <div class="card">
+      <h3 id="orTitulo">📄 Proposta comercial</h3>
+      <p class="muted" style="font-size:13px;margin-top:4px" id="orSub">Monte os itens, as condições e mande o PDF com a cara da loja.</p>
+    </div>
+    <div class="card">
+      <div class="or-topo"><h3>Itens <small class="muted" id="orQtdItens"></small></h3><button type="button" class="sm" id="orDoCatalogo">+ Do catálogo</button></div>
+      <div id="orItens"></div>
+      <button type="button" class="sm leve" id="orAvulso" style="margin-top:8px">+ Item fora do catálogo</button>
+    </div>
+    <div class="card">
+      <h3>Condições</h3>
+      <label>Pagamento</label>
+      <div class="es-chips pr-extras" role="group" aria-label="Formas de pagamento" id="orPagamentos"></div>
+      <div id="orFaturadoBox" hidden><label for="orFaturado">Prazo do faturado</label><select id="orFaturado"><option>7 dias</option><option>14 dias</option><option selected>28 dias</option><option>30 dias</option><option>30/60 dias</option><option>30/60/90 dias</option></select></div>
+      <label>Desconto</label>
+      <div class="or-linha"><div class="es-chips" role="group" aria-label="Tipo de desconto" id="orDescTipo"><button type="button" data-dt="pct" aria-pressed="true">%</button><button type="button" data-dt="rs" aria-pressed="false">R$</button></div>
+        <input id="orDescValor" inputmode="decimal" placeholder="0" aria-label="Valor do desconto"></div>
+      <div id="orFreteBox">
+        <label>Frete</label>
+        <div class="es-chips pr-extras" role="group" aria-label="Frete" id="orFrete">
+          <button type="button" data-fr="combinar" aria-pressed="true">A combinar</button><button type="button" data-fr="cif" aria-pressed="false">Grátis</button>
+          <button type="button" data-fr="retirada" aria-pressed="false">Retirada</button><button type="button" data-fr="cobrado" aria-pressed="false">Cobrar frete</button></div>
+        <div id="orFreteValorBox" hidden><label for="orFreteValor">Valor do frete (R$)</label><input id="orFreteValor" inputmode="decimal" placeholder="0,00"></div>
+      </div>
+      <div class="pr-duas"><div><label for="orEntrega" id="orEntregaRot">Prazo de entrega</label><input id="orEntrega" maxlength="120" placeholder="A combinar"></div>
+        <div><label for="orValidade">Válida por</label><select id="orValidade"><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div></div>
+      <label for="orDoc">CPF / CNPJ do cliente <small>(opcional)</small></label><input id="orDoc" maxlength="20" inputmode="numeric">
+      <label for="orObs">Observações <small>(vão no PDF)</small></label><textarea id="orObs" maxlength="800"></textarea>
+    </div>
+    <div class="card or-resumo" id="orResumo"></div>
+    <div class="card">
+      <label for="orMensagem" style="margin-top:0">Mensagem que vai junto do PDF</label><textarea id="orMensagem" maxlength="1000"></textarea>
+      <div class="pr-acoes"><button type="button" class="bt-largo" id="orPrevia">👁️ Ver o PDF antes</button>
+        <button type="button" class="principal bt-largo" id="orEnviar">📤 Enviar proposta ao cliente</button></div>
+      <div id="orLink"></div>
+      <button type="button" class="sm leve" id="orLimpar" style="margin-top:10px">Começar outra proposta</button>
+    </div>
   </section>
   <section id="abaProposta" hidden>
     <div class="card">

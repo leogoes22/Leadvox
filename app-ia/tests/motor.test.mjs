@@ -280,6 +280,12 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.equal(Buffer.from(envios[5].fotoBase64,'base64')[0],0xff);
  await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'proposta',itemId:'38',fotoUrl:'https://169.254.169.254/fotos/x.jpg'});
  assert.equal(envios[6].fotoBase64,undefined);assert.ok(!buscadas.some(u=>u.includes('169.254')));
+ // proposta comercial: itens com quantidade (formato brasileiro), desconto em % no máximo 100, frete conhecido
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'orcamento',itens:[{nome:'X',qtd:0}]})).status,400);
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'orcamento',modo:'previa',
+  itens:[{id:'38',qtd:'120',preco:'12,90'},{nome:'Item avulso',qtd:'2,5',preco:'1.000,00',unidade:'kg',x:1},{nome:'',id:''}],desconto:{tipo:'pct',valor:'150'},frete:{tipo:'teletransporte',valor:9}});
+ const oc=envios[7];
+ assert.deepEqual({i:oc.itens,d:oc.desconto,f:oc.frete.tipo,m:oc.modo},{i:[{id:'38',nome:'',qtd:120,preco:12.9,unidade:''},{id:'',nome:'Item avulso',qtd:2.5,preco:1000,unidade:'kg'}],d:{tipo:'pct',valor:100},f:'combinar',m:'previa'});
  assert.deepEqual(envios[3].itens[0],{body:'oi',mediaUrl:''});assert.deepEqual(Object.keys(envios[3].itens[1]).sort(),['body','mediaUrl']);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

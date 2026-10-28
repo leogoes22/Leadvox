@@ -7,7 +7,19 @@ const root = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon'};
 // Plugin do Vendedor: abre dentro da LeadVox (iframe ao lado do atendimento); o resto do painel não abre em iframe nenhum.
 const PLUGIN_PAGINAS=new Set(['/vendedor','/vendedor.html','/vendedor.js']);
-const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta']);
+const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta','orcamento']);
+// proposta comercial / orçamento de serviços (segmentos que não são de veículos): itens com quantidade e preço, e as condições
+function camposOrcamento(b,txt){
+ const n=(x,max)=>{const s=String(x??'').trim(),v=Number(/,/.test(s)?s.replace(/\./g,'').replace(',','.'):s);return Number.isFinite(v)&&v>0?Math.min(Math.round(v*1000)/1000,max):0;};
+ const itens=(Array.isArray(b.itens)?b.itens:[]).slice(0,100).map(i=>({id:txt(i?.id,12).replace(/\D/g,''),nome:txt(i?.nome,160).trim(),qtd:n(i?.qtd,1000000),preco:Math.round(n(i?.preco,10000000)*100)/100,unidade:txt(i?.unidade,12)}))
+  .filter(i=>(i.id||i.nome)&&i.qtd>0);
+ const d=b.desconto&&typeof b.desconto==='object'?b.desconto:{},f=b.frete&&typeof b.frete==='object'?b.frete:{};
+ return {modo:b.modo==='previa'?'previa':'enviar',itens,documento:txt(b.documento,20),
+  desconto:{tipo:d.tipo==='pct'?'pct':'rs',valor:Math.min(n(d.valor,10000000),d.tipo==='pct'?100:10000000)},
+  frete:{tipo:['cif','retirada','cobrado','combinar'].includes(f.tipo)?f.tipo:'combinar',valor:n(f.valor,1000000)},
+  pagamento:txt(b.pagamento,200),entrega:txt(b.entrega,120),validadeDias:[3,7,15,30].includes(Number(b.validadeDias))?Number(b.validadeDias):7,
+  obs:txt(b.obs,800),mensagem:txt(b.mensagem,1000)};
+}
 // capa do veículo no AutoCerto, para o convite em PDF; qualquer outro endereço ou arquivo é ignorado
 async function fotoAutoCerto(url,fetchImpl){
  let u;try{u=new URL(url);}catch{return '';}
@@ -79,6 +91,11 @@ export function createApp(options={}) {
    // (só de autocerto.com, até 3 MB, só JPEG) e manda junto; o n8n só usa se a foto for mesmo deste veículo no estoque
    const foto=await fotoAutoCerto(txt(b.fotoUrl,500),fetchImpl);
    if(foto){corpo.fotoUrl=b.fotoUrl;corpo.fotoBase64=foto;}
+  }
+  if(b.acao==='orcamento'){
+   const o=camposOrcamento(b,txt);
+   if(!o.itens.length)return responder(400,{ok:false,erro:'Adicione pelo menos um item com quantidade.'});
+   Object.assign(corpo,o);
   }
   // enviar_carro: as mensagens que o vendedor aprovou (texto editado + foto/vídeo); o n8n confere que a mídia é do próprio veículo
   if(b.acao==='enviar_carro'){

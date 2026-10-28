@@ -26,7 +26,7 @@ window.addEventListener('message', ev => {
   if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
   let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
   const t = m && m.type === 'DEFAULT_DATA' && m.data ? lerTicket(m.data.ticket) : null;
-  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; prVeic = null; prMsgEditada = false; if (!$('abaProposta').hidden) desenharProposta(); $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
+  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; prVeic = null; prMsgEditada = false; lerOrc(); if (!$('abaOrcamento').hidden) desenharOrcamento(); if (!$('abaProposta').hidden) desenharProposta(); $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
 });
 
 async function chamar(acao, extra) {
@@ -50,6 +50,7 @@ async function carregar() {
   catch (err) { $('pvSituacao').innerHTML = `<p class="alerta" style="margin:0">${esc(err.message)}</p>`; }
 }
 function desenhar() {
+  ajustarAbas();
   const ia = ctx.ia || {}, r = ctx.resumo || {};
   const cor = { atendendo: 'on', equipe: 'pausa', pausada: 'pausa', desligada: 'off', teste: 'off' }[ia.estado] || '';
   const titulo = { atendendo: 'IA atendendo', equipe: 'Equipe conversando', pausada: 'IA pausada neste atendimento', desligada: 'IA desligada', teste: 'IA em teste' }[ia.estado] || 'IA';
@@ -174,7 +175,8 @@ const IC = {
 
 // mensagens no mesmo padrão da IA
 const linhaPreco = (v, com) => com && v.preco ? '\n◽ *' + brl(v.preco) + '*' : '';
-const fichaCurta = (v, com) => '🚗 *' + titulo(v) + '*' + (v.ano ? '\n◽ ' + v.ano : '') + (v.cor ? '\n◽ Cor: ' + v.cor : '') + (v.km !== null && v.km !== undefined ? '\n◽ ' + kmTxt(v.km) : '') + linhaPreco(v, com);
+// produto ou serviço: nome, descrição e o preço por unidade (se marcar); veículo: ano, cor, km e preço
+const fichaCurta = (v, com) => ['produto', 'servico'].includes(v.tipoItem) ? '*' + v.nome + '*' + (v.descricao ? '\n' + v.descricao : '') + (com && v.preco ? '\n◽ *' + dinheiro(v.preco) + '* / ' + (v.unidade || 'un.') : '') : '🚗 *' + titulo(v) + '*' + (v.ano ? '\n◽ ' + v.ano : '') + (v.cor ? '\n◽ Cor: ' + v.cor : '') + (v.km !== null && v.km !== undefined ? '\n◽ ' + kmTxt(v.km) : '') + linhaPreco(v, com);
 function fichaCompleta(v, com) {
   let t = fichaCurta(v, false) + (v.cambio ? '\n◽ Câmbio: ' + v.cambio : '') + (v.combustivel ? '\n◽ Combustível: ' + v.combustivel : '') + linhaPreco(v, com);
   if (v.opcionais && v.opcionais.length) t += '\n\n*Itens do veículo:*\n' + v.opcionais.map(o => '• ' + o).join('\n');
@@ -198,6 +200,7 @@ async function carregarEstoque() {
 }
 function desenharEstoque() {
   if (!esItens) return;
+  if (modoCat() !== 'veiculos') return desenharProdutos();
   const termos = semAcento($('esTermo').value).split(/\s+/).filter(Boolean);
   const lista = esItens.filter(v => (esFiltro === 'todos' || (esFiltro === 'destaque' ? v.destaque : v.tipo === esFiltro))
     && termos.every(t => semAcento([v.nome, v.marca, v.modelo, v.versao, codigo(v.codigo), v.ano, v.cor, v.categoria].join(' ')).includes(t)));
@@ -333,6 +336,7 @@ document.addEventListener('click', e => {
   if (d('data-fotos')) return detalhe(d('data-fotos'));
   if (d('data-video')) { const v = achar(d('data-video')); return v && confirmar(v, 'video'); }
   if (d('data-convite')) return abrirProposta(d('data-convite'));
+  if (d('data-or-add')) { const v = achar(d('data-or-add')); if (v) { adicionarAoOrc(v); desenharProdutos(); } return; }
   if (d('data-ficha-completa')) { const v = achar(d('data-ficha-completa')); return v && confirmar(v, 'completa'); }
   if (a.hasAttribute('data-foto')) return marcarFoto(Number(d('data-foto')));
   if (a.hasAttribute('data-todas')) { esAberto.sel = esAberto.v.galeria.slice(0, MAX_FOTOS).map((_, i) => i); document.querySelectorAll('#folha .foto').forEach(el => el.setAttribute('aria-pressed', String(Number(el.dataset.foto) < MAX_FOTOS))); return contarSel(); }
@@ -431,11 +435,171 @@ $('prPrevia').onclick = () => gerarProposta('previa');
 $('prForm').onsubmit = e => { e.preventDefault(); gerarProposta('enviar'); };
 desenharExtras();
 
+// ── segmento da loja: veículos (Estoque + Convite) ou produtos / serviços (catálogo + Proposta comercial no modelo Gran Rio) ──
+const modoCat = () => (ctx && ctx.painel && ctx.painel.catalogo) || 'veiculos';
+const ehServico = () => modoCat() === 'servicos';
+function ajustarAbas() {
+  const m = modoCat();
+  document.querySelector('#pvAbas [data-aba="estoque"]').textContent = m === 'veiculos' ? '🚗 Estoque' : m === 'servicos' ? '🧾 Serviços' : '📦 Produtos';
+  document.querySelector('#pvAbas [data-aba="proposta"]').textContent = m === 'veiculos' ? '📄 Convite' : '📄 Proposta';
+}
+const dinheiro = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const numBR = s => { const t = String(s ?? '').trim(); const v = Number(/,/.test(t) ? t.replace(/\./g, '').replace(',', '.') : t); return Number.isFinite(v) && v > 0 ? v : 0; };
+const num2 = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// catálogo de produtos ou serviços: grupos como filtro, preço por unidade, adicionar à proposta, enviar ao cliente
+function desenharProdutos() {
+  const serv = ehServico(), nomeItem = serv ? 'serviço' : 'produto';
+  const grupos = [...new Set(esItens.map(v => v.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  if (esFiltro !== 'todos' && !grupos.includes(esFiltro)) esFiltro = 'todos';
+  $('esChips').innerHTML = ['todos', ...grupos].map(g => `<button type="button" data-g="${esc(g)}" aria-pressed="${g === esFiltro}">${g === 'todos' ? 'Todos' : esc(g)}</button>`).join('');
+  $('esChips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { esFiltro = b.dataset.g; desenharProdutos(); });
+  const termos = semAcento($('esTermo').value).split(/\s+/).filter(Boolean);
+  const lista = esItens.filter(v => (esFiltro === 'todos' || v.categoria === esFiltro) && termos.every(t => semAcento([v.nome, v.categoria, v.descricao, codigo(v.codigo)].join(' ')).includes(t)));
+  $('esTotal').textContent = lista.length + ' ' + (lista.length === 1 ? nomeItem : nomeItem + 's');
+  if (!lista.length) { $('esLista').innerHTML = `<div class="es-aviso"><strong>${esItens.length ? 'Nada encontrado' : 'Catálogo vazio'}</strong>${esItens.length ? 'Tente outro nome ou toque em Todos.' : 'Os ' + nomeItem + 's aparecem aqui assim que a loja cadastra no painel.'}</div>`; return; }
+  $('esLista').innerHTML = lista.slice(0, 120).map(v => {
+    const it = orc.itens.find(i => i.id === v.id);
+    return `<article class="card pv-veic">
+    <button type="button" class="pv-veic-topo" ${v.fotos ? `data-abrir="${esc(v.id)}"` : 'tabindex="-1"'} aria-label="${esc(v.nome)}">
+      <span class="pv-veic-foto">${v.capa ? `<img src="${esc(v.capa)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : (serv ? '🧾' : '📦')}${v.fotos > 1 ? `<span>${v.fotos} fotos</span>` : ''}</span>
+      <span class="pv-veic-info"><b style="text-transform:none">${esc(v.nome)}</b>
+        ${v.descricao ? `<small>${esc(v.descricao.slice(0, 110))}</small>` : ''}
+        <span class="pv-veic-preco">${v.preco ? `<strong>${esc(dinheiro(v.preco))}</strong><em>/ ${esc(v.unidade || (serv ? 'serviço' : 'un.'))}</em>` : '<em>Sob consulta</em>'}${v.categoria ? `<span class="selo">${esc(v.categoria)}</span>` : ''}</span></span>
+    </button>
+    <div class="pv-veic-acoes">
+      <button type="button" class="add-or${it ? ' dentro' : ''}" data-or-add="${esc(v.id)}">${it ? '✓ ' + esc(String(it.qtd).replace('.', ',')) + ' na proposta' : '➕ Proposta'}</button>
+      <button type="button" data-ficha="${esc(v.id)}">${IC.enviar}Enviar</button>
+      <button type="button" data-fotos="${esc(v.id)}"${v.fotos ? '' : ' disabled'}>${IC.fotos}Fotos${v.fotos ? ' (' + v.fotos + ')' : ''}</button>
+    </div></article>`;
+  }).join('');
+}
+
+// ── proposta comercial: rascunho por atendimento (fica neste navegador) ──
+const PAGAMENTOS = ['PIX', 'Dinheiro', 'Cartão de crédito', 'Cartão de débito', 'Boleto', 'Transferência', 'Faturado'];
+const orcVazio = () => ({ itens: [], pagamento: [], faturado: '28 dias', desc: { tipo: 'pct', valor: 0 }, frete: { tipo: 'combinar', valor: 0 }, entrega: '', validade: 7, doc: '', obs: '', msg: '', msgEditada: false });
+let orc = orcVazio();
+const chaveOrc = () => 'lv_orc_' + CHAVE.k + '_' + (ticket ? ticket.id : '');
+function lerOrc() { try { const o = JSON.parse(localStorage.getItem(chaveOrc()) || 'null'); orc = o && Array.isArray(o.itens) ? { ...orcVazio(), ...o } : orcVazio(); } catch (e) { orc = orcVazio(); } }
+function guardarOrc() { try { localStorage.setItem(chaveOrc(), JSON.stringify(orc)); } catch (e) {} }
+function calcOrc() {
+  const sub = Math.round(orc.itens.reduce((t, i) => t + (Number(i.qtd) || 0) * (Number(i.preco) || 0), 0) * 100) / 100;
+  const dv = Number(orc.desc.valor) || 0, desc = Math.round((orc.desc.tipo === 'pct' ? sub * Math.min(dv, 100) / 100 : Math.min(dv, sub)) * 100) / 100;
+  const frete = !ehServico() && orc.frete.tipo === 'cobrado' ? Number(orc.frete.valor) || 0 : 0;
+  return { sub, desc, frete, total: Math.round((sub - desc + frete) * 100) / 100 };
+}
+const textoPagamento = () => {
+  const f = orc.pagamento.map(p => p === 'Faturado' ? 'Faturado em ' + orc.faturado : p);
+  return !f.length ? '' : f.length === 1 ? f[0] : f.slice(0, -1).join(', ') + ' ou ' + f[f.length - 1];
+};
+function mensagemOrc() {
+  const p = primeiroNome(), t = calcOrc();
+  return `Oi${p === 'o cliente' ? '' : ', ' + p}! Segue a ${ehServico() ? 'proposta de orçamento' : 'proposta'} que preparei para você, no total de ${dinheiro(t.total)}. Qualquer ajuste de quantidade ou condição, é só me dizer por aqui.`;
+}
+function adicionarAoOrc(v) {
+  const it = orc.itens.find(i => i.id === v.id);
+  if (it) it.qtd = (Number(it.qtd) || 0) + 1;
+  else orc.itens.push({ id: v.id, nome: v.nome, qtd: 1, preco: Number(v.preco) || 0, precoTab: Number(v.preco) || 0, unidade: v.unidade || (ehServico() ? 'serviço' : 'un.') });
+  guardarOrc(); toast('“' + v.nome + '” na proposta (' + orc.itens.length + (orc.itens.length === 1 ? ' item' : ' itens') + ').');
+}
+function desenharOrcamento() {
+  const serv = ehServico();
+  $('orTitulo').textContent = serv ? '📄 Proposta de orçamento' : '📄 Proposta comercial';
+  $('orFreteBox').hidden = serv; $('orEntregaRot').textContent = serv ? 'Prazo de execução' : 'Prazo de entrega';
+  $('orQtdItens').textContent = orc.itens.length ? '· ' + orc.itens.length + (orc.itens.length === 1 ? ' item' : ' itens') : '';
+  $('orItens').innerHTML = orc.itens.length ? orc.itens.map((it, i) => {
+    const fora = it.id && it.precoTab && Math.abs(Number(it.preco) - it.precoTab) > 0.004;
+    return `<div class="or-it">
+      <div class="or-it-nome">${it.id ? `<b>${esc(it.nome)}</b>` : `<input data-or-nome="${i}" value="${esc(it.nome)}" maxlength="160" placeholder="Nome do item" aria-label="Nome do item">`}
+        <button type="button" class="sm leve or-x" data-or-rm="${i}" aria-label="Tirar ${esc(it.nome || 'item')}">×</button></div>
+      <div class="or-ctl"><div class="or-stp"><button type="button" data-or-q="-" data-i="${i}" aria-label="Menos">−</button><input data-or-qtd="${i}" inputmode="decimal" value="${esc(String(it.qtd).replace('.', ','))}" aria-label="Quantidade"><button type="button" data-or-q="+" data-i="${i}" aria-label="Mais">+</button></div>
+        <label class="or-preco">R$ <input data-or-preco="${i}" inputmode="decimal" value="${esc(num2(it.preco))}" aria-label="Valor por ${esc(it.unidade)}"> / ${esc(it.unidade)}</label>
+        <span class="or-sub" data-or-sub="${i}">${esc(dinheiro((Number(it.qtd) || 0) * (Number(it.preco) || 0)))}</span></div>
+      ${fora ? `<span class="or-aviso">Preço diferente do catálogo (${esc(dinheiro(it.precoTab))}).</span>` : ''}
+    </div>`;
+  }).join('') : '<p class="muted" style="margin-top:8px">Nenhum item ainda. Toque em “+ Do catálogo” ou em “➕ Proposta” nos ' + (serv ? 'serviços' : 'produtos') + '.</p>';
+  $('orPagamentos').innerHTML = PAGAMENTOS.map(p => `<button type="button" data-pg="${esc(p)}" aria-pressed="${orc.pagamento.includes(p)}">${esc(p)}</button>`).join('');
+  $('orFaturadoBox').hidden = !orc.pagamento.includes('Faturado'); $('orFaturado').value = orc.faturado;
+  document.querySelectorAll('#orDescTipo [data-dt]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dt === orc.desc.tipo)));
+  $('orDescValor').value = orc.desc.valor ? num2(orc.desc.valor).replace(/,00$/, '') : '';
+  document.querySelectorAll('#orFrete [data-fr]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fr === orc.frete.tipo)));
+  $('orFreteValorBox').hidden = orc.frete.tipo !== 'cobrado'; $('orFreteValor').value = orc.frete.valor ? num2(orc.frete.valor) : '';
+  $('orEntrega').value = orc.entrega; $('orValidade').value = String(orc.validade); $('orDoc').value = orc.doc; $('orObs').value = orc.obs;
+  if (!orc.msgEditada) orc.msg = mensagemOrc();
+  $('orMensagem').value = orc.msg;
+  ligarItensOrc(); resumoOrc();
+}
+function resumoOrc() {
+  const t = calcOrc(), un = orc.itens.reduce((s, i) => s + (Number(i.qtd) || 0), 0);
+  $('orResumo').innerHTML = `<h3>Resumo</h3>
+    <div><span class="muted">Itens</span><b>${orc.itens.length} · ${esc(un.toLocaleString('pt-BR'))} ${ehServico() ? 'un.' : 'unidades'}</b></div>
+    <div><span class="muted">Subtotal</span><b>${esc(dinheiro(t.sub))}</b></div>
+    ${t.desc ? `<div><span class="muted">Desconto</span><b>- ${esc(dinheiro(t.desc))}</b></div>` : ''}
+    ${t.frete ? `<div><span class="muted">Frete</span><b>${esc(dinheiro(t.frete))}</b></div>` : ''}
+    <div><span class="muted">Pagamento</span><b>${esc(textoPagamento() || 'A combinar')}</b></div>
+    <div class="grande"><span>Total</span><span>${esc(dinheiro(t.total))}</span></div>`;
+  orc.itens.forEach((it, i) => { const el = document.querySelector(`[data-or-sub="${i}"]`); if (el) el.textContent = dinheiro((Number(it.qtd) || 0) * (Number(it.preco) || 0)); });
+  if (!orc.msgEditada) { orc.msg = mensagemOrc(); $('orMensagem').value = orc.msg; }
+}
+function ligarItensOrc() {
+  const mudou = () => { guardarOrc(); resumoOrc(); };
+  document.querySelectorAll('[data-or-rm]').forEach(b => b.onclick = () => { orc.itens.splice(+b.dataset.orRm, 1); guardarOrc(); desenharOrcamento(); });
+  document.querySelectorAll('[data-or-q]').forEach(b => b.onclick = () => {
+    const it = orc.itens[+b.dataset.i]; it.qtd = Math.max(1, Math.round(((Number(it.qtd) || 0) + (b.dataset.orQ === '+' ? 1 : -1)) * 1000) / 1000);
+    document.querySelector(`[data-or-qtd="${b.dataset.i}"]`).value = String(it.qtd).replace('.', ','); mudou();
+  });
+  document.querySelectorAll('[data-or-qtd]').forEach(el => el.oninput = () => { orc.itens[+el.dataset.orQtd].qtd = numBR(el.value); mudou(); });
+  document.querySelectorAll('[data-or-preco]').forEach(el => el.oninput = () => { orc.itens[+el.dataset.orPreco].preco = numBR(el.value); mudou(); });
+  document.querySelectorAll('[data-or-preco]').forEach(el => el.onblur = () => desenharOrcamento());
+  document.querySelectorAll('[data-or-nome]').forEach(el => el.oninput = () => { orc.itens[+el.dataset.orNome].nome = el.value; guardarOrc(); });
+  document.querySelectorAll('#orPagamentos [data-pg]').forEach(b => b.onclick = () => {
+    const p = b.dataset.pg; orc.pagamento = orc.pagamento.includes(p) ? orc.pagamento.filter(x => x !== p) : [...orc.pagamento, p];
+    guardarOrc(); desenharOrcamento();
+  });
+}
+// campos fixos das condições (ligados uma vez)
+$('orDoCatalogo').onclick = () => document.querySelector('#pvAbas [data-aba="estoque"]').click();
+$('orAvulso').onclick = () => { orc.itens.push({ id: '', nome: '', qtd: 1, preco: 0, precoTab: 0, unidade: ehServico() ? 'serviço' : 'un.' }); guardarOrc(); desenharOrcamento(); const n = document.querySelector(`[data-or-nome="${orc.itens.length - 1}"]`); if (n) n.focus(); };
+document.querySelectorAll('#orDescTipo [data-dt]').forEach(b => b.onclick = () => { orc.desc.tipo = b.dataset.dt; guardarOrc(); desenharOrcamento(); });
+$('orDescValor').oninput = () => { orc.desc.valor = numBR($('orDescValor').value); guardarOrc(); resumoOrc(); };
+document.querySelectorAll('#orFrete [data-fr]').forEach(b => b.onclick = () => { orc.frete.tipo = b.dataset.fr; guardarOrc(); desenharOrcamento(); });
+$('orFreteValor').oninput = () => { orc.frete.valor = numBR($('orFreteValor').value); guardarOrc(); resumoOrc(); };
+$('orFaturado').onchange = () => { orc.faturado = $('orFaturado').value; guardarOrc(); resumoOrc(); };
+$('orEntrega').oninput = () => { orc.entrega = $('orEntrega').value; guardarOrc(); };
+$('orValidade').onchange = () => { orc.validade = Number($('orValidade').value); guardarOrc(); };
+$('orDoc').oninput = () => { orc.doc = $('orDoc').value; guardarOrc(); };
+$('orObs').oninput = () => { orc.obs = $('orObs').value; guardarOrc(); };
+$('orMensagem').oninput = () => { orc.msg = $('orMensagem').value; orc.msgEditada = true; guardarOrc(); };
+$('orLimpar').onclick = () => { if (!confirm('Começar outra proposta? Os itens e condições desta somem.')) return; orc = orcVazio(); guardarOrc(); $('orLink').innerHTML = ''; desenharOrcamento(); };
+async function gerarOrcamento(modo) {
+  if (ocupado) return;
+  if (!ticket) return toast('Abra um atendimento na LeadVox primeiro.', true);
+  const itens = orc.itens.filter(i => (i.id || String(i.nome).trim()) && Number(i.qtd) > 0);
+  if (!itens.length) return toast('Adicione pelo menos um item com quantidade.', true);
+  if (orc.itens.some(i => !i.id && !String(i.nome).trim())) return toast('Tem item sem nome. Preencha ou tire da proposta.', true);
+  const t = calcOrc();
+  if (modo === 'enviar' && !confirm(`Mandar a proposta de ${dinheiro(t.total)} para ${ticket.cliente || 'o cliente'}?`)) return;
+  const bt = $(modo === 'previa' ? 'orPrevia' : 'orEnviar'), antes = bt.textContent;
+  ocupado = true; bt.disabled = true; bt.textContent = modo === 'previa' ? 'Montando o PDF…' : 'Enviando a proposta…';
+  try {
+    const j = await chamar('orcamento', { modo, itens: itens.map(i => ({ id: i.id, nome: i.id ? '' : i.nome, qtd: i.qtd, preco: i.preco, unidade: i.unidade })),
+      desconto: orc.desc, frete: ehServico() ? { tipo: 'combinar' } : orc.frete, pagamento: textoPagamento(), entrega: orc.entrega, validadeDias: orc.validade,
+      documento: orc.doc, obs: orc.obs, mensagem: orc.msg });
+    $('orLink').innerHTML = j.pdfUrl ? `<p style="margin-top:10px"><a href="${esc(j.pdfUrl)}" target="_blank" rel="noopener">📄 Abrir o PDF nº ${esc(j.numero || '')}${modo === 'previa' ? ' (prévia)' : ''}</a></p>` : '';
+    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' + (j.aviso ? ' Obs.: ' + j.aviso + '.' : '') : 'Proposta enviada para ' + primeiroNome() + '. Ficou registrado em nota interna.');
+  } catch (err) { toast(err.message, true); }
+  finally { ocupado = false; bt.disabled = false; bt.textContent = antes; }
+}
+$('orPrevia').onclick = () => gerarOrcamento('previa');
+$('orEnviar').onclick = () => gerarOrcamento('enviar');
+
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba; });
+  const veic = modoCat() === 'veiculos';
+  ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba || (a === 'proposta' && !veic); });
+  $('abaOrcamento').hidden = !(b.dataset.aba === 'proposta' && !veic);
   if (b.dataset.aba === 'estoque' && ticket) { cabecalhoEstoque(); if (!esItens) carregarEstoque(); }
-  if (b.dataset.aba === 'proposta') desenharProposta();
+  if (b.dataset.aba === 'proposta') { if (veic) desenharProposta(); else { if (ticket && !esItens) carregarEstoque(); desenharOrcamento(); } }
 });
 
 // início: sem a chave da loja não há o que fazer; fora da LeadVox, explica como abrir
