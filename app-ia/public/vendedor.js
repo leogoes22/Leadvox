@@ -407,7 +407,7 @@ $('prTemTroca').onchange = () => { $('prTroca').hidden = !$('prTemTroca').checke
 $('prMensagem').oninput = () => { prMsgEditada = true; };
 function dadosProposta(modo) {
   const parcelado = ['financiado', 'consorcio', 'cartao'].includes(prForma), troca = $('prTemTroca').checked;
-  return { modo, itemId: prVeic.id, forma: prForma,
+  return { modo, itemId: prVeic.id, forma: prForma, fotoUrl: prVeic.capa || '',
     entrada: parcelado ? $('prEntrada').value : '', banco: parcelado ? $('prBanco').value.trim() : '',
     parcelas: parcelado ? $('prParcelas').value : '', valorParcela: parcelado ? $('prValorParcela').value : '',
     troca: troca ? { modelo: $('prTrocaModelo').value.trim(), ano: $('prTrocaAno').value.trim(), km: $('prTrocaKm').value, valor: $('prTrocaValor').value } : {},

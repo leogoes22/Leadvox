@@ -235,9 +235,11 @@ test('ElevenLabs key is tested by listing voices, saved to the vault and never s
  assert.deepEqual(v.vozes,[{id:'21m00Tcm4TlvDq8ikWAM',nome:'Rachel',detalhe:'female · american'}]);assert.doesNotMatch(JSON.stringify(v),/sk_/);
 });
 test('seller plugin opens only inside LeadVox and its API forwards only known fields to the motor',async t=>{
- const envios=[];
+ const envios=[],buscadas=[];
  const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
   if(u.endsWith('/webhook/iag-plugin-vendedor')){envios.push(JSON.parse(init.body));return ok({ok:true,ia:{estado:'atendendo'}});}
+  buscadas.push(u);
+  if(u.startsWith('https://autocerto.com/fotos/'))return {ok:true,status:200,headers:new Headers({'content-type':'image/jpeg'}),arrayBuffer:async()=>Uint8Array.from([0xff,0xd8,0xff,...Array(200).fill(1)]).buffer};
   return ok({});
  }});
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
@@ -272,6 +274,12 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  const pr=envios[4];
  assert.deepEqual({e:pr.entrada,p:pr.parcelas,v:pr.valorParcela,t:pr.troca,x:pr.extras.length,d:pr.validadeDias,o:pr.obs.length,u:pr.pdfUrl,m:pr.modo},
   {e:30000,p:48,v:1890.5,t:{modelo:'Onix',ano:'2019',km:60000,valor:45000},x:11,d:7,o:500,u:undefined,m:'enviar'});
+ // capa do AutoCerto: este servidor baixa e manda junto; outro endereço nem é buscado
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'proposta',itemId:'38',fotoUrl:'https://autocerto.com/fotos/1712/5480708/1_082423.jpg'});
+ assert.equal(envios[5].fotoUrl,'https://autocerto.com/fotos/1712/5480708/1_082423.jpg');
+ assert.equal(Buffer.from(envios[5].fotoBase64,'base64')[0],0xff);
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'proposta',itemId:'38',fotoUrl:'https://169.254.169.254/fotos/x.jpg'});
+ assert.equal(envios[6].fotoBase64,undefined);assert.ok(!buscadas.some(u=>u.includes('169.254')));
  assert.deepEqual(envios[3].itens[0],{body:'oi',mediaUrl:''});assert.deepEqual(Object.keys(envios[3].itens[1]).sort(),['body','mediaUrl']);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

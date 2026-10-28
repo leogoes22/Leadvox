@@ -8,6 +8,17 @@ const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
 // Plugin do Vendedor: abre dentro da LeadVox (iframe ao lado do atendimento); o resto do painel não abre em iframe nenhum.
 const PLUGIN_PAGINAS=new Set(['/vendedor','/vendedor.html','/vendedor.js']);
 const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta']);
+// capa do veículo no AutoCerto, para o convite em PDF; qualquer outro endereço ou arquivo é ignorado
+async function fotoAutoCerto(url,fetchImpl){
+ let u;try{u=new URL(url);}catch{return '';}
+ if(u.protocol!=='https:'||!['autocerto.com','www.autocerto.com'].includes(u.hostname)||!u.pathname.startsWith('/fotos/')||u.port)return '';
+ try{
+  const r=await fetchImpl(u.href,{redirect:'error',signal:AbortSignal.timeout(12000),headers:{Accept:'image/jpeg'}});
+  if(!r.ok||Number(r.headers.get('content-length')||0)>3e6)return '';
+  const b=Buffer.from(await r.arrayBuffer());
+  return b.length>100&&b.length<=3e6&&b[0]===0xff&&b[1]===0xd8&&b[2]===0xff?b.toString('base64'):'';
+ }catch{return '';}
+}
 // convite para test drive: só os campos do formulário, com tamanho e números conferidos
 function camposProposta(b,txt){
  const n=(x,max)=>{const v=Number(String(x??'').replace(/\./g,'').replace(',','.'));return Number.isFinite(v)&&v>0?Math.min(Math.round(v*100)/100,max):0;};
@@ -64,6 +75,10 @@ export function createApp(options={}) {
    const p=camposProposta(b,txt);
    if(!p.itemId)return responder(400,{ok:false,erro:'Escolha o veículo do convite.'});
    Object.assign(corpo,p);
+   // foto de capa do AutoCerto: o AutoCerto recusa o download vindo do servidor do n8n, então este servidor baixa
+   // (só de autocerto.com, até 3 MB, só JPEG) e manda junto; o n8n só usa se a foto for mesmo deste veículo no estoque
+   const foto=await fotoAutoCerto(txt(b.fotoUrl,500),fetchImpl);
+   if(foto){corpo.fotoUrl=b.fotoUrl;corpo.fotoBase64=foto;}
   }
   // enviar_carro: as mensagens que o vendedor aprovou (texto editado + foto/vídeo); o n8n confere que a mídia é do próprio veículo
   if(b.acao==='enviar_carro'){
