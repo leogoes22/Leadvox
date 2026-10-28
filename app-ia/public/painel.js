@@ -177,8 +177,20 @@ const IC = {
   chave: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2 2M15 8l2 2"/>',
   cartao: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
   engrenagem: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
-  escudo: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'
+  escudo: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  caixa: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  lista: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'
 };
+// O catálogo muda com o segmento da empresa: veículos (automotivo), serviços (saúde, advocacia, educação, viagens) ou produtos (o resto).
+const CATALOGO = {
+  veiculos: { titulo: 'Estoque', ic: 'carro', item: 'veículo', itens: 'veículos', desc: 'Os veículos que a IA oferece, com foto e preço.' },
+  servicos: { titulo: 'Serviços', ic: 'lista', item: 'serviço', itens: 'serviços', desc: 'Os serviços e pacotes que a IA oferece, com preço.' },
+  produtos: { titulo: 'Produtos', ic: 'caixa', item: 'produto', itens: 'produtos', desc: 'Os produtos que a IA oferece, com foto e preço.' }
+};
+const tipoCatalogo = () => cfg.niche === 'automotivo' ? 'veiculos' : ['saude', 'advocacia', 'educacao', 'viagens'].includes(cfg.niche) ? 'servicos' : 'produtos';
+const UNIDADES = ['un.', 'kg', 'g', 'L', 'm', 'm²', 'cx.', 'pct.', 'par', 'kit', 'serviço', 'hora', 'sessão', 'consulta', 'diária', 'pacote', 'mês', 'ano'];
+// nome do item do menu (o Estoque segue o segmento)
+const itemMenu = m => m[0] === 'estoque' ? (c => ['estoque', c.titulo, c.ic, c.desc])(CATALOGO[tipoCatalogo()]) : m;
 const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
@@ -212,7 +224,7 @@ const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvo
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
 
 function desenharMenu() {
-  $('menu').innerHTML = MENU.map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
+  $('menu').innerHTML = MENU.map(m => m === '-' ? m : itemMenu(m)).map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
     ? `<button type="button" class="menu-it" data-pg="${m[0]}" title="${m[1]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
   document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => abrir(b.dataset.pg));
 }
@@ -244,7 +256,7 @@ let abaAtual = 'agentes';
 function abrir(pg) {
   if (!visivel(pg)) pg = 'agentes';
   abaAtual = pg;
-  const item = MENU.find(m => m[0] === pg);
+  const item = itemMenu(MENU.find(m => m[0] === pg));
   for (const id of new Set(Object.values(SECAO))) $(id).hidden = id !== SECAO[pg];
   document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
@@ -1018,16 +1030,18 @@ function desenharEstoque() {
     topo.innerHTML = '<div class="vazio"><b>Primeiro ligue a sua IA</b>O estoque fica na conta do motor da sua IA.<br><button type="button" data-ir="agentes">Ir para Agentes LeadVox IA</button></div>';
     ligarIr(topo); $('esLista').hidden = true; return;
   }
-  const fonte = conexoes?.estoque?.connected ? conexoes.estoque.source : 'leadvox', externa = fonte === 'autocerto' || fonte === 'revendamais';
+  const tipo = tipoCatalogo(), C = CATALOGO[tipo], veic = tipo === 'veiculos';
+  // fora do automotivo o catálogo é sempre cadastrado aqui (AutoCerto e Revenda Mais são só de veículos)
+  const fonte = veic && conexoes?.estoque?.connected ? conexoes.estoque.source : 'leadvox', externa = fonte === 'autocerto' || fonte === 'revendamais';
   const itens = estoque.itens || [], disp = itens.filter(i => i.status === 'disponivel').length, usa = !!agDados?.config?.catalogo?.usar;
-  topo.innerHTML = `<div class="lista-topo"><div><h3>Estoque da IA · ${esc(FONTES[fonte] || fonte)}</h3>
-      <p class="muted" style="margin-top:4px">${externa ? 'Copiado do ' + esc(FONTES[fonte]) + ': atualiza sozinho a cada 30 minutos.' : 'Cadastre os veículos aqui. A IA só oferece o que estiver disponível.'}
-      ${itens.length} veículo${itens.length === 1 ? '' : 's'}, ${disp} disponíve${disp === 1 ? 'l' : 'is'}.</p></div>
-      <div class="form-bts" style="margin:0">${externa ? '<button type="button" class="principal sm" id="esSync">Atualizar agora</button>' : '<button type="button" class="principal sm" id="esNovo">+ Cadastrar veículo</button>'}
-      <button type="button" class="sm" data-ir="credenciais">Trocar fonte</button></div></div>
-    ${agDados ? `<div class="lin-sw" style="margin-top:10px"><span>${esc(agDados.config.identidade.nome || 'A IA')} usa o estoque<small>Mostra os veículos, manda foto e fala de preço conforme a regra de preço da base de conhecimento.</small></span>
-      <button type="button" class="switch" role="switch" aria-checked="${usa}" id="esUsar" aria-label="A IA usa o estoque"><span></span></button></div>`
-      : '<p class="dica">Crie o seu agente em Agentes LeadVox IA para ele usar o estoque.</p>'}`;
+  topo.innerHTML = `<div class="lista-topo"><div><h3>${veic ? 'Estoque da IA · ' + esc(FONTES[fonte] || fonte) : esc(C.titulo) + ' da IA'}</h3>
+      <p class="muted" style="margin-top:4px">${externa ? 'Copiado do ' + esc(FONTES[fonte]) + ': atualiza sozinho a cada 30 minutos.' : 'Cadastre os ' + C.itens + ' aqui. A IA só oferece o que estiver disponível, e o vendedor usa no plugin.'}
+      ${itens.length} ${itens.length === 1 ? C.item : C.itens}, ${disp} disponíve${disp === 1 ? 'l' : 'is'}.</p></div>
+      <div class="form-bts" style="margin:0">${externa ? '<button type="button" class="principal sm" id="esSync">Atualizar agora</button>' : `<button type="button" class="principal sm" id="esNovo">+ Cadastrar ${C.item}</button>`}
+      ${veic ? '<button type="button" class="sm" data-ir="credenciais">Trocar fonte</button>' : ''}</div></div>
+    ${agDados ? `<div class="lin-sw" style="margin-top:10px"><span>${esc(agDados.config.identidade.nome || 'A IA')} usa ${veic ? 'o estoque' : 'os ' + C.itens}<small>Mostra os ${C.itens}, manda foto e fala de preço conforme a regra de preço da base de conhecimento.</small></span>
+      <button type="button" class="switch" role="switch" aria-checked="${usa}" id="esUsar" aria-label="A IA usa ${veic ? 'o estoque' : 'os ' + C.itens}"><span></span></button></div>`
+      : `<p class="dica">Crie o seu agente em Agentes LeadVox IA para ele usar ${veic ? 'o estoque' : 'os ' + C.itens}.</p>`}`;
   ligarIr(topo);
   if ($('esNovo')) $('esNovo').onclick = () => editarVeiculo(null);
   if ($('esSync')) $('esSync').onclick = async () => {
@@ -1041,31 +1055,44 @@ function desenharEstoque() {
     if (agDados.tipo !== 'catalogo') cat.modo = 'vitrine';
     try { const r = await acaoMotor({ acao: 'salvar', agente: agSel, config: { ...c, catalogo: cat }, versaoBase: agDados.versao });
       agDados = { ...agDados, config: { ...c, catalogo: cat }, versao: r.versao ?? agDados.versao };
-      toast(cat.usar ? 'Pronto: a IA já oferece os veículos do estoque.' : 'A IA parou de usar o estoque.'); desenharEstoque(); } catch {}
+      toast(cat.usar ? 'Pronto: a IA já oferece os ' + C.itens + '.' : 'A IA parou de usar os ' + C.itens + '.'); desenharEstoque(); } catch {}
   };
   $('esLista').hidden = false;
   $('esLista').innerHTML = itens.length ? itens.map(i => {
     const manual = !/^(ac|rm):/.test(i.codigo || ''), foto = (i.fotos || [])[0];
     return `<div class="veic">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="sem-foto">sem foto</div>'}
-      <div><b>${esc(i.nome)}</b><small>${esc(i.descricao || i.categoria || '')}</small>
-        <span class="valor">${i.preco ? preco(i.preco) : 'Sob consulta'}</span>${i.status !== 'disponivel' ? ` <span class="st rascunho">${i.status === 'reservado' ? 'Reservado' : 'Vendido'}</span>` : ''}</div>
+      <div><b>${esc(i.nome)}</b><small>${esc(veic ? (i.descricao || i.categoria || '') : [i.categoria, i.descricao].filter(Boolean).join(' · '))}</small>
+        <span class="valor">${i.preco ? preco(i.preco) + (!veic && i.atributos?.unidade ? ' / ' + esc(i.atributos.unidade) : '') : 'Sob consulta'}</span>${i.status !== 'disponivel' ? ` <span class="st rascunho">${i.status === 'reservado' ? 'Reservado' : veic ? 'Vendido' : 'Indisponível'}</span>` : ''}</div>
       <div class="bts">${manual ? `<button type="button" class="sm" data-es-ed="${i.id}">Editar</button><button type="button" class="sm perigo" data-es-ex="${i.id}">Excluir</button>` : ''}</div></div>`;
-  }).join('') : `<div class="vazio"><b>Nenhum veículo ainda</b>${externa ? 'Clique em Atualizar agora para trazer o estoque.' : 'Clique em Cadastrar veículo.'}</div>`;
+  }).join('') : `<div class="vazio"><b>Nenhum ${C.item} ainda</b>${externa ? 'Clique em Atualizar agora para trazer o estoque.' : 'Clique em Cadastrar ' + C.item + '.'}</div>`;
   $('esLista').querySelectorAll('[data-es-ed]').forEach(b => b.onclick = () => editarVeiculo(itens.find(i => String(i.id) === b.dataset.esEd)));
   $('esLista').querySelectorAll('[data-es-ex]').forEach(b => b.onclick = async () => {
     const it = itens.find(i => String(i.id) === b.dataset.esEx);
-    if (!confirm('Excluir ' + (it?.nome || 'este veículo') + ' do estoque?')) return;
-    try { estoque = await api('estoque', { organization: empresa.id, acao: 'excluir', id: Number(b.dataset.esEx) }); toast('Veículo excluído.'); desenharEstoque(); } catch (err) { toast(err.message, true); }
+    if (!confirm('Excluir ' + (it?.nome || 'este ' + C.item) + '?')) return;
+    try { estoque = await api('estoque', { organization: empresa.id, acao: 'excluir', id: Number(b.dataset.esEx) }); toast(C.item.charAt(0).toUpperCase() + C.item.slice(1) + ' excluído.'); desenharEstoque(); } catch (err) { toast(err.message, true); }
   });
 }
+// cadastro: veículo no automotivo; produto ou serviço nos outros segmentos (o formulário mostra só os campos de cada um)
 function editarVeiculo(i) {
-  const a = i?.atributos || {};
-  $('esFormTit').textContent = i ? 'Editar veículo' : 'Cadastrar veículo';
-  $('esId').value = i?.id || ''; $('esMarca').value = a.marca || ''; $('esModelo').value = a.modelo || ''; $('esVersao').value = a.versao || '';
-  $('esAno').value = a.ano || ''; $('esKm').value = a.km || ''; $('esCor').value = a.cor || ''; $('esCambio').value = a.cambio || ''; $('esComb').value = a.combustivel || '';
-  $('esCat').value = i?.categoria || ''; $('esPreco').value = i?.preco ? String(Number(i.preco)).replace('.', ',') : ''; $('esStatus').value = i?.status || 'disponivel';
-  $('esFotos').value = (i?.fotos || []).join('\n'); $('esObs').value = a.obs || ''; desenharFotos();
-  $('esForm').hidden = false; $('esForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('esMarca').focus();
+  const a = i?.atributos || {}, tipo = tipoCatalogo(), C = CATALOGO[tipo], veic = tipo === 'veiculos';
+  $('esCamposVeic').hidden = !veic; $('esObsBox').hidden = !veic; $('esCamposProd').hidden = veic;
+  $('esFormTit').textContent = (i ? 'Editar ' : 'Cadastrar ') + C.item; $('esSalvar').textContent = 'Salvar ' + C.item;
+  $('esStatus').innerHTML = veic ? '<option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option>'
+    : '<option value="disponivel">Disponível</option><option value="indisponivel">Indisponível</option>';
+  $('esId').value = i?.id || ''; $('esStatus').value = i?.status || 'disponivel'; $('esFotos').value = (i?.fotos || []).join('\n');
+  const precoTxt = i?.preco ? String(Number(i.preco)).replace('.', ',') : '';
+  if (veic) {
+    $('esMarca').value = a.marca || ''; $('esModelo').value = a.modelo || ''; $('esVersao').value = a.versao || '';
+    $('esAno').value = a.ano || ''; $('esKm').value = a.km || ''; $('esCor').value = a.cor || ''; $('esCambio').value = a.cambio || ''; $('esComb').value = a.combustivel || '';
+    $('esCat').value = i?.categoria || ''; $('esPreco').value = precoTxt; $('esObs').value = a.obs || '';
+  } else {
+    const padrao = tipo === 'servicos' ? 'serviço' : 'un.';
+    $('esUnidade').innerHTML = UNIDADES.map(u => `<option${u === (a.unidade || padrao) ? ' selected' : ''}>${esc(u)}</option>`).join('');
+    $('esGrupos').innerHTML = [...new Set((estoque?.itens || []).map(x => x.categoria).filter(Boolean))].map(g => `<option value="${esc(g)}">`).join('');
+    $('esNome').value = i?.nome || ''; $('esGrupo').value = i?.categoria || ''; $('esPrecoP').value = precoTxt; $('esDescricao').value = i?.descricao || '';
+  }
+  desenharFotos();
+  $('esForm').hidden = false; $('esForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); $(veic ? 'esMarca' : 'esNome').focus();
 }
 // fotos: o campo de endereços é a lista (uma por linha); a grade mostra e o botão envia do aparelho
 const fotosForm = () => $('esFotos').value.split(/\s+/).filter(u => /^https:\/\//.test(u));
@@ -1104,10 +1131,14 @@ $('esFotos').addEventListener('input', desenharFotos);
 $('esCancelar').onclick = () => { $('esForm').hidden = true; };
 $('esForm').onsubmit = async e => {
   e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true;
-  const item = { id: Number($('esId').value) || undefined, marca: $('esMarca').value, modelo: $('esModelo').value, versao: $('esVersao').value, ano: $('esAno').value,
-    km: $('esKm').value, cor: $('esCor').value, cambio: $('esCambio').value, combustivel: $('esComb').value, categoria: $('esCat').value,
-    preco: $('esPreco').value, status: $('esStatus').value, fotos: $('esFotos').value, obs: $('esObs').value, tipo: /moto/i.test($('esCat').value) ? 'moto' : 'carro' };
-  try { estoque = await api('estoque', { organization: empresa.id, acao: 'salvar', item }); $('esForm').hidden = true; toast('Veículo salvo. A IA já pode oferecer.'); desenharEstoque(); }
+  const tipo = tipoCatalogo(), C = CATALOGO[tipo], id = Number($('esId').value) || undefined;
+  const item = tipo === 'veiculos'
+    ? { id, marca: $('esMarca').value, modelo: $('esModelo').value, versao: $('esVersao').value, ano: $('esAno').value,
+      km: $('esKm').value, cor: $('esCor').value, cambio: $('esCambio').value, combustivel: $('esComb').value, categoria: $('esCat').value,
+      preco: $('esPreco').value, status: $('esStatus').value, fotos: $('esFotos').value, obs: $('esObs').value, tipo: /moto/i.test($('esCat').value) ? 'moto' : 'carro' }
+    : { id, tipo: tipo === 'servicos' ? 'servico' : 'produto', nome: $('esNome').value, categoria: $('esGrupo').value, unidade: $('esUnidade').value,
+      preco: $('esPrecoP').value, descricao: $('esDescricao').value, status: $('esStatus').value, fotos: $('esFotos').value };
+  try { estoque = await api('estoque', { organization: empresa.id, acao: 'salvar', item }); $('esForm').hidden = true; toast(C.item.charAt(0).toUpperCase() + C.item.slice(1) + ' salvo. A IA já pode oferecer.'); desenharEstoque(); }
   catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; }
 };

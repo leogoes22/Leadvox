@@ -377,6 +377,18 @@
       <form class="card" id="esForm" hidden>
         <h3 id="esFormTit">Cadastrar veículo</h3>
         <input type="hidden" id="esId">
+        <!-- produtos e serviços (segmentos que não são de veículos) -->
+        <div id="esCamposProd" hidden>
+          <label for="esNome">Nome</label><input id="esNome" maxlength="160" placeholder="Ex.: Vassoura de pelo 40 cm">
+          <div class="tres">
+            <div><label for="esGrupo">Grupo</label><input id="esGrupo" maxlength="80" list="esGrupos" placeholder="Ex.: Vassouras"><datalist id="esGrupos"></datalist></div>
+            <div><label for="esUnidade">Unidade</label><select id="esUnidade"></select></div>
+            <div><label for="esPrecoP">Preço <small>(vazio = sob consulta)</small></label><input id="esPrecoP" maxlength="14" inputmode="decimal" placeholder="12,90"></div>
+          </div>
+          <label for="esDescricao">Descrição <small>(a IA usa para explicar)</small></label>
+          <textarea id="esDescricao" maxlength="1500" style="min-height:60px"></textarea>
+        </div>
+        <div id="esCamposVeic">
         <div class="tres">
           <div><label for="esMarca">Marca</label><input id="esMarca" maxlength="40" placeholder="Hyundai"></div>
           <div><label for="esModelo">Modelo</label><input id="esModelo" maxlength="80" placeholder="HB20"></div>
@@ -394,8 +406,10 @@
         </div>
         <div class="duas">
           <div><label for="esPreco">Preço <small>(vazio = sob consulta)</small></label><input id="esPreco" maxlength="14" inputmode="decimal" placeholder="62.900"></div>
-          <div><label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select></div>
+          <div></div>
         </div>
+        </div>
+        <label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select>
         <label>Fotos <small>(até 10; a primeira é a capa)</small></label>
         <div class="fotos-grade" id="esGrade"></div>
         <label class="bt sm foto-bt" for="esArquivo">📷 Tirar ou escolher fotos</label>
@@ -403,9 +417,9 @@
         <span class="muted" id="esEnviando" style="font-size:13px;margin-left:8px"></span>
         <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Colar endereço de foto (https)</summary>
           <textarea id="esFotos" style="min-height:60px;margin-top:6px" placeholder="https://... (um por linha)"></textarea></details>
-        <label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
-        <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea>
-        <div class="form-bts"><button class="principal" type="submit">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>
+        <div id="esObsBox"><label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
+        <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea></div>
+        <div class="form-bts"><button class="principal" type="submit" id="esSalvar">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>
       </form>
       <div class="card" id="esLista"></div>
     </section>

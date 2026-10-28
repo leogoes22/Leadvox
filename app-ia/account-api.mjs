@@ -2,7 +2,7 @@ import {randomBytes,createHash} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
-import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
+import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
@@ -303,7 +303,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     }
     try{
      if(body.acao==='salvar'){
-      const r=await rpc('lv_motor_item_salvar',{item:itemManual(body.item)});
+      // veículo (automotivo) ou produto / serviço (outros segmentos), conforme o formulário que o painel mostrou
+      const r=await rpc('lv_motor_item_salvar',{item:['produto','servico'].includes(body.item?.tipo)?itemProduto(body.item):itemManual(body.item)});
       if(r?.ok===false)throw {status:400,message:{nome:'Informe o modelo do veículo.',limite_itens:'O estoque chegou ao limite de 2.000 veículos.'}[r.erro]||'Não deu para salvar o veículo.'};
      }else if(body.acao==='excluir'){
       if(!Number.isInteger(body.id)||body.id<1)throw {status:400,message:'Veículo inválido.'};

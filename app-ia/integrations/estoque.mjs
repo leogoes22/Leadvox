@@ -61,6 +61,19 @@ export async function buscarEstoque({source,settings={},secret,fetchImpl=fetch})
  throw new ConnectionError('Esta empresa usa o Estoque LeadVox: os veículos são cadastrados aqui no painel.');
 }
 
+// Produto ou serviço cadastrado à mão no painel (segmentos que não são de veículos): nome, grupo, preço, unidade e fotos.
+export const UNIDADES=['un.','kg','g','L','m','m²','cx.','pct.','par','kit','serviço','hora','sessão','consulta','diária','pacote','mês','ano'];
+export function itemProduto(b){
+ if(!b||typeof b!=='object')throw new ConnectionError('Item inválido.');
+ const nome=txt(b.nome,160);
+ if(!nome)throw new ConnectionError('Informe o nome do item.');
+ const preco=num(b.preco),id=Number(b.id),tipo=b.tipo==='servico'?'servico':'produto';
+ return {codigo:'',id:Number.isInteger(id)&&id>0?id:undefined,nome,categoria:txt(b.categoria,80),descricao:txt(b.descricao,1500),preco:preco>0?preco:null,
+  atributos:{tipo,unidade:UNIDADES.includes(b.unidade)?b.unidade:(tipo==='servico'?'serviço':'un.')},
+  fotos:String(b.fotos??'').split(/[\s,]+/).map(urlFoto).filter(Boolean).slice(0,10),
+  status:['disponivel','indisponivel'].includes(b.status)?b.status:'disponivel'};
+}
+
 // Veículo cadastrado à mão no painel.
 export function itemManual(b){
  if(!b||typeof b!=='object')throw new ConnectionError('Veículo inválido.');

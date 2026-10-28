@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp} from '../server.mjs';
-import {deAutoCerto,deRevendaMais,itemManual,buscarEstoque} from '../integrations/estoque.mjs';
+import {deAutoCerto,deRevendaMais,itemManual,itemProduto,buscarEstoque} from '../integrations/estoque.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
 const org='22222222-2222-4222-8222-222222222222';
 
@@ -20,6 +20,13 @@ test('manual vehicles need a model and split the year',()=>{
  const i=itemManual({marca:'Fiat',modelo:'Argo',ano:'2019/2020',km:'30000',preco:'55.000',fotos:'https://a/1.jpg  http://inseguro/2.jpg'});
  assert.equal(i.nome,'Fiat Argo 2019/2020');assert.equal(i.preco,55000);assert.deepEqual(i.fotos,['https://a/1.jpg']);assert.equal(i.codigo,'');
  assert.throws(()=>itemManual({marca:'Fiat'}),/modelo/);
+});
+test('products and services need a name; unit comes from the list and photos must be https',()=>{
+ const p=itemProduto({nome:' Vassoura de pelo 40cm ',categoria:'Vassouras',preco:'12,90',unidade:'cx.',fotos:'https://a/1.jpg http://b/2.jpg',status:'xpto',senha:'x'});
+ assert.deepEqual(p,{codigo:'',id:undefined,nome:'Vassoura de pelo 40cm',categoria:'Vassouras',descricao:'',preco:12.9,atributos:{tipo:'produto',unidade:'cx.'},fotos:['https://a/1.jpg'],status:'disponivel'});
+ const s=itemProduto({nome:'Limpeza de pele',tipo:'servico',unidade:'<b>',preco:''});
+ assert.deepEqual({u:s.atributos.unidade,t:s.atributos.tipo,p:s.preco},{u:'serviço',t:'servico',p:null});
+ assert.throws(()=>itemProduto({nome:'  '}),/nome/);
 });
 test('AutoCerto stock is read with the saved login and unit',async()=>{
  const urls=[];const itens=await buscarEstoque({source:'autocerto',settings:{usuario:'api',unidade:'4425'},secret:'s3nha',fetchImpl:async(u,o)=>{urls.push(u);
