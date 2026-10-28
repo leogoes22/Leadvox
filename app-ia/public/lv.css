@@ -35,6 +35,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .ok-msg { color: var(--verde); font-size: 14px; margin-top: 10px; }
 .dica { background: var(--verde-fundo); border: 1px solid rgba(43,232,123,.25); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
 .alerta { background: rgba(255,200,97,.08); border: 1px solid rgba(255,200,97,.35); border-radius: var(--raio); padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+/* identidade da loja (convite em PDF) */
+.lj-logo { display: flex; gap: 14px; align-items: center; margin-top: 6px; }
+.lj-logo-img { width: 150px; height: 64px; flex: 0 0 150px; border-radius: var(--raio); background: #fff; display: grid; place-items: center; color: #6b7280; font-size: 12px; overflow: hidden; border: 1px solid var(--linha); }
+.lj-logo-img img { max-width: 140px; max-height: 56px; object-fit: contain; }
+.lj-cor { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.lj-cor input[type=color] { width: 48px; height: 36px; padding: 2px; border-radius: 8px; }
 /* aviso de conexão com a LeadVox no topo de todas as páginas (envio recusado ou eventos parados) */
 .saude { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 14px; border-radius: var(--raio); font-size: 14px;
   background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.45); }

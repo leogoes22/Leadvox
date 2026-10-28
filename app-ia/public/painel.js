@@ -225,6 +225,7 @@ function abrirApp(pg) {
   $('cfNome').value = cfg.displayName || ''; $('cfNome').placeholder = empresa.name;
   $('cfNicho').value = cfg.niche || 'outro'; $('cfIa').value = cfg.aiName || ''; $('cfZap').value = cfg.whatsapp || '';
   $('cfCobr').checked = !!cfg.billingEnabled;
+  preencherLoja();
   $('emEmail').textContent = 'Você entrou como ' + conta.user.email + '.';
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
@@ -1412,6 +1413,70 @@ $('formConfig').onsubmit = async e => {
     await salvarCfg({ displayName: $('cfNome').value.trim(), niche: $('cfNicho').value, aiName: $('cfIa').value.trim(), whatsapp: zap, billingEnabled: $('cfCobr').checked });
     abrirApp('conta'); toast('Salvo.');
   } catch (err) { toast(err.message, true); }
+};
+
+/* ═══════════ IDENTIDADE DA LOJA (vai no convite em PDF do plugin) ═══════════ */
+let ljLogo = '';
+const LJ = { nome: 'ljNome', razao: 'ljRazao', cnpj: 'ljCnpj', telefone: 'ljTel', whatsapp: 'ljZap', email: 'ljEmail', endereco: 'ljEnd', site: 'ljSite', instagram: 'ljInsta' };
+function desenharLogo() {
+  $('ljLogoImg').innerHTML = ljLogo ? `<img src="${esc(ljLogo)}" alt="Logo da loja">` : 'Sem logo';
+  $('ljTiraLogo').hidden = !ljLogo;
+}
+function preencherLoja() {
+  const l = cfg.loja || {};
+  for (const [k, id] of Object.entries(LJ)) $(id).value = l[k] || '';
+  if (!l.nome) $('ljNome').value = cfg.displayName || empresa.name || '';
+  if (!l.whatsapp && cfg.whatsapp) $('ljZap').value = zapFmt(cfg.whatsapp);
+  $('ljCor').value = l.cor || '#16a34a'; $('ljCorTxt').textContent = $('ljCor').value;
+  ljLogo = l.logo || ''; desenharLogo();
+}
+$('ljCor').oninput = () => { $('ljCorTxt').textContent = $('ljCor').value; };
+// a logo vira JPEG com fundo branco (o PDF usa JPEG) e vai para a pasta pública da conta, como as fotos do estoque
+async function logoEmJpeg(src) {
+  const img = new Image(); img.decoding = 'async';
+  await new Promise((ok, falha) => { img.onload = ok; img.onerror = () => falha(Error('Não consegui abrir essa imagem. Tente uma em PNG ou JPG.')); img.src = src; });
+  const k = Math.min(1, 800 / img.naturalWidth, 320 / img.naturalHeight), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+async function guardarLogo(src) {
+  const r = await api('estoque-foto', { organization: empresa.id, imagem: await logoEmJpeg(src) });
+  ljLogo = r.url; desenharLogo();
+}
+$('ljArquivo').onchange = async e => {
+  const arq = e.target.files[0]; e.target.value = ''; if (!arq) return;
+  const url = URL.createObjectURL(arq);
+  try { $('ljLogoImg').textContent = 'Enviando…'; await guardarLogo(url); toast('Logo enviada. Salve a identidade para usar no PDF.'); }
+  catch (err) { desenharLogo(); toast(err.message, true); }
+  finally { URL.revokeObjectURL(url); }
+};
+$('ljTiraLogo').onclick = () => { ljLogo = ''; desenharLogo(); };
+$('ljPuxar').onclick = async () => {
+  const site = $('ljSite').value.trim(); if (!site) { toast('Escreva o endereço do site.', true); $('ljSite').focus(); return; }
+  const bt = $('ljPuxar'); bt.disabled = true; $('ljPuxarInfo').textContent = 'Lendo o site…';
+  try {
+    const r = await api('loja-site?url=' + encodeURIComponent(site));
+    const achou = [];
+    for (const [k, id] of Object.entries(LJ)) if (r[k]) { $(id).value = r[k]; if (k !== 'site') achou.push(k); }
+    if (r.cor) { $('ljCor').value = r.cor; $('ljCorTxt').textContent = r.cor; achou.push('cor'); }
+    if (r.logo) {
+      $('ljPuxarInfo').textContent = 'Baixando a logo…';
+      try { const l = await api('loja-site-logo?url=' + encodeURIComponent(r.logo)); await guardarLogo(l.imagem); achou.push('logo'); }
+      catch { /* sem logo do site: o dono envia à mão */ }
+    }
+    const nomes = { nome: 'nome', cnpj: 'CNPJ', telefone: 'telefone', whatsapp: 'WhatsApp', email: 'e-mail', endereco: 'endereço', instagram: 'Instagram', cor: 'cor', logo: 'logo', razao: 'razão social' };
+    $('ljPuxarInfo').textContent = achou.length ? 'Achei: ' + achou.map(k => nomes[k]).join(', ') + '. Confira e salve.' : 'Não achei os dados nesse site. Preencha à mão.';
+  } catch (err) { $('ljPuxarInfo').textContent = err.message; }
+  finally { bt.disabled = false; }
+};
+$('formLoja').onsubmit = async e => {
+  e.preventDefault();
+  const loja = Object.fromEntries(Object.entries(LJ).map(([k, id]) => [k, $(id).value.trim()]));
+  loja.cor = $('ljCor').value; loja.logo = ljLogo;
+  if (loja.cnpj && loja.cnpj.replace(/\D/g, '').length !== 14) return toast('Confira o CNPJ: são 14 números.', true);
+  try { await salvarCfg({ loja }); toast('Identidade da loja salva. Já vai no próximo convite em PDF.'); }
+  catch (err) { toast(err.message, true); }
 };
 $('formSenha').onsubmit = async e => {
   e.preventDefault();

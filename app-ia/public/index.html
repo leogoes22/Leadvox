@@ -541,6 +541,35 @@
         <label class="check-lin"><input type="checkbox" id="cfCobr"> Usar Cobranças para cobrar meus clientes</label>
         <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
       </form>
+      <form class="card" id="formLoja">
+        <h2>Identidade da loja</h2>
+        <p class="muted" style="font-size:14px">Vai no convite em PDF que o vendedor manda pelo plugin: a sua logo, o nome e os contatos da loja, não os da LeadVox.</p>
+        <label for="ljSite">Site da loja</label>
+        <div class="ev-url"><input id="ljSite" maxlength="120" placeholder="www.sualoja.com.br"><button type="button" class="sm" id="ljPuxar">Puxar do site</button></div>
+        <p class="muted" id="ljPuxarInfo" style="font-size:12.5px;margin-top:6px">Lemos a página e preenchemos o que der. Confira antes de salvar.</p>
+        <label>Logo</label>
+        <div class="lj-logo"><div class="lj-logo-img" id="ljLogoImg" aria-live="polite">Sem logo</div>
+          <div><label class="bt sm" for="ljArquivo" style="margin:0">Enviar logo</label><input id="ljArquivo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <button type="button" class="sm leve" id="ljTiraLogo" hidden>Tirar</button>
+            <p class="muted" style="font-size:12px;margin-top:6px">PNG ou JPG. Fica com fundo branco no PDF.</p></div></div>
+        <div class="duas">
+          <div><label for="ljNome">Nome da loja</label><input id="ljNome" maxlength="80"></div>
+          <div><label for="ljCnpj">CNPJ</label><input id="ljCnpj" maxlength="20" inputmode="numeric" placeholder="00.000.000/0000-00"></div>
+        </div>
+        <label for="ljRazao">Razão social <small>(opcional)</small></label><input id="ljRazao" maxlength="120">
+        <div class="duas">
+          <div><label for="ljTel">Telefone</label><input id="ljTel" maxlength="20" inputmode="tel"></div>
+          <div><label for="ljZap">WhatsApp</label><input id="ljZap" maxlength="20" inputmode="tel"></div>
+        </div>
+        <div class="duas">
+          <div><label for="ljEmail">E-mail</label><input id="ljEmail" maxlength="120" type="email"></div>
+          <div><label for="ljInsta">Instagram</label><input id="ljInsta" maxlength="40" placeholder="@sualoja"></div>
+        </div>
+        <label for="ljEnd">Endereço</label><input id="ljEnd" maxlength="160">
+        <label for="ljCor">Cor da loja <small>(faixas e destaques do PDF)</small></label>
+        <div class="lj-cor"><input id="ljCor" type="color" value="#16a34a"><span class="muted" id="ljCorTxt">#16a34a</span></div>
+        <button class="principal" type="submit" style="margin-top:14px">Salvar identidade</button>
+      </form>
       <form class="card" id="formSenha">
         <h2>Trocar senha</h2>
         <label for="nsSenha">Nova senha <small>(12 a 128 caracteres)</small></label><input id="nsSenha" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>

@@ -3,6 +3,7 @@ import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual} from './integrations/estoque.mjs';
+import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Webhook de eventos da LeadVox → Sentinela do Motor IA. Enquanto o motor novo roda na cópia de teste, o caminho é
@@ -30,6 +31,18 @@ export function jwtPayload(token){
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
 const AI_ROLES=['SDR','Atendimento','Recepção','Suporte','Pós-venda','Cobrança'];
 const AI_FLAGS=['aiActive','capAudioIn','capAudioOut','capImage','capDoc','capSheet'];
+// Identidade da loja no convite em PDF: textos curtos, logo só da pasta pública do painel (lv-estoque), cor #rrggbb.
+export function cleanLoja(v){
+ if(!v||typeof v!=='object'||Array.isArray(v))throw Error('settings');
+ const t=(x,n)=>typeof x==='string'?x.replace(/[\u0000-\u001f<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,n):'';
+ const logo=t(v.logo,400);
+ if(logo&&!logo.startsWith(URL_BASE+'/storage/v1/object/public/lv-estoque/'))throw Error('settings');
+ const cnpj=t(v.cnpj,20);
+ if(cnpj&&cnpj.replace(/\D/g,'').length!==14)throw Error('settings');
+ const cor=t(v.cor,7);
+ return {nome:t(v.nome,80),razao:t(v.razao,120),cnpj,telefone:t(v.telefone,20),whatsapp:t(v.whatsapp,20),email:t(v.email,120),
+  endereco:t(v.endereco,160),site:t(v.site,120),instagram:t(v.instagram,40),cor:/^#[0-9a-f]{6}$/i.test(cor)?cor.toLowerCase():'',logo};
+}
 // Explicit allowlist; CRM tokens and passwords are never accepted as workspace settings.
 export function cleanSettings(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('settings');
@@ -44,6 +57,7 @@ export function cleanSettings(input){
   else if(k==='whatsapp'&&typeof v==='string'&&/^\d{10,13}$/.test(v.replace(/\D/g,'')))out[k]=v.replace(/\D/g,'');
   else if(k==='whatsapp'&&v==='')out[k]='';
   else if((k==='billingEnabled'||k==='onboarded')&&typeof v==='boolean')out[k]=v;
+  else if(k==='loja')out[k]=cleanLoja(v);
   else throw Error('settings');
  }
  return out;
@@ -394,6 +408,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     await upstream('/rest/v1/lv_organizations',{method:'POST',token:authToken,body:{name:body.name.trim()},prefer:'return=minimal'});
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&owner_id=eq.'+user.id,{token:authToken});
     send(res,201,{organizations});
+   }else if((action==='loja-site'||action==='loja-site-logo')&&req.method==='GET'){
+    // "Puxar do site": sugere a identidade da loja (o dono confere e salva). Leitura protegida contra endereços internos.
+    const url=String(new URL(req.url,'https://localhost').searchParams.get('url')||'').trim().slice(0,300);
+    if(!url)throw {status:400,message:'Informe o endereço do site da loja.'};
+    if(action==='loja-site')send(res,200,await lerSiteLoja(url,{fetchImpl}));
+    else send(res,200,{imagem:await baixarLogoSite(url,{fetchImpl})});
    }else if(action==='workspace'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
