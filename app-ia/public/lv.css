@@ -58,10 +58,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05); }
 /* entrada: rede neural no fundo (canvas) e o cubo da logo girando em 3D */
 .porta-rede { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-.porta-hero { position: relative; z-index: 1; display: grid; justify-items: center; gap: 26px; text-align: center; }
-.porta-frase { margin: 0; max-width: 30ch; font: 600 clamp(17px, 2vw, 22px)/1.35 Syne, sans-serif; color: var(--texto); text-wrap: balance; }
-.porta-frase b { color: var(--verde); font-weight: 700; }
-.cena { --lado: 150px; width: var(--lado); height: var(--lado); perspective: 900px; margin-block: calc(var(--lado) * 0.3); filter: drop-shadow(0 18px 40px rgba(59,130,246,.35)); }
+/* o cubo fica atrás do cartão de login, grande e girando, com um pedaço aparecendo em cima e do lado */
+.porta-hero { position: absolute; z-index: 1; left: 50%; top: 50%; transform: translate(-22%, -78%); pointer-events: none; opacity: .62; }
+.cena { --lado: clamp(220px, 34vw, 380px); width: var(--lado); height: var(--lado); perspective: 1200px; filter: drop-shadow(0 30px 60px rgba(59,130,246,.35)); }
 .cubo3d { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(-24deg) rotateY(38deg); animation: lv-girar 16s linear infinite; }
 .cubo3d .face { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; backface-visibility: visible; }
 .cubo3d .face span { border-radius: 5px; background: linear-gradient(145deg, #5b9bff, #1d4ed8 70%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), inset 0 -6px 10px rgba(0,0,30,.35); }
@@ -74,16 +73,11 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .cubo3d .f6 { transform: rotateX(-90deg) translateZ(calc(var(--lado) / 2)); }
 @keyframes lv-girar { from { transform: rotateX(-24deg) rotateY(38deg); } to { transform: rotateX(-24deg) rotateY(398deg); } }
 @keyframes lv-pulso { 50% { box-shadow: 0 0 30px rgba(43,232,123,.95), inset 0 0 0 1px rgba(255,255,255,.4); } }
-@media (min-width: 900px) {
-  .porta { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); column-gap: clamp(32px, 6vw, 96px); padding-inline: max(32px, 6vw); }
-  .porta-hero { justify-self: center; }
-  .porta .card { justify-self: start; }
-  .cena { --lado: 190px; }
-}
-@media (max-width: 899px) {
-  .porta { align-content: center; gap: 22px; }
-  .porta-frase { font-size: 16px; }
-  .cena { --lado: 96px; }
+/* no celular o cartão ocupa a largura: o cubo fica no canto de cima, e o cartão desce um pouco para ele aparecer */
+@media (max-width: 599px) {
+  .porta { padding-top: 120px; align-content: start; }
+  .porta-hero { left: auto; right: -70px; top: -40px; transform: none; opacity: .55; }
+  .cena { --lado: 220px; }
 }
 @media (prefers-reduced-motion: reduce) { .cubo3d, .cubo3d .face span.centro { animation: none; } }
 .marca-lv { font: 700 15px Syne, sans-serif; color: var(--suave); margin-bottom: 14px; text-align: center; }
