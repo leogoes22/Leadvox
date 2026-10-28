@@ -67,10 +67,12 @@ const corpo = {
   value: e.total || (existente && Number(existente.value)) || 0,
   expectedCloseDate: fim.toISOString().slice(0, 10),
   pipelineStepId: Number(etapa.id),
+  contactId: Number(e.contactId),
   userId: String(admin.id)
 };
-// a API aceita responsibleId como texto ao criar, mas só número ao atualizar (testado no SDR Motor, out/2026)
-if (existente) corpo.responsibleId = Number(responsavel); else { corpo.contactId = Number(e.contactId); corpo.responsibleId = String(responsavel); }
+// a API aceita responsibleId como texto ao criar, mas só número ao atualizar (testado no SDR Motor, out/2026);
+// ao atualizar ela também exige o contactId (sem ele: ERR_OPPORTUNITY_INVALID_CONTACT, testado em 28/10/2026)
+corpo.responsibleId = existente ? Number(responsavel) : String(responsavel);
 return [{ json: { acao: existente ? 'atualizar' : 'criar', id: existente ? existente.id : null, etapa: etapa.name, corpo } }];`;
 
 export const resultadoCode = `// Resposta para o plugin: a frase que o vendedor vê depois de enviar.
