@@ -12,11 +12,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/lv.css">
 <script type="module" src="/painel.js"></script>
+<script type="module" src="/porta-fundo.js"></script>
 </head>
 <body>
 
 <!-- ═══════════ ENTRADA ═══════════ -->
 <div id="telaPorta" class="porta">
+  <canvas id="portaRede" class="porta-rede" aria-hidden="true"></canvas>
+  <div class="porta-hero" aria-hidden="true">
+    <div class="cena"><div class="cubo3d" id="portaCubo"></div></div>
+    <p class="porta-frase">Inteligência artificial que <b>atende, qualifica e vende</b> pelo WhatsApp da sua empresa.</p>
+  </div>
   <div class="card" id="cardLogin">
     <div class="marca-lv"><img src="/logo-leadvox.png" alt="LeadVox" width="220" height="67"></div>
     <h1 id="pTitulo">Sua IA na LeadVox</h1>
