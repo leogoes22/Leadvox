@@ -1,0 +1,232 @@
+{
+ "name": "SETUP · Migrar motor do painel (rodar 1 vez)",
+ "nodes": [
+  {
+   "name": "Rodar",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    0
+   ],
+   "parameters": {}
+  },
+  {
+   "name": "Fluxos do motor",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    0
+   ],
+   "parameters": {
+    "jsCode": "// os 9 fluxos do motor do painel no n8n antigo\nreturn [\"I7bT8hPrqjfwBlYO\",\"PPo7tBUmQxFmusfv\",\"GszJgfDP7mbCAcC1\",\"DfvuQD9s0ZqPX0t5\",\"KgBkOWFYaZlhMkcz\",\"LEwOEZhEu2MQiXJy\",\"CzhEDTILkZWEsJxg\",\"7E2XVUEF9znokQOU\",\"kkz1l8kKdtb3q1vR\"].map(id => ({ json: { id } }));"
+   }
+  },
+  {
+   "name": "Ler do antigo",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    440,
+    0
+   ],
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "vyE7WVaEIkwwwMeN",
+     "name": "n8n API (antigo - só leitura)"
+    }
+   },
+   "parameters": {
+    "method": "GET",
+    "url": "=https://apin8n.lv-mktdeconversa.com/api/v1/workflows/{{ $json.id }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "options": {
+     "timeout": 60000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Converter",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    0
+   ],
+   "parameters": {
+    "jsCode": "// Migração do motor do painel: n8n antigo (apin8n.lv-mktdeconversa.com) → n8n novo (n8n.leadvox.com.br).\n// Este arquivo é o código do nó \"Converter\" do fluxo \"SETUP · Migrar motor do painel\" no n8n novo, que lê os fluxos\n// do antigo pela API (chave só de leitura) e cria os convertidos no novo, DESLIGADOS. O segredo nunca sai do n8n.\n// O que muda em cada fluxo:\n//  • credenciais do antigo → as do novo (Redis da VPS, Supabase do motor, OpenAI da LeadVox);\n//  • chamadas entre fluxos → https://n8n.leadvox.com.br/webhook/;\n//  • sem SEGREDO: o endereço (k, t) e a chave do plugin são conferidos no banco (iag_eventos_confere,\n//    iag_plugin_confere), e conta nova ganha chaves aleatórias (lv_motor_tokens_novos, em motor_novo.sql).\nconst SUPA = 'https://dcucemuewipfnneqpgxk.supabase.co';\nconst BASE_ANTIGA = 'https://webhook.lv-mktdeconversa.com/webhook/', BASE_NOVA = 'https://n8n.leadvox.com.br/webhook/';\nconst CRED = {\n  redis: { id: 'U4DKWxV6p86WQJEq', name: 'Redis LeadVox (VPS)' },\n  supabaseApi: { id: 'kSv5bMKquqHLDxI9', name: 'Supabase Agentes LeadVox' },\n  openAiApi: { id: 'rkzVVFfaDcuB2JsN', name: 'OpenAI LeadVox' }\n};\nconst SUPA_CRED = { supabaseApi: CRED.supabaseApi };\n\nfunction trocar(texto, de, para, onde) {\n  if (!texto.includes(de)) throw new Error('não achei o trecho para trocar em ' + onde + ': ' + de.slice(0, 60));\n  return texto.split(de).join(para);\n}\nfunction no(w, nome) {\n  const n = w.nodes.find((x) => x.name === nome);\n  if (!n) throw new Error('fluxo ' + w.name + ' sem o nó ' + nome);\n  return n;\n}\n// tira a linha \"const SEGREDO = '...'\" (a que tem o valor) e põe outra no lugar\nfunction semSegredo(codigo, novaLinha, onde) {\n  const re = /^const SEGREDO\\s*=\\s*'[^'\\n]*';[^\\n]*$/m;\n  if (!re.test(codigo)) throw new Error('não achei a linha do SEGREDO em ' + onde);\n  return codigo.replace(re, novaLinha);\n}\n// nó HTTP que pergunta ao banco se a chave confere (devolve true/false)\nfunction confere(nome, pos, funcao, contaExpr, tokenExpr) {\n  return { id: 'cf-' + nome.toLowerCase().replace(/[^a-z]/g, ''), name: nome, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: pos,\n    parameters: { method: 'POST', url: SUPA + '/rest/v1/rpc/' + funcao, authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',\n      sendBody: true, specifyBody: 'json', jsonBody: '={{ JSON.stringify({ p_conta: String(' + contaExpr + ' || \\'\\'), p_token: String(' + tokenExpr + ' || \\'\\') }) }}',\n      options: { timeout: 10000, response: { response: { neverError: true } } } },\n    credentials: SUPA_CRED, onError: 'continueRegularOutput', alwaysOutputData: true };\n}\nconst LER_CONFERE = (nome) => `const _confere = (() => { try { const j = $('${nome}').first().json; return j === true || (!!j && typeof j === 'object' && (j.data === true || Object.values(j).includes(true))); } catch (e) { return false; } })();`;\n// põe o nó novo entre \"antes\" e o que vinha depois dele\nfunction inserirDepois(w, antes, novo) {\n  const saida = (w.connections[antes] && w.connections[antes].main) || [[]];\n  w.connections[novo.name] = { main: saida };\n  w.connections[antes] = { main: [[{ node: novo.name, type: 'main', index: 0 }]] };\n  w.nodes.push(novo);\n}\n\nconst PATCH = {\n  // Sentinela: a LeadVox chama ?k=conta&t=chave dos eventos\n  I7bT8hPrqjfwBlYO(w) {\n    const wh = no(w, 'Webhook Sentinela'), ler = no(w, 'Ler Evento');\n    inserirDepois(w, 'Webhook Sentinela', confere('Confere Endereço', [wh.position[0] + 110, wh.position[1] + 160], 'iag_eventos_confere', '($json.query || {}).k', '($json.query || {}).t'));\n    let c = ler.parameters.jsCode;\n    c = semSegredo(c, '// n8n novo: sem segredo aqui; o endereço (k, t) é conferido no banco pelo nó \"Confere Endereço\".\\n' + LER_CONFERE('Confere Endereço'), 'Ler Evento');\n    c = trocar(c, 'const wh = $input.first().json;', \"const wh = $('Webhook Sentinela').first().json;\", 'Ler Evento');\n    c = trocar(c, \"String((wh.query || {}).t || '') === tokenConta(SEGREDO, conta)\", '_confere', 'Ler Evento');\n    c = trocar(c, \"(tokenOk ? tokenConta(SEGREDO, conta) : '')\", \"(tokenOk ? encodeURIComponent(String((wh.query || {}).t || '')) : '')\", 'Ler Evento');\n    ler.parameters.jsCode = c;\n  },\n  // Atendimento: chamado pela Sentinela e pela passagem entre agentes, com ?k=&t=\n  PPo7tBUmQxFmusfv(w) { entradaMotor(w); },\n  KgBkOWFYaZlhMkcz(w) { entradaMotor(w); },\n  // Plugin do Vendedor: a chave do plugin vem no corpo (k, t)\n  GszJgfDP7mbCAcC1(w) {\n    const pl = no(w, 'Plugin'), val = no(w, 'Validar');\n    inserirDepois(w, 'Plugin', confere('Confere Plugin', [pl.position[0] + 110, pl.position[1] + 160], 'iag_plugin_confere', '($json.body || {}).k', '($json.body || {}).t'));\n    let c = val.parameters.jsCode;\n    c = semSegredo(c, '// n8n novo: sem segredo aqui; a chave do plugin é conferida no banco pelo nó \"Confere Plugin\".\\n' + LER_CONFERE('Confere Plugin'), 'Validar');\n    c = trocar(c, 'const b = ($input.first().json || {}).body || {};', \"const b = ($('Plugin').first().json || {}).body || {};\", 'Validar');\n    c = trocar(c, \"hmac(SEGREDO, 'plugin|' + conta).slice(0, 24) !== tok\", '!_confere', 'Validar');\n    val.parameters.jsCode = c;\n  },\n  // Endereço e eventos: as chaves das contas novas nascem no banco; aqui só a hora do último evento e do último envio\n  DfvuQD9s0ZqPX0t5(w) {\n    const rd = no(w, 'Redis Saúde Envios'), tk = no(w, 'Token e Último Evento');\n    inserirDepois(w, 'Redis Saúde Envios', { id: 'cf-tokensnovos', name: 'Chaves das Contas Novas', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2,\n      position: [rd.position[0] + 110, rd.position[1] + 160], parameters: { method: 'POST', url: SUPA + '/rest/v1/rpc/lv_motor_tokens_novos',\n        authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi', sendBody: true, specifyBody: 'json', jsonBody: '{}',\n        options: { timeout: 15000, response: { response: { neverError: true } } } }, credentials: SUPA_CRED, onError: 'continueRegularOutput', alwaysOutputData: true });\n    let c = tk.parameters.jsCode;\n    c = semSegredo(c, '// n8n novo: sem segredo aqui; as chaves das contas novas são criadas no banco (nó \"Chaves das Contas Novas\").', 'Token e Último Evento');\n    c = trocar(c, '  if (!c.tem_token) l.token = tokenConta(SEGREDO, c.conta);\\n', '', 'Token e Último Evento');\n    c = trocar(c, \"  l.tokenPlugin = hmac(SEGREDO, 'plugin|' + c.conta).slice(0, 24);\\n\", '', 'Token e Último Evento');\n    c = trocar(c, '.filter(l => l.token || l.ultimo || l.envio);', '.filter(l => l.ultimo || l.envio);', 'Token e Último Evento');\n    tk.parameters.jsCode = c;\n  }\n};\nfunction entradaMotor(w) {\n  const rg = no(w, 'Redis Get Teste'), ent = no(w, 'Entrada');\n  inserirDepois(w, 'Redis Get Teste', confere('Confere Endereço', [rg.position[0] + 110, rg.position[1] + 160], 'iag_eventos_confere',\n    \"($('Webhook Motor').first().json.query || {}).k || ((typeof $('Webhook Motor').first().json.body === 'object' && $('Webhook Motor').first().json.body) || {}).k\",\n    \"($('Webhook Motor').first().json.query || {}).t || ((typeof $('Webhook Motor').first().json.body === 'object' && $('Webhook Motor').first().json.body) || {}).t\"));\n  let c = ent.parameters.jsCode;\n  c = semSegredo(c, [\n    '// n8n novo: sem segredo escrito aqui. O endereço (k, t) é conferido no banco pelo nó \"Confere Endereço\",',\n    '// e o próprio t, já conferido, assina a passagem entre agentes (Fila de Envio usa o mesmo SEGREDO).',\n    LER_CONFERE('Confere Endereço'),\n    \"const _tUrl = (() => { const w = $('Webhook Motor').first().json || {}; let bb = w.body || {}; if (typeof bb === 'string') { try { bb = JSON.parse(bb); } catch (e) { bb = {}; } } if (Array.isArray(bb)) bb = bb[0] || {}; return String((w.query || {}).t || bb.t || ''); })();\",\n    \"const SEGREDO = 'url|' + _tUrl;\"].join('\\n'), 'Entrada');\n  c = trocar(c, 'const wh = { ...$(\\'Webhook Motor\\').first().json, ...$input.first().json };', \"const wh = { ...$('Webhook Motor').first().json, ...$('Redis Get Teste').first().json };\", 'Entrada');\n  c = trocar(c, 'const tokenUrl = tokenConta(SEGREDO, conta);', \"const tokenUrl = _confere && _tUrl ? _tUrl : '#invalido';\", 'Entrada');\n  ent.parameters.jsCode = c;\n}\n\nfunction converter(antigo) {\n  const w = JSON.parse(JSON.stringify({ name: antigo.name, nodes: antigo.nodes, connections: antigo.connections }));\n  const faltando = [];\n  for (const n of w.nodes) {\n    for (const tipo of Object.keys(n.credentials || {})) {\n      if (CRED[tipo]) n.credentials[tipo] = CRED[tipo]; else faltando.push(n.name + ' (' + tipo + ')');\n    }\n  }\n  if (faltando.length) throw new Error(w.name + ': credencial sem par no n8n novo: ' + faltando.join(', '));\n  if (PATCH[antigo.id]) PATCH[antigo.id](w);\n  let s = JSON.stringify(w.nodes).split(BASE_ANTIGA).join(BASE_NOVA);\n  w.nodes = JSON.parse(s);\n  // nada do segredo pode sobrar\n  for (const n of w.nodes) {\n    const t = JSON.stringify(n.parameters || {});\n    if (/const SEGREDO\\s*=\\s*'[^']{8,}'/.test(t)) throw new Error(w.name + ': o nó ' + n.name + ' ainda tem o SEGREDO');\n    if (/hmac\\(SEGREDO, *'plugin\\|'|tokenConta\\(SEGREDO, *(c\\.)?conta\\)/.test(t) && !/^Fila de Envio$/.test(n.name)) throw new Error(w.name + ': o nó ' + n.name + ' ainda calcula chave com o SEGREDO');\n  }\n  if (s.includes('lv-mktdeconversa.com')) throw new Error(w.name + ': ainda chama o n8n antigo');\n  w.settings = { executionOrder: 'v1', saveDataSuccessExecution: 'none', saveDataErrorExecution: 'all', saveManualExecutions: true, timezone: 'America/Sao_Paulo' };\n  return w;\n}\n\n\n// cada fluxo lido do antigo vira o corpo para criar no novo\nreturn $input.all().map((i, n) => { const r = i.json || {}, a = r.body || {}; if (r.statusCode !== 200 || !a.nodes) return { json: { ok: false, id: $('Fluxos do motor').all()[n].json.id, erro: 'não li do antigo: HTTP ' + r.statusCode } };\n  try { return { json: { ok: true, id: a.id, nome: a.name, fluxo: converter(a) } }; } catch (e) { return { json: { ok: false, id: a.id, nome: a.name, erro: e.message } }; } });"
+   }
+  },
+  {
+   "name": "Convertido?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    880,
+    0
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "ok",
+       "leftValue": "={{ $json.ok === true }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   }
+  },
+  {
+   "name": "Criar no novo",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1100,
+    -100
+   ],
+   "credentials": {
+    "n8nApi": {
+     "id": "MPWVb5hCkMz0JZS7",
+     "name": "n8n API (VPS)"
+    }
+   },
+   "parameters": {
+    "method": "POST",
+    "url": "https://n8n.leadvox.com.br/api/v1/workflows",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "n8nApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.fluxo) }}",
+    "options": {
+     "timeout": 60000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Resumo",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1320,
+    0
+   ],
+   "parameters": {
+    "jsCode": "// o que foi criado (id novo) e o que falhou\nconst conv = $('Converter').all().map(i => i.json);\nconst criados = (() => { try { return $('Criar no novo').all().map(i => i.json); } catch (e) { return []; } })();\nlet k = 0;\nreturn conv.map(c => { if (!c.ok) return { json: { antigo: c.id, nome: c.nome, ok: false, erro: c.erro } };\n  const r = criados[k++] || {}; const b = r.body || {};\n  return { json: { antigo: c.id, nome: c.nome, ok: r.statusCode === 200, novo: b.id || null, erro: r.statusCode === 200 ? '' : 'HTTP ' + r.statusCode + ' ' + JSON.stringify(b).slice(0, 300) } }; });"
+   }
+  }
+ ],
+ "connections": {
+  "Rodar": {
+   "main": [
+    [
+     {
+      "node": "Fluxos do motor",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fluxos do motor": {
+   "main": [
+    [
+     {
+      "node": "Ler do antigo",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Ler do antigo": {
+   "main": [
+    [
+     {
+      "node": "Converter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Converter": {
+   "main": [
+    [
+     {
+      "node": "Convertido?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Convertido?": {
+   "main": [
+    [
+     {
+      "node": "Criar no novo",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Resumo",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Criar no novo": {
+   "main": [
+    [
+     {
+      "node": "Resumo",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "saveManualExecutions": true,
+  "saveDataSuccessExecution": "none"
+ }
+}
