@@ -265,6 +265,13 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  const fotos=Array.from({length:15},(_,i)=>({body:i?'':'🚗 *Corolla*',mediaUrl:'https://autocerto.com/fotos/'+i+'.jpg',extra:'x'}));
  await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'enviar_carro',itemId:'38',modo:'fotos',itens:[{body:'oi',mediaUrl:'javascript:alert(1)'},...fotos]});
  assert.equal(envios[3].modo,'fotos');assert.equal(envios[3].itens.length,11);
+ // convite para test drive: números em formato brasileiro, listas e textos cortados, nada além do formulário
+ assert.equal((await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'proposta'})).status,400);
+ await post({k:'loja-teste-ab12cd34',t:'0123456789abcdef01234567',acao:'proposta',itemId:'38',forma:'financiado',entrada:'30.000,00',parcelas:'48',valorParcela:'1.890,50',
+  troca:{modelo:'Onix',ano:'2019',km:'60.000',valor:'45000',x:1},extras:['Tanque cheio','',...Array(20).fill('Brinde')],validadeDias:99,obs:'x'.repeat(900),pdfUrl:'https://outro.site/x.pdf'});
+ const pr=envios[4];
+ assert.deepEqual({e:pr.entrada,p:pr.parcelas,v:pr.valorParcela,t:pr.troca,x:pr.extras.length,d:pr.validadeDias,o:pr.obs.length,u:pr.pdfUrl,m:pr.modo},
+  {e:30000,p:48,v:1890.5,t:{modelo:'Onix',ano:'2019',km:60000,valor:45000},x:11,d:7,o:500,u:undefined,m:'enviar'});
  assert.deepEqual(envios[3].itens[0],{body:'oi',mediaUrl:''});assert.deepEqual(Object.keys(envios[3].itens[1]).sort(),['body','mediaUrl']);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });

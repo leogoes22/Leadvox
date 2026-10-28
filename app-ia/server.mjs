@@ -7,7 +7,19 @@ const root = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon'};
 // Plugin do Vendedor: abre dentro da LeadVox (iframe ao lado do atendimento); o resto do painel não abre em iframe nenhum.
 const PLUGIN_PAGINAS=new Set(['/vendedor','/vendedor.html','/vendedor.js']);
-const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro']);
+const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta']);
+// convite para test drive: só os campos do formulário, com tamanho e números conferidos
+function camposProposta(b,txt){
+ const n=(x,max)=>{const v=Number(String(x??'').replace(/\./g,'').replace(',','.'));return Number.isFinite(v)&&v>0?Math.min(Math.round(v*100)/100,max):0;};
+ const t=b.troca&&typeof b.troca==='object'?b.troca:{};
+ return {itemId:txt(b.itemId,12).replace(/\D/g,''),modo:b.modo==='previa'?'previa':'enviar',
+  forma:['avista','financiado','consorcio','cartao'].includes(b.forma)?b.forma:'',banco:txt(b.banco,60),
+  entrada:n(b.entrada,10000000),parcelas:Math.floor(n(b.parcelas,120)),valorParcela:n(b.valorParcela,1000000),
+  troca:{modelo:txt(t.modelo,80),ano:txt(t.ano,12),km:Math.floor(n(t.km,2000000)),valor:n(t.valor,10000000)},
+  extras:(Array.isArray(b.extras)?b.extras:[]).slice(0,12).map(x=>txt(x,80).trim()).filter(Boolean),
+  validadeDias:[3,7,15,30].includes(Number(b.validadeDias))?Number(b.validadeDias):7,
+  sugestao:txt(b.sugestao,80),obs:txt(b.obs,500),mensagem:txt(b.mensagem,1000)};
+}
 export function createApp(options={}) {
  const accountApi=createAccountApi(options),fetchImpl=options.fetchImpl||fetch;
  const pedidosPlugin=new Map(); // limite por IP: 30 pedidos por minuto
@@ -48,6 +60,11 @@ export function createApp(options={}) {
   if(b.acao==='agendar'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(txt(b.quando,20)))return responder(400,{ok:false,erro:'Escolha a data e a hora do follow-up.'});corpo.quando=b.quando;corpo.assunto=txt(b.assunto,300);}
   // estoque: busca no catálogo da loja; enviar_carro: ficha + até 10 fotos para o cliente do atendimento
   if(b.acao==='estoque')corpo.busca=txt(b.busca,60);
+  if(b.acao==='proposta'){
+   const p=camposProposta(b,txt);
+   if(!p.itemId)return responder(400,{ok:false,erro:'Escolha o veículo do convite.'});
+   Object.assign(corpo,p);
+  }
   // enviar_carro: as mensagens que o vendedor aprovou (texto editado + foto/vídeo); o n8n confere que a mídia é do próprio veículo
   if(b.acao==='enviar_carro'){
    if(!/^\d{1,12}$/.test(txt(b.itemId,12)))return responder(400,{ok:false,erro:'Escolha um veículo da lista.'});

@@ -26,7 +26,7 @@ window.addEventListener('message', ev => {
   if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
   let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
   const t = m && m.type === 'DEFAULT_DATA' && m.data ? lerTicket(m.data.ticket) : null;
-  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
+  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; prVeic = null; prMsgEditada = false; if (!$('abaProposta').hidden) desenharProposta(); $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
 });
 
 async function chamar(acao, extra) {
@@ -243,7 +243,8 @@ function detalhe(id) {
     lin('Combustível', v.combustivel) + lin('Categoria', v.categoria) + lin('Preço', v.preco ? brl(v.preco) : 'Sem preço no estoque') + lin('Código', codigo(v.codigo)) + '</div>';
   const ops = v.opcionais && v.opcionais.length ? `<div class="secao"><h3>Itens e opcionais</h3><div class="ops">${v.opcionais.map(o => `<span>${esc(o)}</span>`).join('')}</div></div>` : '';
   const obs = v.obs ? `<div class="secao"><h3>Observações</h3><p class="obs">${esc(v.obs)}</p></div>` : '';
-  abrirFolha(titulo(v), gal + video + ficha + ops + obs,
+  const convite = `<button type="button" class="btn" style="width:100%;margin-bottom:12px" data-convite="${esc(v.id)}">📄 Convite para ${testeDe(v)} em PDF</button>`;
+  abrirFolha(titulo(v), convite + gal + video + ficha + ops + obs,
     `<button type="button" class="btn" data-ficha-completa="${esc(v.id)}">${IC.ficha}Ficha completa</button>` +
     (v.galeria.length ? `<button type="button" class="btn principal" id="btnEnviarFotos" data-enviar-fotos>${IC.fotos}Enviar fotos</button>` : ''));
   contarSel();
@@ -331,6 +332,7 @@ document.addEventListener('click', e => {
   if (d('data-ficha')) { const v = achar(d('data-ficha')); return v && confirmar(v, 'capa'); }
   if (d('data-fotos')) return detalhe(d('data-fotos'));
   if (d('data-video')) { const v = achar(d('data-video')); return v && confirmar(v, 'video'); }
+  if (d('data-convite')) return abrirProposta(d('data-convite'));
   if (d('data-ficha-completa')) { const v = achar(d('data-ficha-completa')); return v && confirmar(v, 'completa'); }
   if (a.hasAttribute('data-foto')) return marcarFoto(Number(d('data-foto')));
   if (a.hasAttribute('data-todas')) { esAberto.sel = esAberto.v.galeria.slice(0, MAX_FOTOS).map((_, i) => i); document.querySelectorAll('#folha .foto').forEach(el => el.setAttribute('aria-pressed', String(Number(el.dataset.foto) < MAX_FOTOS))); return contarSel(); }
@@ -342,10 +344,98 @@ document.addEventListener('click', e => {
 $('fundo').onclick = fecharFolha;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharFolha(); });
 
+// ── aba Proposta: convite para test drive em PDF (identidade da loja + foto e ficha do veículo + condições do vendedor) ──
+const EXTRAS_PADRAO = ['Documentação inclusa', 'Transferência grátis', 'Tanque cheio', 'Revisão feita', 'Laudo cautelar aprovado', 'Garantia de 3 meses'];
+let prVeic = null, prForma = '', prExtras = new Set(), prExtrasLista = [...EXTRAS_PADRAO], prMsgEditada = false;
+const testeDe = v => v && v.tipo === 'moto' ? 'test ride' : 'test drive';
+function mensagemPadrao() {
+  const p = primeiroNome();
+  return `Oi${p === 'o cliente' ? '' : ', ' + p}! Preparei um convite especial para você conhecer ${prVeic ? 'o ' + titulo(prVeic) : 'o veículo'} de perto. Dá uma olhada nas condições no PDF e me diz o melhor dia para o seu ${testeDe(prVeic)} 😉`;
+}
+function listarParaProposta() {
+  const lista = $('prBuscaLista'); if (!lista) return;
+  if (!esItens) { lista.innerHTML = '<p class="muted" style="margin-top:8px">Carregando o estoque…</p>'; return; }
+  const termos = semAcento($('prBusca').value).split(/\s+/).filter(Boolean);
+  const l = esItens.filter(v => termos.every(t => semAcento([v.nome, v.marca, v.modelo, v.versao, codigo(v.codigo), v.ano, v.cor].join(' ')).includes(t))).slice(0, 6);
+  lista.innerHTML = l.map(v => `<button type="button" data-pr-veic="${esc(v.id)}">${v.capa ? `<img src="${esc(v.capa)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}<span><b>${esc(titulo(v))}</b>${esc([v.ano, v.preco ? brl(v.preco) : ''].filter(Boolean).join(' · '))}</span></button>`).join('')
+    || '<p class="muted" style="margin-top:8px">Nenhum veículo encontrado.</p>';
+  lista.querySelectorAll('[data-pr-veic]').forEach(b => b.onclick = () => escolherVeiculo(b.dataset.prVeic));
+}
+function desenharProposta() {
+  const el = $('prVeiculo');
+  if (!prVeic) {
+    $('prForm').hidden = true;
+    el.innerHTML = `<h3>Veículo</h3><p class="muted" style="font-size:13px;margin-top:4px">Escolha o veículo. A foto, a ficha técnica e o preço vêm do estoque.</p>
+      <div class="es-busca" style="margin-top:8px"><span aria-hidden="true">🔍</span><input id="prBusca" type="search" maxlength="60" placeholder="Buscar veículo" aria-label="Buscar veículo para o convite"></div>
+      <div class="pr-busca-lista" id="prBuscaLista"></div>`;
+    $('prBusca').oninput = listarParaProposta; listarParaProposta();
+    if (!esItens && ticket) carregarEstoque().then(listarParaProposta);
+    return;
+  }
+  const v = prVeic;
+  el.innerHTML = `<div class="pr-veic">${v.capa ? `<img src="${esc(v.capa)}" alt="" referrerpolicy="no-referrer">` : '<span class="sem" aria-hidden="true">🚗</span>'}
+    <div><b>${esc(titulo(v))}</b><small class="muted">${esc([v.ano, kmTxt(v.km), v.cor].filter(Boolean).join(' · '))}</small><div>${v.preco ? `<strong>${esc(brl(v.preco))}</strong>` : '<small class="muted">Sem preço no estoque</small>'}</div></div></div>
+    <div class="linha2"><button type="button" class="sm" id="prTrocarVeic">Trocar veículo</button><span class="muted" style="font-size:12px">Foto e ficha técnica completas vão no PDF.</span></div>
+    <div id="prPreviaBox"></div>`;
+  $('prTrocarVeic').onclick = () => { prVeic = null; desenharProposta(); };
+  $('prForm').hidden = false;
+  if (!prMsgEditada) $('prMensagem').value = mensagemPadrao();
+}
+function escolherVeiculo(id) { prVeic = achar(id); desenharProposta(); }
+function abrirProposta(id) {
+  fecharFolha();
+  document.querySelector('#pvAbas [data-aba="proposta"]').click();
+  escolherVeiculo(id);
+  scrollTo(0, 0);
+}
+function desenharExtras() {
+  $('prExtras').innerHTML = prExtrasLista.map((x, i) => `<button type="button" data-extra="${i}" aria-pressed="${prExtras.has(x)}">${esc(x)}</button>`).join('');
+  $('prExtras').querySelectorAll('[data-extra]').forEach(b => b.onclick = () => { const x = prExtrasLista[+b.dataset.extra]; prExtras.has(x) ? prExtras.delete(x) : prExtras.add(x); desenharExtras(); });
+}
+$('prExtraAdd').onclick = () => {
+  const x = $('prExtraNovo').value.trim(); if (!x) return;
+  if (!prExtrasLista.includes(x)) prExtrasLista.push(x);
+  prExtras.add(x); $('prExtraNovo').value = ''; desenharExtras();
+};
+$('prExtraNovo').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('prExtraAdd').click(); } };
+document.querySelectorAll('#prFormas [data-forma]').forEach(b => b.onclick = () => {
+  prForma = b.dataset.forma;
+  document.querySelectorAll('#prFormas [data-forma]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('prParcelado').hidden = !['financiado', 'consorcio', 'cartao'].includes(prForma);
+});
+$('prTemTroca').onchange = () => { $('prTroca').hidden = !$('prTemTroca').checked; };
+$('prMensagem').oninput = () => { prMsgEditada = true; };
+function dadosProposta(modo) {
+  const parcelado = ['financiado', 'consorcio', 'cartao'].includes(prForma), troca = $('prTemTroca').checked;
+  return { modo, itemId: prVeic.id, forma: prForma,
+    entrada: parcelado ? $('prEntrada').value : '', banco: parcelado ? $('prBanco').value.trim() : '',
+    parcelas: parcelado ? $('prParcelas').value : '', valorParcela: parcelado ? $('prValorParcela').value : '',
+    troca: troca ? { modelo: $('prTrocaModelo').value.trim(), ano: $('prTrocaAno').value.trim(), km: $('prTrocaKm').value, valor: $('prTrocaValor').value } : {},
+    extras: prExtrasLista.filter(x => prExtras.has(x)), validadeDias: Number($('prValidade').value),
+    sugestao: $('prSugestao').value.trim(), obs: $('prObs').value.trim(), mensagem: $('prMensagem').value.trim() };
+}
+async function gerarProposta(modo) {
+  if (ocupado || !prVeic) return;
+  if (!ticket) return toast('Abra um atendimento na LeadVox primeiro.', true);
+  if (modo === 'enviar' && !confirm(`Mandar o convite do ${titulo(prVeic)} para ${ticket.cliente || 'o cliente'}?`)) return;
+  const bt = $(modo === 'previa' ? 'prPrevia' : 'prEnviar'), antes = bt.textContent;
+  ocupado = true; bt.disabled = true; bt.textContent = modo === 'previa' ? 'Montando o PDF…' : 'Enviando o convite…';
+  try {
+    const j = await chamar('proposta', dadosProposta(modo));
+    $('prPreviaBox').innerHTML = j.pdfUrl ? `<p style="margin-top:8px"><a href="${esc(j.pdfUrl)}" target="_blank" rel="noopener">📄 Abrir o PDF${modo === 'previa' ? ' (prévia)' : ''}</a></p>` : '';
+    toast(modo === 'previa' ? 'Prévia pronta: toque em "Abrir o PDF".' : 'Convite enviado para ' + primeiroNome() + '. Ficou registrado em nota interna.');
+  } catch (err) { toast(err.message, true); }
+  finally { ocupado = false; bt.disabled = false; bt.textContent = antes; }
+}
+$('prPrevia').onclick = () => gerarProposta('previa');
+$('prForm').onsubmit = e => { e.preventDefault(); gerarProposta('enviar'); };
+desenharExtras();
+
 document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#pvAbas [data-aba]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   ['ia', 'estoque', 'proposta'].forEach(a => { $('aba' + a.charAt(0).toUpperCase() + a.slice(1)).hidden = a !== b.dataset.aba; });
   if (b.dataset.aba === 'estoque' && ticket) { cabecalhoEstoque(); if (!esItens) carregarEstoque(); }
+  if (b.dataset.aba === 'proposta') desenharProposta();
 });
 
 // início: sem a chave da loja não há o que fazer; fora da LeadVox, explica como abrir
