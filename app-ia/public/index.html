@@ -143,7 +143,7 @@
             <h3>Identidade do agente</h3>
             <label for="idNome">Nome do agente</label><input id="idNome" maxlength="40" placeholder="Carol">
             <label for="idDesc">Como ele se apresenta <small>(1 ou 2 frases)</small></label>
-            <textarea id="idDesc" maxlength="300" placeholder="Sou a Carol, da loja. Posso te ajudar a achar o carro certo e agendar sua visita."></textarea>
+            <textarea id="idDesc" maxlength="300" placeholder="Sou a Carol, da empresa. Posso tirar suas dúvidas e te ajudar no que precisar."></textarea>
             <label for="idTom">Jeito de falar</label>
             <select id="idTom"><option value="amigavel">Amigável · próximo e simpático, sem exagero</option><option value="profissional">Profissional · mais formal e direto</option><option value="descontraido">Descontraído · leve, com gírias moderadas</option></select>
             <div class="duas">
@@ -183,7 +183,7 @@
               <div id="cpFuBox">
                 <div id="cpToques"></div>
                 <div class="duas"><div><label for="cpJIni">Mandar a partir de</label><input type="time" id="cpJIni" value="09:00"></div><div><label for="cpJFim">Até</label><input type="time" id="cpJFim" value="20:00"></div></div>
-                <p class="dica">Deixe a mensagem em branco para a IA escrever com base na conversa (ex.: lembrando do carro que o cliente viu).</p>
+                <p class="dica">Deixe a mensagem em branco para a IA escrever com base na conversa (ex.: lembrando <span id="exLembra">o que o cliente pediu</span>).</p>
               </div>
             </div>
             <div class="card">
@@ -282,7 +282,7 @@
               <h3>Regras da IA</h3>
               <p class="muted">Cada regra é a situação e, logo depois, as ações (uma por linha fica mais fácil de ler, mas não é obrigatório). Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
               <div class="rg-caixa">
-                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer financiar: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
+                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer um orçamento: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
                 <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
               </div>
               <div id="rgUsadas" class="rg-usadas"></div>

@@ -76,6 +76,24 @@ const NICHOS = {
   viagens: { n: 'Viagens', ic: '✈️', d: 'Agência ou turismo', ia: 'apresenta os pacotes, tira dúvidas e passa o cliente para a equipe.' },
   outro: { n: 'Outro negócio', ic: '✨', d: 'Qualquer outro ramo', ia: 'atende seus clientes no WhatsApp com o seu catálogo e seus materiais.' }
 };
+// exemplos dos campos (o texto cinza de dentro) conforme o segmento da empresa
+const EXEMPLOS = {
+  automotivo: { seg: 'loja de veículos seminovos', apres: 'Posso te ajudar a achar o carro certo e agendar sua visita.', pub: 'quem procura o primeiro carro, empresas, pessoa física…', faq: 'Vocês aceitam carro na troca?', lembra: 'o carro que o cliente viu', regra: 'quer financiar' },
+  imoveis: { seg: 'imobiliária', apres: 'Posso te ajudar a achar o imóvel certo e agendar sua visita.', pub: 'quem procura o primeiro imóvel, famílias, investidores…', faq: 'Vocês ajudam com o financiamento?', lembra: 'o imóvel que o cliente viu', regra: 'quer agendar uma visita' },
+  saude: { seg: 'clínica de estética', apres: 'Posso tirar suas dúvidas e marcar sua consulta.', pub: 'pacientes particulares, convênios, quem busca estética…', faq: 'Vocês atendem convênio?', lembra: 'o tratamento que o cliente perguntou', regra: 'quer marcar uma consulta' },
+  advocacia: { seg: 'escritório de direito trabalhista', apres: 'Posso entender o seu caso e agendar o atendimento com o advogado.', pub: 'trabalhadores, empresas, aposentados…', faq: 'A primeira consulta é paga?', lembra: 'o caso que o cliente contou', regra: 'quer falar com o advogado' },
+  educacao: { seg: 'escola de idiomas', apres: 'Posso te apresentar os cursos e ajudar na sua matrícula.', pub: 'estudantes, adultos que trabalham, empresas…', faq: 'Tem aula experimental?', lembra: 'o curso que o cliente perguntou', regra: 'quer fazer a matrícula' },
+  varejo: { seg: 'loja de materiais de construção', apres: 'Posso te ajudar a escolher os produtos e fechar o seu pedido.', pub: 'construtoras, pedreiros, quem está reformando…', faq: 'Vocês entregam na minha cidade?', lembra: 'os produtos que o cliente pediu', regra: 'quer fechar o pedido' },
+  viagens: { seg: 'agência de turismo', apres: 'Posso te apresentar os pacotes e montar a sua viagem.', pub: 'famílias, casais, grupos, empresas…', faq: 'Dá para parcelar o pacote?', lembra: 'o destino que o cliente perguntou', regra: 'quer fechar o pacote' },
+  outro: { seg: 'fábrica de lajes e pré-moldados', apres: 'Posso tirar suas dúvidas e te ajudar com o seu orçamento.', pub: 'construtoras, revendas, pessoa física…', faq: 'Vocês entregam na minha cidade?', lembra: 'o que o cliente pediu', regra: 'quer um orçamento' }
+};
+const exemplo = () => EXEMPLOS[cfg.niche] || EXEMPLOS.outro;
+function aplicarExemplos() {
+  const ex = exemplo();
+  $('idDesc').placeholder = `Sou a ${cfg.aiName || 'Carol'}, da ${cfg.displayName || empresa?.name || 'empresa'}. ${ex.apres}`;
+  $('exLembra').textContent = ex.lembra;
+  $('rgTexto').placeholder = `Ex.: Quando o cliente disser que ${ex.regra}: @Adicionar etiqueta @Mudar etapa do funil\nQuando pedir para falar com o gerente: @Transferir para pessoa @Nota interna`;
+}
 const PASSOS = ['empresa', 'nicho', 'ia', 'cobranca'];
 let passo = 0, escolhaNicho = '', escolhaCobr = null;
 
@@ -227,6 +245,7 @@ function desenharMenu() {
   $('menu').innerHTML = MENU.map(m => m === '-' ? m : itemMenu(m)).map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
     ? `<button type="button" class="menu-it" data-pg="${m[0]}" title="${m[1]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
   document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => abrir(b.dataset.pg));
+  aplicarExemplos();
 }
 
 function abrirApp(pg) {
@@ -539,10 +558,10 @@ function desenharConhecimento() {
   $('kPaineis').innerHTML = `
     <div class="card" data-kp="empresa"><h3>Empresa</h3><p class="muted">O que a IA precisa saber sobre o negócio.</p>
       <div class="duas"><div><label for="kNome">Nome da empresa</label><input id="kNome" maxlength="80" value="${esc(c.empresa.nome)}"></div>
-        <div><label for="kSeg">Segmento</label><input id="kSeg" maxlength="60" list="kSegs" value="${esc(c.empresa.segmento)}" placeholder="Ex.: loja de veículos seminovos">
+        <div><label for="kSeg">Segmento</label><input id="kSeg" maxlength="60" list="kSegs" value="${esc(c.empresa.segmento)}" placeholder="Ex.: ${esc(exemplo().seg)}">
         <datalist id="kSegs">${SEGMENTOS.map(s => `<option value="${s}">`).join('')}</datalist></div></div>
       <label for="kDesc">O que a empresa faz</label><textarea id="kDesc" maxlength="1500" placeholder="Produtos, serviços, há quanto tempo, onde atende…">${esc(c.empresa.descricao)}</textarea>
-      <label for="kPub">Quem é o cliente <small>(ex.: quem procura o primeiro carro, empresas, pessoa física…)</small></label><input id="kPub" maxlength="300" value="${esc(c.empresa.publico)}">
+      <label for="kPub">Quem é o cliente <small>(ex.: ${esc(exemplo().pub)})</small></label><input id="kPub" maxlength="300" value="${esc(c.empresa.publico)}">
       <label for="kDif">Diferenciais <small>(a IA usa para convencer)</small></label><textarea id="kDif" maxlength="600" style="min-height:70px">${esc(c.empresa.diferenciais)}</textarea>
       <div class="duas"><div><label for="kSite">Site</label><input id="kSite" maxlength="400" placeholder="https://" value="${esc(c.empresa.site)}"></div>
         <div><label for="kInsta">Instagram</label><input id="kInsta" maxlength="120" placeholder="@empresa" value="${esc(c.empresa.instagram)}"></div></div>
@@ -562,7 +581,7 @@ function desenharConhecimento() {
       <label>A IA pode falar preço?</label>${radios('kPol', [op('livre', 'Sim, o valor exato'), op('a_partir', 'Só "a partir de"', 'O valor final a equipe confirma'), op('nao_fala', 'Não', 'Ela diz que a equipe passa o valor')], c.precos.politica)}
       <p class="muted" style="margin-top:14px">${ehAgenda ? 'Serviços que você oferece:' : 'Lista de preços:'}</p><div id="kPrec"></div></div>`;
   listaK($('kUnid'), c.empresa.unidades || [], [{ k: 'nome', rot: 'Nome', ph: 'Ex.: Matriz', max: 60 }, { k: 'endereco', rot: 'Endereço', max: 200 }, { k: 'mapa', rot: 'Link do Google Maps', ph: 'https://', max: 400 }], { rotMais: 'Adicionar endereço', max: 10 });
-  listaK($('kFaq'), c.conhecimento.faq || [], [{ k: 'p', rot: 'Pergunta', max: 200, ph: 'Ex.: Vocês aceitam carro na troca?' }, { k: 'r', rot: 'Resposta', tipo: 'textarea', max: 1000 }], { rotMais: 'Adicionar pergunta', max: 60 });
+  listaK($('kFaq'), c.conhecimento.faq || [], [{ k: 'p', rot: 'Pergunta', max: 200, ph: 'Ex.: ' + exemplo().faq }, { k: 'r', rot: 'Resposta', tipo: 'textarea', max: 1000 }], { rotMais: 'Adicionar pergunta', max: 60 });
   listaK($('kOfi'), c.conhecimento.oficiais || [], [{ k: 'tema', rot: 'Assunto', max: 120, ph: 'Ex.: garantia' }, { k: 'resposta', rot: 'Resposta oficial', tipo: 'textarea', max: 1500 }], { rotMais: 'Adicionar resposta oficial', max: 20 });
   listaK($('kProib'), c.conhecimento.proibido || [], [{ k: 'v', rot: 'Regra', max: 300 }], { rotMais: 'Adicionar regra', max: 20, simples: true });
   listaK($('kPrec'), c.precos.lista || [], [{ k: 'nome', rot: 'Produto ou serviço', max: 120 }, { k: 'preco', rot: 'Preço', max: 40, ph: 'R$ 0,00' }, { k: 'obs', rot: 'Observação', max: 200 }], { rotMais: 'Adicionar', max: 60, grade: 'tres' });
