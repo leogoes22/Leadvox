@@ -6,9 +6,9 @@ import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
-// Webhook de eventos da LeadVox → Sentinela do Motor IA. Enquanto o motor novo roda na cópia de teste, o caminho é
-// iag-sentinela-v3; na troca para produção passa a ser iag-sentinela.
-export const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+// Motor do painel no n8n novo (VPS). Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
+// O n8n antigo (webhook.lv-mktdeconversa.com) fica só com os SDR dos clientes antigos.
+export const N8N_WEBHOOK='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
 const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
  conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',

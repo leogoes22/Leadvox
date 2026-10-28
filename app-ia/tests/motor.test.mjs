@@ -100,7 +100,7 @@ test('events webhook address is built from the account token, or asks n8n to cre
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  const base='http://127.0.0.1:'+s.address().port,get=()=>fetch(base+'/api/account/eventos?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}}).then(r=>r.json());
  const r0=await get();
- assert.equal(r0.url,'https://webhook.lv-mktdeconversa.com/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
+ assert.equal(r0.url,'https://n8n.leadvox.com.br/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
  // último envio recusado pela LeadVox chega ao painel só com os campos do aviso
  assert.deepEqual(r0.ultimoEnvio,{ok:false,ts:1793142318345,status:404,erro:'{"error":"ERR_SESSION_NOT_FOUND"}'});
  token=null;const r=await get();assert.equal(r.pendente,true);assert.equal(r.url,undefined);
