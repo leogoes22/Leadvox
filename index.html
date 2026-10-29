@@ -1159,8 +1159,8 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
           <p class="bld-promo">🎁 Contratando a IA, o CRM sai com <strong>50% de desconto</strong>.</p>
           <button type="button" class="bld-row" id="rowIA" role="checkbox" aria-checked="false" onclick="escolherIA()">
             <span class="bld-mark"></span>
-            <span class="bld-info"><strong>IA SDR LeadVox Pro</strong><small>Pré-atendimento e distribuição de leads 24h. Implementação da IA: <span id="iaImpl">R$ 750,00</span> (pagamento único)</small></span>
-            <span class="bld-preco" id="iaPreco">R$ 459,97<small>/mês</small></span>
+            <span class="bld-info"><strong>IA SDR LeadVox Pro</strong><small>Pré-atendimento e distribuição de leads 24h.</small></span>
+            <span class="bld-preco" id="iaPreco">R$ 659,97<small>/mês</small></span>
           </button>
         </div>
 
@@ -1198,8 +1198,8 @@ button.bld-row:focus-visible,.bld-chip:focus-visible,.bld-cnt button:focus-visib
         <div class="sum-linha"><span>Implementação (única)</span><span id="sumTaxa">R$ 0,00</span></div>
         <div class="sum-linha sum-primeiro"><span>1º pagamento</span><span id="sumPrimeiro">R$ 397,00</span></div>
         </div>
-        <div class="sum-call" id="sumCall" hidden>📅 <strong>Você marcou adicionais.</strong> O total acima considera a ferramenta, a IA e as implementações. Os valores dos adicionais são apresentados na reunião com nosso especialista.</div>
-        <p class="sum-obs">Pré-pago e sem fidelidade: o 1º pagamento soma a implementação à primeira mensalidade. A IA funciona de forma independente do CRM.</p>
+        <div class="sum-call" id="sumCall" hidden>📅 <strong>Você marcou adicionais.</strong> O total acima considera a ferramenta, a IA e a implementação opcional do CRM. Os valores dos adicionais são apresentados na reunião com nosso especialista.</div>
+        <p class="sum-obs">Pré-pago e sem fidelidade: a implementação personalizada do CRM, quando contratada, é somada à primeira mensalidade. A IA funciona de forma independente do CRM.</p>
         <button type="button" class="btn-primary" id="btnPlano" onclick="enviarPlano()">
           <span style="display:flex;align-items:center;gap:8px">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.996 0C5.373 0 0 5.373 0 11.996c0 2.117.554 4.103 1.523 5.824L.044 23.956l6.334-1.456a11.96 11.96 0 005.618 1.396c6.623 0 11.996-5.373 11.996-11.996S18.619 0 11.996 0z"/></svg>
@@ -1545,7 +1545,7 @@ function linhasPlano(){
   const l = [cfg.ia
     ? [P.nomes.crm + " · 50% off com IA", P.crmComIA, "m"]
     : [P.nomes.crm, P.crm, "m"]];
-  if(cfg.ia)   l.push([P.nomes.ia, P.ia, "m"], [P.nomes.implIa, P.implIa, "u"]);
+  if(cfg.ia)   l.push([P.nomes.ia, P.ia, "m"]);
   if(cfg.impl) l.push([P.nomes.implCrm, P.implCrm, "u"]);
   adicionaisMarcados().forEach(function(a){ l.push([a.nome, 0, "c"]); });
   return l;
@@ -1581,7 +1581,6 @@ function calcularPlano(){
 /* Preços e adicionais vêm da tabela central */
 function montarCalculadora(){
   document.getElementById("iaPreco").innerHTML   = brl(P.ia) + "<small>/mês</small>";
-  document.getElementById("iaImpl").textContent  = brl(P.implIa);
   document.getElementById("implPreco").innerHTML = brl(P.implCrm) + "<small>uma vez</small>";
   document.getElementById("listaAdicionais").innerHTML = P.adicionais.map(function(a){
     return '<button type="button" class="bld-chip" data-add="' + a.k + '" aria-pressed="false" title="' + a.desc + '" onclick="toggleAdicional(this)">' + a.nome + '</button>';
@@ -1608,7 +1607,6 @@ function itensProposta(){
   it.push({ nome: cfg.ia ? P.nomes.crm + " · 50% off com IA" : P.nomes.crm, desc: P.desc.crm, valor: cfg.ia ? P.crmComIA : P.crm, tipo:"m" });
   if(cfg.ia){
     it.push({ nome: P.nomes.ia, desc: P.desc.ia, valor: P.ia, tipo:"m" });
-    it.push({ nome: P.nomes.implIa, desc: P.desc.implIa, valor: P.implIa, tipo:"u" });
   }
   if(cfg.impl) it.push({ nome: P.nomes.implCrm, desc: P.desc.implCrm, valor: P.implCrm, tipo:"u" });
   return it;
