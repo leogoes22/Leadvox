@@ -280,7 +280,7 @@ function abrir(pg) {
   document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
   if (LISTA[pg]) desenharLista(pg);
-  if (pg === 'credenciais') { desenharCred(); desenharConexoes(); }
+  if (pg === 'credenciais') { desenharCred(); desenharConexoes(); carregarOpenAI(); }
   if (pg === 'agentes') desenharMotor();
   if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'estoque') abrirEstoque();
@@ -1001,6 +1001,24 @@ $('agAcoes').onsubmit = async e => {
 };
 
 /* conexão com a LeadVox: credenciais e listas */
+async function carregarOpenAI() {
+  $('oaChave').value = ''; $('oaForm').hidden = true; $('oaStatus').textContent = 'Carregando…';
+  try {
+    const d = await api('openai?organization=' + encodeURIComponent(empresa.id));
+    $('oaStatus').innerHTML = d.connected
+      ? `<h3>OpenAI conectada</h3><p class="muted">Chave terminada em ${esc(d.suffix)} · atualizada em ${esc(quandoBR(d.updatedAt))}.</p><button type="button" class="sm" id="oaTrocar">Trocar chave</button>`
+      : '<h3>Conecte a OpenAI da sua empresa</h3><p class="muted">O atendimento com chave própria depende desta conexão.</p>';
+    $('oaForm').hidden = !!d.connected;
+    if (d.connected) $('oaTrocar').onclick = () => { $('oaForm').hidden = false; $('oaChave').focus(); };
+  } catch (e) { $('oaStatus').textContent = e.message; }
+}
+$('oaForm').onsubmit = async e => {
+  e.preventDefault(); const bt = e.currentTarget.querySelector('button'); bt.disabled = true;
+  try { await api('openai', { organization: empresa.id, apiKey: $('oaChave').value }); await carregarOpenAI(); toast('OpenAI conectada. O consumo será cobrado na sua conta OpenAI.'); }
+  catch (err) { toast(err.message, true); }
+  finally { $('oaChave').value = ''; bt.disabled = false; }
+};
+
 let chat = null, listas = {};
 const DA_LEADVOX = { etiquetas: 1, status: 1, usuarios: 1, departamentos: 1 };
 async function carregarChat() { chat = await api('chat-credentials?organization=' + encodeURIComponent(empresa.id)); }
@@ -1390,6 +1408,7 @@ async function carregarDashboard() {
   const aviso = m => { $('dAviso').textContent = m || ''; $('dAviso').hidden = !m; };
   if ($('dIni').value > $('dFim').value) return aviso('A data de início precisa ser antes do fim.');
   aviso(''); $('dAtual').textContent = 'Carregando…';
+  carregarUsoOpenAI();
   let r;
   try { r = await api('relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + $('dIni').value + '&fim=' + $('dFim').value); }
   catch (err) { $('dAtual').textContent = ''; return aviso(err.message); }
@@ -1397,6 +1416,26 @@ async function carregarDashboard() {
   if (!r.vinculado) { $('dAtual').textContent = ''; desenharDashboard([]); return aviso('Ligue a sua IA em Agentes LeadVox IA para ver os números.'); }
   $('dAtual').textContent = r.atualizado ? 'Atualizado em ' + new Date(r.atualizado).toLocaleString('pt-BR') + ' · os números chegam a cada 15 minutos.' : 'Ainda não chegou nenhum número da IA.';
   desenharDashboard(r.dias || []);
+}
+let usoPedido = 0;
+async function carregarUsoOpenAI() {
+  const pedido = ++usoPedido;
+  ['oaEntrada','oaSaida','oaChamadas','oaCusto'].forEach(id => $(id).textContent = '—');
+  $('oaUsoTabela').replaceChildren(); $('oaUsoStatus').textContent = 'Carregando consumo…';
+  $('oaCache').textContent = $('oaErros').textContent = '';
+  try {
+    const d = await api('openai-usage?organization=' + encodeURIComponent(empresa.id) + '&ini=' + $('dIni').value + '&fim=' + $('dFim').value);
+    if (pedido !== usoPedido) return;
+    const rows = d.rows || [], soma = k => rows.reduce((s,r) => s + (Number(r[k]) || 0), 0);
+    const fmt = n => Number(n).toLocaleString('pt-BR'), usd = n => Number(n).toLocaleString('pt-BR', {style:'currency',currency:'USD',minimumFractionDigits:4});
+    $('oaEntrada').textContent = fmt(soma('input')); $('oaSaida').textContent = fmt(soma('output'));
+    $('oaChamadas').textContent = fmt(soma('calls')); $('oaCache').textContent = fmt(soma('cached')) + ' tokens de entrada em cache';
+    $('oaErros').textContent = fmt(soma('errors')) + ' falhas · ' + fmt(rows.filter(r=>r.teste).reduce((s,r)=>s+Number(r.calls),0)) + ' chamadas de teste';
+    const medidos = rows.some(r=>r.usd!==null); $('oaCusto').textContent = medidos ? usd(soma('usd')) : '—';
+    $('oaUsoStatus').textContent = !rows.length ? 'Sem consumo registrado neste período. O histórico começa quando o motor com chave própria for ativado.'
+      : `${fmt(soma('unpriced'))} chamadas sem custo confirmado; ${fmt(soma('pending'))} pendentes. Voz gerada registra caracteres, sem inventar tokens ou custo. Valores não incluem impostos, câmbio ou uso fora da LeadVox.`;
+    if (rows.length) $('oaUsoTabela').innerHTML = '<table class="tabela-d"><thead><tr><th>Dia</th><th>Agente</th><th>Modelo / operação</th><th>Chamadas</th><th>Entrada / saída</th><th>Áudio / voz</th><th>Estimativa USD</th></tr></thead><tbody>' + rows.map(r=>`<tr><td>${esc(r.dia)}</td><td>${esc(r.agente)}${r.teste?' · teste':''}</td><td>${esc(r.model)}<br><small>${esc(r.operation)}</small></td><td>${fmt(r.calls)}</td><td>${fmt(r.input||0)} / ${fmt(r.output||0)}</td><td>${fmt(r.seconds||0)} s / ${fmt(r.characters||0)} caracteres</td><td>${r.usd===null?'—':usd(r.usd)}${Number(r.unpriced)?' · parcial':''}</td></tr>`).join('') + '</tbody></table>';
+  } catch (e) { if (pedido === usoPedido) $('oaUsoStatus').textContent = 'Consumo indisponível: ' + e.message; }
 }
 function desenharDashboard(dias) {
   const soma = k => dias.reduce((s, d) => s + (Number((d.metricas || {})[k]) || 0), 0);

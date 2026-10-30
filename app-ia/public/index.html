@@ -313,6 +313,18 @@
 
     <section id="vDashboard" hidden>
       <div class="card">
+        <h3>Consumo da OpenAI</h3>
+        <p class="muted">Consumo desta empresa na LeadVox, incluindo testes e chamadas de ferramentas. Usa o período escolhido abaixo. Valores estimados em dólar; a cobrança oficial fica na OpenAI.</p>
+        <p id="oaUsoStatus" class="muted" role="status">Carregando…</p>
+        <div class="grade">
+          <div class="met"><small>Tokens de entrada</small><b id="oaEntrada">—</b><span id="oaCache"></span></div>
+          <div class="met"><small>Tokens de saída</small><b id="oaSaida">—</b></div>
+          <div class="met"><small>Chamadas à OpenAI</small><b id="oaChamadas">—</b><span id="oaErros"></span></div>
+          <div class="met"><small>Custo estimado medido</small><b id="oaCusto">—</b><span>USD · pode ser parcial</span></div>
+        </div>
+        <div id="oaUsoTabela" style="overflow-x:auto"></div>
+      </div>
+      <div class="card">
         <div class="filtro">
           <div><label for="dIni">Início</label><input type="date" id="dIni"></div>
           <div><label for="dFim">Fim</label><input type="date" id="dFim"></div>
@@ -463,6 +475,16 @@
     </section>
 
     <section id="vCredenciais" class="estreito" hidden>
+      <h2 class="sec-tit" style="margin-top:0">OpenAI da sua empresa</h2>
+      <div class="card" id="oaStatus" role="status">Carregando…</div>
+      <form class="card" id="oaForm" hidden>
+        <h3>Conectar sua chave OpenAI</h3>
+        <p class="muted">A IA usará a conta OpenAI da sua empresa. Crie uma chave de projeto com permissão para os modelos, conversa, imagem, transcrição e voz que você usar.</p>
+        <label for="oaChave">Chave de API da OpenAI</label>
+        <input id="oaChave" type="password" autocomplete="new-password" spellcheck="false" placeholder="sk-proj-…" maxlength="503" required>
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">A chave fica criptografada e não reaparece na tela. O teste lê a lista de modelos; ele não confirma saldo nem todas as permissões. Se a chave falhar durante o atendimento, não usamos uma chave de reserva da LeadVox.</p>
+      </form>
       <h2 class="sec-tit" style="margin-top:0">Chat da LeadVox</h2>
       <div class="card" id="credStatus"></div>
       <form class="card" id="credForm" hidden>

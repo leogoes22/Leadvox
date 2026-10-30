@@ -1,7 +1,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
-import {testAutoCerto,testRevendaMais,testAsaas,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
+import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
@@ -267,6 +267,19 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou mover com o token salvo. Conecte de novo em Credenciais de API.'}
      :{status:502,message:'A LeadVox não moveu a oportunidade'+(e.leadvox?': '+e.leadvox.replace(/[.\s]+$/,''):e.http?' (respondeu '+e.http+')':'')+'.'};}
     send(res,200,{ok:true});
+   }else if(action==='openai'){
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(req.method==='POST'){
+     const key=typeof body.apiKey==='string'?body.apiKey.trim():'';
+     try{await testOpenAI({apiKey:key,fetchImpl});}catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
+     await upstream('/rest/v1/rpc/lv_set_openai',{method:'POST',token:authToken,body:{org,sec:key},prefer:'return=minimal'});
+    }
+    send(res,200,await upstream('/rest/v1/rpc/lv_openai_status',{method:'POST',token:authToken,body:{org}}));
+   }else if(action==='openai-usage'&&req.method==='GET'){
+    const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');
+    if(!/^[0-9a-f-]{36}$/.test(org||'')||!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
+    send(res,200,await upstream('/rest/v1/rpc/lv_openai_usage',{method:'POST',token:authToken,body:{org,ini,fim}}));
    }else if(action==='relatorio'&&req.method==='GET'){
     // Dashboard: números por dia da conta do motor (só totais, sem dados de cliente).
     const q=new URL(req.url,'https://localhost').searchParams,org=q.get('organization'),ini=q.get('ini'),fim=q.get('fim');

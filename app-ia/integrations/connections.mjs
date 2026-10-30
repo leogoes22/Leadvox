@@ -3,6 +3,18 @@ export class ConnectionError extends Error {constructor(message){super(message);
 const ASAAS={sandbox:'https://api-sandbox.asaas.com/v3',production:'https://api.asaas.com/v3'};
 const timeout=()=>AbortSignal.timeout(12000);
 
+// Read-only validation; this doesn't generate tokens or prove available balance.
+export async function testOpenAI({apiKey,fetchImpl=fetch}){
+ const key=typeof apiKey==='string'?apiKey.trim():'';
+ if(!/^sk-[A-Za-z0-9_-]{20,500}$/.test(key))throw new ConnectionError('A chave OpenAI parece incompleta. Copie a chave inteira, começando com sk-.');
+ let r;try{r=await fetchImpl('https://api.openai.com/v1/models',{headers:{Authorization:'Bearer '+key},redirect:'error',signal:timeout()});}
+ catch{throw new ConnectionError('Não deu para falar com a OpenAI agora. Tente novamente.');}
+ await r.body?.cancel();
+ if(r.status===401||r.status===403)throw new ConnectionError('A OpenAI recusou a chave ou a permissão de leitura de modelos. Confira a chave e suas permissões.');
+ if(!r.ok)throw new ConnectionError('A OpenAI respondeu com erro. Confira os limites da sua conta e tente novamente.');
+ return {ok:true};
+}
+
 // AutoCerto: same OAuth login the SDR Motor uses in n8n (grant_type=password with the store's API user).
 export async function testAutoCerto({usuario,senha,fetchImpl=fetch}){
  let r;try{r=await fetchImpl('https://integracao.autocerto.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded',Accept:'application/json'},
