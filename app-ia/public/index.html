@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#070d1c">
+<title>LeadVox IA</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/lv.css">
+<script type="module" src="/painel.js"></script>
+<script type="module" src="/porta-fundo.js"></script>
+</head>
+<body>
+
+<!-- ═══════════ ENTRADA ═══════════ -->
+<div id="telaPorta" class="porta">
+  <canvas id="portaRede" class="porta-rede" aria-hidden="true"></canvas>
+  <div class="porta-hero" aria-hidden="true">
+    <div class="cena"><div class="cubo3d" id="portaCubo"></div></div>
+    <p class="porta-frase">Inteligência artificial que <b>atende, qualifica e vende</b> pelo WhatsApp da sua empresa.</p>
+  </div>
+  <div class="card" id="cardLogin">
+    <div class="marca-lv"><img src="/logo-leadvox.png" alt="LeadVox" width="220" height="67"></div>
+    <h1 id="pTitulo">Sua IA na LeadVox</h1>
+    <p class="muted sub" id="pSub" style="margin-top:6px">Entre com o e-mail cadastrado na LeadVox.</p>
+    <p class="alerta" id="pHttp" hidden>O login só funciona no endereço com HTTPS. Não digite sua senha aqui.</p>
+    <form id="formPorta">
+      <div id="campoEmail"><label for="pEmail">E-mail</label><input id="pEmail" type="email" autocomplete="username" maxlength="254"></div>
+      <div id="campoSenha"><label for="pSenha" id="rotSenha">Senha</label><input id="pSenha" type="password" autocomplete="current-password" maxlength="128"></div>
+      <div id="campoCodigo" hidden><label for="pCodigo">Código que chegou no e-mail</label><input id="pCodigo" class="codigo-in" inputmode="numeric" maxlength="10" autocomplete="one-time-code"></div>
+      <button class="principal cheio" id="btPorta" type="submit">Entrar</button>
+    </form>
+    <p id="pErro" class="erro" hidden></p>
+    <p id="pOk" class="ok-msg" hidden></p>
+    <div class="links" id="pLinks">
+      <button class="leve" type="button" data-modo="signup">Criar conta</button>
+      <button class="leve" type="button" data-modo="recover">Esqueci minha senha</button>
+      <button class="leve" type="button" data-modo="verify">Confirmar cadastro</button>
+    </div>
+    <button class="leve" type="button" id="btVoltarPorta" style="margin-top:8px" hidden>← Voltar para o login</button>
+  </div>
+
+  <!-- formulário inicial: monta o painel antes do primeiro acesso -->
+  <div class="card largo" id="cardMontar" hidden>
+    <div class="marca-lv"><img src="/logo-leadvox.png" alt="LeadVox" width="220" height="67"></div>
+    <p class="passo-rot" id="mRot">Passo 1 de 4</p>
+    <div class="progresso" id="mProg"><span></span><span></span><span></span><span></span></div>
+
+    <div data-m="empresa">
+      <h1>Como se chama sua empresa?</h1>
+      <p class="muted" style="margin-top:6px">É o nome que aparece no seu painel.</p>
+      <label for="mEmpresa">Nome da empresa</label><input id="mEmpresa" minlength="2" maxlength="100" placeholder="Ex.: Auto Center Vassouras">
+    </div>
+
+    <div data-m="nicho" hidden>
+      <h1>Qual é o seu negócio?</h1>
+      <p class="muted" style="margin-top:6px">A IA já vem preparada para o seu ramo.</p>
+      <div class="tipos" id="mNichos"></div>
+    </div>
+
+    <div data-m="ia" hidden>
+      <h1>Sua IA</h1>
+      <p class="muted" style="margin-top:6px">Dá para mudar depois.</p>
+      <label for="mIa">Nome da sua IA <small>(como ela se apresenta no WhatsApp)</small></label><input id="mIa" maxlength="40" placeholder="Ex.: Carol">
+      <label for="mZap">WhatsApp da empresa <small>(com DDD)</small></label><input id="mZap" inputmode="tel" maxlength="20" placeholder="(21) 99999-0000">
+    </div>
+
+    <div data-m="cobranca" hidden>
+      <h1>Quer cobrar seus clientes pelo painel?</h1>
+      <p class="muted" style="margin-top:6px">Cadastre clientes, planos e mensalidades. Dá para ligar ou desligar depois.</p>
+      <div class="tipos um" id="mCobr">
+        <button type="button" class="tipo-op" data-cobr="sim" aria-pressed="false"><span class="ic">💳</span><span><b>Sim, quero usar</b><small>Aparece a aba Cobranças no seu painel.</small></span></button>
+        <button type="button" class="tipo-op" data-cobr="nao" aria-pressed="false"><span class="ic">⏭️</span><span><b>Agora não</b><small>Só a IA. Você liga depois em Conta.</small></span></button>
+      </div>
+    </div>
+
+    <p id="mErro" class="erro" hidden></p>
+    <div class="form-bts entre">
+      <button type="button" id="mVoltar">Voltar</button>
+      <button class="principal" type="button" id="mProximo">Próximo</button>
+    </div>
+    <button class="leve" type="button" data-sair style="margin-top:12px">Sair</button>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="telaApp" class="app" hidden>
+  <aside class="lateral" id="lateral">
+    <a class="logo" href="#agentes"><img src="/logo-leadvox.png" alt="LeadVox" width="196" height="60"></a>
+    <nav id="menu" aria-label="Menu"></nav>
+    <div class="rodape" id="rodape"></div>
+  </aside>
+  <div class="area">
+    <header class="cab">
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="bt-menu" type="button" id="btMenu" aria-label="Abrir menu">☰</button>
+        <div><h1 id="cabTitulo"></h1><p id="cabSub"></p></div>
+      </div>
+      <div class="dir"><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
+    </header>
+    <div class="pagina">
+    <div id="saudeAviso" class="saude" role="alert" hidden></div>
+
+    <section id="vAgentes" hidden>
+      <div class="card" id="motorBox" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+      <div class="card" id="prontoBox" hidden></div>
+      <div class="agente" id="agDetalhe" hidden style="margin-top:14px">
+        <div class="card ag-cab">
+          <div class="ag-foto" id="agFoto">IA</div>
+          <div class="ag-quem"><h2 id="agNome" style="margin:0"></h2><p class="muted" id="agFuncao"></p></div>
+          <div class="liga-ia"><div><b id="agSt"></b><small id="agStDica"></small></div>
+            <button type="button" class="switch grande" role="switch" aria-checked="false" id="agLiga" aria-label="IA ligada"><span></span></button></div>
+          <div class="ag-teste">
+            <div class="lin-sw"><span>🧪 Modo de teste<small>Ligado, a IA responde só os números de teste. Os outros clientes não recebem resposta, follow-up nem troca de vendedor da IA.</small></span>
+              <button type="button" class="switch" role="switch" aria-checked="false" id="agTesteSw" aria-label="Modo de teste"><span></span></button></div>
+            <div id="agTesteBox" hidden>
+              <label for="agTesteNum">Números de teste <small>(com DDD, separados por vírgula)</small></label>
+              <div class="form-bts" style="margin-top:0;flex-wrap:nowrap"><input id="agTesteNum" inputmode="tel" placeholder="Ex.: (21) 98894-3529, (21) 98108-1044"><button type="button" class="principal sm" id="agTesteSalvar">Salvar</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Resumo</h3>
+          <div class="ag-dados" id="agDados"></div>
+          <h3 style="margin-top:16px">Status e capacidades</h3>
+          <div class="caps" id="agCaps"></div>
+        </div>
+        <div>
+          <nav class="sub-abas" id="agAbas" aria-label="Agente" style="padding-top:0">
+            <button type="button" data-ag="identidade">Identidade</button>
+            <button type="button" data-ag="testar">💬 Testar a IA</button>
+            <button type="button" data-ag="comportamento">Comportamento</button>
+            <button type="button" data-ag="multimodal">Multimodal</button>
+            <button type="button" data-ag="canais">Canais e gatilhos</button>
+            <button type="button" data-ag="automacoes">Ações e regras</button>
+            <button type="button" data-ir="dashboard">Dashboard</button>
+          </nav>
+          <form class="card" id="agIdentidade" data-agp="identidade">
+            <h3>Identidade do agente</h3>
+            <label for="idNome">Nome do agente</label><input id="idNome" maxlength="40" placeholder="Carol">
+            <label for="idDesc">Como ele se apresenta <small>(1 ou 2 frases)</small></label>
+            <textarea id="idDesc" maxlength="300" placeholder="Sou a Carol, da empresa. Posso tirar suas dúvidas e te ajudar no que precisar."></textarea>
+            <label for="idTom">Jeito de falar</label>
+            <select id="idTom"><option value="amigavel">Amigável · próximo e simpático, sem exagero</option><option value="profissional">Profissional · mais formal e direto</option><option value="descontraido">Descontraído · leve, com gírias moderadas</option></select>
+            <div class="duas">
+              <div><label for="idEmoji">Emojis</label><select id="idEmoji"><option value="nao">Não usar</option><option value="pouco">Poucos</option><option value="sim">À vontade</option></select></div>
+              <div><label for="idTrat">Trata o cliente por</label><select id="idTrat"><option value="voce">Você</option><option value="senhor">Senhor / senhora</option></select></div>
+            </div>
+            <label for="idDep">Onde este agente atende <small>(departamento da LeadVox)</small></label>
+            <select id="idDep"><option value="">Nenhum departamento</option></select>
+            <div class="lin-sw" style="margin-top:8px"><span>Porta de entrada<small>Atende as conversas novas, que ainda não têm departamento.</small></span>
+              <button type="button" class="switch" role="switch" aria-checked="false" id="idEntrada" aria-label="Porta de entrada"><span></span></button></div>
+            <p class="dica" style="margin-top:6px">A IA só responde num ticket que esteja no departamento dela. Se a sua LeadVox coloca as conversas novas num departamento (ex.: Recepção IA), escolha ele aqui.</p>
+            <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
+          </form>
+          <div class="card" id="agTestar" data-agp="testar" hidden>
+            <div class="lista-topo"><div><h3>Testar a IA</h3><p class="muted" style="margin-top:2px">Converse como se fosse um cliente. Nada vai para o WhatsApp, a LeadVox nem o funil.</p></div>
+              <button type="button" class="sm" id="tsNovo">Começar de novo</button></div>
+            <div class="ts-chat" id="tsChat" aria-live="polite"></div>
+            <form class="ts-envio" id="tsForm"><input id="tsMsg" maxlength="2000" autocomplete="off" placeholder="Escreva como o cliente escreveria…" aria-label="Mensagem de teste"><button class="principal" type="submit">Enviar</button></form>
+            <p class="muted" style="font-size:12.5px;margin-top:8px">Usa a configuração salva do agente. Mudou algo nas outras abas? Salve antes de testar.</p>
+          </div>
+          <form id="agComportamento" data-agp="comportamento" hidden>
+            <div class="card">
+              <h3>Como a IA responde</h3>
+              <div class="duas">
+                <div><label for="cpModelo">Modelo</label><select id="cpModelo"><option value="rapido">Rápido e econômico</option><option value="inteligente">Mais inteligente (custa mais)</option></select></div>
+                <div><label for="cpCriat">Criatividade</label><select id="cpCriat"><option value="precisa">Precisa · segue o roteiro à risca</option><option value="equilibrada">Equilibrada</option><option value="criativa">Criativa · mais solta</option></select></div>
+              </div>
+              <label for="cpEspera">Tempo de espera antes de responder <small>(junta as mensagens que o cliente manda em seguida)</small></label>
+              <select id="cpEspera"><option value="5">5 segundos</option><option value="10">10 segundos</option><option value="15">15 segundos</option><option value="20">20 segundos</option><option value="30">30 segundos</option></select>
+              <div class="lin-sw" style="margin-top:12px"><span>Mostrar o nome da IA no começo da mensagem<small>Ex.: "*Carol:*" na primeira linha, como os atendentes da LeadVox.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpAssina" aria-label="Mostrar o nome da IA"><span></span></button></div>
+            </div>
+            <div class="card">
+              <h3>Quando o cliente para de responder</h3>
+              <div class="lin-sw"><span>Follow-up automático<small>A IA chama o cliente de novo, só dentro do horário abaixo e só enquanto ela está atendendo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpFu" aria-label="Follow-up automático"><span></span></button></div>
+              <div id="cpFuBox">
+                <div id="cpToques"></div>
+                <div class="duas"><div><label for="cpJIni">Mandar a partir de</label><input type="time" id="cpJIni" value="09:00"></div><div><label for="cpJFim">Até</label><input type="time" id="cpJFim" value="20:00"></div></div>
+                <p class="dica">Deixe a mensagem em branco para a IA escrever com base na conversa (ex.: lembrando <span id="exLembra">o que o cliente pediu</span>).</p>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Avisos</h3>
+              <div class="lin-sw"><span>Retomar no dia seguinte<small>Se o cliente e a equipe ficaram quietos, a IA manda uma mensagem só, perto de 24 h depois.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpRet" aria-label="Retomar no dia seguinte"><span></span></button></div>
+              <input id="cpRetTxt" maxlength="400" placeholder="Mensagem (em branco = padrão: E aí, conseguiu resolver tudo? Sigo à disposição)">
+              <div class="lin-sw" style="margin-top:8px"><span>Avisar o gerente no WhatsApp<small>Quando a IA passa um cliente adiante, o gerente recebe quem é, para onde foi e o resumo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpGer" aria-label="Avisar o gerente"><span></span></button></div>
+              <div class="duas"><div><input id="cpGerZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
+                <div><select id="cpGerQuando" aria-label="Quando avisar"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <div class="lin-sw" style="margin-top:8px"><span>Avisar no grupo do WhatsApp<small>Toda vez que a IA passa um cliente, o grupo recebe: quem é, o motivo, para onde e para quem foi, e o resumo.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpGrupo" aria-label="Avisar no grupo"><span></span></button></div>
+              <div class="duas"><div><input id="cpGrupoId" inputmode="numeric" maxlength="40" placeholder="Número do grupo: 120363000000000000"></div>
+                <div><select id="cpGrupoQuando" aria-label="Quando avisar no grupo"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <button type="button" class="sm" data-testar-grupo="cpGrupoId" style="margin-top:8px">Mandar mensagem de teste</button>
+              <p class="muted" style="font-size:13px;margin-top:4px">Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo (começa com 120363).</p>
+              <div class="lin-sw" style="margin-top:8px"><span>Resumo do dia<small>Quantos clientes a IA atendeu, quantos passou e para quem.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpRes" aria-label="Resumo do dia"><span></span></button></div>
+              <div class="duas"><div><input id="cpResZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
+                <div><select id="cpResHora" aria-label="Horário do resumo"><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option></select></div></div>
+            </div>
+            <div class="card">
+              <h3>Limites e equipe</h3>
+              <div class="duas">
+                <div><label for="cpLimH">Respostas da IA por contato, por hora</label><input id="cpLimH" type="number" min="5" max="200" inputmode="numeric"></div>
+                <div><label for="cpLimD">Por dia</label><input id="cpLimD" type="number" min="10" max="500" inputmode="numeric"></div>
+              </div>
+              <p class="muted" style="font-size:13px;margin-top:8px">Passou do limite, a IA para nesse contato e avisa a equipe (protege contra robôs e gasto).</p>
+              <p class="dica">Quando alguém da equipe escreve para o cliente, a IA <b>fica em silêncio</b> nessa conversa por 2 horas (renova a cada mensagem da equipe), mas continua lendo tudo. Para devolver à IA na hora, escreva <b>#ia</b> numa nota interna.</p>
+            </div>
+            <div class="salvar-barra"><span class="muted" id="cpSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar comportamento</button></div>
+          </form>
+          <div class="card" id="agMultimodal" data-agp="multimodal" hidden>
+            <h3>Multimodal</h3>
+            <p class="muted">Ligue só o que esta IA deve fazer com o que o cliente manda. As opções aparecem quando você liga.</p>
+            <form id="mmAudio" style="margin-top:8px">
+              <div class="lin-sw"><span>Entende áudio<small>Ouve o áudio do cliente e responde. Desligado, pede para ele escrever.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="true" id="mmOuve" aria-label="Entende áudio"><span></span></button></div>
+              <div class="lin-sw"><span>Entende imagem<small>Vê a foto que o cliente manda. Desligado, pede para ele descrever.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="true" id="mmVe" aria-label="Entende imagem"><span></span></button></div>
+              <div class="lin-sw"><span>Responde com áudio<small>A IA manda a resposta em voz, em português do Brasil.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmFala" aria-label="Responde com áudio"><span></span></button></div>
+              <div class="mm-op" id="mmVozBox">
+                <label for="mmModo">Quando responder com voz</label>
+                <select id="mmModo"><option value="espelho">Quando o cliente mandar áudio</option><option value="sempre">Sempre</option></select>
+                <label for="mmProv">Quem gera a voz</label>
+                <select id="mmProv"><option value="openai">OpenAI (já incluída)</option><option value="elevenlabs">ElevenLabs (mais natural, precisa da chave)</option></select>
+                <div id="mmElBox" hidden>
+                  <label for="mmElVoz">Voz da ElevenLabs</label>
+                  <select id="mmElVoz"><option value="">Carregando as suas vozes…</option></select>
+                  <p class="muted" id="mmElAviso" style="font-size:13px;margin-top:6px">Se a ElevenLabs falhar ou acabarem os créditos, a IA usa a voz da OpenAI abaixo.</p>
+                </div>
+                <label for="mmVoz" id="mmVozRot">Voz</label>
+                <select id="mmVoz">
+                  <option value="nova">Nova: feminina, leve</option><option value="coral">Coral: feminina, calorosa</option><option value="shimmer">Shimmer: feminina, suave</option>
+                  <option value="sage">Sage: feminina, calma</option><option value="alloy">Alloy: neutra</option><option value="ash">Ash: masculina, firme</option>
+                  <option value="echo">Echo: masculina, suave</option><option value="onyx">Onyx: masculina, grave</option><option value="ballad">Ballad: masculina, expressiva</option>
+                </select>
+                <label for="mmEstilo">Jeito de falar <small>(opcional)</small></label>
+                <input id="mmEstilo" maxlength="300" placeholder="Ex.: animada e próxima, fala sem pressa">
+                <p class="dica">Foto, PDF e a mensagem de transferência continuam em texto. Se a voz falhar, o cliente recebe o texto.</p>
+              </div>
+              <div class="lin-sw"><span>Entende PDF e documentos<small>Lê PDF e arquivo de texto (.txt). Word ainda não.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmDoc" aria-label="Entende PDF e documentos"><span></span></button></div>
+              <div class="mm-op" id="mmDocBox">
+                <div class="duas">
+                  <div><label for="mmDocPag">Páginas lidas, no máximo</label>
+                    <select id="mmDocPag"><option value="5">5 páginas</option><option value="10">10 páginas</option><option value="20">20 páginas</option></select></div>
+                  <div><label for="mmDocLim">Quanto a IA lê</label>
+                    <select id="mmDocLim"><option value="3000">Pouco: 3 mil letras (1 página)</option><option value="6000">Médio: 6 mil letras (2 a 3 páginas)</option><option value="12000">Muito: 12 mil letras (5 páginas)</option></select></div>
+                </div>
+                <p class="dica">Arquivo maior que o limite: a IA lê só o começo e segue a conversa. Quanto mais ela lê, mais caro fica cada resposta, porque o texto fica na memória da conversa.</p>
+              </div>
+              <div class="lin-sw"><span>Entende planilhas<small>Lê Excel (.xlsx, .xls) e CSV: a primeira aba, linha por linha.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="mmPlan" aria-label="Entende planilhas"><span></span></button></div>
+              <div class="mm-op" id="mmPlanBox">
+                <div class="duas">
+                  <div><label for="mmPlanLin">Linhas lidas, no máximo</label>
+                    <select id="mmPlanLin"><option value="50">50 linhas</option><option value="100">100 linhas</option><option value="200">200 linhas</option></select></div>
+                  <div><label for="mmPlanLim">Quanto a IA lê</label>
+                    <select id="mmPlanLim"><option value="3000">Pouco: 3 mil letras</option><option value="6000">Médio: 6 mil letras</option><option value="12000">Muito: 12 mil letras</option></select></div>
+                </div>
+              </div>
+              <div class="salvar-barra"><span class="muted" id="mmSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar multimodal</button></div>
+            </form>
+          </div>
+          <div class="card" data-agp="canais" hidden>
+            <h3>Canais e gatilhos</h3>
+            <div class="ag-dados" id="canaisDados"></div>
+            <div class="vazio"><b>Gatilhos chegam com a conexão da LeadVox</b>Em qual fila a IA entra, palavra que liga ou desliga a IA e horário de atendimento.
+              <br><button type="button" data-ir="credenciais">Ver credenciais de API</button></div>
+          </div>
+          <form id="agAcoes" data-agp="automacoes" hidden>
+            <div class="card">
+              <h3>Regras da IA</h3>
+              <p class="muted">Cada regra é a situação e, logo depois, as ações (uma por linha fica mais fácil de ler, mas não é obrigatório). Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
+              <div class="rg-caixa">
+                <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer um orçamento: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
+                <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
+              </div>
+              <div id="rgUsadas" class="rg-usadas"></div>
+              <p class="dica" id="rgAviso" hidden></p>
+            </div>
+            <div class="card">
+              <h3>Departamentos para onde a IA passa</h3>
+              <p class="muted">Escolha pelo nome (vem da sua LeadVox) e o número da fila se preenche sozinho. A IA só transfere para os departamentos daqui.</p>
+              <div id="rgSetores"></div>
+              <label for="rgPadrao">Departamento padrão <small>(dúvida ou cliente pedindo uma pessoa)</small></label><select id="rgPadrao"></select>
+            </div>
+            <div class="card">
+              <h3>Avisos e funil</h3>
+              <label for="rgGrupo">Grupo de avisos no WhatsApp <small>(para a ação "Avisar no grupo")</small></label>
+              <input id="rgGrupo" inputmode="numeric" maxlength="40" placeholder="120363000000000000">
+              <button type="button" class="sm" data-testar-grupo="rgGrupo" style="margin-top:8px">Mandar mensagem de teste</button>
+              <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo.</p>
+              <label for="rgModoResp">Responsável pela oportunidade no funil</label>
+              <select id="rgModoResp"><option value="atendente">Quem está atendendo o cliente (o vendedor do ticket)</option><option value="fixo">Um responsável fixo</option></select>
+              <label for="rgResp" id="rgRespRot">Se ninguém estiver atendendo ainda</label><select id="rgResp"></select>
+              <p class="muted" style="font-size:13px;margin-top:6px" id="rgRespDica">Se a IA passar o cliente para uma pessoa, a oportunidade fica com essa pessoa. Senão, com quem a LeadVox distribuiu o ticket.</p>
+            </div>
+            <div class="salvar-barra"><span class="muted" id="rgSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar ações e regras</button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="vDashboard" hidden>
+      <div class="card">
+        <h3>Consumo da OpenAI</h3>
+        <p class="muted">Consumo desta empresa na LeadVox, incluindo testes e chamadas de ferramentas. Usa o período escolhido abaixo. Valores estimados em dólar; a cobrança oficial fica na OpenAI.</p>
+        <p id="oaUsoStatus" class="muted" role="status">Carregando…</p>
+        <div class="grade">
+          <div class="met"><small>Tokens de entrada</small><b id="oaEntrada">—</b><span id="oaCache"></span></div>
+          <div class="met"><small>Tokens de saída</small><b id="oaSaida">—</b></div>
+          <div class="met"><small>Chamadas à OpenAI</small><b id="oaChamadas">—</b><span id="oaErros"></span></div>
+          <div class="met"><small>Custo estimado medido</small><b id="oaCusto">—</b><span>USD · pode ser parcial</span></div>
+        </div>
+        <div id="oaUsoTabela" style="overflow-x:auto"></div>
+      </div>
+      <div class="card">
+        <div class="filtro">
+          <div><label for="dIni">Início</label><input type="date" id="dIni"></div>
+          <div><label for="dFim">Fim</label><input type="date" id="dFim"></div>
+          <button class="principal" type="button" id="dAplicar">Aplicar</button>
+          <div class="periodos" role="group" aria-label="Período rápido"><button type="button" class="sm" data-dias="7">7 dias</button><button type="button" class="sm" data-dias="30">30 dias</button><button type="button" class="sm" data-dias="90">90 dias</button></div>
+        </div>
+        <p class="muted" id="dAtual" style="font-size:13px;margin-top:8px"></p>
+        <p class="alerta" id="dAviso" hidden></p>
+      </div>
+      <div class="grade">
+        <div class="met"><small>Conversas com a IA</small><b data-d="conversas">—</b><span>clientes diferentes por dia, somados</span></div>
+        <div class="met"><small>Clientes novos</small><b data-d="novos">—</b><span>nunca tinham falado com a IA</span></div>
+        <div class="met"><small>Passou para a equipe</small><b data-d="transferidos">—</b><span id="dTaxa">das conversas</span></div>
+        <div class="met"><small>Respostas da IA</small><b data-d="respostas">—</b><span id="dTeste"></span></div>
+      </div>
+      <div class="card">
+        <h3>Conversas com a IA por dia</h3>
+        <div class="grafico" id="dGrafico"></div>
+        <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Ver em tabela</summary><div id="dTabela" style="overflow-x:auto"></div></details>
+      </div>
+      <div class="grade">
+        <div class="met"><small>Follow-ups enviados</small><b data-d="followups">—</b><span id="dRet">e recontatos</span></div>
+        <div class="met"><small>Passadas entre agentes</small><b data-d="passagens">—</b></div>
+        <div class="met"><small>Pedidos e orçamentos</small><b data-d="pedidos">—</b></div>
+        <div class="met"><small>Pausados por parecer robô</small><b data-d="robos">—</b><span>a IA parou e avisou a equipe</span></div>
+      </div>
+      <div class="duas-cards">
+        <div class="card"><h3>Para onde a IA passou</h3><div id="dSetores"></div></div>
+        <div class="card"><h3>Conversas por agente</h3><div id="dAgentes"></div></div>
+      </div>
+    </section>
+
+    <section id="vConhecimento" hidden>
+      <div class="card" id="kTopo" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+      <form id="kForm" hidden>
+        <nav class="sub-abas" id="kAbas" aria-label="Base de conhecimento">
+          <button type="button" data-k="empresa" aria-pressed="true">Empresa</button>
+          <button type="button" data-k="horario">Horário</button>
+          <button type="button" data-k="perguntas">Perguntas e regras</button>
+          <button type="button" data-k="precos">Preços</button>
+        </nav>
+        <div id="kPaineis"></div>
+        <div class="salvar-barra"><span class="muted" id="kSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar base de conhecimento</button></div>
+      </form>
+    </section>
+
+    <section id="vOportunidades" hidden>
+      <div class="card" style="margin-top:0">
+        <div class="filtro">
+          <div id="opFunilCx" hidden><label for="opFunilSel">Funil</label><select id="opFunilSel" style="width:auto"></select></div>
+          <div><label for="opStatus">Mostrar</label><select id="opStatus" style="width:auto"><option value="open">Em aberto</option><option value="won">Ganhas</option><option value="lost">Perdidas</option><option value="all">Todas</option></select></div>
+          <div style="flex:1 1 200px"><label for="opBusca">Buscar</label><input type="search" id="opBusca" placeholder="Nome, telefone ou responsável" style="width:100%"></div>
+          <button type="button" id="opAtualizar">Atualizar</button>
+        </div>
+        <p class="muted" id="opResumo" style="font-size:13px;margin-top:8px"></p>
+        <p class="alerta" id="opAviso" hidden></p>
+      </div>
+      <div class="funil" id="opFunil"></div>
+    </section>
+    <section id="vEstoque" hidden>
+      <div class="card" id="esTopo" style="margin-top:0"><p class="muted">Carregando o estoque…</p></div>
+      <form class="card" id="esForm" hidden>
+        <h3 id="esFormTit">Cadastrar veículo</h3>
+        <input type="hidden" id="esId">
+        <!-- produtos e serviços (segmentos que não são de veículos) -->
+        <div id="esCamposProd" hidden>
+          <label for="esNome">Nome</label><input id="esNome" maxlength="160" placeholder="Ex.: Vassoura de pelo 40 cm">
+          <div class="tres">
+            <div><label for="esGrupo">Grupo</label><input id="esGrupo" maxlength="80" list="esGrupos" placeholder="Ex.: Vassouras"><datalist id="esGrupos"></datalist></div>
+            <div><label for="esUnidade">Unidade</label><select id="esUnidade"></select></div>
+            <div><label for="esPrecoP">Preço <small>(vazio = sob consulta)</small></label><input id="esPrecoP" maxlength="14" inputmode="decimal" placeholder="12,90"></div>
+          </div>
+          <label for="esDescricao">Descrição <small>(a IA usa para explicar)</small></label>
+          <textarea id="esDescricao" maxlength="1500" style="min-height:60px"></textarea>
+        </div>
+        <div id="esCamposVeic">
+        <div class="tres">
+          <div><label for="esMarca">Marca</label><input id="esMarca" maxlength="40" placeholder="Hyundai"></div>
+          <div><label for="esModelo">Modelo</label><input id="esModelo" maxlength="80" placeholder="HB20"></div>
+          <div><label for="esVersao">Versão</label><input id="esVersao" maxlength="80" placeholder="1.0 Comfort"></div>
+        </div>
+        <div class="tres">
+          <div><label for="esAno">Ano</label><input id="esAno" maxlength="9" inputmode="numeric" placeholder="2020/2021"></div>
+          <div><label for="esKm">Km</label><input id="esKm" maxlength="9" inputmode="numeric" placeholder="45000"></div>
+          <div><label for="esCor">Cor</label><input id="esCor" maxlength="30" placeholder="Prata"></div>
+        </div>
+        <div class="tres">
+          <div><label for="esCambio">Câmbio</label><select id="esCambio"><option value="">—</option><option>Manual</option><option>Automático</option><option>CVT</option><option>Automatizado</option></select></div>
+          <div><label for="esComb">Combustível</label><select id="esComb"><option value="">—</option><option>Flex</option><option>Gasolina</option><option>Diesel</option><option>Elétrico</option><option>Híbrido</option></select></div>
+          <div><label for="esCat">Categoria</label><input id="esCat" maxlength="40" list="esCats" placeholder="Hatch"><datalist id="esCats"><option value="Hatch"><option value="Sedã"><option value="SUV"><option value="Picape"><option value="Utilitário"><option value="Moto"></datalist></div>
+        </div>
+        <div class="duas">
+          <div><label for="esPreco">Preço <small>(vazio = sob consulta)</small></label><input id="esPreco" maxlength="14" inputmode="decimal" placeholder="62.900"></div>
+          <div></div>
+        </div>
+        </div>
+        <label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select>
+        <label>Fotos <small>(até 10; a primeira é a capa)</small></label>
+        <div class="fotos-grade" id="esGrade"></div>
+        <label class="bt sm foto-bt" for="esArquivo">📷 Tirar ou escolher fotos</label>
+        <input type="file" id="esArquivo" accept="image/*" multiple hidden>
+        <span class="muted" id="esEnviando" style="font-size:13px;margin-left:8px"></span>
+        <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Colar endereço de foto (https)</summary>
+          <textarea id="esFotos" style="min-height:60px;margin-top:6px" placeholder="https://... (um por linha)"></textarea></details>
+        <div id="esObsBox"><label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
+        <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea></div>
+        <div class="form-bts"><button class="principal" type="submit" id="esSalvar">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>
+      </form>
+      <div class="card" id="esLista"></div>
+    </section>
+
+    <section id="vLista" hidden>
+      <div class="card">
+        <div class="lista-topo" id="listaTopo" hidden><p class="muted" id="listaInfo"></p><button class="sm" type="button" id="listaAtualizar">Atualizar</button></div>
+        <div id="listaItens" style="margin-top:6px"></div>
+        <div class="vazio" id="listaVazio"></div>
+      </div>
+    </section>
+
+    <section id="vCanais" class="estreito" hidden>
+      <div class="card">
+        <h3>WhatsApp da empresa</h3>
+        <div class="ag-dados" id="canaisZap"></div>
+      </div>
+      <div class="card" id="evCard">
+        <h3>Receber as mensagens da LeadVox</h3>
+        <p class="muted" style="margin-top:4px">É por este endereço que a sua IA lê as mensagens do WhatsApp (do cliente e da equipe). Sem ele a IA não responde.</p>
+        <div id="evConteudo"><p class="muted">Carregando…</p></div>
+        <ol class="passos-ev">
+          <li>Na LeadVox, abra <b>Configurações → API</b> (a mesma conexão que você usou em Credenciais de API).</li>
+          <li>No campo <b>Webhook de eventos</b>, cole o endereço acima.</li>
+          <li>Marque o evento <b>Mensagem criada</b> e salve.</li>
+          <li>Mande um "oi" para o WhatsApp da empresa: aqui aparece <b>✓ Recebendo mensagens</b> em até 2 minutos.</li>
+        </ol>
+        <p class="dica">Não use o ChatFlow junto: com o webhook de eventos a IA já recebe tudo e não precisa dele.</p>
+      </div>
+      <div class="card" id="pvCard">
+        <h3>Plugin do Vendedor</h3>
+        <p class="muted" style="margin-top:4px">Abre ao lado do atendimento na LeadVox, já com o cliente e o vendedor. Na aba IA o vendedor vê o que a IA sabe, pausa ou devolve a IA naquele atendimento e agenda um follow-up da IA.</p>
+        <div id="pvConteudo"><p class="muted">Carregando…</p></div>
+        <ol class="passos-ev">
+          <li>Na LeadVox, abra <b>Configurações → Plugins</b> (ou Integrações) e adicione um plugin novo.</li>
+          <li>Cole o link acima e dê o nome <b>LeadVox IA</b>.</li>
+          <li>Abra um atendimento: o plugin aparece na lateral, com o cliente e o vendedor.</li>
+        </ol>
+        <p class="muted" style="font-size:12.5px;margin-top:6px">O link é da sua empresa: quem tem o link usa só o plugin, nunca as senhas da LeadVox.</p>
+      </div>
+    </section>
+
+    <section id="vCredenciais" class="estreito" hidden>
+      <h2 class="sec-tit" style="margin-top:0">OpenAI da sua empresa</h2>
+      <div class="card" id="oaStatus" role="status">Carregando…</div>
+      <form class="card" id="oaForm" hidden>
+        <h3>Conectar sua chave OpenAI</h3>
+        <p class="muted">A IA usará a conta OpenAI da sua empresa. Crie uma chave de projeto com permissão para os modelos, conversa, imagem, transcrição e voz que você usar.</p>
+        <label for="oaChave">Chave de API da OpenAI</label>
+        <input id="oaChave" type="password" autocomplete="new-password" spellcheck="false" placeholder="sk-proj-…" maxlength="503" required>
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">A chave fica criptografada e não reaparece na tela. O teste lê a lista de modelos; ele não confirma saldo nem todas as permissões. Se a chave falhar durante o atendimento, não usamos uma chave de reserva da LeadVox.</p>
+      </form>
+      <h2 class="sec-tit" style="margin-top:0">Chat da LeadVox</h2>
+      <div class="card" id="credStatus"></div>
+      <form class="card" id="credForm" hidden>
+        <h3>Conectar sua LeadVox</h3>
+        <p class="muted" style="margin-top:6px">Na sua LeadVox, abra a área de API e copie a URL da API externa. Ela começa com https://chatapi.leadvox.com.br ou https://chat2api.leadvox.com.br, depois /v1/api/external/ e o código da conta.</p>
+        <label for="credUrl">URL da API da LeadVox</label>
+        <input id="credUrl" autocomplete="off" spellcheck="false" placeholder="https://chatapi.leadvox.com.br/v1/api/external/…">
+        <label for="credToken">Token <small>(só se a LeadVox mostrar o token separado da URL)</small></label>
+        <input id="credToken" type="password" autocomplete="off" spellcheck="false">
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">Testamos com a LeadVox antes de salvar. O token fica criptografado no banco e não aparece de novo na tela.</p>
+      </form>
+
+      <h2 class="sec-tit" id="estTit">Estoque de veículos</h2>
+      <div class="card" id="estStatus"></div>
+      <form class="card" id="estForm" hidden>
+        <h3>De onde vem o seu estoque?</h3>
+        <div class="tipos tres" id="estFontes">
+          <button type="button" class="tipo-op" data-fonte="autocerto" aria-pressed="false"><span class="ic">🔑</span><span><b>AutoCerto</b><small>Código de unidade, usuário e senha da API</small></span></button>
+          <button type="button" class="tipo-op" data-fonte="revendamais" aria-pressed="false"><span class="ic">🔗</span><span><b>Revenda Mais</b><small>Link do feed JSON da loja</small></span></button>
+          <button type="button" class="tipo-op" data-fonte="leadvox" aria-pressed="false"><span class="ic">🚗</span><span><b>Estoque LeadVox</b><small>Você cadastra os veículos na vitrine da LeadVox</small></span></button>
+        </div>
+        <div id="estAC" hidden>
+          <div class="duas">
+            <div><label for="estUnidade">Código de unidade</label><input id="estUnidade" inputmode="numeric" maxlength="12" placeholder="4425"></div>
+            <div><label for="estUsuario">Usuário da API</label><input id="estUsuario" autocomplete="off" maxlength="160" placeholder="loja@autocerto.com"></div>
+          </div>
+          <label for="estSenha">Senha da API</label><input id="estSenha" type="password" autocomplete="new-password" maxlength="500">
+          <p class="muted" style="font-size:13px;margin-top:6px">O AutoCerto passa esses dados para a loja. Se a senha já estiver salva, pode deixar em branco.</p>
+        </div>
+        <div id="estRM" hidden>
+          <label for="estFeed">URL do feed JSON do Revenda Mais</label><input id="estFeed" type="password" autocomplete="off" spellcheck="false" placeholder="https://…/appdaloja/…json">
+          <p class="muted" style="font-size:13px;margin-top:6px">Peça ao Revenda Mais o link do feed de estoque em JSON. Se já estiver salvo, pode deixar em branco.</p>
+        </div>
+        <p class="dica" id="estLV" hidden>Os veículos e as fotos são cadastrados na vitrine da LeadVox. Não precisa de senha.</p>
+        <button class="principal" type="submit" style="margin-top:14px" id="estSalvar">Salvar e testar</button>
+      </form>
+
+      <h2 class="sec-tit">Voz da IA · ElevenLabs</h2>
+      <div class="card" id="elStatus"></div>
+      <form class="card" id="elForm" hidden>
+        <h3>Conectar a ElevenLabs</h3>
+        <p class="muted" style="margin-top:6px">Na ElevenLabs: Developers → API Keys → Create API Key. Libere <b>Text to Speech</b> e <b>Voices</b> (leitura), copie a chave e cole aqui.</p>
+        <label for="elChave">Chave de API da ElevenLabs</label><input id="elChave" type="password" autocomplete="off" spellcheck="false" placeholder="sk_…">
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">Testamos a chave lendo as suas vozes; depois é só escolher a voz na aba Multimodal do agente. O plano grátis da ElevenLabs não permite uso comercial: para atender clientes, use um plano pago.</p>
+      </form>
+
+      <h2 class="sec-tit" id="asTit">Cobranças · Asaas</h2>
+      <div class="card" id="asStatus"></div>
+      <form class="card" id="asForm" hidden>
+        <h3>Conectar o seu Asaas</h3>
+        <p class="muted" style="margin-top:6px">No Asaas: Minha conta → Integrações → Chave de API. Gere a chave e cole aqui. Comece pelo ambiente de teste (sandbox).</p>
+        <label for="asAmb">Ambiente</label>
+        <select id="asAmb"><option value="sandbox">Teste (sandbox)</option><option value="production">Produção (cobra de verdade)</option></select>
+        <label for="asChave">Chave de API do Asaas</label><input id="asChave" type="password" autocomplete="off" spellcheck="false" placeholder="$aact_…">
+        <button class="principal" type="submit" style="margin-top:14px">Conectar e testar</button>
+        <p class="dica">Só testamos a chave lendo seus clientes no Asaas. Nenhuma cobrança é criada daqui ainda.</p>
+      </form>
+    </section>
+
+    <section id="vCobrancas" hidden>
+      <div class="card">
+        <h2>Cobranças</h2>
+        <p class="muted">Clientes, planos e mensalidades da sua empresa. É separado da assinatura que você paga à LeadVox.</p>
+        <p class="alerta">Tudo aqui fica em rascunho: nenhum boleto é emitido, nenhuma mensagem é enviada e nenhum lead muda de etapa.</p>
+        <div class="numeros">
+          <div><b id="nClientes">0</b><small>clientes</small></div>
+          <div><b id="nPlanos">0</b><small>planos</small></div>
+          <div><b id="nRascunhos">0</b><small>recorrências em rascunho</small></div>
+          <div><b id="nPagos">R$ 0,00</b><small>pagamentos confirmados</small></div>
+        </div>
+      </div>
+      <nav class="sub-abas" id="cAbas" aria-label="Financeiro">
+        <button type="button" data-c="customers">Clientes</button>
+        <button type="button" data-c="plans">Planos</button>
+        <button type="button" data-c="contracts">Recorrências</button>
+        <button type="button" data-c="rules">Regras do funil</button>
+        <button type="button" data-c="payments">Cobranças</button>
+      </nav>
+      <div class="card" id="cLista"></div>
+      <form class="card" id="cForm" hidden></form>
+      <div class="card" id="cAgenda" hidden></div>
+    </section>
+
+    <section id="vConta" class="estreito" hidden>
+      <form class="card" id="formConfig">
+        <h2>Sua empresa</h2>
+        <p class="muted" id="emEmail"></p>
+        <label for="cfNome">Nome que aparece no painel</label><input id="cfNome" maxlength="100">
+        <label for="cfNicho">Seu negócio</label><select id="cfNicho"></select>
+        <div class="duas">
+          <div><label for="cfIa">Nome da sua IA</label><input id="cfIa" maxlength="40"></div>
+          <div><label for="cfZap">WhatsApp da empresa</label><input id="cfZap" inputmode="tel" maxlength="20"></div>
+        </div>
+        <label class="check-lin"><input type="checkbox" id="cfCobr"> Usar Cobranças para cobrar meus clientes</label>
+        <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
+      </form>
+      <form class="card" id="formLoja">
+        <h2>Identidade da loja</h2>
+        <p class="muted" style="font-size:14px">Vai no convite em PDF que o vendedor manda pelo plugin: a sua logo, o nome e os contatos da loja, não os da LeadVox.</p>
+        <label for="ljSite">Site da loja</label>
+        <div class="ev-url"><input id="ljSite" maxlength="120" placeholder="www.sualoja.com.br"><button type="button" class="sm" id="ljPuxar">Puxar do site</button></div>
+        <p class="muted" id="ljPuxarInfo" style="font-size:12.5px;margin-top:6px">Lemos a página e preenchemos o que der. Confira antes de salvar.</p>
+        <label>Logo</label>
+        <div class="lj-logo"><div class="lj-logo-img" id="ljLogoImg" aria-live="polite">Sem logo</div>
+          <div><label class="bt sm" for="ljArquivo" style="margin:0">Enviar logo</label><input id="ljArquivo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <button type="button" class="sm leve" id="ljTiraLogo" hidden>Tirar</button>
+            <p class="muted" style="font-size:12px;margin-top:6px">PNG ou JPG. Fica com fundo branco no PDF.</p></div></div>
+        <div class="duas">
+          <div><label for="ljNome">Nome da loja</label><input id="ljNome" maxlength="80"></div>
+          <div><label for="ljCnpj">CNPJ</label><input id="ljCnpj" maxlength="20" inputmode="numeric" placeholder="00.000.000/0000-00"></div>
+        </div>
+        <label for="ljRazao">Razão social <small>(opcional)</small></label><input id="ljRazao" maxlength="120">
+        <div class="duas">
+          <div><label for="ljTel">Telefone</label><input id="ljTel" maxlength="20" inputmode="tel"></div>
+          <div><label for="ljZap">WhatsApp</label><input id="ljZap" maxlength="20" inputmode="tel"></div>
+        </div>
+        <div class="duas">
+          <div><label for="ljEmail">E-mail</label><input id="ljEmail" maxlength="120" type="email"></div>
+          <div><label for="ljInsta">Instagram</label><input id="ljInsta" maxlength="40" placeholder="@sualoja"></div>
+        </div>
+        <label for="ljEnd">Endereço</label><input id="ljEnd" maxlength="160">
+        <label for="ljCor">Cor da loja <small>(faixas e destaques do PDF)</small></label>
+        <div class="lj-cor"><input id="ljCor" type="color" value="#16a34a"><span class="muted" id="ljCorTxt">#16a34a</span></div>
+        <button class="principal" type="submit" style="margin-top:14px">Salvar identidade</button>
+      </form>
+      <form class="card" id="formSenha">
+        <h2>Trocar senha</h2>
+        <label for="nsSenha">Nova senha <small>(12 a 128 caracteres)</small></label><input id="nsSenha" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <button type="submit" style="margin-top:14px">Trocar senha</button>
+      </form>
+    </section>
+
+    <section id="vLeadvox" hidden>
+      <div class="card">
+        <h2>Painel LeadVox</h2>
+        <p class="muted">Só você vê esta aba. Aqui ficam todos os clientes da plataforma.</p>
+        <div class="numeros" id="lvNumeros"></div>
+      </div>
+      <div class="card tabela-cli">
+        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Empresas cadastradas, o negócio de cada uma e o período de teste.</p></div>
+          <button class="sm" type="button" id="lvAtualizar">Atualizar</button></div>
+        <div id="lvLista" style="margin-top:10px"></div>
+      </div>
+      <div class="modulos">
+        <div class="card"><h3>Cobrar seus clientes</h3>
+          <p>As mensalidades dos seus clientes ficam na aba Cobranças da LeadVox: cadastre o cliente, o plano e a recorrência.</p>
+          <button class="principal sm" type="button" data-ir="cobrancas">Abrir cobranças</button></div>
+        <div class="card"><h3>Motores de IA</h3>
+          <p>Os administradores que você já usa para os agentes e para o SDR automotivo.</p>
+          <div class="form-bts" style="margin-top:8px">
+            <a class="bt sm" href="https://leadvox.com.br/admin-motor-ia.html" target="_blank" rel="noopener">Admin agentes ↗</a>
+            <a class="bt sm" href="https://leadvox.com.br/admin-motor-sdr.html" target="_blank" rel="noopener">Admin SDR ↗</a>
+          </div></div>
+      </div>
+    </section>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

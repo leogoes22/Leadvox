@@ -1,0 +1,659 @@
+{
+ "name": "MÓDULO · Oportunidade da proposta (plugin)",
+ "nodes": [
+  {
+   "name": "Webhook",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    300
+   ],
+   "webhookId": "iag-oportunidade",
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "iag-oportunidade",
+    "responseMode": "responseNode",
+    "options": {}
+   }
+  },
+  {
+   "name": "Entrada",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    200,
+    300
+   ],
+   "parameters": {
+    "jsCode": "// Confere o pedido do plugin (n8n antigo hoje, n8n novo depois da migração) antes de tocar no funil.\nconst b = ($input.first().json || {}).body || {};\nconst t = (x, m) => String(x == null ? '' : x).replace(/[\\r\\n]+/g, ' ').trim().slice(0, m);\nconst erro = (status, msg) => [{ json: { ok: false, status, resposta: { ok: false, erro: msg } } }];\nconst conta = t(b.k, 40), token = t(b.t, 30), contactId = t(b.contactId, 12).replace(/\\D/g, '');\nif (!/^[a-z0-9-]{1,24}-[0-9a-f]{8}$/.test(conta) || !/^[0-9a-f]{24}$/.test(token)) return erro(401, 'Chave do plugin inválida.');\nif (!contactId) return erro(400, 'Sem o contato do atendimento.');\nconst tipo = ['proposta', 'orcamento', 'convite'].includes(b.tipo) ? b.tipo : '';\nif (!tipo) return erro(400, 'Tipo de proposta inválido.');\nconst numero = t(b.numero, 20).replace(/[^0-9A-Za-z-]/g, '');\nconst pdfUrl = t(b.pdfUrl, 300);\nif (!numero || !pdfUrl.startsWith('https://dcucemuewipfnneqpgxk.supabase.co/storage/v1/object/public/lv-propostas/' + '')) return erro(400, 'Proposta sem número ou PDF.');\nconst total = Math.max(0, Math.min(Number(b.total) || 0, 1e9));\nconst dias = [3, 7, 15, 30].includes(Number(b.validadeDias)) ? Number(b.validadeDias) : 7;\nreturn [{ json: { ok: true, conta, token, contactId, tipo, numero, pdfUrl, total: Math.round(total * 100) / 100, validadeDias: dias,\n  cliente: t(b.cliente, 80) || 'Cliente', vendedor: t(b.vendedor, 60), resumo: String(b.resumo == null ? '' : b.resumo).slice(0, 1500), titulo: t(b.titulo, 120) } }];"
+   }
+  },
+  {
+   "name": "Entrada OK?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    400,
+    300
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "Entrada OK?",
+       "leftValue": "={{ $json.ok === true }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   }
+  },
+  {
+   "name": "Confere a chave",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    600,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://dcucemuewipfnneqpgxk.supabase.co/rest/v1/rpc/iag_plugin_confere",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ p_conta: $('Entrada').first().json.conta, p_token: $('Entrada').first().json.token }) }}",
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": false,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true,
+   "credentials": {
+    "supabaseApi": {
+     "id": "kSv5bMKquqHLDxI9",
+     "name": "Supabase Agentes LeadVox"
+    }
+   }
+  },
+  {
+   "name": "Rota da conta",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    800,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://dcucemuewipfnneqpgxk.supabase.co/rest/v1/rpc/iag_motor_rota",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ p_conta: $('Entrada').first().json.conta, p_departamento: null }) }}",
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": false,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true,
+   "credentials": {
+    "supabaseApi": {
+     "id": "kSv5bMKquqHLDxI9",
+     "name": "Supabase Agentes LeadVox"
+    }
+   }
+  },
+  {
+   "name": "Preparar",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1000,
+    200
+   ],
+   "parameters": {
+    "jsCode": "// Chave conferida no banco + endereço da LeadVox da conta (a API de funil usa o mesmo token do envio).\nconst e = $('Entrada').first().json;\nconst conf = $('Confere a chave').first().json;\nconst ok = conf === true || conf.data === true || conf[''] === true || Object.values(conf || {}).includes(true);\nif (!ok) return [{ json: { ok: false, status: 401, resposta: { ok: false, erro: 'Chave do plugin não confere.' } } }];\nconst url = String(((($('Rota da conta').first().json || {}).conexao) || {}).urlEnvio || '');\nconst m = url.match(/^(https:\\/\\/[^?#]+)\\/api\\/external\\/([^/?#]+)\\/?\\?(?:.*&)?token=([^&#]+)/);\nif (!m) return [{ json: { ok: false, status: 409, resposta: { ok: false, erro: 'A conta não tem a LeadVox conectada.' } } }];\nreturn [{ json: { ok: true, base: m[1] + '/api/external/' + m[2], urlUsuarios: m[1] + '/api/external/users/' + m[2], token: decodeURIComponent(m[3]) } }];"
+   }
+  },
+  {
+   "name": "Conta OK?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    1200,
+    200
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "Conta OK?",
+       "leftValue": "={{ $json.ok === true }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   }
+  },
+  {
+   "name": "Oportunidades abertas",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1400,
+    100
+   ],
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Preparar').first().json.base }}/opportunities?status=open&contactId={{ $('Entrada').first().json.contactId }}",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Authorization",
+       "value": "=Bearer {{ $('Preparar').first().json.token }}"
+      }
+     ]
+    },
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Etapas do funil",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1600,
+    100
+   ],
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Preparar').first().json.base }}/pipeline-steps",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Authorization",
+       "value": "=Bearer {{ $('Preparar').first().json.token }}"
+      }
+     ]
+    },
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Usuários",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1800,
+    100
+   ],
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Preparar').first().json.urlUsuarios }}",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Authorization",
+       "value": "=Bearer {{ $('Preparar').first().json.token }}"
+      }
+     ]
+    },
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Decidir",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2000,
+    100
+   ],
+   "parameters": {
+    "jsCode": "// Cria ou atualiza a oportunidade do contato. Cliente com oportunidade aberta não ganha outra (funil sem duplicado).\n// Etapa: a chamada \"Proposta\"/\"Orçamento\" do funil, se existir; oportunidade que já passou dela não volta.\nconst e = $('Entrada').first().json;\nconst lista = (r) => { const x = r && (r.body !== undefined ? r.body : r); return Array.isArray(x) ? x : (x && (Array.isArray(x.data) ? x.data : Array.isArray(x.users) ? x.users : Array.isArray(x.opportunities) ? x.opportunities : [])) || []; };\nconst resp = (n) => { try { return $(n).first().json || {}; } catch (er) { return {}; } };\nconst etapas = lista(resp('Etapas do funil'));\nconst users = lista(resp('Usuários'));\nconst abertas = lista(resp('Oportunidades abertas')).filter(o => String(o.contactId) === e.contactId && (!o.status || o.status === 'open'));\nif (!etapas.length) return [{ json: { acao: 'pular', motivo: 'o funil da conta não tem etapas (ou a LeadVox recusou)' } }];\nconst ordem = (s) => Number(s.order != null ? s.order : s.position) || 999;\nconst norm = (s) => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();\nconst existente = abertas.sort((a, b) => Number(b.id) - Number(a.id))[0] || null;\nconst atual = existente ? etapas.find(s => Number(s.id) === Number(existente.pipelineStepId)) : null;\nconst funil = atual ? atual.pipelineId : (etapas.slice().sort((a, b) => ordem(a) - ordem(b))[0] || {}).pipelineId;\nconst doFunil = etapas.filter(s => funil == null || s.pipelineId == null || String(s.pipelineId) === String(funil)).sort((a, b) => ordem(a) - ordem(b));\nconst etapaProposta = doFunil.find(s => /propost|orcament|convite/.test(norm(s.name)));\nlet etapa = atual || doFunil[0];\nif (etapaProposta && (!atual || ordem(etapaProposta) > ordem(atual))) etapa = etapaProposta;\nconst admin = users.find(u => /admin/i.test(String(u.profile || ''))) || users[0];\nif (!admin) return [{ json: { acao: 'pular', motivo: 'nenhum usuário na conta' } }];\nconst v = norm(e.vendedor);\nconst vend = v ? (users.find(u => norm(u.name) === v) || users.find(u => norm(u.name).startsWith(v) || v.startsWith(norm(u.name)))) : null;\nconst responsavel = (vend && vend.id) || (existente && existente.responsibleId) || admin.id;\nconst hoje = new Date(), fim = new Date(hoje.getTime() + e.validadeDias * 864e5);\nconst dd = (d) => d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst brl = (n) => 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\nconst nomeTipo = { proposta: 'Proposta comercial', orcamento: 'Proposta de orçamento', convite: 'Convite' }[e.tipo];\nconst bloco = '📄 ' + nomeTipo + ' nº ' + e.numero + ' enviada pelo plugin em ' + dd(hoje) + (e.vendedor ? ' por ' + e.vendedor : '') +\n  (e.titulo ? '\\n' + e.titulo : '') + (e.total ? '\\nTotal: ' + brl(e.total) : '') + '\\nVálida até ' + dd(fim) + '\\nPDF: ' + e.pdfUrl + (e.resumo ? '\\n' + e.resumo : '');\nconst descricao = existente && existente.description ? String(existente.description).slice(0, 4000) + '\\n\\n' + bloco : bloco;\nconst corpo = {\n  name: (existente && existente.name) || ((e.tipo === 'convite' ? 'Convite ' : 'Proposta ') + e.numero + ' — ' + e.cliente).slice(0, 120),\n  description: descricao.slice(0, 6000),\n  value: e.total || (existente && Number(existente.value)) || 0,\n  expectedCloseDate: fim.toISOString().slice(0, 10),\n  pipelineStepId: Number(etapa.id),\n  contactId: Number(e.contactId),\n  userId: String(admin.id)\n};\n// a API aceita responsibleId como texto ao criar, mas só número ao atualizar (testado no SDR Motor, out/2026);\n// ao atualizar ela também exige o contactId (sem ele: ERR_OPPORTUNITY_INVALID_CONTACT, testado em 28/10/2026)\ncorpo.responsibleId = existente ? Number(responsavel) : String(responsavel);\nreturn [{ json: { acao: existente ? 'atualizar' : 'criar', id: existente ? existente.id : null, etapa: etapa.name, corpo } }];"
+   }
+  },
+  {
+   "name": "Criar ou atualizar?",
+   "type": "n8n-nodes-base.switch",
+   "typeVersion": 3.2,
+   "position": [
+    2200,
+    100
+   ],
+   "parameters": {
+    "rules": {
+     "values": [
+      {
+       "conditions": {
+        "options": {
+         "caseSensitive": true,
+         "leftValue": "",
+         "typeValidation": "strict",
+         "version": 2
+        },
+        "conditions": [
+         {
+          "leftValue": "={{ $json.acao }}",
+          "rightValue": "criar",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          }
+         }
+        ],
+        "combinator": "and"
+       },
+       "renameOutput": true,
+       "outputKey": "criar"
+      },
+      {
+       "conditions": {
+        "options": {
+         "caseSensitive": true,
+         "leftValue": "",
+         "typeValidation": "strict",
+         "version": 2
+        },
+        "conditions": [
+         {
+          "leftValue": "={{ $json.acao }}",
+          "rightValue": "atualizar",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          }
+         }
+        ],
+        "combinator": "and"
+       },
+       "renameOutput": true,
+       "outputKey": "atualizar"
+      }
+     ]
+    },
+    "options": {
+     "fallbackOutput": "extra",
+     "renameFallbackOutput": "pular"
+    }
+   }
+  },
+  {
+   "name": "Criar oportunidade",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2400,
+    0
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Preparar').first().json.base }}/opportunities",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Authorization",
+       "value": "=Bearer {{ $('Preparar').first().json.token }}"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Atualizar oportunidade",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2400,
+    150
+   ],
+   "parameters": {
+    "method": "PUT",
+    "url": "={{ $('Preparar').first().json.base }}/opportunities/{{ $json.id }}",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Authorization",
+       "value": "=Bearer {{ $('Preparar').first().json.token }}"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+    "options": {
+     "timeout": 15000,
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "name": "Resultado",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2600,
+    100
+   ],
+   "parameters": {
+    "jsCode": "// Resposta para o plugin: a frase que o vendedor vê depois de enviar.\nconst d = $('Decidir').first().json;\nif (d.acao === 'pular') return [{ json: { status: 200, resposta: { ok: false, funil: 'Não lancei no funil: ' + d.motivo + '.' } } }];\nconst r = $input.first().json || {}, s = Number(r.statusCode) || 0, b = r.body || {};\nconst id = (b.data && b.data.id) || b.id || d.id;\nif (s < 200 || s >= 300) return [{ json: { status: 502, resposta: { ok: false, funil: 'Não consegui lançar no funil (LeadVox ' + s + ').', detalhe: JSON.stringify(b).slice(0, 300) } } }];\nreturn [{ json: { status: 200, resposta: { ok: true, id, acao: d.acao, etapa: d.etapa,\n  funil: (d.acao === 'criar' ? 'Oportunidade criada no funil' : 'Oportunidade do cliente atualizada no funil') + (d.etapa ? ' (etapa ' + d.etapa + ')' : '') + '.' } } }];"
+   }
+  },
+  {
+   "name": "Responder",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    2800,
+    300
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ JSON.stringify($json.resposta) }}",
+    "options": {
+     "responseCode": "={{ $json.status || 200 }}"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Webhook": {
+   "main": [
+    [
+     {
+      "node": "Entrada",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Entrada": {
+   "main": [
+    [
+     {
+      "node": "Entrada OK?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Entrada OK?": {
+   "main": [
+    [
+     {
+      "node": "Confere a chave",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Responder",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Confere a chave": {
+   "main": [
+    [
+     {
+      "node": "Rota da conta",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rota da conta": {
+   "main": [
+    [
+     {
+      "node": "Preparar",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Preparar": {
+   "main": [
+    [
+     {
+      "node": "Conta OK?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Conta OK?": {
+   "main": [
+    [
+     {
+      "node": "Oportunidades abertas",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Responder",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Oportunidades abertas": {
+   "main": [
+    [
+     {
+      "node": "Etapas do funil",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Etapas do funil": {
+   "main": [
+    [
+     {
+      "node": "Usuários",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Usuários": {
+   "main": [
+    [
+     {
+      "node": "Decidir",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Decidir": {
+   "main": [
+    [
+     {
+      "node": "Criar ou atualizar?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Criar ou atualizar?": {
+   "main": [
+    [
+     {
+      "node": "Criar oportunidade",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Atualizar oportunidade",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Resultado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Criar oportunidade": {
+   "main": [
+    [
+     {
+      "node": "Resultado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Atualizar oportunidade": {
+   "main": [
+    [
+     {
+      "node": "Resultado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Resultado": {
+   "main": [
+    [
+     {
+      "node": "Responder",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "America/Sao_Paulo",
+  "saveDataSuccessExecution": "all"
+ }
+}
