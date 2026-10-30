@@ -10,13 +10,16 @@ Implementado no painel, banco e proxy. Não altera n8n antigo nem substitui a ch
    Emissão e resgate são RPCs exclusivas de service_role. A chave real fica no Vault e só o proxy a lê.
 3. Criar uma NOVA credencial OpenAI no n8n novo, sem modificar `OpenAI LeadVox`:
    - Nome: `OpenAI por empresa (proxy)`.
-   - API Key em modo Expression: `{{ $('OpenAI da Empresa').first().json.token }}`.
+   - API Key em modo Expression: `{{ (() => { try { return $('OpenAI da Empresa').first().json.token; } catch { return 'lvai_unavailable'; } })() }}`.
    - Base URL: `https://dcucemuewipfnneqpgxk.supabase.co/functions/v1/openai-proxy/v1`.
    - Organization ID vazio, sem cabeçalhos globais, sem chave real.
-   O teste de credencial fora de uma execução não tem um grant e deve falhar fechado.
+   Fora de uma execução, a expressão retorna `lvai_unavailable`, que o proxy recusa. Isso permite salvar a configuração sem um nó executado; não é uma chave de reserva. O teste de credencial fora de uma execução deve falhar fechado.
 4. Exportar os fluxos atuais de Atendimento e Simulador do n8n novo e converter com
    `comOpenAIPropria(export, {credentialId, homologacao:true})` em `openai-por-empresa.mjs`.
    Importar como CÓPIAS DESLIGADAS, sem substituir as versões publicadas.
+   Ao importar pelo clipboard, o n8n não aplica `settings`: abrir Settings e selecionar
+   `Do not save` em execuções com falha, sucesso, manuais e progresso, salvando em seguida.
+   Manter Error Workflow em `No Workflow` na homologação.
    A cópia tem webhook separado e envios externos bloqueados. Usa os dados do motor existente:
    testar somente uma empresa/contato de homologação isolados, pois Redis e estado ainda são compartilhados.
 5. Cadastrar chave da empresa pelo painel. O teste lê `/v1/models`, sem gerar tokens;

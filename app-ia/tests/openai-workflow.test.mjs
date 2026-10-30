@@ -10,7 +10,11 @@ test('workflow copy uses tenant grant for every OpenAI node, saves no secrets an
   {name:'Voz OpenAI',type:'n8n-nodes-base.httpRequest',credentials:{openAiApi:{id:'global'}},parameters:{url:'https://api.openai.com/v1/audio/speech'}},
   {name:'Enviar LeadVox',type:'n8n-nodes-base.httpRequest',parameters:{url:'https://chatapi.leadvox.com.br'}}
  ],connections:{Agente:{main:[[{node:'Classificar Mídia',type:'main',index:0}]]}},settings:{saveDataSuccessExecution:'all'}};
+ source.settings.errorWorkflow='alerts';
+ for(const name of ['Enviar Resposta Fixa','ETQ Criar Origem','ETQ PUT Status','ETQ PUT Origem','ETQ Limpar Contato','ETQ Gravar no Contato'])source.nodes.push({name,type:'n8n-nodes-base.httpRequest',parameters:{method:'POST'}});
  const w=comOpenAIPropria(source,{credentialId:'tenant'});
+ assert.equal(w.settings.errorWorkflow,undefined);
+ for(const n of w.nodes.filter(n=>n.name.startsWith('ETQ ')||n.name==='Enviar Resposta Fixa'))assert.equal(n.type,'n8n-nodes-base.code');
  assert.equal(source.active,true);assert.equal(source.nodes[3].credentials.openAiApi.id,'global');
  assert.equal(w.active,false);assert.equal(w.pinData,undefined);assert.equal(w.id,undefined);
  assert.equal(w.settings.saveDataErrorExecution,'none');assert.equal(w.settings.saveManualExecutions,false);
