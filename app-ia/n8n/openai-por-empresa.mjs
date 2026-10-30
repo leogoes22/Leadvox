@@ -41,7 +41,8 @@ export function comOpenAIPropria(source,{credentialId,homologacao=true}={}){
    n.parameters.path+='-openai-hml';delete n.webhookId;
   }
   // A cópia do atendimento não pode disparar envios, nem transferências, por engano.
-  const sendNames=['Enviar LeadVox','Enviar Nota Interna','Chamar Próximo Agente','Enviar Aviso Gerente','AÇÕES Enviar','ETQ Criar Tags'];
+  delete w.settings.errorWorkflow;
+  const sendNames=['Enviar LeadVox','Enviar Resposta Fixa','Enviar Nota Interna','Chamar Próximo Agente','Enviar Aviso Gerente','AÇÕES Enviar','ETQ Criar Tags','ETQ Criar Origem','ETQ PUT Status','ETQ PUT Origem','ETQ Limpar Contato','ETQ Gravar no Contato'];
   for(const n of w.nodes)if(sendNames.includes(n.name)){
    n.type='n8n-nodes-base.code';n.typeVersion=2;delete n.credentials;
    n.parameters={jsCode:"return $input.all().map(i=>({json:{...i.json,homologacao:true,envioBloqueado:true}}));"};
