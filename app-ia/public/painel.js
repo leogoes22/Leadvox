@@ -297,13 +297,19 @@ function pedirAceite() {
 }
 
 /* ═══════════ EMPRESA E SUPORTE ═══════════ */
+const suporteAberto = () => { try { return JSON.parse(localStorage.getItem('lv_suporte') || '[]'); } catch { return []; } };
+function marcarSuporte(id, aberto) {
+  const l = suporteAberto().filter(x => x !== id); if (aberto) l.push(id);
+  try { localStorage.setItem('lv_suporte', JSON.stringify(l)); } catch {}
+}
 // Seletor de empresa (quem tem mais de uma) e o aviso do acesso de suporte da LeadVox.
 function desenharEmpresas() {
   const orgs = conta.organizations || [], sel = $('cabEmpresa');
   sel.hidden = orgs.length < 2;
   sel.innerHTML = orgs.map(o => `<option value="${esc(o.id)}"${o.id === empresa.id ? ' selected' : ''}>${esc(o.name)}${o.role === 'owner' ? '' : ' · suporte'}</option>`).join('');
   sel.onchange = () => { try { localStorage.setItem('lv_empresa', sel.value); } catch {} carregar().catch(err => toast(err.message, true)); };
-  const suporte = conta.platformAdmin && empresa.role !== 'owner';
+  // aviso só nas empresas em que o admin entrou pelo Gerenciar → Entrar como suporte (anotado neste aparelho)
+  const suporte = conta.platformAdmin && empresa.role !== 'owner' && suporteAberto().includes(empresa.id);
   $('suporteAviso').hidden = !suporte;
   if (suporte) {
     $('suporteAviso').innerHTML = `<span>🛟</span><div><b>Modo suporte: você está no painel de ${esc(empresa.name)}</b>
@@ -312,6 +318,7 @@ function desenharEmpresas() {
     $('supSair').onclick = async () => {
       try { await api('admin-suporte', { organization: empresa.id, encerrar: true }); } catch (err) { return toast(err.message, true); }
       try { localStorage.removeItem('lv_empresa'); } catch {}
+      marcarSuporte(empresa.id, false);
       toast('Suporte encerrado.'); carregar().catch(err => toast(err.message, true));
     };
   }
@@ -1832,9 +1839,10 @@ document.querySelectorAll('[data-em]').forEach(b => b.onclick = async () => {
     if (acao === 'suporte') {
       await api('admin-suporte', { organization: e.id, horas: Number($('emHoras').value), motivo: $('emMotivo').value.trim() });
       try { localStorage.setItem('lv_empresa', e.id); } catch {}
+      marcarSuporte(e.id, true);
       $('dlgEmpresa').close(); toast('Entrando no painel de ' + e.nome + '…'); return carregar();
     }
-    if (acao === 'suporte-fim') { await api('admin-suporte', { organization: e.id, encerrar: true }); toast('Suporte encerrado.'); }
+    if (acao === 'suporte-fim') { await api('admin-suporte', { organization: e.id, encerrar: true }); marcarSuporte(e.id, false); toast('Suporte encerrado.'); }
     else {
       const dados = acao === 'estender' ? { dias: Number(b.dataset.dias) } : acao === 'plano' ? { plano: $('emPlano').value } : acao === 'cortesia' ? { ate: $('emCortesia').value } : acao === 'obs' ? { texto: $('emObs').value } : {};
       await api('admin-acao', { organization: e.id, acao, dados });
