@@ -435,3 +435,9 @@ textarea { min-height: 90px; resize: vertical; }
 .aceite input { width: auto; margin-top: 3px; }
 .legal-links { margin-top: 14px; font-size: 12.5px; color: var(--suave); text-align: center; }
 .legal-links a { color: var(--suave); }
+/* olhinho para mostrar/ocultar senha e chaves */
+.campo-senha { position: relative; }
+.campo-senha input { padding-right: 44px; }
+.olho { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: auto; background: none; border: 0; padding: 6px 8px; color: var(--suave); cursor: pointer; line-height: 0; }
+.olho:hover { color: var(--texto); }
+.olho svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

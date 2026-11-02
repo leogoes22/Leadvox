@@ -33,6 +33,24 @@ const MODOS = {
   password: { t: 'Crie sua nova senha', s: 'Use de 12 a 128 caracteres.', b: 'Salvar senha e entrar', senha: 1 }
 };
 
+// Olhinho em todo campo de senha ou chave: mostra ou oculta o que foi digitado, para conferir antes de enviar.
+const OLHO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const OLHO_RISCADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>';
+function ocultarSenha(inp) {
+  const bt = inp.parentNode.querySelector('.olho'); inp.type = 'password';
+  if (bt) { bt.innerHTML = OLHO; bt.setAttribute('aria-pressed', 'false'); bt.setAttribute('aria-label', 'Mostrar o que foi digitado'); }
+}
+document.querySelectorAll('input[type=password]').forEach(inp => {
+  const caixa = document.createElement('div'); caixa.className = 'campo-senha';
+  inp.parentNode.insertBefore(caixa, inp); caixa.appendChild(inp);
+  const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'olho';
+  bt.onclick = () => {
+    if (inp.type !== 'password') return ocultarSenha(inp);
+    inp.type = 'text'; bt.innerHTML = OLHO_RISCADO; bt.setAttribute('aria-pressed', 'true'); bt.setAttribute('aria-label', 'Ocultar o que foi digitado');
+  };
+  caixa.appendChild(bt); ocultarSenha(inp);
+});
+
 function setModo(m) {
   modo = m; const c = MODOS[m];
   $('pTitulo').textContent = c.t; $('pSub').textContent = c.s; $('btPorta').textContent = c.b;
@@ -40,7 +58,7 @@ function setModo(m) {
   $('campoAceite').hidden = !c.aceite; $('pAceite').checked = false;
   $('rotSenha').textContent = m === 'login' ? 'Senha' : 'Nova senha';
   $('pSenha').autocomplete = m === 'login' ? 'current-password' : 'new-password';
-  $('pSenha').value = ''; $('pCodigo').value = '';
+  $('pSenha').value = ''; $('pCodigo').value = ''; ocultarSenha($('pSenha'));
   $('pLinks').hidden = m !== 'login'; $('btVoltarPorta').hidden = m === 'login' || m === 'password';
   mostra($('pErro')); mostra($('pOk'));
 }
@@ -58,7 +76,7 @@ $('formPorta').onsubmit = async e => {
   try {
     if (modo === 'signup' && !$('pAceite').checked) throw Error('Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.');
     const d = await api(modo, { email: $('pEmail').value, password: $('pSenha').value, code: $('pCodigo').value.trim(), type: tipoCodigo, aceite: modo === 'signup' ? $('pAceite').checked : undefined });
-    $('pSenha').value = '';
+    $('pSenha').value = ''; ocultarSenha($('pSenha'));
     if (modo === 'recover') { tipoCodigo = 'recovery'; setModo('verify'); mostra($('pOk'), 'Se o e-mail tiver conta, o código chega em instantes. Olhe também o spam.'); }
     else if (modo === 'verify' && tipoCodigo === 'recovery') setModo('password');
     else if (d.confirmationRequired) { tipoCodigo = 'signup'; setModo('verify'); mostra($('pOk'), 'Conta criada. Mandamos um código para o seu e-mail. Olhe também o spam.'); }
