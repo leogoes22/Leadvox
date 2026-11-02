@@ -1,0 +1,189 @@
+{
+ "name": "COBRANÇA · Avisos e resgate (WhatsApp)",
+ "nodes": [
+  {
+   "name": "A cada 30 minutos",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    200
+   ],
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "minutes",
+       "minutesInterval": 30
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "Rota de envio",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    220,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://dcucemuewipfnneqpgxk.supabase.co/rest/v1/rpc/iag_motor_rota",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "{\"p_conta\":\"leadvox-ia-420245d9\",\"p_departamento\":null}",
+    "options": {
+     "timeout": 30000,
+     "response": {
+      "response": {
+       "neverError": true
+      }
+     }
+    }
+   },
+   "credentials": {
+    "supabaseApi": {
+     "id": "kSv5bMKquqHLDxI9",
+     "name": "Supabase Agentes LeadVox"
+    }
+   },
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "name": "Avisos pendentes",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    440,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://dcucemuewipfnneqpgxk.supabase.co/rest/v1/rpc/iag_saas_avisos_pendentes",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "{}",
+    "options": {
+     "timeout": 30000,
+     "response": {
+      "response": {
+       "neverError": true
+      }
+     }
+    }
+   },
+   "credentials": {
+    "supabaseApi": {
+     "id": "kSv5bMKquqHLDxI9",
+     "name": "Supabase Agentes LeadVox"
+    }
+   },
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "name": "Enviar avisos",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    200
+   ],
+   "parameters": {
+    "jsCode": "// Monta e manda cada aviso pelo WhatsApp da LeadVox e devolve o resultado para o banco.\n// Sem WhatsApp cadastrado fica \"sem contato\" (o aviso do topo do painel continua valendo).\nconst url = String((($('Rota de envio').first().json || {}).conexao || {}).urlEnvio || '');\nconst brl = c => (Number(c || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });\nconst T = {\n  'teste-3': a => 'Oi! Aqui é a LeadVox 👋 Faltam 3 dias do teste grátis da IA na ' + a.nome + '. Para ela continuar atendendo sem parar, é só assinar: ' + a.link,\n  'teste-1': a => 'Oi! Falta 1 dia do teste grátis da IA na ' + a.nome + '. Assine para ela seguir atendendo seus clientes: ' + a.link,\n  'teste-0': a => 'O teste grátis da IA na ' + a.nome + ' termina hoje. Para ela continuar atendendo, assine aqui: ' + a.link,\n  'teste-acabou': a => 'O teste grátis da IA na ' + a.nome + ' terminou ontem. Ela atende até amanhã e depois fica pausada até a assinatura. Assine aqui: ' + a.link,\n  'teste-pausada': a => 'A IA da ' + a.nome + ' foi pausada porque o teste terminou. Assim que você assinar, ela volta a atender sozinha: ' + a.link,\n  'carrinho-1h': a => 'Vi que você começou a assinatura da LeadVox IA para a ' + a.nome + ', mas o pagamento ainda não foi concluído. Para terminar, é só abrir: ' + a.link,\n  'carrinho-1d': a => 'Passando para lembrar: a assinatura da LeadVox IA da ' + a.nome + ' está esperando o pagamento. Leva menos de 2 minutos: ' + a.link,\n  'carrinho-3d': a => 'Última lembrança 🙂 A assinatura da ' + a.nome + ' ainda está aberta. Ficou com alguma dúvida? É só responder esta mensagem. Para pagar: ' + a.link,\n  fatura: a => 'Sua fatura da LeadVox IA (' + brl(a.valorCents) + ') já está disponível, com vencimento em ' + a.vencimento + ': ' + a.link,\n  'vence-amanha': a => 'Lembrete: a fatura da LeadVox IA da ' + a.nome + ' (' + brl(a.valorCents) + ') vence amanhã, ' + a.vencimento + '. Para pagar: ' + a.link,\n  pago: a => 'Pagamento confirmado ✅ Obrigado! A assinatura da LeadVox IA da ' + a.nome + ' está ativa.',\n  'atraso-1': a => 'A fatura da LeadVox IA da ' + a.nome + ' venceu ontem. Para a IA não ser pausada, pague por aqui: ' + a.link,\n  'atraso-3': a => 'A fatura da ' + a.nome + ' está 3 dias atrasada. Daqui a 2 dias a IA é pausada. Para pagar: ' + a.link,\n  suspensa: a => 'A IA da ' + a.nome + ' foi pausada por falta de pagamento. Assim que o pagamento cair, ela volta a atender sozinha: ' + a.link,\n  lembrete: a => 'Oi! Segue o link da assinatura da LeadVox IA da ' + a.nome + ': ' + a.link\n};\nconst lista = $input.all().map(i => i.json).flatMap(j => Array.isArray(j) ? j : (j && j.id ? [j] : []));\nconst out = [];\nfor (const a of lista) {\n  let tel = String(a.telefone || '').replace(/\\D/g, ''); if (tel.length === 10 || tel.length === 11) tel = '55' + tel;\n  if (!url) { out.push({ json: { p_id: a.id, p_status: 'falhou', p_erro: 'sem rota de envio da LeadVox' } }); continue; }\n  if (!/^55\\d{10,11}$/.test(tel)) { out.push({ json: { p_id: a.id, p_status: 'sem_contato', p_erro: 'sem WhatsApp' } }); continue; }\n  try {\n    const r = await this.helpers.httpRequest({ method: 'POST', url, json: true, timeout: 20000, returnFullResponse: true, ignoreHttpStatusErrors: true,\n      body: { number: tel, body: (T[a.tipo] || T.lembrete)(a), externalKey: 'iag-cobranca-' + a.id } });\n    const s = Number(r.statusCode) || 0;\n    out.push({ json: { p_id: a.id, p_status: s >= 200 && s < 300 ? 'enviado' : 'falhou', p_erro: s >= 200 && s < 300 ? '' : 'LeadVox respondeu ' + s } });\n  } catch (e) { out.push({ json: { p_id: a.id, p_status: 'falhou', p_erro: String(e.message || e).slice(0, 200) } }); }\n  await new Promise(r => setTimeout(r, 1000)); // sem rajada no WhatsApp\n}\nreturn out;"
+   }
+  },
+  {
+   "name": "Gravar resultado",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    880,
+    200
+   ],
+   "parameters": {
+    "method": "POST",
+    "url": "https://dcucemuewipfnneqpgxk.supabase.co/rest/v1/rpc/iag_saas_aviso_resultado",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json) }}",
+    "options": {
+     "timeout": 30000,
+     "response": {
+      "response": {
+       "neverError": true
+      }
+     }
+    }
+   },
+   "credentials": {
+    "supabaseApi": {
+     "id": "kSv5bMKquqHLDxI9",
+     "name": "Supabase Agentes LeadVox"
+    }
+   },
+   "onError": "continueRegularOutput"
+  }
+ ],
+ "connections": {
+  "A cada 30 minutos": {
+   "main": [
+    [
+     {
+      "node": "Rota de envio",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rota de envio": {
+   "main": [
+    [
+     {
+      "node": "Avisos pendentes",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Avisos pendentes": {
+   "main": [
+    [
+     {
+      "node": "Enviar avisos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Enviar avisos": {
+   "main": [
+    [
+     {
+      "node": "Gravar resultado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "America/Sao_Paulo",
+  "saveDataSuccessExecution": "none",
+  "saveDataErrorExecution": "all"
+ }
+}

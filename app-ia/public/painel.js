@@ -170,7 +170,10 @@ async function salvarCfg(mudancas) {
 
 async function carregar() {
   conta = await api('me');
-  empresa = (conta.organizations || [])[0] || null;
+  // Mais de uma empresa (ex.: acesso de suporte da LeadVox): lembra a última escolhida neste aparelho.
+  const orgs = conta.organizations || [];
+  let salva = ''; try { salva = localStorage.getItem('lv_empresa') || ''; } catch {}
+  empresa = orgs.find(o => o.id === salva) || orgs.find(o => o.role === 'owner') || orgs[0] || null;
   cfg = {};
   if (empresa) {
     try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); cfg = w.workspace?.[0]?.settings || {}; } catch {}
@@ -268,8 +271,119 @@ function abrirApp(pg) {
   carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); });
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
   carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); if (abaAtual === 'agentes') desenharPronto(); }).catch(() => {});
-  abrir(pg);
+  desenharEmpresas();
+  assin = null; $('planoAviso').hidden = true;
+  const querAssinar = pg === 'assinar';
+  carregarAssinatura().then(() => { if (querAssinar) abrirAssinar(); }).catch(() => {});
+  abrir(querAssinar ? 'conta' : pg);
 }
+
+/* ═══════════ EMPRESA E SUPORTE ═══════════ */
+// Seletor de empresa (quem tem mais de uma) e o aviso do acesso de suporte da LeadVox.
+function desenharEmpresas() {
+  const orgs = conta.organizations || [], sel = $('cabEmpresa');
+  sel.hidden = orgs.length < 2;
+  sel.innerHTML = orgs.map(o => `<option value="${esc(o.id)}"${o.id === empresa.id ? ' selected' : ''}>${esc(o.name)}${o.role === 'owner' ? '' : ' · suporte'}</option>`).join('');
+  sel.onchange = () => { try { localStorage.setItem('lv_empresa', sel.value); } catch {} carregar().catch(err => toast(err.message, true)); };
+  const suporte = conta.platformAdmin && empresa.role !== 'owner';
+  $('suporteAviso').hidden = !suporte;
+  if (suporte) {
+    $('suporteAviso').innerHTML = `<span>🛟</span><div><b>Modo suporte: você está no painel de ${esc(empresa.name)}</b>
+      <p>O que você mudar aqui vale para o cliente. O acesso fica registrado e termina sozinho.</p>
+      <div class="bts"><button class="sm" type="button" id="supSair">Encerrar suporte e voltar</button></div></div>`;
+    $('supSair').onclick = async () => {
+      try { await api('admin-suporte', { organization: empresa.id, encerrar: true }); } catch (err) { return toast(err.message, true); }
+      try { localStorage.removeItem('lv_empresa'); } catch {}
+      toast('Suporte encerrado.'); carregar().catch(err => toast(err.message, true));
+    };
+  }
+}
+
+/* ═══════════ ASSINATURA ═══════════ */
+let assin = null;
+const FORMA_NOME = { CREDIT_CARD: 'Cartão de crédito', PIX: 'Pix', BOLETO: 'Boleto' };
+const FATURA_NOME = { pago: 'Paga', pendente: 'Em aberto', vencida: 'Vencida', estornada: 'Estornada', cancelada: 'Cancelada' };
+async function carregarAssinatura() {
+  assin = await api('assinatura?organization=' + encodeURIComponent(empresa.id));
+  desenharPlanoAviso(); desenharAssinatura();
+}
+// Aviso do topo em todas as telas: contagem do teste, pagamento em aberto, atraso e suspensão.
+function desenharPlanoAviso() {
+  const el = $('planoAviso'), a = assin;
+  if (!a || ['ativa', 'cortesia'].includes(a.status)) { el.hidden = true; return; }
+  const venc = a.proximoVencimento ? dataBR(a.proximoVencimento) : '';
+  let cls = '', dias = '', t = '', p = '', bt = 'Assinar agora', pagar = false;
+  if (a.status === 'teste') {
+    dias = a.diasTeste; cls = a.diasTeste <= 2 ? 'aviso' : '';
+    t = a.diasTeste === 0 ? 'Seu teste grátis termina hoje' : `Faltam ${a.diasTeste} ${a.diasTeste === 1 ? 'dia' : 'dias'} do seu teste grátis`;
+    p = 'Assine para a IA continuar atendendo sem parar. O pagamento só começa quando o teste acabar.';
+  } else if (a.status === 'expirado') {
+    cls = 'erro'; dias = '0'; t = 'Seu teste grátis terminou';
+    p = 'Assine para a IA voltar a atender. Leva menos de 2 minutos.';
+  } else if (a.status === 'aguardando') {
+    cls = 'aviso'; t = 'Falta só concluir o pagamento'; p = venc ? 'A primeira fatura vence em ' + venc + '.' : 'Sua assinatura está esperando o pagamento.';
+    bt = 'Pagar agora'; pagar = true;
+  } else if (a.status === 'atrasada') {
+    cls = 'erro'; t = 'Sua fatura venceu' + (a.atrasadaDesde ? ' em ' + dataBR(a.atrasadaDesde) : '');
+    p = 'Pague para a IA não ser pausada. Depois de 5 dias de atraso ela para de atender.'; bt = 'Pagar agora'; pagar = true;
+  } else if (a.status === 'suspensa') {
+    cls = 'erro'; t = 'A IA está pausada por falta de pagamento'; p = 'Assim que o pagamento cair, ela volta a atender sozinha.'; bt = 'Pagar e reativar'; pagar = true;
+  } else if (a.status === 'cancelada') {
+    cls = 'erro'; t = 'Sua assinatura foi cancelada'; p = 'Assine de novo para a IA voltar a atender.';
+  } else { el.hidden = true; return; }
+  el.className = 'plano-aviso ' + cls; el.hidden = false;
+  el.innerHTML = `<div class="txt">${dias !== '' ? `<span class="dias" aria-hidden="true">${esc(dias)}</span>` : ''}<div><b>${esc(t)}</b><p>${esc(p)}</p></div></div>
+    ${a.podeAssinar ? `<button class="principal sm" type="button" id="paBt">${esc(bt)}</button>` : ''}`;
+  if ($('paBt')) $('paBt').onclick = () => pagar && a.link ? window.open(a.link, '_blank', 'noopener') : abrirAssinar();
+}
+function desenharAssinatura() {
+  const a = assin, el = $('assinConteudo'); if (!a) return;
+  const ST = { teste: ['Em teste grátis', 'on'], expirado: ['Teste terminou', 'perdida'], aguardando: ['Aguardando pagamento', 'rascunho'], ativa: ['Ativa', 'on'],
+    atrasada: ['Pagamento atrasado', 'perdida'], suspensa: ['IA pausada', 'perdida'], cancelada: ['Cancelada', 'perdida'], cortesia: ['Cortesia LeadVox', 'on'] };
+  const st = ST[a.status] || [a.status, ''];
+  const linhas = [a.planoNome ? `<div><span>Plano</span>${esc(a.planoNome)} · ${dinheiro(a.valorCents)}/mês</div>` : '',
+    a.forma ? `<div><span>Pagamento</span>${esc(FORMA_NOME[a.forma] || a.forma)}${a.documentoFinal ? ' · documento final ' + esc(a.documentoFinal) : ''}</div>` : '',
+    a.status === 'teste' ? `<div><span>Teste até</span>${new Date(a.testeAte).toLocaleDateString('pt-BR')}</div>` : '',
+    a.proximoVencimento && ['aguardando', 'ativa', 'atrasada', 'suspensa'].includes(a.status) ? `<div><span>Próxima fatura</span>${dataBR(a.proximoVencimento)}</div>` : '',
+    a.status === 'cortesia' ? `<div><span>Cortesia</span>${a.cortesiaAte ? 'até ' + dataBR(a.cortesiaAte) : 'sem prazo'}</div>` : ''].join('');
+  const faturas = (a.faturas || []).map(f => `<tr><td>${dataBR(f.vencimento)}</td><td class="num">${dinheiro(f.valorCents)}</td><td>${esc(FATURA_NOME[f.status] || f.status)}</td>
+    <td>${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${f.status === 'pago' ? 'Recibo' : 'Pagar'} ↗</a>` : ''}</td></tr>`).join('');
+  const podeTrocar = a.podeAssinar && !['cortesia'].includes(a.status);
+  el.innerHTML = `<p><span class="st ${st[1]}">${esc(st[0])}</span></p><div class="ag-dados" style="margin-top:8px">${linhas}</div>
+    ${faturas ? `<div class="rolo" style="margin-top:12px"><table class="lv-tabela"><thead><tr><th>Vencimento</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead><tbody>${faturas}</tbody></table></div>` : ''}
+    ${podeTrocar ? `<div class="form-bts" style="margin-top:12px"><button class="principal sm" type="button" id="assinBt">${['ativa', 'atrasada', 'suspensa', 'aguardando'].includes(a.status) ? 'Trocar plano ou forma de pagamento' : 'Assinar agora'}</button>
+      ${a.link && ['aguardando', 'atrasada', 'suspensa'].includes(a.status) ? `<a class="bt sm" href="${esc(a.link)}" target="_blank" rel="noopener">Pagar fatura em aberto ↗</a>` : ''}</div>` : ''}`;
+  if ($('assinBt')) $('assinBt').onclick = abrirAssinar;
+}
+function abrirAssinar() {
+  const a = assin; if (!a) return;
+  if (!a.podeAssinar) return toast('Só o dono ou um admin da empresa pode assinar.', true);
+  $('asPlanos').innerHTML = '<legend>Plano</legend>' + (a.planos || []).map((p, i) => `<label class="as-op"><input type="radio" name="asPlano" value="${esc(p.chave)}"${(a.plano ? a.plano === p.chave : i === 0) ? ' checked' : ''}>
+    <span><b>${esc(p.nome)}</b><small>${esc(p.descricao)}</small></span><span class="preco">${dinheiro(p.valorCents)}<small>/mês</small></span></label>`).join('');
+  if (a.forma) document.querySelectorAll('[name=asForma]').forEach(r => r.checked = r.value === a.forma);
+  const zap = String(a.telefoneCobranca || cfg.whatsapp || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+  $('asEmail').value = a.emailCobranca || conta.user.email || ''; $('asZap').value = zap ? zapFmt(zap) : '';
+  $('asDoc').value = ''; $('asDoc').placeholder = a.documentoFinal ? 'Digite de novo (final ' + a.documentoFinal + ')' : '000.000.000-00';
+  $('asVence').textContent = a.status === 'teste' ? 'A primeira cobrança é no fim do teste, em ' + new Date(a.testeAte).toLocaleDateString('pt-BR') + '. Depois, todo mês no mesmo dia.' : 'A cobrança é mensal. Você pode cancelar quando quiser.';
+  mostra($('asErro'), ''); $('dlgAssinar').showModal();
+}
+$('formAssinar').onsubmit = async e => {
+  e.preventDefault();
+  const bt = $('asIr'), plano = document.querySelector('[name=asPlano]:checked')?.value, forma = document.querySelector('[name=asForma]:checked')?.value;
+  mostra($('asErro'), '');
+  // abre a aba já no clique (o navegador bloqueia janela aberta depois de esperar a resposta)
+  const aba = window.open('', '_blank');
+  bt.disabled = true; bt.textContent = 'Abrindo o pagamento…';
+  try {
+    const r = await api('assinatura', { organization: empresa.id, plano, forma, documento: $('asDoc').value, email: $('asEmail').value.trim(), telefone: $('asZap').value });
+    if (aba && r.link) { aba.opener = null; aba.location.href = r.link; } else if (aba) aba.close();
+    $('dlgAssinar').close();
+    toast(r.link ? 'Página de pagamento aberta em outra aba.' : 'Assinatura atualizada.');
+    await carregarAssinatura();
+  } catch (err) { if (aba) aba.close(); mostra($('asErro'), err.message); }
+  finally { bt.disabled = false; bt.textContent = 'Ir para o pagamento'; }
+};
+document.querySelectorAll('dialog [data-fechar]').forEach(b => b.onclick = () => b.closest('dialog').close());
 
 let abaAtual = 'agentes';
 function abrir(pg) {
@@ -1573,26 +1687,144 @@ $('formSenha').onsubmit = async e => {
   catch (err) { toast(err.message, true); }
 };
 
-/* ═══════════ PAINEL LEADVOX (dono da plataforma) ═══════════ */
+/* ═══════════ SUPER ADMIN (dono da plataforma) ═══════════ */
+// Assinaturas, quem precisa de atenção, consumo de IA, ações de cobrança e acesso de suporte.
+let lv = [], lvAsaas = {};
+const SIT = { teste: ['Em teste', 'on'], expirado: ['Teste acabou', 'perdida'], aguardando: ['Aguardando pagamento', 'rascunho'], ativa: ['Ativa', 'on'],
+  atrasada: ['Atrasada', 'perdida'], suspensa: ['IA pausada', 'perdida'], cancelada: ['Cancelada', 'perdida'], cortesia: ['Cortesia', 'on'] };
+const AVISO_NOME = { 'teste-3': 'Teste acaba em 3 dias', 'teste-1': 'Teste acaba amanhã', 'teste-0': 'Teste acaba hoje', 'teste-acabou': 'Teste acabou',
+  'teste-pausada': 'IA pausada (teste acabou)', 'carrinho-1h': 'Resgate: 1 hora', 'carrinho-1d': 'Resgate: 1 dia', 'carrinho-3d': 'Resgate: 3 dias',
+  fatura: 'Fatura criada', 'vence-amanha': 'Fatura vence amanhã', pago: 'Pagamento confirmado', 'atraso-1': 'Atraso de 1 dia', 'atraso-3': 'Atraso de 3 dias',
+  suspensa: 'IA suspensa', lembrete: 'Lembrete enviado por você' };
+const quando = iso => { if (!iso) return '—'; const m = (Date.now() - Date.parse(iso)) / 6e4; return m < 60 ? Math.max(1, Math.round(m)) + ' min' : m < 1440 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' d'; };
+const usd = v => Number(v || 0) ? 'US$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+
 async function carregarLv() {
-  const d = await api('admin');
-  const cfgDe = Object.fromEntries((d.workspaces || []).map(w => [w.organization_id, w.settings || {}]));
-  const agora = Date.now();
-  const minhas = new Set(conta.organizations.map(o => o.id));
-  const lista = (d.organizations || []).filter(o => !minhas.has(o.id)).map(o => ({ ...o, s: cfgDe[o.id] || {} }));
-  const emTeste = lista.filter(o => new Date(o.trial_ends_at) > agora).length;
-  const prontos = lista.filter(o => o.s.onboarded).length;
-  $('lvNumeros').innerHTML = `<div><b>${lista.length}</b><small>clientes</small></div><div><b>${emTeste}</b><small>em teste</small></div>
-    <div><b>${prontos}</b><small>com o painel montado</small></div><div><b>${lista.length - prontos}</b><small>ainda montando</small></div>`;
-  $('lvLista').innerHTML = lista.map(o => {
-    const fim = new Date(o.trial_ends_at), nicho = NICHOS[o.s.niche];
-    const sub = [nicho ? nicho.ic + ' ' + nicho.n : 'Ainda montando o painel', 'desde ' + new Date(o.created_at).toLocaleDateString('pt-BR'),
-      o.s.whatsapp ? 'WhatsApp ' + o.s.whatsapp : ''].filter(Boolean).join(' · ');
-    const st = fim > agora ? `<span class="st on">Teste até ${fim.toLocaleDateString('pt-BR')}</span>` : `<span class="st rascunho">Teste acabou</span>`;
-    return linha(esc(o.s.displayName || o.name) + (o.s.aiName ? ` <small style="display:inline">· IA ${esc(o.s.aiName)}</small>` : ''), esc(sub), st + (o.s.billingEnabled ? ' <span class="st">Cobranças</span>' : ''));
-  }).join('') || '<p class="muted" style="padding:16px 0">Nenhum cliente ainda.</p>';
+  const d = await api('admin-empresas');
+  lv = d.empresas || []; lvAsaas = d.asaas || {};
+  desenharLv(); desenharAsaas();
+  carregarConsumo().catch(err => { $('lvConsumo').innerHTML = `<p class="muted">${esc(err.message)}</p>`; });
 }
+function alertasDe(e) {
+  const a = [], c = e.cobranca || {}, agora = Date.now(), u = e.uso7 || {};
+  const semEvento = e.ultimoEvento ? (agora - Date.parse(e.ultimoEvento)) / 864e5 : null;
+  if (c.status === 'suspensa') a.push(['bad', 'IA pausada por falta de pagamento']);
+  if (c.status === 'atrasada') a.push(['bad', 'Fatura atrasada desde ' + dataBR(c.atrasadaDesde)]);
+  if (c.status === 'expirado') a.push(['bad', 'O teste acabou e não assinou']);
+  if (c.status === 'teste' && c.diasTeste <= 2) a.push(['warn', c.diasTeste === 0 ? 'O teste acaba hoje' : 'O teste acaba em ' + c.diasTeste + (c.diasTeste === 1 ? ' dia' : ' dias')]);
+  if (c.status === 'aguardando') a.push(['warn', 'Clicou em Assinar e ainda não pagou']);
+  if (e.ultimoEnvio && e.ultimoEnvio.ok === false) a.push(['bad', 'A LeadVox recusou o último envio da IA']);
+  if (e.agentesAtivos > 0 && semEvento !== null && semEvento > 2) a.push(['warn', 'Sem mensagens da LeadVox há ' + Math.floor(semEvento) + ' dias']);
+  if (e.agentesAtivos > 0 && semEvento !== null && semEvento < 7 && !u.respostas) a.push(['warn', 'Recebe conversas, mas a IA não respondeu em 7 dias (confira o departamento e o modo de teste)']);
+  if (e.montado && e.conta && !e.agentesAtivos) a.push(['info', 'Nenhum agente ligado']);
+  if (e.bloqueado && !e.bloqueioCobranca) a.push(['warn', 'IA bloqueada à mão']);
+  if (e.suporte) a.push(['info', 'Acesso de suporte aberto até ' + new Date(e.suporte.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })]);
+  return a;
+}
+function desenharLv() {
+  const por = s => lv.filter(e => (e.cobranca || {}).status === s).length;
+  const mrr = lv.filter(e => ['ativa', 'atrasada'].includes((e.cobranca || {}).status)).reduce((t, e) => t + (Number(e.cobranca.valorCents) || 0), 0);
+  $('lvNumeros').innerHTML = `<div><b>${dinheiro(mrr)}</b><small>por mês em assinaturas</small></div><div><b>${por('ativa')}</b><small>ativas</small></div>
+    <div><b>${por('teste')}</b><small>em teste</small></div><div><b>${por('aguardando')}</b><small>aguardando pagamento</small></div>
+    <div><b>${por('atrasada') + por('suspensa')}</b><small>atrasadas ou pausadas</small></div><div><b>${por('expirado')}</b><small>teste acabou sem assinar</small></div>`;
+  const todos = lv.flatMap(e => alertasDe(e).map(([t, m]) => ({ t, m, e }))).sort((x, y) => ({ bad: 0, warn: 1, info: 2 })[x.t] - ({ bad: 0, warn: 1, info: 2 })[y.t]);
+  $('lvNAlertas').textContent = '(' + todos.filter(a => a.t !== 'info').length + ')';
+  $('lvAlertas').innerHTML = todos.length ? todos.map(a => `<button type="button" class="${a.t}" data-em-abrir="${esc(a.e.id)}"><span>${a.t === 'bad' ? '🔴' : a.t === 'warn' ? '🟡' : 'ℹ️'} ${esc(a.m)}</span><small class="muted">${esc(a.e.nome)}</small></button>`).join('')
+    : '<p class="muted">Nada pedindo atenção agora.</p>';
+  desenharLvLista();
+}
+function desenharLvLista() {
+  const busca = ($('lvBusca').value || '').trim().toLowerCase();
+  const lista = lv.filter(e => !busca || (e.nome + ' ' + (e.email || '')).toLowerCase().includes(busca));
+  $('lvLista').innerHTML = lista.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Empresa</th><th>Situação</th><th>Plano</th>
+    <th class="num">Conversas 7d</th><th class="num">Respostas 7d</th><th>Última mensagem</th><th class="num">Custo IA 30d</th><th></th></tr></thead><tbody>${lista.map(e => {
+      const c = e.cobranca || {}, s = SIT[c.status] || [c.status, ''], u = e.uso7 || {};
+      const extra = c.status === 'teste' ? ' · ' + c.diasTeste + 'd' : '';
+      return `<tr><td><b>${esc(e.nome)}</b><br><small class="muted">${esc(e.email || '')}</small></td><td><span class="st ${s[1]}">${esc(s[0] + extra)}</span>${e.suporte ? ' <span class="st">suporte</span>' : ''}</td>
+        <td>${esc(c.planoNome || '—')}</td><td class="num">${u.conversas || 0}</td><td class="num">${u.respostas || 0}</td><td>${quando(e.ultimoEvento)}</td><td class="num">${usd(e.usd30)}</td>
+        <td><button class="sm" type="button" data-em-abrir="${esc(e.id)}">Gerenciar</button></td></tr>`; }).join('')}</tbody></table></div>`
+    : '<p class="muted" style="padding:16px 0">Nenhuma empresa.</p>';
+}
+$('lvBusca').oninput = desenharLvLista;
 $('lvAtualizar').onclick = () => carregarLv().then(() => toast('Atualizado.')).catch(err => toast(err.message, true));
+$('lvPeriodo').onchange = () => carregarConsumo().catch(err => toast(err.message, true));
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-em-abrir]'); if (b) abrirEmpresa(b.dataset.emAbrir); });
+
+// Consumo: respostas da IA por dia (relatório do motor) e custo medido quando a empresa usa a própria chave OpenAI.
+async function carregarConsumo() {
+  const dias = Number($('lvPeriodo').value) || 30, br = d => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
+  const fim = br(new Date()), ini = br(new Date(Date.now() - (dias - 1) * 864e5));
+  const d = await api('admin-consumo?ini=' + ini + '&fim=' + fim), linhas = d.dias || [];
+  const porDia = {}, porOrg = {};
+  for (let i = 0; i < dias; i++) porDia[br(new Date(Date.parse(ini + 'T15:00:00Z') + i * 864e5))] = 0;
+  for (const l of linhas) { porDia[l.dia] = (porDia[l.dia] || 0) + (Number(l.respostas) || 0);
+    const o = porOrg[l.org] ||= { respostas: 0, conversas: 0, usd: 0 }; o.respostas += Number(l.respostas) || 0; o.conversas += Number(l.conversas) || 0; o.usd += Number(l.usd) || 0; }
+  const serie = Object.entries(porDia).sort(), max = Math.max(1, ...serie.map(s => s[1])), W = 600, H = 150, base = 128, larg = W / serie.length;
+  const barras = serie.map(([dia, v], i) => { const h = Math.round(v / max * 108); return `<rect x="${(i * larg + larg * .15).toFixed(1)}" y="${base - h}" width="${(larg * .7).toFixed(1)}" height="${h}" rx="2" fill="var(--verde)"><title>${dataBR(dia)}: ${v} respostas</title></rect>`; }).join('');
+  const total = serie.reduce((t, s) => t + s[1], 0), nome = id => (lv.find(e => e.id === id) || {}).nome || 'Empresa';
+  const tabela = Object.entries(porOrg).sort((a, b) => b[1].respostas - a[1].respostas).map(([id, o]) => `<tr><td>${esc(nome(id))}</td><td class="num">${o.conversas}</td><td class="num">${o.respostas}</td><td class="num">${usd(o.usd)}</td></tr>`).join('');
+  $('lvConsumo').innerHTML = `<p class="muted" style="font-size:13px;margin:0">${total.toLocaleString('pt-BR')} respostas da IA em ${dias} dias · pico de ${max.toLocaleString('pt-BR')} num dia</p>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Respostas da IA por dia"><line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--linha)"/>${barras}
+      <text x="0" y="${H - 4}" fill="var(--suave)" font-size="11">${dataBR(serie[0][0])}</text><text x="${W}" y="${H - 4}" fill="var(--suave)" font-size="11" text-anchor="end">${dataBR(serie[serie.length - 1][0])}</text>
+      <text x="0" y="12" fill="var(--suave)" font-size="11">${max}</text></svg>
+    ${tabela ? `<div class="rolo"><table><thead><tr><th>Empresa</th><th class="num">Conversas</th><th class="num">Respostas</th><th class="num">Custo medido</th></tr></thead><tbody>${tabela}</tbody></table></div>` : ''}
+    <p class="muted" style="font-size:12px">O custo medido aparece quando a empresa usa a própria chave OpenAI (Credenciais de API). Valores estimados em dólar, sem impostos.</p>`;
+}
+
+function desenharAsaas() {
+  const a = lvAsaas || {};
+  $('lvAsaasStatus').innerHTML = a.conectado
+    ? `<span class="st on">Conectado · ${a.ambiente === 'production' ? 'produção' : 'teste (sandbox)'}</span> ${a.retorno ? 'O retorno de pagamentos está ligado.' : 'Falta ligar o retorno de pagamentos.'} Para trocar, conecte de novo.`
+    : 'Conecte a conta do Asaas que recebe as assinaturas. A chave fica guardada no cofre e não volta para a tela.';
+  if (a.ambiente) $('lvAsaasAmb').value = a.ambiente;
+}
+$('lvAsaasForm').onsubmit = async e => {
+  e.preventDefault();
+  const bt = e.submitter || e.target.querySelector('button'); bt.disabled = true;
+  try { lvAsaas = await api('admin-asaas', { ambiente: $('lvAsaasAmb').value, chave: $('lvAsaasChave').value }); $('lvAsaasChave').value = ''; desenharAsaas(); toast('Asaas conectado. O retorno de pagamentos foi criado no Asaas.'); }
+  catch (err) { toast(err.message, true); } finally { bt.disabled = false; }
+};
+
+let emAtual = null;
+function abrirEmpresa(id) {
+  const e = lv.find(x => x.id === id); if (!e) return;
+  emAtual = e; const c = e.cobranca || {}, s = SIT[c.status] || [c.status, ''], u = e.uso7 || {};
+  $('emTitulo').textContent = e.nome;
+  const it = (r, v) => v ? `<div><span>${r}</span>${v}</div>` : '';
+  $('emResumo').innerHTML = `<p><span class="st ${s[1]}">${esc(s[0])}</span></p><div class="ag-dados" style="margin-top:8px">
+    ${it('Plano', c.planoNome ? esc(c.planoNome) + ' · ' + dinheiro(c.valorCents) + '/mês' : '')}${it('Pagamento', esc(FORMA_NOME[c.forma] || ''))}
+    ${it('Teste até', c.testeAte ? new Date(c.testeAte).toLocaleDateString('pt-BR') : '')}${it('Próxima fatura', c.proximoVencimento ? dataBR(c.proximoVencimento) : '')}
+    ${it('Atrasada desde', c.atrasadaDesde ? dataBR(c.atrasadaDesde) : '')}${it('Cortesia', c.status === 'cortesia' ? (c.cortesiaAte ? 'até ' + dataBR(c.cortesiaAte) : 'sem prazo') : '')}
+    ${it('E-mail', esc(e.email || ''))}${it('WhatsApp', esc(zapFmt(e.whatsapp || '')))}${it('Conta do motor', esc(e.conta || 'não vinculada'))}
+    ${it('Agentes', e.agentes ? e.agentesAtivos + ' ligado(s) de ' + e.agentes : '')}${it('Últimos 7 dias', u.conversas + ' conversas · ' + u.respostas + ' respostas · ' + u.transferidos + ' para a equipe')}
+    ${it('Última mensagem', e.ultimoEvento ? quando(e.ultimoEvento) + ' atrás' : '')}${it('Custo IA 30 dias', usd(e.usd30))}
+    ${c.link ? it('Link de pagamento', `<a href="${esc(c.link)}" target="_blank" rel="noopener">abrir ↗</a>`) : ''}</div>
+    ${alertasDe(e).map(([t, m]) => `<div class="saude ${t === 'bad' ? '' : 'aviso'}" style="margin:10px 0 0"><span>${t === 'bad' ? '🔴' : t === 'warn' ? '🟡' : 'ℹ️'}</span><div><b>${esc(m)}</b></div></div>`).join('')}`;
+  $('emPlano').value = c.plano || 'ia'; $('emObs').value = e.obs || ''; $('emCortesia').value = '';
+  $('emAvisos').innerHTML = (e.avisos || []).length ? `<h3 style="margin-top:16px">Avisos enviados</h3><div class="rolo"><table class="lv-tabela"><tbody>${e.avisos.map(v =>
+    `<tr><td>${esc(AVISO_NOME[v.tipo] || v.tipo)}</td><td>${esc({ enviado: 'Enviado', pendente: 'Na fila', enviando: 'Enviando', falhou: 'Falhou', sem_contato: 'Sem WhatsApp' }[v.status] || v.status)}</td><td>${new Date(v.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('')}</tbody></table></div>` : '';
+  if (!$('dlgEmpresa').open) $('dlgEmpresa').showModal();
+}
+document.querySelectorAll('[data-em]').forEach(b => b.onclick = async () => {
+  const e = emAtual; if (!e) return;
+  const acao = b.dataset.em;
+  if (acao === 'suspender' && !confirm('Pausar a IA de ' + e.nome + '? Ela para de atender até reativar ou até o pagamento cair.')) return;
+  b.disabled = true;
+  try {
+    if (acao === 'suporte') {
+      await api('admin-suporte', { organization: e.id, horas: Number($('emHoras').value), motivo: $('emMotivo').value.trim() });
+      try { localStorage.setItem('lv_empresa', e.id); } catch {}
+      $('dlgEmpresa').close(); toast('Entrando no painel de ' + e.nome + '…'); return carregar();
+    }
+    if (acao === 'suporte-fim') { await api('admin-suporte', { organization: e.id, encerrar: true }); toast('Suporte encerrado.'); }
+    else {
+      const dados = acao === 'estender' ? { dias: Number(b.dataset.dias) } : acao === 'plano' ? { plano: $('emPlano').value } : acao === 'cortesia' ? { ate: $('emCortesia').value } : acao === 'obs' ? { texto: $('emObs').value } : {};
+      await api('admin-acao', { organization: e.id, acao, dados });
+      toast({ estender: 'Teste estendido.', plano: 'Plano trocado.', cortesia: 'Cortesia aplicada.', suspender: 'IA pausada.', reativar: 'Empresa reativada.', obs: 'Observação salva.', lembrete: 'Lembrete na fila de envio.' }[acao]);
+    }
+    await carregarLv(); abrirEmpresa(e.id);
+  } catch (err) { toast(err.message, true); } finally { b.disabled = false; }
+});
 
 /* ═══════════ CLIENTES E COBRANÇAS ═══════════ */
 let fin = null, cAba = 'customers', editando = null;

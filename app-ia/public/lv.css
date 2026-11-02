@@ -387,3 +387,46 @@ textarea { min-height: 90px; resize: vertical; }
 .salvar-barra.sujo { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -8px 16px rgba(3,6,14,.5); }
 .salvar-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
   margin-top: 14px; padding: 12px 0; background: var(--navy); border-top: 1px solid var(--linha); }
+
+/* Assinatura: aviso do topo (contagem do teste, pagamento pendente, atraso, suspensão) */
+.plano-aviso { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 12px 14px;
+  border-radius: var(--raio); border: 1px solid rgba(43,232,123,.35); background: var(--verde-fundo); font-size: 14px; }
+.plano-aviso.aviso { border-color: rgba(255,200,97,.45); background: rgba(255,200,97,.08); }
+.plano-aviso.erro { border-color: rgba(255,107,107,.5); background: rgba(255,107,107,.08); color: var(--texto); margin-top: 0; }
+.plano-aviso b { display: block; } .plano-aviso p { margin: 2px 0 0; color: var(--suave); }
+.plano-aviso .dias { font: 700 26px/1 Syne, sans-serif; color: var(--verde); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+.plano-aviso.aviso .dias { color: var(--amarelo); } .plano-aviso.erro .dias { color: var(--erro); }
+.plano-aviso .txt { display: flex; gap: 12px; align-items: center; min-width: 0; flex: 1 1 260px; }
+.cab-empresa { max-width: 200px; padding: 6px 8px; font-size: 13px; }
+/* janelas (dialog) */
+.janela { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; background: var(--painel); color: var(--texto);
+  border: 1px solid var(--linha); border-radius: 16px; padding: 20px; }
+.janela.larga { width: min(860px, calc(100vw - 32px)); }
+.janela::backdrop { background: rgba(4,8,18,.72); }
+.janela-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.janela fieldset { border: 0; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.janela legend { font-size: 13px; color: var(--suave); margin-bottom: 6px; }
+.as-op { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; cursor: pointer; }
+.as-op:has(input:checked) { border-color: var(--verde); background: var(--verde-fundo); }
+.as-op input { width: auto; margin-top: 3px; } .as-op small { display: block; color: var(--suave); font-size: 12.5px; }
+.as-op .preco { margin-left: auto; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Super Admin */
+.lv-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.lv-duas > .card { margin-top: 14px; min-width: 0; }
+@media (max-width: 899px) { .lv-duas { grid-template-columns: 1fr; } }
+.lv-alertas { display: grid; gap: 8px; margin-top: 10px; max-height: 330px; overflow: auto; }
+.lv-alertas button { display: flex; justify-content: space-between; gap: 10px; text-align: left; width: 100%; background: var(--painel2); }
+.lv-alertas .bad { border-color: rgba(255,107,107,.45); } .lv-alertas .warn { border-color: rgba(255,200,97,.45); }
+.lv-consumo { margin-top: 10px; }
+.lv-consumo svg { width: 100%; height: 150px; display: block; }
+.lv-consumo table, .lv-tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.lv-consumo td, .lv-consumo th, .lv-tabela td, .lv-tabela th { padding: 7px 8px; border-top: 1px solid var(--linha); text-align: left; }
+.lv-consumo th, .lv-tabela th { color: var(--suave); font-weight: 600; font-size: 12px; }
+.lv-tabela td.num, .lv-tabela th.num, .lv-consumo .num { text-align: right; }
+.rolo { overflow-x: auto; }
+.sm-sel { width: auto; padding: 6px 8px; font-size: 13px; }
+.em-acoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 14px; }
+.em-acoes > div { min-width: 0; } .em-acoes h3 { font-size: 15px; }
+@media (max-width: 780px) { .em-acoes { grid-template-columns: 1fr; } }
+.st.atraso { color: var(--erro); border-color: rgba(255,107,107,.4); }
+.lv-tabela .st, .lv-tabela td.num { white-space: nowrap; }

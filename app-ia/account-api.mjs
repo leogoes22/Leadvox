@@ -4,6 +4,7 @@ import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,nor
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
+import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel no n8n novo (VPS). Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
@@ -134,13 +135,64 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
    }else if(action==='me'&&req.method==='GET'){
     // Through memberships: the platform owner can read every organization, but "me" lists only their own.
     const rows=await upstream('/rest/v1/lv_memberships?select=role,lv_organizations(id,name,trial_ends_at,created_at)&user_id=eq.'+user.id,{token:authToken});
-    const organizations=(rows||[]).map(r=>r.lv_organizations).filter(Boolean);
+    const organizations=(rows||[]).filter(r=>r.lv_organizations).map(r=>({...r.lv_organizations,role:r.role}));
     send(res,200,{user:{id:user.id,email:user.email},organizations,platformAdmin:await isPlatformAdmin(authToken)});
    }else if(action==='admin'&&req.method==='GET'){
     if(!await isPlatformAdmin(authToken))throw {status:403,message:'Área exclusiva da LeadVox.'};
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});
     const workspaces=await upstream('/rest/v1/lv_workspace?select=organization_id,settings,updated_at&limit=500',{token:authToken});
     send(res,200,{organizations,workspaces});
+   }else if(action==='assinatura'){
+    // Assinatura da LeadVox: situação (aviso do topo, faturas) e abrir/trocar a assinatura pela função "cobranca".
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    if(req.method==='GET'){send(res,200,await upstream('/rest/v1/rpc/lv_assinatura',{method:'POST',token:authToken,body:{org}}));return true;}
+    let pedido;try{pedido=pedidoAssinatura({organization:org,plano:body.plano,forma:body.forma,documento:body.documento,email:body.email,telefone:body.telefone});}
+    catch(e){throw {status:400,message:e.message};}
+    pedido={organization:pedido.org,plano:pedido.plano,forma:pedido.forma,documento:pedido.documento,email:pedido.email,telefone:pedido.telefone};
+    let r;try{r=await fetchImpl(URL_BASE+'/functions/v1/cobranca/assinar',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+authToken,'Content-Type':'application/json'},
+     body:JSON.stringify(pedido),signal:AbortSignal.timeout(45000),redirect:'error'});}catch{throw {status:502,message:'A cobrança não respondeu. Tente de novo em instantes.'};}
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j?.ok)throw {status:r.status===401?401:400,message:j?.erro||'Não deu para abrir a assinatura agora.'};
+    send(res,200,{ok:true,link:j.link,vencimento:j.vencimento});
+   }else if(action.startsWith('admin-')){
+    // Super Admin: só o dono da plataforma (as funções do banco conferem de novo).
+    if(!await isPlatformAdmin(authToken))throw {status:403,message:'Área exclusiva da LeadVox.'};
+    const rpc=(fn,args={})=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:args});
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const uuidOk=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v||'');
+    if(action==='admin-empresas'&&req.method==='GET')send(res,200,{empresas:await rpc('lv_admin_empresas'),asaas:await rpc('lv_admin_asaas_status').catch(()=>({conectado:false}))});
+    else if(action==='admin-consumo'&&req.method==='GET'){
+     const ini=q.get('ini'),fim=q.get('fim');
+     if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
+     send(res,200,{dias:await rpc('lv_admin_consumo',{ini,fim})});
+    }else if(action==='admin-acao'&&req.method==='POST'){
+     if(!uuidOk(body.organization)||!['estender','plano','cortesia','suspender','reativar','obs','lembrete'].includes(body.acao))throw {status:400,message:'Ação inválida.'};
+     const dados=body.dados&&typeof body.dados==='object'&&!Array.isArray(body.dados)?body.dados:{};
+     send(res,200,await rpc('lv_admin_acao',{org:body.organization,acao:body.acao,dados}));
+    }else if(action==='admin-suporte'&&req.method==='POST'){
+     if(!uuidOk(body.organization))throw {status:400,message:'Empresa inválida.'};
+     if(body.encerrar===true)send(res,200,await rpc('lv_admin_suporte_encerrar',{org:body.organization}));
+     else{const horas=Number(body.horas);if(![1,2,4,8].includes(horas))throw {status:400,message:'Escolha por quanto tempo.'};
+      send(res,200,await rpc('lv_admin_suporte',{org:body.organization,horas,motivo:String(body.motivo||'').slice(0,200)}));}
+    }else if(action==='admin-asaas'&&req.method==='POST'){
+     // Conecta o Asaas da LeadVox: testa a chave, cria (ou atualiza) o retorno de pagamentos no Asaas e guarda tudo no Vault.
+     const ambiente=body.ambiente==='production'?'production':body.ambiente==='sandbox'?'sandbox':'';
+     const chave=typeof body.chave==='string'?body.chave.trim():'';
+     try{await testAsaas({environment:ambiente,apiKey:chave,fetchImpl});}catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
+     const base=ambiente==='production'?'https://api.asaas.com/v3':'https://api-sandbox.asaas.com/v3';
+     const asaas=async(metodo,caminho,dados)=>{let r;try{r=await fetchImpl(base+caminho,{method:metodo,headers:{access_token:chave,Accept:'application/json','Content-Type':'application/json','User-Agent':'LeadVoxIA/1.0'},
+      body:dados?JSON.stringify(dados):undefined,signal:AbortSignal.timeout(15000),redirect:'error'});}catch{throw {status:502,message:'Não deu para falar com o Asaas agora.'};}
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw {status:400,message:'O Asaas recusou o retorno de pagamentos: '+String(j.errors?.[0]?.description||r.status).slice(0,160)};return j;};
+     const url=URL_BASE+'/functions/v1/cobranca/asaas',token=randomBytes(24).toString('hex');
+     const retorno={name:'LeadVox IA · assinaturas',url,email:user.email,enabled:true,interrupted:false,apiVersion:3,authToken:token,sendType:'SEQUENTIALLY',
+      events:['PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_CONFIRMED','PAYMENT_RECEIVED','PAYMENT_OVERDUE','PAYMENT_DELETED','PAYMENT_REFUNDED','PAYMENT_CHARGEBACK_REQUESTED','SUBSCRIPTION_DELETED']};
+     const existentes=(await asaas('GET','/webhooks?limit=100')).data||[];
+     const ja=existentes.find(w=>w.url===url);
+     await asaas('POST',ja?'/webhooks/'+encodeURIComponent(ja.id):'/webhooks',retorno);
+     await rpc('lv_admin_asaas_gravar',{ambiente,chave,token_retorno:token});
+     send(res,200,await rpc('lv_admin_asaas_status'));
+    }else throw {status:404,message:'Não encontrado.'};
    }else if(action==='motor'){
     const q=new URL(req.url,'https://localhost').searchParams;
     const org=req.method==='GET'?q.get('organization'):body.organization;

@@ -100,9 +100,11 @@
         <button class="bt-menu" type="button" id="btMenu" aria-label="Abrir menu">☰</button>
         <div><h1 id="cabTitulo"></h1><p id="cabSub"></p></div>
       </div>
-      <div class="dir"><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
+      <div class="dir"><select id="cabEmpresa" class="cab-empresa" aria-label="Empresa" hidden></select><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
     </header>
     <div class="pagina">
+    <div id="suporteAviso" class="saude aviso" role="status" hidden></div>
+    <div id="planoAviso" class="plano-aviso" role="status" hidden></div>
     <div id="saudeAviso" class="saude" role="alert" hidden></div>
 
     <section id="vAgentes" hidden>
@@ -571,6 +573,7 @@
     </section>
 
     <section id="vConta" class="estreito" hidden>
+      <div class="card" id="assinCard"><h2>Assinatura</h2><div id="assinConteudo"><p class="muted">Carregando…</p></div></div>
       <form class="card" id="formConfig">
         <h2>Sua empresa</h2>
         <p class="muted" id="emEmail"></p>
@@ -621,15 +624,29 @@
 
     <section id="vLeadvox" hidden>
       <div class="card">
-        <h2>Painel LeadVox</h2>
-        <p class="muted">Só você vê esta aba. Aqui ficam todos os clientes da plataforma.</p>
+        <div class="lista-topo"><div><h2>Painel LeadVox</h2>
+          <p class="muted">Só você vê esta aba: assinaturas, clientes que precisam de você, consumo de IA e suporte.</p></div>
+          <button class="sm" type="button" id="lvAtualizar">Atualizar</button></div>
         <div class="numeros" id="lvNumeros"></div>
       </div>
+      <div class="lv-duas">
+        <div class="card"><h3>⚠️ Precisa de você <span class="muted" id="lvNAlertas"></span></h3><div id="lvAlertas" class="lv-alertas"></div></div>
+        <div class="card"><div class="lista-topo"><h3>💰 Consumo de IA</h3>
+          <select id="lvPeriodo" class="sm-sel" aria-label="Período do consumo"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
+          <div id="lvConsumo" class="lv-consumo"></div></div>
+      </div>
       <div class="card tabela-cli">
-        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Empresas cadastradas, o negócio de cada uma e o período de teste.</p></div>
-          <button class="sm" type="button" id="lvAtualizar">Atualizar</button></div>
+        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Situação da assinatura, uso da IA nos últimos 7 dias e acesso de suporte.</p></div>
+          <input id="lvBusca" class="sm-sel" type="search" placeholder="Buscar empresa" aria-label="Buscar empresa"></div>
         <div id="lvLista" style="margin-top:10px"></div>
       </div>
+      <div class="card" id="lvAsaas"><h3>Asaas da LeadVox</h3>
+        <p class="muted" id="lvAsaasStatus">Conecte a conta do Asaas que recebe as assinaturas. A chave fica guardada no cofre e não volta para a tela.</p>
+        <form id="lvAsaasForm" class="duas" style="align-items:end">
+          <div><label for="lvAsaasAmb">Ambiente</label><select id="lvAsaasAmb"><option value="sandbox">Teste (sandbox)</option><option value="production">Produção (dinheiro de verdade)</option></select></div>
+          <div><label for="lvAsaasChave">Chave da API do Asaas</label><input id="lvAsaasChave" type="password" autocomplete="off" placeholder="$aact_…"></div>
+          <button class="principal sm" type="submit">Conectar e criar o retorno de pagamentos</button>
+        </form></div>
       <div class="modulos">
         <div class="card"><h3>Cobrar seus clientes</h3>
           <p>As mensalidades dos seus clientes ficam na aba Cobranças da LeadVox: cadastre o cliente, o plano e a recorrência.</p>
@@ -645,6 +662,53 @@
     </div>
   </div>
 </div>
+
+<dialog id="dlgAssinar" class="janela" aria-labelledby="asTitulo">
+  <form id="formAssinar" method="dialog">
+    <div class="janela-topo"><h2 id="asTitulo">Assinar a LeadVox IA</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
+    <p class="muted" id="asSub">Escolha o plano e como prefere pagar. O pagamento é feito na página segura do Asaas.</p>
+    <fieldset class="as-planos" id="asPlanos"><legend>Plano</legend></fieldset>
+    <fieldset class="as-formas"><legend>Como prefere pagar</legend>
+      <label class="as-op"><input type="radio" name="asForma" value="CREDIT_CARD" checked><span><b>Cartão de crédito</b><small>Cobrança automática todo mês. Você não precisa lembrar.</small></span></label>
+      <label class="as-op"><input type="radio" name="asForma" value="PIX"><span><b>Pix</b><small>A fatura chega todo mês por WhatsApp e e-mail.</small></span></label>
+      <label class="as-op"><input type="radio" name="asForma" value="BOLETO"><span><b>Boleto</b><small>A fatura chega todo mês por WhatsApp e e-mail.</small></span></label>
+    </fieldset>
+    <div class="duas">
+      <div><label for="asDoc">CPF ou CNPJ de quem paga</label><input id="asDoc" inputmode="numeric" autocomplete="off" maxlength="18" required></div>
+      <div><label for="asZap">WhatsApp para os avisos</label><input id="asZap" inputmode="tel" maxlength="20" placeholder="(21) 99999-0000"></div>
+    </div>
+    <label for="asEmail">E-mail para a fatura</label><input id="asEmail" type="email" maxlength="254" required>
+    <p class="muted" id="asVence" style="font-size:13px;margin-top:10px"></p>
+    <p class="erro" id="asErro" hidden></p>
+    <div class="form-bts"><button class="principal" type="submit" id="asIr">Ir para o pagamento</button><button type="button" class="leve" data-fechar>Agora não</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgEmpresa" class="janela larga" aria-labelledby="emTitulo">
+  <div class="janela-topo"><h2 id="emTitulo">Empresa</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
+  <div id="emResumo"></div>
+  <div class="em-acoes">
+    <div><h3>Teste e plano</h3>
+      <div class="form-bts"><button class="sm" type="button" data-em="estender" data-dias="3">+3 dias de teste</button><button class="sm" type="button" data-em="estender" data-dias="7">+7 dias</button><button class="sm" type="button" data-em="estender" data-dias="15">+15 dias</button></div>
+      <div class="duas" style="align-items:end"><div><label for="emPlano">Plano</label><select id="emPlano"><option value="ia">IA SDR LeadVox Pro</option><option value="crm-ia">CRM LeadVox + IA SDR Pro</option></select></div>
+        <button class="sm" type="button" data-em="plano">Trocar plano</button></div>
+      <div class="duas" style="align-items:end"><div><label for="emCortesia">Cortesia até <small>(vazio = sem prazo)</small></label><input id="emCortesia" type="date"></div>
+        <button class="sm" type="button" data-em="cortesia">Dar cortesia</button></div>
+    </div>
+    <div><h3>Cobrança</h3>
+      <div class="form-bts"><button class="sm" type="button" data-em="lembrete">Reenviar link de pagamento</button><button class="sm perigo" type="button" data-em="suspender">Suspender a IA</button><button class="sm" type="button" data-em="reativar">Reativar</button></div>
+      <label for="emObs">Observações internas</label><textarea id="emObs" maxlength="1000" style="min-height:64px"></textarea>
+      <div class="form-bts"><button class="sm" type="button" data-em="obs">Salvar observação</button></div>
+    </div>
+    <div><h3>Suporte</h3>
+      <p class="muted" style="font-size:13px">Entra no painel da empresa como admin por um tempo, para editar e configurar. Fica registrado e sai sozinho.</p>
+      <div class="duas" style="align-items:end"><div><label for="emHoras">Por quanto tempo</label><select id="emHoras"><option value="1">1 hora</option><option value="2" selected>2 horas</option><option value="4">4 horas</option><option value="8">8 horas</option></select></div>
+        <div><label for="emMotivo">Motivo</label><input id="emMotivo" maxlength="200" placeholder="Ex.: configurar o agente"></div></div>
+      <div class="form-bts"><button class="principal sm" type="button" data-em="suporte">Entrar como suporte</button><button class="sm" type="button" data-em="suporte-fim">Encerrar suporte</button></div>
+    </div>
+  </div>
+  <div id="emAvisos"></div>
+</dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
