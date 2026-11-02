@@ -27,7 +27,7 @@ const mostra = (el, msg) => { el.textContent = msg || ''; el.hidden = !msg; };
 let modo = 'login', tipoCodigo = 'signup';
 const MODOS = {
   login: { t: 'Sua IA na LeadVox', s: 'Entre com o e-mail cadastrado na LeadVox.', b: 'Entrar', email: 1, senha: 1 },
-  signup: { t: 'Criar conta', s: 'Use uma senha de pelo menos 12 caracteres. Depois confirme o código que chega no seu e-mail.', b: 'Criar conta', email: 1, senha: 1 },
+  signup: { t: 'Criar conta', s: 'Use uma senha de pelo menos 12 caracteres. Depois confirme o código que chega no seu e-mail.', b: 'Criar conta', email: 1, senha: 1, aceite: 1 },
   recover: { t: 'Esqueci minha senha', s: 'Vamos mandar um código para o seu e-mail.', b: 'Receber código', email: 1 },
   verify: { t: 'Confirmar código', s: 'Digite o código que chegou no seu e-mail. Para trocar a senha, use "Esqueci minha senha".', b: 'Confirmar', email: 1, codigo: 1 },
   password: { t: 'Crie sua nova senha', s: 'Use de 12 a 128 caracteres.', b: 'Salvar senha e entrar', senha: 1 }
@@ -37,6 +37,7 @@ function setModo(m) {
   modo = m; const c = MODOS[m];
   $('pTitulo').textContent = c.t; $('pSub').textContent = c.s; $('btPorta').textContent = c.b;
   $('campoEmail').hidden = !c.email; $('campoSenha').hidden = !c.senha; $('campoCodigo').hidden = !c.codigo;
+  $('campoAceite').hidden = !c.aceite; $('pAceite').checked = false;
   $('rotSenha').textContent = m === 'login' ? 'Senha' : 'Nova senha';
   $('pSenha').autocomplete = m === 'login' ? 'current-password' : 'new-password';
   $('pSenha').value = ''; $('pCodigo').value = '';
@@ -55,7 +56,8 @@ $('btVoltarPorta').onclick = () => setModo('login');
 $('formPorta').onsubmit = async e => {
   e.preventDefault(); const bt = $('btPorta'); bt.disabled = true; mostra($('pErro')); mostra($('pOk'));
   try {
-    const d = await api(modo, { email: $('pEmail').value, password: $('pSenha').value, code: $('pCodigo').value.trim(), type: tipoCodigo });
+    if (modo === 'signup' && !$('pAceite').checked) throw Error('Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.');
+    const d = await api(modo, { email: $('pEmail').value, password: $('pSenha').value, code: $('pCodigo').value.trim(), type: tipoCodigo, aceite: modo === 'signup' ? $('pAceite').checked : undefined });
     $('pSenha').value = '';
     if (modo === 'recover') { tipoCodigo = 'recovery'; setModo('verify'); mostra($('pOk'), 'Se o e-mail tiver conta, o código chega em instantes. Olhe também o spam.'); }
     else if (modo === 'verify' && tipoCodigo === 'recovery') setModo('password');
@@ -155,6 +157,7 @@ $('mProximo').onclick = async () => {
 };
 
 document.querySelectorAll('[data-sair]').forEach(b => b.onclick = async () => {
+  document.querySelectorAll('dialog[open]').forEach(d => d.close());
   try { await api('logout', {}); } catch {}
   conta = null; setModo('login'); porta(false);
 });
@@ -178,6 +181,7 @@ async function carregar() {
   if (empresa) {
     try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); cfg = w.workspace?.[0]?.settings || {}; } catch {}
   }
+  pedirAceite();
   if (!empresa || !cfg.onboarded) return montar();
   abrirApp(location.hash.slice(1) || 'agentes');
 }
@@ -276,6 +280,20 @@ function abrirApp(pg) {
   const querAssinar = pg === 'assinar';
   carregarAssinatura().then(() => { if (querAssinar) abrirAssinar(); }).catch(() => {});
   abrir(querAssinar ? 'conta' : pg);
+}
+
+/* ═══════════ TERMOS ═══════════ */
+// Versão nova dos termos: o painel só segue depois do aceite (fica registrado no login, com a data).
+function pedirAceite() {
+  const t = conta.termos; if (!t || t.aceito === t.atual) return;
+  const d = $('dlgTermos'); $('tmAceite').checked = false; mostra($('tmErro'), '');
+  d.oncancel = e => e.preventDefault(); // não fecha com Esc
+  if (!d.open) d.showModal();
+  $('tmOk').onclick = async () => {
+    if (!$('tmAceite').checked) return mostra($('tmErro'), 'Marque que leu e aceita para continuar.');
+    try { await api('aceite', { versao: t.atual }); t.aceito = t.atual; d.close(); toast('Obrigado! Termos aceitos.'); }
+    catch (err) { mostra($('tmErro'), err.message); }
+  };
 }
 
 /* ═══════════ EMPRESA E SUPORTE ═══════════ */

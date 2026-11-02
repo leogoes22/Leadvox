@@ -10,6 +10,8 @@ const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel no n8n novo (VPS). Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
 // O n8n antigo (webhook.lv-mktdeconversa.com) fica só com os SDR dos clientes antigos.
 export const N8N_WEBHOOK='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+// Versão dos Termos de Uso e da Política de Privacidade (public/termos.html e privacidade.html). Trocar a data pede o aceite de novo.
+export const TERMOS_VERSAO='2026-11-01';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
 const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
  conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
@@ -109,7 +111,10 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const email=body.email.trim().toLowerCase();
     if(action==='signup'||action==='login'){
      if(typeof body.password!=='string'||body.password.length<(action==='signup'?12:1)||body.password.length>128)throw {status:400,message:'Use uma senha de 12 a 128 caracteres.'};
-     const data=await upstream(action==='login'?'/auth/v1/token?grant_type=password':'/auth/v1/signup',{method:'POST',body:{email,password:body.password}});
+     if(action==='signup'&&body.aceite!==true)throw {status:400,message:'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.'};
+     // O aceite fica no próprio login (versão e data), sem tabela nova.
+     const data=await upstream(action==='login'?'/auth/v1/token?grant_type=password':'/auth/v1/signup',{method:'POST',
+      body:action==='signup'?{email,password:body.password,data:{termos_versao:TERMOS_VERSAO,termos_aceite_em:new Date().toISOString()}}:{email,password:body.password}});
      if(data?.access_token){setSession(data);send(res,200,{authenticated:true});}else send(res,200,{confirmationRequired:true,message:'Confira seu e-mail para confirmar o cadastro.'});
     }else if(action==='verify'){
      if(!['signup','recovery'].includes(body.type)||!/^\d{6,10}$/.test(body.code||''))throw {status:400,message:'Confira o código recebido por e-mail.'};
@@ -136,7 +141,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     // Through memberships: the platform owner can read every organization, but "me" lists only their own.
     const rows=await upstream('/rest/v1/lv_memberships?select=role,lv_organizations(id,name,trial_ends_at,created_at)&user_id=eq.'+user.id,{token:authToken});
     const organizations=(rows||[]).filter(r=>r.lv_organizations).map(r=>({...r.lv_organizations,role:r.role}));
-    send(res,200,{user:{id:user.id,email:user.email},organizations,platformAdmin:await isPlatformAdmin(authToken)});
+    send(res,200,{user:{id:user.id,email:user.email},organizations,platformAdmin:await isPlatformAdmin(authToken),
+     termos:{atual:TERMOS_VERSAO,aceito:user.user_metadata?.termos_versao||null}});
+   }else if(action==='aceite'&&req.method==='POST'){
+    if(body.versao!==TERMOS_VERSAO)throw {status:400,message:'Recarregue a página para ver a versão atual dos termos.'};
+    await upstream('/auth/v1/user',{method:'PUT',token:authToken,body:{data:{termos_versao:TERMOS_VERSAO,termos_aceite_em:new Date().toISOString()}}});
+    send(res,200,{ok:true,aceito:TERMOS_VERSAO});
    }else if(action==='admin'&&req.method==='GET'){
     if(!await isPlatformAdmin(authToken))throw {status:403,message:'Área exclusiva da LeadVox.'};
     const organizations=await upstream('/rest/v1/lv_organizations?select=id,name,trial_ends_at,created_at&order=created_at.desc&limit=500',{token:authToken});

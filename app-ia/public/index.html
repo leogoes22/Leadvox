@@ -32,6 +32,8 @@
       <div id="campoEmail"><label for="pEmail">E-mail</label><input id="pEmail" type="email" autocomplete="username" maxlength="254"></div>
       <div id="campoSenha"><label for="pSenha" id="rotSenha">Senha</label><input id="pSenha" type="password" autocomplete="current-password" maxlength="128"></div>
       <div id="campoCodigo" hidden><label for="pCodigo">Código que chegou no e-mail</label><input id="pCodigo" class="codigo-in" inputmode="numeric" maxlength="10" autocomplete="one-time-code"></div>
+      <label class="aceite" id="campoAceite" hidden><input type="checkbox" id="pAceite">
+        <span>Li e aceito os <a href="/termos.html" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</span></label>
       <button class="principal cheio" id="btPorta" type="submit">Entrar</button>
     </form>
     <p id="pErro" class="erro" hidden></p>
@@ -42,6 +44,7 @@
       <button class="leve" type="button" data-modo="verify">Confirmar cadastro</button>
     </div>
     <button class="leve" type="button" id="btVoltarPorta" style="margin-top:8px" hidden>← Voltar para o login</button>
+    <p class="legal-links"><a href="/termos.html" target="_blank" rel="noopener">Termos de Uso</a> · <a href="/privacidade.html" target="_blank" rel="noopener">Privacidade</a></p>
   </div>
 
   <!-- formulário inicial: monta o painel antes do primeiro acesso -->
@@ -682,6 +685,15 @@
     <p class="erro" id="asErro" hidden></p>
     <div class="form-bts"><button class="principal" type="submit" id="asIr">Ir para o pagamento</button><button type="button" class="leve" data-fechar>Agora não</button></div>
   </form>
+</dialog>
+
+<dialog id="dlgTermos" class="janela" aria-labelledby="tmTitulo">
+  <h2 id="tmTitulo">Atualizamos os termos da LeadVox IA</h2>
+  <p class="muted">Para continuar usando o painel, leia e aceite a versão nova. Ela explica a assinatura (teste grátis, cobrança mensal, pausa por atraso), como a IA trata os dados dos seus clientes e o acesso de suporte.</p>
+  <p><a href="/termos.html" target="_blank" rel="noopener">Ler os Termos de Uso ↗</a><br><a href="/privacidade.html" target="_blank" rel="noopener">Ler a Política de Privacidade ↗</a></p>
+  <label class="aceite"><input type="checkbox" id="tmAceite"><span>Li e aceito os Termos de Uso e a Política de Privacidade.</span></label>
+  <p class="erro" id="tmErro" hidden></p>
+  <div class="form-bts"><button class="principal" type="button" id="tmOk">Aceitar e continuar</button><button class="leve" type="button" data-sair>Sair</button></div>
 </dialog>
 
 <dialog id="dlgEmpresa" class="janela larga" aria-labelledby="emTitulo">
