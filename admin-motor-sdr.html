@@ -257,13 +257,14 @@ async function carregar(silencioso) {
     let j;
     try { j = await postar(API_CENTRAL, { acao: 'painel' }); if (!Array.isArray(j.lojas)) throw new Error('o Admin Central não devolveu as lojas'); META = { ...j, semMetricas: false }; }
     catch (e) {
-      if (e.auth) throw e;
+      // O Admin Central confere a chave chamando o Admin; com o n8n em fila essa conferência estoura o tempo
+      // e volta "recusada" mesmo com a chave certa. Quem decide é o próprio Admin: se ele aceitar, segue sem métricas.
       j = await chamar({ acao: 'listar' });        // sem o Admin Central: só a lista, sem números
-      META = { semMetricas: true, motivo: e.message };
+      META = { semMetricas: true, motivo: e.auth ? 'o Admin Central não respondeu a tempo' : e.message };
     }
     LOJAS = j.lojas || []; IDX = {}; LOJAS.forEach(l => IDX[l.chave] = l);
     if (!sel || !IDX[sel]) { const pior = LOJAS.slice().sort((a, b) => rank(a) - rank(b))[0]; sel = pior ? pior.chave : null; }
-    if (META.semMetricas) faixas.push(['warn', '📊 Métricas indisponíveis (' + esc(META.motivo) + '). Importe e ative o workflow <b>V0.1 SDR Motor · Admin Central</b> no n8n. A lista e as ações funcionam normalmente.']);
+    if (META.semMetricas) faixas.push(['warn', '📊 Métricas indisponíveis agora (' + esc(META.motivo) + '). A lista e as ações funcionam normalmente; clique em Atualizar mais tarde para ver os números.']);
     else if (!META.temRelatorio) faixas.push(['warn', '“Passou p/ equipe” e “visitas” aparecem depois que o motor <b>V1.4.2</b> estiver instalado (ele grava esses contadores).']);
     $('quando').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     tudo();
