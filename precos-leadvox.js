@@ -12,20 +12,17 @@
   var P = window.LV_PRECOS = {
     crm: 397.00,              // Ferramenta LeadVox (CRM), por mês
     descontoCrmComIA: 0.5,    // contratando a IA, o CRM sai com 50% de desconto
-    ia: 459.97,               // IA SDR LeadVox Pro, por mês
-    implIa: 750.00,           // implementação da IA (pagamento único, entra junto com a IA)
+    ia: 659.97,               // IA SDR LeadVox Pro, por mês
     implCrm: 500.00,          // implementação CRM personalizada (opcional, pagamento único)
     garantiaDias: 30,
     nomes: {
       crm: "Ferramenta LeadVox (CRM)",
       ia: "IA SDR LeadVox Pro",
-      implIa: "Implementação da IA",
       implCrm: "Implementação CRM Personalizada"
     },
     desc: {
       crm: "Acesso ao sistema, com treinamento autônomo",
       ia: "Pré-atendimento e distribuição de leads 24h",
-      implIa: "Configuração e treinamento do agente com os dados do seu negócio",
       implCrm: "Configuração completa da plataforma feita pela nossa equipe"
     },
     /* Adicionais: valores apresentados na reunião (tabela interna) */
@@ -99,15 +96,14 @@
       +       '<div class="v">' + brl(P.mensalComIA) + '<small>/mês</small></div>'
       +       '<div class="de">IA que atende, qualifica e agenda 24h no seu WhatsApp.</div>'
       +       '<ul><li><span>' + P.nomes.crm + '</span><span><s style="opacity:.6;font-weight:400">' + brl(P.crm) + '</s> ' + brl(P.crmComIA) + '/mês</span></li>'
-      +       '<li><span>' + P.nomes.ia + '</span><span>' + brl(P.ia) + '/mês</span></li>'
-      +       '<li><span>' + P.nomes.implIa + '</span><span>' + brl(P.implIa) + ' uma vez</span></li></ul></div>'
+      +       '<li><span>' + P.nomes.ia + '</span><span>' + brl(P.ia) + '/mês</span></li></ul></div>'
       +   '</div>'
       +   '<div class="lvp-card lvp-add"><div class="k">Adicionais</div>'
       +     '<p>Canais, ligação, site, tráfego pago e outros serviços. Os valores são apresentados na reunião com nosso especialista, de acordo com o que a sua operação precisa.</p>'
       +     '<div class="lvp-chips">' + chips + '</div></div>'
       +   '<div class="lvp-cta"><a class="btn-primary" href="/#planos">Montar meu plano</a>'
       +     '<a class="lvp-out" href="https://wa.me/' + whats + '?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener noreferrer">Falar com um especialista</a></div>'
-      +   '<p class="lvp-obs">Pré-pago · sem fidelidade · garantia de ' + P.garantiaDias + ' dias. O 1º pagamento soma a implementação à primeira mensalidade.</p>'
+      +   '<p class="lvp-obs">Pré-pago · sem fidelidade · garantia de ' + P.garantiaDias + ' dias. A implementação personalizada do CRM, quando contratada, é somada à primeira mensalidade.</p>'
       + '</div>';
   }
   P.render = render;
