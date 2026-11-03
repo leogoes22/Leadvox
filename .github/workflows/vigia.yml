@@ -1,0 +1,37 @@
+# Vigia de fora: confere de 10 em 10 min se o que atende os clientes está no ar.
+# Roda no GitHub, longe dos servidores, então avisa mesmo se o n8n antigo ou a VPS caírem inteiros.
+# Se algo cair, a execução falha e o GitHub manda e-mail para quem cuida do repositório.
+name: Vigia LeadVox
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  vigia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Conferir os serviços
+        run: |
+          fora=""
+          conferir() {
+            nome="$1"; url="$2"; esperado="$3"
+            # três tentativas, para uma falha passageira da internet não virar alarme
+            for tentativa in 1 2 3; do
+              if curl -fsS -m 20 "$url" | grep -q "$esperado"; then echo "OK   $nome"; return 0; fi
+              sleep 20
+            done
+            echo "::error::FORA DO AR: $nome ($url)"
+            fora="$fora $nome"
+          }
+          conferir "Painel ia.leadvox.com.br" "https://ia.leadvox.com.br/api/health" '"status":"ok"'
+          conferir "n8n antigo (editor e motor)" "https://apin8n.lv-mktdeconversa.com/healthz" '"status":"ok"'
+          conferir "n8n antigo (webhooks dos clientes)" "https://webhook.lv-mktdeconversa.com/healthz" '"status":"ok"'
+          conferir "VPS (n8n novo)" "https://n8n.leadvox.com.br/healthz" '"status":"ok"'
+          conferir "LeadVox chat" "https://chat.leadvox.com.br/" '<'
+          conferir "Site leadvox.com.br" "https://leadvox.com.br/" '<'
+          if [ -n "$fora" ]; then
+            echo "### Fora do ar:$fora" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
