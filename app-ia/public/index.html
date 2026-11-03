@@ -103,7 +103,7 @@
         <button class="bt-menu" type="button" id="btMenu" aria-label="Abrir menu">☰</button>
         <div><h1 id="cabTitulo"></h1><p id="cabSub"></p></div>
       </div>
-      <div class="dir"><select id="cabEmpresa" class="cab-empresa" aria-label="Empresa" hidden></select><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
+      <div class="dir"><select id="cabEmpresa" class="cab-empresa" aria-label="Empresa" hidden></select><button class="sm guia-bt" type="button" id="btGuia">🚀 Primeiros passos</button><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
     </header>
     <div class="pagina">
     <div id="suporteAviso" class="saude aviso" role="status" hidden></div>
@@ -721,6 +721,35 @@
   </div>
   <div id="emAvisos"></div>
 </dialog>
+
+<dialog id="dlgGuia" class="janela larga" aria-labelledby="guiaTitulo">
+  <div class="janela-topo"><h2 id="guiaTitulo">Primeiros passos</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
+  <div id="guiaProgresso"></div>
+  <h3 class="guia-sub">Como a LeadVox IA funciona</h3>
+  <ol class="guia-fluxo">
+    <li><span aria-hidden="true">💬</span><b>O cliente chama</b><small>no WhatsApp da sua empresa</small></li>
+    <li><span aria-hidden="true">📥</span><b>Chega na sua LeadVox</b><small>e a IA fica sabendo na hora</small></li>
+    <li><span aria-hidden="true">🤖</span><b>A IA atende</b><small>responde, entende o que ele quer e mostra o que você vende</small></li>
+    <li><span aria-hidden="true">🤝</span><b>Passa para a equipe</b><small>na hora certa, com o resumo da conversa</small></li>
+  </ol>
+  <h3 class="guia-sub">Para pôr a sua IA no ar</h3>
+  <ol class="guia-passos" id="guiaPassos"></ol>
+  <h3 class="guia-sub">Conheça o painel</h3>
+  <p class="muted" style="font-size:14px">Um passeio rápido: escurece a tela e aponta cada parte do painel, com o que ela faz.</p>
+  <div class="form-bts" style="margin-top:8px"><button type="button" class="sm" id="guiaTour">▶ Tour pelo painel (1 minuto)</button><button type="button" class="sm" id="guiaTourAdmin" hidden>▶ Tour do Painel LeadVox</button></div>
+  <h3 class="guia-sub">Dúvidas comuns</h3>
+  <div class="guia-faq">
+    <details><summary>O que a IA faz sozinha?</summary><p>Responde na hora, a qualquer momento, entende o que o cliente procura, mostra o que você vende (com foto, quando tem), chama de novo quem parou de responder e passa para a pessoa certa da equipe com o resumo da conversa.</p></details>
+    <details><summary>Como testo sem atrapalhar os meus clientes?</summary><p>Use o <b>Testar a IA</b>, na página do agente: nada vai para o WhatsApp. Para testar no WhatsApp de verdade, ligue o <b>Modo de teste</b>: a IA responde só os números que você colocar.</p></details>
+    <details><summary>Como faço a IA parar de responder um cliente?</summary><p>Quando alguém da equipe escreve para o cliente, a IA fica em silêncio nessa conversa por 2 horas. Para devolver na hora, escreva <b>#ia</b> numa nota interna. Para parar tudo, desligue o agente.</p></details>
+    <details><summary>O que é departamento e porta de entrada?</summary><p>A IA só responde nas conversas do departamento dela na LeadVox. A <b>porta de entrada</b> é o agente que atende as conversas novas, que ainda não têm departamento.</p></details>
+    <details><summary>Onde vejo o que a IA fez?</summary><p>No <b>Dashboard</b> (atendimentos, passagens para a equipe e resultados) e em <b>Oportunidades</b> (o funil, com cada cliente na etapa dele).</p></details>
+    <details><summary>Quanto custa e quando sou cobrado?</summary><p>São 7 dias de teste grátis. Depois, a assinatura é mensal, por Pix, boleto ou cartão. O tempo de teste e as faturas aparecem no topo do painel e em <b>Minha conta</b>.</p></details>
+  </div>
+  <div class="guia-ajuda"><span>Ficou com alguma dúvida? A gente te ajuda.</span><button type="button" class="sm principal" id="guiaSuporte">💬 Falar com o suporte</button></div>
+</dialog>
+<div id="guiaFoco" class="guia-foco" hidden></div>
+<div id="guiaBalao" class="guia-balao" role="dialog" aria-label="Tour do painel" hidden></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>

@@ -49,7 +49,8 @@ export function createApp(options={}) {
  return http.createServer(async(req,res)=>{
   const caminho=new URL(req.url,'http://localhost').pathname;
   const quadro=PLUGIN_PAGINAS.has(caminho)?'https://*.leadvox.com.br https://leadvox.com.br':"'none'";
-  const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src https://leadvox.com.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors "+quadro,'Cache-Control':'no-store'};
+  // chat.leadvox.com.br: webchat de suporte da LeadVox (o script e a janela; o microfone é só para a janela dele, nas mensagens de voz)
+  const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=("https://chat.leadvox.com.br"), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self' https://chat.leadvox.com.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src https://leadvox.com.br https://chat.leadvox.com.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors "+quadro,'Cache-Control':'no-store'};
   Object.entries(headers).forEach(([k,v])=>res.setHeader(k,v));
   if(caminho==='/api/plugin')return plugin(req,res);
   if(await accountApi(req,res,caminho))return;

@@ -286,13 +286,14 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   motor = null; agSel = null; agDados = null; desenharMenu();
-  carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); })
-    .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); });
+  carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); atualizarGuia(); guiaPrimeiraVez(); })
+    .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); atualizarGuia(); });
   fin = null; chat = null; listas = {}; conexoes = null; estoque = null; eventos = null; prontoAberto = null;
   $('saudeAviso').hidden = true;
-  carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); });
+  carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); atualizarGuia(); });
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
-  carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); if (abaAtual === 'agentes') desenharPronto(); }).catch(() => {});
+  carregarChat().then(() => { if (LISTA[abaAtual]) desenharLista(abaAtual); if (abaAtual === 'credenciais') desenharCred(); if (abaAtual === 'agentes') desenharPronto(); atualizarGuia(); }).catch(() => {});
+  $('btGuia').innerHTML = '🚀 Primeiros passos';
   desenharEmpresas();
   assin = null; $('planoAviso').hidden = true;
   const querAssinar = pg === 'assinar';
@@ -348,7 +349,7 @@ const FORMA_NOME = { CREDIT_CARD: 'Cartão de crédito', PIX: 'Pix', BOLETO: 'Bo
 const FATURA_NOME = { pago: 'Paga', pendente: 'Em aberto', vencida: 'Vencida', estornada: 'Estornada', cancelada: 'Cancelada' };
 async function carregarAssinatura() {
   assin = await api('assinatura?organization=' + encodeURIComponent(empresa.id));
-  desenharPlanoAviso(); desenharAssinatura();
+  desenharPlanoAviso(); desenharAssinatura(); atualizarGuia();
 }
 // Aviso do topo em todas as telas: contagem do teste, pagamento em aberto, atraso e suspensão.
 function desenharPlanoAviso() {
@@ -1405,22 +1406,38 @@ function desenharPluginLink() {
 }
 
 // Itens na ordem em que o dono resolve; cada um leva para o lugar certo do painel.
+// [título, resumo, feito, onde resolver, o que apontar na tela, explicação do guia]
 function itensProntos() {
   const ags = motor?.agentes || [], ag = ags.find(a => a.chave === agSel) || ags.find(a => a.entrada) || ags[0], c = agDados?.config || {};
   const itens = [
-    ['LeadVox conectada', 'A IA conversa pela sua conta da LeadVox.', !!chat?.connected, 'credenciais'],
-    ['IA ligada ao WhatsApp', 'Cria a conta da IA e liga o número da LeadVox.', !!(motor?.vinculado && motor?.conexao?.conectado), 'agentes'],
-    ['Agente com nome e apresentação', 'Identidade do agente preenchida e salva.', !!ag?.configurado, 'agentes:identidade'],
-    ['Onde o agente atende', 'Departamento da LeadVox ou porta de entrada.', !!(ag && (ag.departamentoId || ag.entrada)), 'agentes:identidade'],
-    ['Mensagens da LeadVox chegando', 'Endereço do webhook de eventos colado na LeadVox.', recebendo(), 'canais'],
-    ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'conhecimento']
+    ['LeadVox conectada', 'A IA conversa pela sua conta da LeadVox.', !!chat?.connected, 'credenciais', '#credStatus',
+      'Na sua LeadVox, abra Configurações → API, copie a URL da API externa e cole aqui. É por ela que a IA lê e responde as conversas.'],
+    ['IA ligada ao WhatsApp', 'Cria a conta da IA e liga o número da LeadVox.', !!(motor?.vinculado && motor?.conexao?.conectado), 'agentes', '#motorBox',
+      'Clique em "Ligar minha IA". Com a LeadVox já conectada, o número do WhatsApp fica ligado na hora. Depois crie o seu primeiro agente.'],
+    ['Agente com nome e apresentação', 'Identidade do agente preenchida e salva.', !!ag?.configurado, 'agentes:identidade', '#idNome',
+      'Dê um nome ao agente e escreva como ele se apresenta. É assim que o cliente vai conhecer a sua IA. Não esqueça de Salvar.'],
+    ['Onde o agente atende', 'Departamento da LeadVox ou porta de entrada.', !!(ag && (ag.departamentoId || ag.entrada)), 'agentes:identidade', '#idDep',
+      'Escolha o departamento da LeadVox em que a IA responde, ou ligue "Porta de entrada" para ela atender as conversas novas.'],
+    ['Mensagens da LeadVox chegando', 'Endereço do webhook de eventos colado na LeadVox.', recebendo(), 'canais', '#evCard',
+      'Copie este endereço e cole na LeadVox em Configurações → API → Webhook de eventos. Sem ele, a IA não fica sabendo que chegou mensagem.'],
+    ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'conhecimento', '#kForm',
+      'Conte o que a empresa faz e cadastre as perguntas que os clientes mais fazem. A IA responde com base no que está aqui.']
   ];
-  if (cfg.niche === 'automotivo') itens.push(['Estoque com veículos', 'Veículos disponíveis e a IA usando o estoque.', !!(c.catalogo?.usar && (estoque?.itens || []).some(i => i.status === 'disponivel')), 'estoque']);
-  itens.push(['Agente ligado', 'Ligado, ele começa a responder os clientes.', !!ag?.ativo, 'agentes:identidade']);
+  if (cfg.niche === 'automotivo') itens.push(['Estoque com veículos', 'Veículos disponíveis e a IA usando o estoque.', !!(c.catalogo?.usar && (estoque?.itens || []).some(i => i.status === 'disponivel')), 'estoque', '#esTopo',
+    'Cadastre os veículos aqui ou conecte o AutoCerto ou o Revenda Mais em Credenciais. A IA só oferece o que está no estoque.']);
+  itens.push(['IA testada', 'Conversou com a IA no "Testar a IA".', !!ag && testouIA(), 'agentes:testar', '#tsMsg',
+    'Converse como se fosse um cliente. Nada vai para o WhatsApp. Se algo não ficar do seu jeito, ajuste nas outras abas e teste de novo.']);
+  itens.push(['Agente ligado', 'Ligado, ele começa a responder os clientes.', !!ag?.ativo, 'agentes:identidade', '#agLiga',
+    'Ligue o agente para ele responder os clientes. Quer ir com calma? Ligue antes o Modo de teste: ele responde só os números que você colocar.']);
   return itens;
 }
+// "IA testada" fica anotado neste aparelho quando a pessoa manda a primeira mensagem no Testar a IA
+const chaveTestou = () => 'lv_testou_' + (empresa?.id || '');
+const testouIA = () => { try { return localStorage.getItem(chaveTestou()) === '1'; } catch { return false; } };
+$('tsForm').addEventListener('submit', () => { try { localStorage.setItem(chaveTestou(), '1'); } catch {} atualizarGuia(); });
 let prontoAberto = null;
 function desenharPronto() {
+  atualizarGuia();
   const box = $('prontoBox');
   if (!motor || motor.setupPending) { box.hidden = true; return; }
   if (cfg.niche === 'automotivo' && !estoque && motor.vinculado) api('estoque?organization=' + encodeURIComponent(empresa.id)).then(r => { estoque = r; desenharPronto(); }).catch(() => {});
@@ -1440,6 +1457,158 @@ function desenharPronto() {
     if (aba) { document.querySelector('[data-ag="' + aba + '"]')?.click(); $('agDetalhe').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
 }
+
+/* ═══════════ PRIMEIROS PASSOS ═══════════ */
+// Botão no topo: os passos para pôr a IA no ar (marcam sozinhos), como a plataforma funciona, um tour
+// que aponta cada coisa na tela e as dúvidas comuns. Abre sozinho na primeira vez em cada empresa.
+// Suporte pelo webchat da LeadVox (o mesmo do site leadvox.com.br): o script só carrega quando a pessoa pede ajuda,
+// sem a bolinha fixa na tela; o chat já abre sabendo de qual empresa e e-mail a pessoa é.
+const WEBCHAT = { sdk: 'https://chat.leadvox.com.br/webchat/sdk.js', token: '78ed9e3c-95ca-4b18-80e5-daa62c3ceb02', base: 'https://chatapi.leadvox.com.br' };
+let webchat = null;
+function abrirSuporte() {
+  if (!webchat) webchat = new Promise((ok, falha) => {
+    window.envioMensagemSettings = { hideMessageBubble: true };
+    const s = document.createElement('script'); s.src = WEBCHAT.sdk; s.async = true;
+    s.onload = () => { try { window.envioMensagemSDK.run({ widgetToken: WEBCHAT.token, baseUrl: WEBCHAT.base }); ok(); } catch (e) { falha(e); } };
+    s.onerror = () => falha(Error('webchat'));
+    document.head.appendChild(s);
+  });
+  webchat.then(() => {
+    // a janela do guia fica por cima de tudo; fecha para o chat aparecer
+    if ($('dlgGuia').open) $('dlgGuia').close();
+    const c = window.$envioMensagemChat;
+    try { c.setUser(conta.user.email, { name: (cfg.displayName || empresa.name) + ' · ' + conta.user.email, email: conta.user.email }); } catch {}
+    c.open();
+  }).catch(() => { webchat = null; toast('Não deu para abrir o chat agora. Tente de novo em instantes.', true); });
+}
+function passosGuia() {
+  const p = itensProntos().map(([t, d, ok, ir, alvo, explica]) => ({ t, d, ok, ir, alvo, explica }));
+  if (assin && assin.podeAssinar && assin.status !== 'cortesia') p.push({ t: 'Plano escolhido', d: 'Assine para a IA seguir atendendo depois do teste.',
+    ok: assin.status === 'ativa', ir: 'conta', alvo: '#assinCard', explica: 'Escolha o plano e a forma de pagamento. No teste grátis, a primeira cobrança só vem quando o teste acaba.' });
+  return p;
+}
+function atualizarGuia() {
+  const bt = $('btGuia'); if (!bt || !empresa) return;
+  if (!motor || motor.setupPending) { bt.innerHTML = '🚀 Primeiros passos'; return; }
+  const p = passosGuia(), feitos = p.filter(x => x.ok).length;
+  bt.innerHTML = feitos === p.length ? '✓ IA no ar' : `🚀 Primeiros passos <span class="guia-n">${feitos}/${p.length}</span>`;
+  if ($('dlgGuia').open) desenharGuia();
+}
+function desenharGuia() {
+  const p = motor && !motor.setupPending ? passosGuia() : [], feitos = p.filter(x => x.ok).length, prox = p.findIndex(x => !x.ok);
+  const nome = cfg.aiName || 'sua IA';
+  $('guiaProgresso').innerHTML = p.length ? `<p class="muted">${feitos === p.length ? `Tudo pronto: ${esc(nome)} já atende os seus clientes. 🎉` : `${feitos} de ${p.length} passos prontos. Siga na ordem: cada passo leva você ao lugar certo e mostra onde clicar.`}</p>
+    <div class="pronto-barra"><i style="width:${Math.round(feitos / p.length * 100)}%"></i></div>` : '<p class="muted">Carregando os seus passos…</p>';
+  $('guiaPassos').innerHTML = p.map((x, i) => `<li class="${x.ok ? 'ok' : i === prox ? 'agora' : ''}"><span class="guia-num" aria-hidden="true">${x.ok ? '✓' : i + 1}</span>
+    <div><b>${esc(x.t)}</b>${i === prox ? ' <span class="st rascunho">próximo passo</span>' : ''}<small>${esc(x.ok ? x.d : x.explica)}</small></div>
+    <button type="button" class="sm${i === prox ? ' principal' : ''}" data-guia-ir="${i}">${x.ok ? 'Rever' : 'Me mostra'}</button></li>`).join('');
+  document.querySelectorAll('[data-guia-ir]').forEach(b => b.onclick = () => { const x = p[+b.dataset.guiaIr]; tourIniciar([{ ir: x.ir, alvo: x.alvo, t: x.t, txt: x.explica }], true); });
+  $('guiaTourAdmin').hidden = !conta.platformAdmin;
+}
+function abrirGuia() {
+  desenharGuia(); if (!$('dlgGuia').open) $('dlgGuia').showModal();
+  // o que o guia confere e ainda não foi carregado nesta tela: o agente e o estoque
+  const ags = motor?.agentes || [];
+  if (ags.length && !agDados) abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave).then(atualizarGuia);
+  if (cfg.niche === 'automotivo' && !estoque && motor?.vinculado) api('estoque?organization=' + encodeURIComponent(empresa.id)).then(r => { estoque = r; atualizarGuia(); }).catch(() => {});
+}
+$('btGuia').onclick = abrirGuia;
+$('guiaTour').onclick = () => tourIniciar(TOUR_PAINEL());
+$('guiaTourAdmin').onclick = () => tourIniciar(TOUR_ADMIN);
+$('guiaSuporte').onclick = abrirSuporte;
+// primeira vez nesta empresa: abre o guia (menos no acesso de suporte do admin)
+function guiaPrimeiraVez() {
+  // só conta como visto quando abriu de verdade (com os termos na tela, fica para a próxima vez)
+  const k = 'lv_guia_visto_' + empresa.id; let visto = true;
+  try { visto = localStorage.getItem(k) === '1'; } catch {}
+  if (visto || empresa.role !== 'owner' || document.querySelector('dialog[open]')) return;
+  try { localStorage.setItem(k, '1'); } catch {}
+  abrirGuia();
+}
+
+// Tour: escurece a tela, destaca o elemento e mostra um balão com a explicação.
+const TOUR_PAINEL = () => [
+  { alvo: '[data-pg="agentes"]', menu: 1, t: 'Agentes LeadVox IA', txt: 'Aqui fica a sua IA: nome, jeito de falar, o que ela entende e o botão de ligar e desligar.' },
+  { ir: 'agentes', alvo: '#prontoBox', t: 'Sua IA está pronta?', txt: 'Mostra o que falta para a IA atender sozinha. Cada item tem um botão Resolver que leva ao lugar certo.' },
+  { ir: 'agentes:testar', alvo: '[data-ag="testar"]', t: 'Testar a IA', txt: 'Converse com a IA como se fosse um cliente. Nada vai para o WhatsApp, a LeadVox nem o funil.' },
+  { ir: 'agentes', alvo: '#agLiga', t: 'Liga e desliga', txt: 'Ligada, a IA responde os clientes. Desligou, ela para na hora. O Modo de teste logo abaixo faz ela responder só os seus números.' },
+  { alvo: '[data-pg="dashboard"]', menu: 1, t: 'Dashboard', txt: 'Quantos clientes a IA atendeu, quantos passou para a equipe e como foi o período.' },
+  { alvo: '[data-pg="oportunidades"]', menu: 1, t: 'Oportunidades', txt: 'O funil de vendas da sua LeadVox, com cada cliente na etapa em que está.' },
+  { alvo: '[data-pg="conhecimento"]', menu: 1, t: 'Base de conhecimento', txt: 'Tudo o que a IA sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
+  { alvo: '[data-pg="estoque"]', menu: 1, t: CATALOGO[tipoCatalogo()].titulo, txt: CATALOGO[tipoCatalogo()].desc + ' A IA só oferece o que está aqui.' },
+  { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, status do lead, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
+  { alvo: '[data-pg="canais"]', menu: 1, t: 'Canais WhatsApp', txt: 'O endereço que você cola na LeadVox para as mensagens chegarem até a IA, e o link do Plugin do Vendedor.' },
+  { alvo: '[data-pg="credenciais"]', menu: 1, t: 'Credenciais de API', txt: 'Onde você conecta a LeadVox, o estoque e outras contas. As chaves ficam guardadas em cofre e não voltam para a tela.' },
+  { alvo: '[data-pg="conta"]', menu: 1, t: 'Minha conta', txt: 'Dados da empresa e da loja, o seu plano e a senha.' },
+  { alvo: '#btGuia', t: 'Primeiros passos', txt: 'Volte aqui quando quiser: os passos que faltam, este tour e as dúvidas comuns.' }
+];
+const TOUR_ADMIN = [
+  { ir: 'leadvox', alvo: '#lvNumeros', t: 'Números da plataforma', txt: 'Quantos clientes estão em teste, ativos, atrasados ou pausados, e quanto entra por mês.' },
+  { ir: 'leadvox', alvo: '#lvAlertas', t: 'Precisa de você', txt: 'Teste acabando, fatura vencida, IA pausada, sem mensagens chegando. Comece o dia por aqui.' },
+  { ir: 'leadvox', alvo: '#lvConsumo', t: 'Consumo de IA', txt: 'Quanto cada cliente gastou de IA no período. Serve para ver quem está caro antes da conta da OpenAI chegar.' },
+  { ir: 'leadvox', alvo: '#lvLista', t: 'Clientes', txt: 'Busque a empresa e clique nela para estender o teste, trocar o plano, dar cortesia, suspender ou entrar como suporte.' },
+  { ir: 'leadvox', alvo: '#lvAsaas', t: 'Asaas da LeadVox', txt: 'A conta que recebe as assinaturas. Teste (sandbox) para testar sem dinheiro; Produção para cobrar de verdade.' }
+];
+let tour = null;
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+const celular = () => matchMedia('(max-width: 760px)').matches;
+function tourIniciar(passos, unico) {
+  // só os passos cujo alvo existe neste painel (ex.: sem menu de Estoque, sem agente criado)
+  const ok = passos.filter(p => !p.menu || document.querySelector(p.alvo));
+  if (!ok.length) return;
+  if ($('dlgGuia').open) $('dlgGuia').close();
+  tour = { passos: ok, i: 0, unico: !!unico };
+  tourMostrar();
+}
+async function tourMostrar() {
+  const p = tour.passos[tour.i], vez = tour;
+  if (p.ir) {
+    const [pg, aba] = p.ir.split(':');
+    if (abaAtual !== pg) abrir(pg);
+    if (aba) document.querySelector('[data-ag="' + aba + '"]')?.click();
+  }
+  if (p.menu && celular()) $('lateral').classList.add('aberta'); else if (celular()) $('lateral').classList.remove('aberta');
+  await esperar(250); if (tour !== vez) return;
+  // alvo escondido (ex.: ainda sem agente): aponta o quadro principal da tela
+  let el = document.querySelector(p.alvo);
+  if (!el || !el.getClientRects().length) el = document.querySelector('.pagina section:not([hidden]) .card') || null;
+  tour.el = el;
+  el?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  const n = tour.passos.length, ult = tour.i === n - 1;
+  $('guiaBalao').innerHTML = `<p class="guia-conta">${tour.unico ? 'Onde fazer' : `${tour.i + 1} de ${n}`}</p><h3>${esc(p.t)}</h3><p>${esc(p.txt)}</p>
+    <div class="form-bts">${tour.unico ? '<button type="button" class="sm" data-tour="guia">Voltar aos passos</button><button type="button" class="principal sm" data-tour="fim">Entendi</button>'
+      : `<button type="button" class="leve" data-tour="fim">Sair do tour</button>${tour.i ? '<button type="button" class="sm" data-tour="voltar">Voltar</button>' : ''}<button type="button" class="principal sm" data-tour="${ult ? 'fim' : 'prox'}">${ult ? 'Concluir' : 'Próximo'}</button>`}</div>`;
+  $('guiaBalao').querySelectorAll('[data-tour]').forEach(b => b.onclick = () => tourAcao(b.dataset.tour));
+  $('guiaFoco').hidden = $('guiaBalao').hidden = false;
+  tourPosicionar(); setTimeout(tourPosicionar, 400);
+  $('guiaBalao').querySelector('.principal')?.focus({ preventScroll: true });
+}
+function tourPosicionar() {
+  if (!tour) return;
+  const foco = $('guiaFoco'), balao = $('guiaBalao'), el = tour.el, m = 6;
+  const r = el ? el.getBoundingClientRect() : { top: innerHeight / 2, left: innerWidth / 2, width: 0, height: 0, bottom: innerHeight / 2 };
+  Object.assign(foco.style, { top: r.top - m + 'px', left: r.left - m + 'px', width: r.width + m * 2 + 'px', height: r.height + m * 2 + 'px' });
+  if (celular()) { Object.assign(balao.style, { top: '', left: '', bottom: '16px' }); return; }
+  const bw = balao.offsetWidth, bh = balao.offsetHeight;
+  const embaixo = r.bottom + 14 + bh < innerHeight, top = embaixo ? r.bottom + 14 : Math.max(16, r.top - 14 - bh);
+  const left = Math.min(Math.max(16, r.left), innerWidth - bw - 16);
+  Object.assign(balao.style, { top: top + 'px', left: left + 'px', bottom: '' });
+}
+function tourAcao(a) {
+  if (a === 'prox') { tour.i++; return tourMostrar(); }
+  if (a === 'voltar') { tour.i--; return tourMostrar(); }
+  tour = null; $('guiaFoco').hidden = $('guiaBalao').hidden = true;
+  if (celular()) $('lateral').classList.remove('aberta');
+  if (a === 'guia') abrirGuia();
+}
+addEventListener('resize', tourPosicionar);
+addEventListener('scroll', tourPosicionar, { passive: true, capture: true });
+addEventListener('keydown', e => {
+  if (!tour) return;
+  if (e.key === 'Escape') tourAcao('fim');
+  else if (e.key === 'ArrowRight' && !tour.unico && tour.i < tour.passos.length - 1) tourAcao('prox');
+  else if (e.key === 'ArrowLeft' && !tour.unico && tour.i) tourAcao('voltar');
+});
 
 /* outras conexões: estoque e Asaas */
 let conexoes = null, estFonte = '';

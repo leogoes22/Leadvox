@@ -441,3 +441,36 @@ textarea { min-height: 90px; resize: vertical; }
 .olho { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: auto; background: none; border: 0; padding: 6px 8px; color: var(--suave); cursor: pointer; line-height: 0; }
 .olho:hover { color: var(--texto); }
 .olho svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* primeiros passos (guia e tour) */
+.guia-bt { border-color: rgba(43,232,123,.45); color: var(--verde); white-space: nowrap; }
+.guia-n { display: inline-block; margin-left: 4px; padding: 0 7px; border-radius: 99px; background: var(--verde); color: var(--navy); font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .cab .dir .guia-bt { padding: 6px 9px; } }
+.guia-sub { margin: 20px 0 8px; font-size: 15px; }
+.guia-fluxo { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; counter-reset: f; }
+.guia-fluxo li { position: relative; background: var(--painel2); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px; font-size: 14px; }
+.guia-fluxo li span { font-size: 20px; display: block; margin-bottom: 4px; }
+.guia-fluxo b { display: block; } .guia-fluxo small { color: var(--suave); font-size: 12.5px; }
+.guia-fluxo li:not(:last-child)::after { content: '→'; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); color: var(--verde); font-weight: 700; }
+@media (max-width: 640px) { .guia-fluxo { grid-template-columns: 1fr 1fr; } .guia-fluxo li::after { display: none; } }
+.guia-passos { list-style: none; padding: 0; margin: 0; }
+.guia-passos li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linha); font-size: 14px; }
+.guia-passos li:first-child { border-top: 0; }
+.guia-passos small { display: block; color: var(--suave); font-size: 12.5px; margin-top: 2px; }
+.guia-num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--linha); color: var(--suave); font-size: 12.5px; font-weight: 700; }
+.guia-passos li.ok .guia-num { background: var(--verde-fundo); border-color: rgba(43,232,123,.4); color: var(--verde); }
+.guia-passos li.ok b { color: var(--suave); font-weight: 500; }
+.guia-passos li.agora { background: var(--verde-fundo); border-radius: var(--raio); padding: 10px; border-top-color: transparent; }
+.guia-passos li.agora .guia-num { border-color: var(--verde); color: var(--verde); }
+@media (max-width: 520px) { .guia-passos li { grid-template-columns: 28px minmax(0, 1fr); } .guia-passos li button { grid-column: 2; justify-self: start; } }
+.guia-faq details { border-top: 1px solid var(--linha); padding: 10px 0; font-size: 14px; }
+.guia-faq summary { cursor: pointer; font-weight: 500; }
+.guia-faq details p { color: var(--suave); margin-top: 6px; }
+.guia-ajuda { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; padding: 12px; border-radius: var(--raio); background: var(--painel2); font-size: 14px; }
+.guia-foco { position: fixed; z-index: 60; border: 2px solid var(--verde); border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(3,7,16,.72); transition: top .2s, left .2s, width .2s, height .2s; }
+.guia-balao { position: fixed; z-index: 61; width: min(340px, calc(100vw - 32px)); background: var(--painel); border: 1px solid var(--verde); border-radius: 14px; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+.guia-balao h3 { margin-bottom: 6px; } .guia-balao > p { font-size: 14px; }
+.guia-balao .guia-conta { font-size: 12px; color: var(--verde); margin-bottom: 4px; }
+.guia-balao .form-bts { justify-content: flex-end; }
+@media (max-width: 760px) { .guia-balao { left: 16px !important; right: 16px; width: auto; } }
+@media (prefers-reduced-motion: reduce) { .guia-foco { transition: none; } }
