@@ -36,17 +36,23 @@ const MODOS = {
 // Olhinho em todo campo de senha ou chave: mostra ou oculta o que foi digitado, para conferir antes de enviar.
 const OLHO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const OLHO_RISCADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>';
+// Chave de API não é senha: fica como texto mascarado, senão o Chrome oferece guardar a URL e o token como login.
+const SENHAS_DE_VERDADE = ['pSenha', 'nsSenha'];
+const oculto = inp => inp.dataset.chave ? inp.classList.contains('mascara') : inp.type === 'password';
 function ocultarSenha(inp) {
-  const bt = inp.parentNode.querySelector('.olho'); inp.type = 'password';
+  const bt = inp.parentNode.querySelector('.olho');
+  if (inp.dataset.chave) inp.classList.add('mascara'); else inp.type = 'password';
   if (bt) { bt.innerHTML = OLHO; bt.setAttribute('aria-pressed', 'false'); bt.setAttribute('aria-label', 'Mostrar o que foi digitado'); }
 }
 document.querySelectorAll('input[type=password]').forEach(inp => {
+  if (!SENHAS_DE_VERDADE.includes(inp.id)) { inp.dataset.chave = '1'; inp.type = 'text'; inp.autocomplete = 'off'; }
   const caixa = document.createElement('div'); caixa.className = 'campo-senha';
   inp.parentNode.insertBefore(caixa, inp); caixa.appendChild(inp);
   const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'olho';
   bt.onclick = () => {
-    if (inp.type !== 'password') return ocultarSenha(inp);
-    inp.type = 'text'; bt.innerHTML = OLHO_RISCADO; bt.setAttribute('aria-pressed', 'true'); bt.setAttribute('aria-label', 'Ocultar o que foi digitado');
+    if (!oculto(inp)) return ocultarSenha(inp);
+    if (inp.dataset.chave) inp.classList.remove('mascara'); else inp.type = 'text';
+    bt.innerHTML = OLHO_RISCADO; bt.setAttribute('aria-pressed', 'true'); bt.setAttribute('aria-label', 'Ocultar o que foi digitado');
   };
   caixa.appendChild(bt); ocultarSenha(inp);
 });
@@ -1673,7 +1679,7 @@ function desenharConexoes() {
 }
 async function salvarConexao(form, dados, ok) {
   const bt = form.querySelector('button[type=submit]'), txt = bt.textContent; bt.disabled = true; bt.textContent = 'Testando…';
-  try { await api('integrations', { organization: empresa.id, ...dados }); form.querySelectorAll('input[type=password]').forEach(i => i.value = ''); await carregarConexoes(); desenharConexoes(); toast(ok); }
+  try { await api('integrations', { organization: empresa.id, ...dados }); form.querySelectorAll('input[type=password], input[data-chave]').forEach(i => i.value = ''); await carregarConexoes(); desenharConexoes(); toast(ok); }
   catch (err) { toast(err.message, true); }
   finally { bt.disabled = false; bt.textContent = txt; }
 }

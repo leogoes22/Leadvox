@@ -440,6 +440,7 @@ textarea { min-height: 90px; resize: vertical; }
 .campo-senha input { padding-right: 44px; }
 .olho { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: auto; background: none; border: 0; padding: 6px 8px; color: var(--suave); cursor: pointer; line-height: 0; }
 .olho:hover { color: var(--texto); }
+.mascara { -webkit-text-security: disc; text-security: disc; }
 .olho svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* primeiros passos (guia e tour) */
 .guia-bt { border-color: rgba(43,232,123,.45); color: var(--verde); white-space: nowrap; }
