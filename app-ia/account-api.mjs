@@ -467,15 +467,16 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      send(res,200,{connected:true,apiId:parsed.apiId});
     }else if(action==='chat'&&req.method==='GET'){
      const kind=new URL(req.url,'https://localhost').searchParams.get('kind');
-     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins'}[kind];
+     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins',motivos:'closingReasons'}[kind];
      if(!call)throw {status:400,message:'Lista inválida.'};
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
      let list;
-     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=['departments','leadOrigins','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
+     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=['departments','leadOrigins','closingReasons','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
      catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
       :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'}
-      :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+      :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'}
+      :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      send(res,200,{items:normalizeItems(list)});
     }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='organization'&&req.method==='POST'){

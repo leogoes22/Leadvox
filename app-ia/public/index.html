@@ -137,13 +137,26 @@
         <div>
           <nav class="sub-abas" id="agAbas" aria-label="Agente" style="padding-top:0">
             <button type="button" data-ag="identidade">Identidade</button>
+            <button type="button" data-ag="conhecimento">Base de conhecimento</button>
             <button type="button" data-ag="testar">💬 Testar a IA</button>
             <button type="button" data-ag="comportamento">Comportamento</button>
             <button type="button" data-ag="multimodal">Multimodal</button>
             <button type="button" data-ag="canais">Canais e gatilhos</button>
             <button type="button" data-ag="automacoes">Ações e regras</button>
-            <button type="button" data-ir="dashboard">Dashboard</button>
           </nav>
+          <div id="agConhecimento" data-agp="conhecimento" hidden>
+            <div class="card" id="kTopo" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
+            <form id="kForm" hidden>
+              <nav class="sub-abas" id="kAbas" aria-label="Base de conhecimento">
+                <button type="button" data-k="empresa" aria-pressed="true">Empresa</button>
+                <button type="button" data-k="horario">Horário</button>
+                <button type="button" data-k="perguntas">Perguntas e regras</button>
+                <button type="button" data-k="precos">Preços</button>
+              </nav>
+              <div id="kPaineis"></div>
+              <div class="salvar-barra"><span class="muted" id="kSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar base de conhecimento</button></div>
+            </form>
+          </div>
           <form class="card" id="agIdentidade" data-agp="identidade">
             <h3>Identidade do agente</h3>
             <label for="idNome">Nome do agente</label><input id="idNome" maxlength="40" placeholder="Carol">
@@ -360,20 +373,6 @@
         <div class="card"><h3>Para onde a IA passou</h3><div id="dSetores"></div></div>
         <div class="card"><h3>Conversas por agente</h3><div id="dAgentes"></div></div>
       </div>
-    </section>
-
-    <section id="vConhecimento" hidden>
-      <div class="card" id="kTopo" style="margin-top:0"><p class="muted">Carregando sua IA…</p></div>
-      <form id="kForm" hidden>
-        <nav class="sub-abas" id="kAbas" aria-label="Base de conhecimento">
-          <button type="button" data-k="empresa" aria-pressed="true">Empresa</button>
-          <button type="button" data-k="horario">Horário</button>
-          <button type="button" data-k="perguntas">Perguntas e regras</button>
-          <button type="button" data-k="precos">Preços</button>
-        </nav>
-        <div id="kPaineis"></div>
-        <div class="salvar-barra"><span class="muted" id="kSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar base de conhecimento</button></div>
-      </form>
     </section>
 
     <section id="vOportunidades" hidden>

@@ -53,3 +53,11 @@ test('lead origins fall back to the screen route outside /v1',async()=>{
  const n=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})});
  await assert.rejects(n.leadOrigins(),{code:'CHAT_ORIGINS_UNAVAILABLE'});
 });
+test('closing reasons come from the screen route /closing-reason/ like the lead origins',async()=>{
+ const urls=[];const c=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async url=>{urls.push(url);
+  return url.startsWith('https://chatapi.leadvox.com.br/closing-reason/?')?{ok:true,json:async()=>({closingReasons:[{id:3,name:'Comprou'},{id:4,description:'Sem interesse'}]})}:{ok:false,status:404,json:async()=>({})};}});
+ assert.deepEqual(normalizeItems(await c.closingReasons()),[{id:'3',name:'Comprou',color:null},{id:'4',name:'Sem interesse',color:null}]);
+ assert.ok(urls.at(-1).startsWith('https://chatapi.leadvox.com.br/closing-reason/?token='));
+ const n=createChatClient({apiId:'acc',token:'test-secret',fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})});
+ await assert.rejects(n.closingReasons(),{code:'CHAT_REASONS_UNAVAILABLE'});
+});

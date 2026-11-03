@@ -238,7 +238,6 @@ const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
   ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
-  ['conhecimento', 'Base de conhecimento', 'livro', 'O que a IA sabe e responde.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
   ['status', 'Status do lead', 'kanban', 'As etapas do funil da sua LeadVox.'],
@@ -253,14 +252,14 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades',conhecimento: 'vConhecimento', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
   status: ['Seus status do lead aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
   usuarios: ['Seus usuários aparecem aqui', 'Quem atende na sua LeadVox. A IA passa o cliente para a pessoa certa.'],
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
-  motivos: ['Motivos de fechamento', 'Ex.: comprou, sem interesse, sem resposta. A IA marca o motivo quando o atendimento termina.'],
+  motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…'],
   arquivos: ['Arquivos da IA chegam na próxima etapa', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp. Enquanto isso, preencha a base de conhecimento.']
 };
 const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
@@ -286,8 +285,8 @@ function abrirApp(pg) {
   const linhas = `<div><span>WhatsApp</span>${esc(zapFmt(cfg.whatsapp))}</div><div><span>Empresa</span>${esc(nome)}</div>`;
   $('canaisZap').innerHTML = linhas; $('canaisDados').innerHTML = linhas;
   motor = null; agSel = null; agDados = null; desenharMenu();
-  carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); atualizarGuia(); guiaPrimeiraVez(); })
-    .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (abaAtual === 'conhecimento') abrirConhecimento(); atualizarGuia(); });
+  carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (kAberta()) abrirConhecimento(); atualizarGuia(); guiaPrimeiraVez(); })
+    .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (kAberta()) abrirConhecimento(); atualizarGuia(); });
   fin = null; chat = null; listas = {}; conexoes = null; estoque = null; eventos = null; prontoAberto = null;
   $('saudeAviso').hidden = true;
   carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); atualizarGuia(); });
@@ -430,7 +429,10 @@ $('formAssinar').onsubmit = async e => {
 document.querySelectorAll('dialog [data-fechar]').forEach(b => b.onclick = () => b.closest('dialog').close());
 
 let abaAtual = 'agentes';
+// a base de conhecimento é de cada agente: fica numa aba dele, não no menu
+const kAberta = () => abaAtual === 'agentes' && document.querySelector('[data-ag="conhecimento"]')?.getAttribute('aria-pressed') === 'true';
 function abrir(pg) {
+  if (pg === 'conhecimento') { abrir('agentes'); document.querySelector('[data-ag="conhecimento"]')?.click(); return; }
   if (!visivel(pg)) pg = 'agentes';
   abaAtual = pg;
   const item = itemMenu(MENU.find(m => m[0] === pg));
@@ -440,7 +442,6 @@ function abrir(pg) {
   if (LISTA[pg]) desenharLista(pg);
   if (pg === 'credenciais') { desenharCred(); desenharConexoes(); carregarOpenAI(); }
   if (pg === 'agentes') desenharMotor();
-  if (pg === 'conhecimento') abrirConhecimento();
   if (pg === 'estoque') abrirEstoque();
   if (pg === 'dashboard') carregarDashboard();
   if (pg === 'oportunidades') carregarOportunidades();
@@ -581,6 +582,7 @@ async function abrirAgenteMotor(chave) {
     agSel = chave; agDados = { ...a, config: mesclar(configPadrao(a.tipo, a.nome), a.config || {}) };
     desenharAgente(); $('agDetalhe').hidden = false;
     document.querySelectorAll('[data-abrir-ag]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.abrirAg === chave)));
+    if (kAberta()) { limparK(); desenharConhecimento(); }
   } catch (err) { toast(err.message, true); }
 }
 
@@ -629,6 +631,7 @@ $('idEntrada').onclick = () => $('idEntrada').setAttribute('aria-checked', Strin
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   document.querySelectorAll('[data-agp]').forEach(p => p.hidden = p.dataset.agp !== b.dataset.ag);
+  if (b.dataset.ag === 'conhecimento') abrirConhecimento();
 });
 document.querySelector('[data-ag="identidade"]').setAttribute('aria-pressed', 'true');
 $('agIdentidade').onsubmit = async e => {
@@ -704,14 +707,10 @@ async function abrirConhecimento() {
 }
 
 function desenharConhecimento() {
-  const ags = motor.agentes || [], c = agDados.config;
-  $('kTopo').innerHTML = `<div class="lista-topo"><div><h3>O que a IA sabe</h3><p class="muted" style="margin-top:4px">Ela só responde com o que estiver aqui. O que não souber, passa para a sua equipe.</p></div>
-      ${ags.length > 1 ? `<div><label for="kAgente" style="margin:0 0 4px;font-size:13px">Agente</label><select id="kAgente" style="width:auto">${ags.map(a => `<option value="${esc(a.chave)}" ${a.chave === agSel ? 'selected' : ''}>${esc(a.nome || 'Agente sem nome')}</option>`).join('')}</select></div>` : ''}</div>
+  const c = agDados.config;
+  // o agente é o que está aberto acima (a base fica numa aba dele)
+  $('kTopo').innerHTML = `<div class="lista-topo"><div><h3>O que ${esc(c.identidade?.nome || agDados.nome || 'a IA')} sabe</h3><p class="muted" style="margin-top:4px">Ela só responde com o que estiver aqui. O que não souber, passa para a sua equipe.</p></div></div>
     <div class="checklist" id="kCheck"></div>`;
-  if ($('kAgente')) $('kAgente').onchange = async e => {
-    if (kSujo && !confirm('Você tem alterações não salvas. Trocar de agente mesmo assim?')) { e.target.value = agSel; return; }
-    await abrirAgenteMotor(e.target.value); desenharConhecimento();
-  };
   const ehAgenda = agDados.tipo === 'agendamento' || agDados.tipo === 'agenda';
   $('kPaineis').innerHTML = `
     <div class="card" data-kp="empresa"><h3>Empresa</h3><p class="muted">O que a IA precisa saber sobre o negócio.</p>
@@ -1178,7 +1177,7 @@ $('oaForm').onsubmit = async e => {
 };
 
 let chat = null, listas = {};
-const DA_LEADVOX = { etiquetas: 1, status: 1, usuarios: 1, departamentos: 1 };
+const DA_LEADVOX = { etiquetas: 1, status: 1, usuarios: 1, departamentos: 1, motivos: 1 };
 async function carregarChat() { chat = await api('chat-credentials?organization=' + encodeURIComponent(empresa.id)); }
 
 function desenharCred() {
@@ -1420,7 +1419,7 @@ function itensProntos() {
       'Escolha o departamento da LeadVox em que a IA responde, ou ligue "Porta de entrada" para ela atender as conversas novas.'],
     ['Mensagens da LeadVox chegando', 'Endereço do webhook de eventos colado na LeadVox.', recebendo(), 'canais', '#evCard',
       'Copie este endereço e cole na LeadVox em Configurações → API → Webhook de eventos. Sem ele, a IA não fica sabendo que chegou mensagem.'],
-    ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'conhecimento', '#kForm',
+    ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'agentes:conhecimento', '#kForm',
       'Conte o que a empresa faz e cadastre as perguntas que os clientes mais fazem. A IA responde com base no que está aqui.']
   ];
   if (cfg.niche === 'automotivo') itens.push(['Estoque com veículos', 'Veículos disponíveis e a IA usando o estoque.', !!(c.catalogo?.usar && (estoque?.itens || []).some(i => i.status === 'disponivel')), 'estoque', '#esTopo',
@@ -1534,7 +1533,7 @@ const TOUR_PAINEL = () => [
   { ir: 'agentes', alvo: '#agLiga', t: 'Liga e desliga', txt: 'Ligada, a IA responde os clientes. Desligou, ela para na hora. O Modo de teste logo abaixo faz ela responder só os seus números.' },
   { alvo: '[data-pg="dashboard"]', menu: 1, t: 'Dashboard', txt: 'Quantos clientes a IA atendeu, quantos passou para a equipe e como foi o período.' },
   { alvo: '[data-pg="oportunidades"]', menu: 1, t: 'Oportunidades', txt: 'O funil de vendas da sua LeadVox, com cada cliente na etapa em que está.' },
-  { alvo: '[data-pg="conhecimento"]', menu: 1, t: 'Base de conhecimento', txt: 'Tudo o que a IA sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
+  { ir: 'agentes:conhecimento', alvo: '[data-ag="conhecimento"]', t: 'Base de conhecimento', txt: 'Tudo o que este agente sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
   { alvo: '[data-pg="estoque"]', menu: 1, t: CATALOGO[tipoCatalogo()].titulo, txt: CATALOGO[tipoCatalogo()].desc + ' A IA só oferece o que está aqui.' },
   { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, status do lead, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
   { alvo: '[data-pg="canais"]', menu: 1, t: 'Canais WhatsApp', txt: 'O endereço que você cola na LeadVox para as mensagens chegarem até a IA, e o link do Plugin do Vendedor.' },

@@ -71,6 +71,8 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
   departments:()=>firstList([ext(api+'/queues'),ext(api+'/queue'),ext('queue/'+api),ext('departments/'+api),ext(api+'/departments'),ext('whatsapp-queues/'+api),'/queue','/queues',['/queue/',true],['/queues/',true]],'CHAT_DEPARTMENTS_UNAVAILABLE'),
   // Origem do lead: também sem rota documentada; tenta as candidatas da API externa e as da tela.
   leadOrigins:()=>firstList([ext(api+'/lead-origins'),ext(api+'/lead-origin'),ext(api+'/origins'),ext('lead-origins/'+api),ext('lead-origin/'+api),'/lead-origin','/lead-origins',['/lead-origin/',true],['/lead-origins/',true]],'CHAT_ORIGINS_UNAVAILABLE'),
+  // Motivos de fechamento: a tela da LeadVox usa GET /closing-reason/ (fora do /v1), como as origens.
+  closingReasons:()=>firstList([ext(api+'/closing-reasons'),ext(api+'/closing-reason'),'/closing-reason','/closing-reasons',['/closing-reason/',true],['/closing-reasons/',true]],'CHAT_REASONS_UNAVAILABLE'),
   // Funis, como a tela Pipeline do chat (rotas fora do /v1): os funis com as etapas de cada um,
   // a abertura do funil {columns:{[etapa]:{opportunities,hasMore,count}},totals:{[etapa]:{count,totalValue}}}
   // e as páginas seguintes de uma etapa {opportunities,hasMore,count}.
@@ -115,7 +117,7 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
 export function pickList(body){
  if(Array.isArray(body))return body;
  if(!body||typeof body!=='object')return null;
- for(const k of ['data','tags','users','queues','queue','steps','pipelineSteps','pipeline_steps','departments','leadOrigins','origins','result','results','items']){
+ for(const k of ['data','tags','users','queues','queue','steps','pipelineSteps','pipeline_steps','departments','leadOrigins','origins','closingReasons','reasons','result','results','items']){
   if(Array.isArray(body[k]))return body[k];
   if(body[k]&&typeof body[k]==='object'){const inner=pickList(body[k]);if(inner)return inner;}
  }
