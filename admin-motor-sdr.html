@@ -210,12 +210,13 @@ try { $('adminKey').value = sessionStorage.getItem('sdrAdminKey') || ''; } catch
 $('adminKey').addEventListener('change', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} });
 $('adminKey').addEventListener('keydown', e => { if (e.key === 'Enter') { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (x) {} carregar(); } });
 
-async function postar(url, corpo) {
+async function postar(url, corpo, limiteMs) {
   const adminKey = $('adminKey').value;
   if (!adminKey) { const e = new Error('Informe a chave de admin no topo da página.'); e.auth = true; throw e; }
-  let r;
-  try { r = await fetch(url, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey, ...corpo }) }) }); }
-  catch (x) { const e = new Error('Sem resposta do n8n.'); e.rede = true; throw e; }
+  let r; const ctl = limiteMs ? new AbortController() : null; const t = ctl && setTimeout(() => ctl.abort(), limiteMs);
+  try { r = await fetch(url, { method: 'POST', body: new URLSearchParams({ dados: JSON.stringify({ adminKey, ...corpo }) }), signal: ctl ? ctl.signal : undefined }); }
+  catch (x) { const e = new Error(ctl && ctl.signal.aborted ? 'demorou demais' : 'Sem resposta do n8n.'); e.rede = true; throw e; }
+  finally { if (t) clearTimeout(t); }
   let j = {}; try { j = await r.json(); } catch (x) {}
   if (!r.ok || j.ok === false) { const e = new Error(j.erro || j.message || ('O n8n respondeu HTTP ' + r.status + '.')); e.status = r.status; e.auth = r.status === 401 || r.status === 403; throw e; }
   return j;
@@ -254,26 +255,47 @@ async function carregar(silencioso) {
   const bt = $('btAtualizar'); bt.disabled = true; bt.textContent = 'Atualizando…';
   const faixas = [];
   try {
-    let j;
-    try { j = await postar(API_CENTRAL, { acao: 'painel' }); if (!Array.isArray(j.lojas)) throw new Error('o Admin Central não devolveu as lojas'); META = { ...j, semMetricas: false }; }
-    catch (e) {
-      // O Admin Central confere a chave chamando o Admin; com o n8n em fila essa conferência estoura o tempo
-      // e volta "recusada" mesmo com a chave certa. Quem decide é o próprio Admin: se ele aceitar, segue sem métricas.
-      j = await chamar({ acao: 'listar' });        // sem o Admin Central: só a lista, sem números
-      META = { semMetricas: true, motivo: e.auth ? 'o Admin Central não respondeu a tempo' : e.message };
-    }
-    LOJAS = j.lojas || []; IDX = {}; LOJAS.forEach(l => IDX[l.chave] = l);
+    // Com o n8n antigo em fila, o Admin Central (números) demora ou estoura o tempo. A lista vem primeiro,
+    // direto do Admin (que confere a chave); os números chegam depois, sem travar a tela.
+    const j = await chamar({ acao: 'listar' });
+    // mantém os números da última vez em que o Admin Central respondeu; a configuração vem sempre da lista nova
+    LOJAS = (j.lojas || []).map(l => ({ ...(METRICAS[l.chave] || {}), ...l })); IDX = {}; LOJAS.forEach(l => IDX[l.chave] = l);
     if (!sel || !IDX[sel]) { const pior = LOJAS.slice().sort((a, b) => rank(a) - rank(b))[0]; sel = pior ? pior.chave : null; }
-    if (META.semMetricas) faixas.push(['warn', '📊 Métricas indisponíveis agora (' + esc(META.motivo) + '). A lista e as ações funcionam normalmente; clique em Atualizar mais tarde para ver os números.']);
-    else if (!META.temRelatorio) faixas.push(['warn', '“Passou p/ equipe” e “visitas” aparecem depois que o motor <b>V1.4.2</b> estiver instalado (ele grava esses contadores).']);
     $('quando').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     tudo();
+    carregarMetricas();
   } catch (e) {
     if (!silencioso || e.auth) faixas.push(['bad', esc(e.message)]);
     if (e.auth) { LOJAS = []; tudo(); }
   }
-  $('faixas').innerHTML = faixas.map(([c, t]) => `<div class="faixa ${c}">${t}</div>`).join('');
+  pintarFaixas(faixas);
   bt.disabled = false; bt.textContent = 'Atualizar'; carregando = false;
+}
+// Números (Admin Central) em segundo plano: até 90 s, sem segurar a tela nem os botões.
+let METRICAS = {}, metricasEm = false;
+async function carregarMetricas() {
+  if (metricasEm) return; metricasEm = true;
+  if (!Object.keys(METRICAS).length) META = { semMetricas: true, motivo: 'carregando os números…' };
+  pintarFaixas([]);
+  try {
+    const j = await postar(API_CENTRAL, { acao: 'painel' }, 90000);
+    if (!Array.isArray(j.lojas)) throw new Error('o Admin Central não devolveu as lojas');
+    METRICAS = {}; j.lojas.forEach(l => METRICAS[l.chave] = l);
+    META = { ...j, semMetricas: false };
+    LOJAS = LOJAS.map(l => ({ ...(METRICAS[l.chave] || {}), ...l, m: (METRICAS[l.chave] || {}).m, alertas: (METRICAS[l.chave] || {}).alertas || l.alertas }));
+    IDX = {}; LOJAS.forEach(l => IDX[l.chave] = l);
+    tudo();
+  } catch (e) {
+    META = { ...META, semMetricas: true, motivo: e.auth || e.rede ? 'o n8n antigo está em fila e o Admin Central não respondeu a tempo' : e.message };
+  }
+  metricasEm = false;
+  pintarFaixas([]);
+}
+function pintarFaixas(extra) {
+  const f = extra.slice();
+  if (META.semMetricas) f.push(['warn', '📊 Números indisponíveis agora (' + esc(META.motivo) + '). A lista e as ações funcionam normalmente.']);
+  else if (!META.temRelatorio) f.push(['warn', '“Passou p/ equipe” e “visitas” aparecem depois que o motor <b>V1.4.2</b> estiver instalado (ele grava esses contadores).']);
+  $('faixas').innerHTML = f.map(([c, t]) => `<div class="faixa ${c}">${t}</div>`).join('');
 }
 function rank(l) { const c = status(l)[0]; return c === 'bad' ? 0 : c === 'warn' ? 1 : c === 'ok' ? 2 : 3; }
 $('btAtualizar').addEventListener('click', () => { try { sessionStorage.setItem('sdrAdminKey', $('adminKey').value); } catch (e) {} carregar(); });
