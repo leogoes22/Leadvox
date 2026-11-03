@@ -8,8 +8,8 @@ import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel no n8n novo (VPS). Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
-// O n8n antigo (webhook.lv-mktdeconversa.com) fica só com os SDR dos clientes antigos.
-export const N8N_WEBHOOK='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+// Até o "pronto para venda" o motor do painel roda no n8n antigo; o n8n novo (n8n.leadvox.com.br) volta depois.
+export const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
 // Versão dos Termos de Uso e da Política de Privacidade (public/termos.html e privacidade.html). Trocar a data pede o aceite de novo.
 export const TERMOS_VERSAO='2026-11-01';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
