@@ -1,0 +1,5 @@
+# O site é HTML puro; a pasta do painel (app-ia) não faz parte do site
+exclude:
+  - app-ia
+  - .github
+  - .claude
