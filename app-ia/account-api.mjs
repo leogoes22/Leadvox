@@ -279,6 +279,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     simulacoes.set(org,agora);if(simulacoes.size>5000)simulacoes.clear();
     let ev,st;try{[ev,st]=await Promise.all([upstream('/rest/v1/rpc/lv_motor_eventos',{method:'POST',token:authToken,body:{org}}),upstream('/rest/v1/rpc/lv_motor_status',{method:'POST',token:authToken,body:{org}})]);}
     catch{throw {status:400,message:'Só o dono da empresa pode testar a IA (ou falta liberar no banco).'};}
+    // Super Admin olhando a empresa de fora não é dono: o banco não entrega a chave do teste.
+    if(ev?.vinculado===false&&st?.vinculado!==false)throw {status:403,message:'Só quem é da empresa pode testar a IA. Entre com a conta do cliente para usar o Testar a IA.'};
     if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000)});}catch{}
      throw {status:400,message:'A sua IA ainda está sendo preparada. Tente de novo em 1 minuto.'};}
     const ag=(st?.agentes||[]).find(a=>a.chave===agente);if(!ag)throw {status:400,message:'Agente não encontrado.'};
