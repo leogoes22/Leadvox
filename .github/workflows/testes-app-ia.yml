@@ -1,0 +1,22 @@
+name: Testes LeadVox IA
+on:
+  push:
+    branches: [main, claude/leadvox-ia-identidade]
+    paths: ['app-ia/**', '.github/workflows/testes-app-ia.yml']
+  pull_request:
+    paths: ['app-ia/**', '.github/workflows/testes-app-ia.yml']
+permissions:
+  contents: read
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: app-ia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
