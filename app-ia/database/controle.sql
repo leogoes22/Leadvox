@@ -9,6 +9,7 @@ create table if not exists leadvox_private.sql_aplicado(
  aplicado_em timestamptz not null default now(),
  como text not null default 'registrado' check (como in ('registrado','conferido'))
 );
+alter table leadvox_private.sql_aplicado enable row level security;
 revoke all on leadvox_private.sql_aplicado from public,anon,authenticated;
 
 do $$
