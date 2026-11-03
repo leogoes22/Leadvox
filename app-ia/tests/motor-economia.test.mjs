@@ -36,6 +36,7 @@ const TRAVA=`let messages = ($msgs || []).slice();
 const __tem = (...v) => v.some(x => String(x ?? '').trim() !== '');
 const __sabe = {
   entrada: __tem(__da.entradaDetectada, __est.entrada),
+  veiculo: __tem(__est.veiculo), pagamento: __tem(__est.pagamento), troca: __tem(__est.troca), cpf: __tem(__est.cpf),
   visita: __tem(__da.visitaDetectada, __est.visita),
 };
 const __sa = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
@@ -58,11 +59,13 @@ const __lote = (m) => String(m).split(/(?<=[?!.])\\s+/).filter(p => {
     if (!/\\?/.test(p)) return true;
     return false;
   }).join(' ');
+    const __n = '';
     const __prox = !__sabe.veiculo ? 'Qual?'
+      : !__sabe.pagamento ? 'Você pretende levar à vista ou financiado' + __n + '?'
       : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'
       : '';
     if (__prox) messages.push(__prox);
-return { __sabe, __INTENCAO, __limpar, __lote, messages, __cortes };`;
+return { __sabe, __INTENCAO, __limpar, __lote, messages, __cortes, __prox };`;
 const DETECTAR=`const tag = (nome) => {
   const m = output.match(new RegExp('\\\\[' + nome + ':\\\\s*([^\\\\]]+)\\\\]', 'i'));
   return m ? m[1].trim() : '';
@@ -193,6 +196,14 @@ test('não pede o mesmo dado de novo quando o cliente desconversou, e não cumpr
  assert.equal(r.__limpar('Me passa uma foto do Gol.'),'Me passa uma foto do Gol.','ordem sobre outra coisa fica');
  r=trava(t,{hist},'sim',['Perfeito!']);
  assert.equal(r.__limpar('Perfeito! Me passa seu CPF?'),'Perfeito! Me passa seu CPF?','topou: pode pedir');
+ // entrada/troca não contam como insistência: a continuação "e a entrada?" pode
+ r=trava(t,{hist:['Lu: Tem algum valor de entrada ou carro pra troca?']},'Tenho um Gol pra troca',[]);
+ assert.equal(r.__limpar('Anotado! E de entrada, quanto pretende dar?'),'Anotado! E de entrada, quanto pretende dar?');
+ // cortou tudo: o próximo passo segue (troca → CPF → consultor), sem resposta parada
+ const base={hist:['Cliente: oi'],veiculo:'Basalt',pagamento:'financiado'};
+ assert.match(trava(t,base).__prox,/pra dar na troca/);
+ assert.match(trava(t,{...base,troca:'Gol'}).__prox,/me passa seu CPF/);
+ assert.equal(trava(t,{...base,troca:'Gol',cpf:'x'}).__prox,'','sem corte, não inventa pergunta');
  r=trava(t,{hist:[]},'Oi',['Boa noite! Tudo bem?']);
  assert.equal(r.messages[0],'Boa noite! Tudo bem?','primeira mensagem mantém o cumprimento');
 });

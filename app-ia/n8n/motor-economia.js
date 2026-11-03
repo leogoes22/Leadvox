@@ -118,7 +118,8 @@ const TAG_PERGUNTA = String.raw`const __ehPergunta = (p) => /\?/.test(String(p).
 const INSISTENCIA = String.raw`const __cliAgora = (() => { try { return __sa($('Formatar Estoque').first().json.mensagemConsolidada || ''); } catch (e) { return ''; } })();
 const __topou = /^\s*(sim|s|pode|pode sim|ok|claro|manda|bora|vamos|beleza|blz|isso|uhum|aham|quero)\b/.test(__cliAgora);
 const __ultDelaT = __sa((Array.isArray(__est.hist) ? __est.hist : []).filter(l => String(l).startsWith(__nomeIA + ':')).slice(-1)[0] || '');
-const __insistiu = (campo) => !__topou && (__INTENCAO[campo] || []).some(re => re.test(__ultDelaT));
+// só documentos: entrada e troca podem ter pergunta de continuação ("e a entrada?" depois de ele falar só da troca)
+const __insistiu = (campo) => ['cpf', 'nasc', 'cnh'].includes(campo) && !__topou && (__INTENCAO[campo] || []).some(re => re.test(__ultDelaT));
 // pedido em forma de ordem ("me passa seu CPF") também é pergunta para a trava
 const __pedido = (p) => /\b(me passa|me manda|me informa|me envia|pode me passar|pode me informar|preciso d[oa]s?|so falta|qual (e )?(o |a )?(seu|sua))\b/.test(__sa(p))
   && Object.keys(__INTENCAO).some(c => (__sabe[c] || __insistiu(c)) && __INTENCAO[c].some(re => re.test(__sa(p))));
@@ -126,6 +127,12 @@ if ((Array.isArray(__est.hist) ? __est.hist : []).length && messages.length) {
   const __semOi = String(messages[0]).replace(/^\s*(ol[aá]|oi|opa|bom dia|boa tarde|boa noite)(,?\s+[A-ZÀ-Ú][\wÀ-ú]*)?\s*[,!.]+\s*/i, '');
   if (__semOi && __semOi !== messages[0]) messages[0] = __semOi.charAt(0).toUpperCase() + __semOi.slice(1);
 }
+`;
+
+// próximos passos depois de veículo e pagamento, quando a trava deixa a resposta sem pergunta
+const PROXIMO_PASSO = String.raw`      : !__sabe.troca ? 'Você tem algum ' + (__L.veiculo || 'veículo') + ' pra dar na troca' + __n + '?'
+      : (/financ/.test(String(__da.pagamentoDetectado || __est.pagamento || '')) && !__sabe.cpf && !__insistiu('cpf')) ? 'Pra eu já adiantar a simulação, me passa seu CPF' + __n + '?'
+      : __cortes.length ? 'Quer que eu já peça pro consultor te chamar com as condições certinhas' + __n + '?'
 `;
 
 // Montar Estado: guarda quantos convites ela já fez, se o cliente recusou e as últimas perguntas dela
@@ -203,6 +210,9 @@ function corrigirConversa(w) {
     "  visita: [/(que dia|qual dia|quando) (voce |vc )?(pode|consegue|prefere|quer|gostaria de) (vir|passar|dar um pulo|visitar)/, /(agendar|marcar) (a |uma |sua )?visita/, " + CONVITE_RE + "]", 1, 'Code JS');
   t = trocar(t, "      : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'\n", '', 1, 'Code JS');
   t = trocar(t, '    if (__prox) messages.push(__prox);', '    if (__prox && !__repetida(__prox)) messages.push(__prox);', 1, 'Code JS');
+  // a trava cortou a única pergunta e sobrou só "Obrigado, Leonardo." → segue o próximo passo de verdade
+  t = trocar(t, "      : !__sabe.pagamento ? 'Você pretende levar à vista ou financiado' + __n + '?'\n",
+    "      : !__sabe.pagamento ? 'Você pretende levar à vista ou financiado' + __n + '?'\n" + PROXIMO_PASSO, 1, 'Code JS');
   // teste de 02/11: "Na entrada aceitamos cartão… dá pra parcelar, viu?" foi apagada como se fosse pergunta
   t = trocar(t, 'const __cortes = [];', TAG_PERGUNTA + INSISTENCIA + 'const __cortes = [];', 1, 'Code JS');
   t = trocar(t, "    if (__sabe[campo] && res.some(re => re.test(s))) { __cortes.push(campo + ': ' + p.slice(0, 80)); return false; }",
