@@ -36,7 +36,8 @@ begin
   ('oportunidade.sql',   to_regproc('public.iag_plugin_confere') is not null),
   ('motor_novo.sql',     to_regproc('public.lv_motor_tokens_novos') is not null),
   ('openai.sql',         to_regclass('leadvox_private.openai_keys') is not null),
-  ('assinaturas.sql',    to_regclass('leadvox_private.saas_assinaturas') is not null)
+  ('assinaturas.sql',    to_regclass('leadvox_private.saas_assinaturas') is not null),
+  ('admin_robos.sql',    to_regproc('public.lv_admin_robos') is not null)
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;

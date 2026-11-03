@@ -544,7 +544,9 @@ function desenharMotor() {
   $('mCriar').onclick = async () => { $('mCriar').disabled = true; try { await acaoMotor({ acao: 'criar', tipo: $('mTipo').value }, 'Agente criado.'); const novo = (motor.agentes || []).at(-1); desenharMotor(); if (novo) abrirAgenteMotor(novo.chave); } catch { $('mCriar').disabled = false; } };
   document.querySelectorAll('[data-abrir-ag]').forEach(b => b.onclick = () => abrirAgenteMotor(b.dataset.abrirAg));
   document.querySelectorAll('[data-ligar-ag]').forEach(b => b.onclick = () => ligarAgente(b.dataset.ligarAg, b));
-  if (!agSel && ags.length) abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
+  const pedido = ags.length ? roboPedido() : null;
+  if (pedido && ags.some(a => a.chave === pedido.chave)) abrirAgenteMotor(pedido.chave).then(() => document.querySelector(`[data-ag="${pedido.aba}"]`)?.click());
+  else if (!agSel && ags.length) abrirAgenteMotor((ags.find(a => a.entrada) || ags[0]).chave);
   if (!ags.length) $('agDetalhe').hidden = true;
 }
 
@@ -2020,7 +2022,72 @@ function abrirEmpresa(id) {
   $('emPlano').value = c.plano || 'ia'; $('emObs').value = e.obs || ''; $('emCortesia').value = '';
   $('emAvisos').innerHTML = (e.avisos || []).length ? `<h3 style="margin-top:16px">Avisos enviados</h3><div class="rolo"><table class="lv-tabela"><tbody>${e.avisos.map(v =>
     `<tr><td>${esc(AVISO_NOME[v.tipo] || v.tipo)}</td><td>${esc({ enviado: 'Enviado', pendente: 'Na fila', enviando: 'Enviando', falhou: 'Falhou', sem_contato: 'Sem WhatsApp' }[v.status] || v.status)}</td><td>${new Date(v.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('')}</tbody></table></div>` : '';
+  carregarRobos(e);
   if (!$('dlgEmpresa').open) $('dlgEmpresa').showModal();
+}
+
+// Robôs da empresa: ver o que está ligado e o que falta, ligar/pausar e, para editar ou testar,
+// abrir o acesso de suporte (4 h, registrado) e cair direto no robô, sem chave.
+let robos = null;
+async function carregarRobos(e) {
+  const box = $('emRobos'); robos = null;
+  box.innerHTML = '<h3 id="emRobosTitulo">Robôs</h3><p class="muted">Carregando os robôs…</p>';
+  try { robos = await api('admin-robos?organization=' + encodeURIComponent(e.id)); }
+  catch (err) { box.innerHTML = `<h3 id="emRobosTitulo">Robôs</h3><p class="muted">${esc(err.message)}</p>`; return; }
+  if (emAtual?.id === e.id) desenharRobos(e);
+}
+function faltasDoRobo(r) {
+  const f = [];
+  if (!r.configurado) f.push('identidade não salva');
+  if (!r.descricao) f.push('sem descrição da empresa');
+  if (!r.faq) f.push('sem perguntas frequentes');
+  if (r.modoTeste && !r.numerosTeste) f.push('modo teste sem números');
+  return f;
+}
+function desenharRobos(e) {
+  const d = robos || {}, lista = d.robos || [];
+  const topo = !d.vinculado ? '<span class="st rascunho">IA ainda não ligada ao motor</span>'
+    : d.whatsapp ? `<span class="st on">WhatsApp ligado</span> <small class="muted">sessão ${esc(d.sessao)}${d.itens ? ' · ' + d.itens + ' itens no catálogo' : ''}</small>`
+    : '<span class="st rascunho">Sem WhatsApp</span>';
+  $('emRobos').innerHTML = `<div class="lista-topo"><div><h3 id="emRobosTitulo">Robôs</h3><p class="muted" style="margin-top:4px">${topo}</p></div>
+      ${e.suporte ? '<span class="st">suporte aberto</span>' : ''}</div>
+    ${lista.map(r => {
+      const f = faltasDoRobo(r);
+      return `<div class="item"><div><b>${esc(r.nome || 'Robô sem nome')}${r.entrada ? ' <span class="st">porta de entrada</span>' : ''}${r.modoTeste ? ` <span class="st rascunho">modo teste · ${r.numerosTeste} nº</span>` : ''}</b>
+        <small>${esc(r.tipoNome || r.tipo)} · versão ${esc(r.versao)}${r.atualizadoEm ? ' · mexido há ' + quando(r.atualizadoEm) : ''}</small>
+        ${f.length ? `<small style="color:var(--amarelo)">Falta: ${esc(f.join(', '))}</small>` : ''}</div>
+        <div class="bts"><span class="liga"><button type="button" class="switch" role="switch" aria-checked="${!!r.ativo}" data-robo-liga="${esc(r.chave)}" aria-label="${esc(r.nome || 'Robô')} ligado"><span></span></button><b class="${r.ativo ? 'on' : ''}">${r.ativo ? 'Ligado' : 'Pausado'}</b></span>
+          <button type="button" class="principal sm" data-robo-ir="${esc(r.chave)}" data-aba="identidade">Editar</button><button type="button" class="sm" data-robo-ir="${esc(r.chave)}" data-aba="testar">Testar a IA</button></div></div>`;
+    }).join('') || `<p class="muted" style="padding:8px 0">${d.vinculado ? 'Nenhum robô criado ainda.' : 'O cliente ainda não ligou a IA. Entre como suporte para ligar e criar o primeiro robô.'}</p>`}`;
+  document.querySelectorAll('[data-robo-liga]').forEach(b => b.onclick = () => ligarRobo(e, b.dataset.roboLiga, b));
+  document.querySelectorAll('[data-robo-ir]').forEach(b => b.onclick = () => irParaRobo(e, b.dataset.roboIr, b.dataset.aba, b));
+}
+async function ligarRobo(e, chave, bt) {
+  const r = (robos?.robos || []).find(x => x.chave === chave); if (!r) return;
+  const ligar = !r.ativo, nome = r.nome || 'O robô';
+  if (!ligar && !confirm(`Pausar ${nome} de ${e.nome}? Ele para de responder os clientes no WhatsApp até ligar de novo.`)) return;
+  bt.disabled = true;
+  try { robos = await api('admin-robo-ativo', { organization: e.id, agente: chave, ativo: ligar }); toast(ligar ? `${nome} ligado.` : `${nome} pausado.`); desenharRobos(e); }
+  catch (err) { toast(err.message, true); bt.disabled = false; }
+}
+async function irParaRobo(e, chave, aba, bt) {
+  const r = (robos?.robos || []).find(x => x.chave === chave);
+  bt.disabled = true;
+  try {
+    if (!e.suporte) await api('admin-suporte', { organization: e.id, horas: 4, motivo: 'Ajustar o robô ' + (r?.nome || chave) });
+  } catch (err) { bt.disabled = false; return toast(err.message, true); }
+  try { localStorage.setItem('lv_empresa', e.id); sessionStorage.setItem('lv_ir_robo', JSON.stringify({ org: e.id, chave, aba })); } catch {}
+  marcarSuporte(e.id, true);
+  history.replaceState(null, '', '#agentes');
+  $('dlgEmpresa').close(); toast('Abrindo ' + (r?.nome || 'o robô') + ' de ' + e.nome + '…');
+  carregar().catch(err => toast(err.message, true));
+}
+// Chegou pelo "Editar" / "Testar a IA" do Super Admin: abre aquele robô na aba pedida (uma vez).
+function roboPedido() {
+  let p = null; try { p = JSON.parse(sessionStorage.getItem('lv_ir_robo') || 'null'); } catch {}
+  if (!p || p.org !== empresa?.id) return null;
+  try { sessionStorage.removeItem('lv_ir_robo'); } catch {}
+  return p;
 }
 document.querySelectorAll('[data-em]').forEach(b => b.onclick = async () => {
   const e = emAtual; if (!e) return;

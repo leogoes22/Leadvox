@@ -180,6 +180,15 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(!uuidOk(body.organization)||!['estender','plano','cortesia','suspender','reativar','obs','lembrete'].includes(body.acao))throw {status:400,message:'Ação inválida.'};
      const dados=body.dados&&typeof body.dados==='object'&&!Array.isArray(body.dados)?body.dados:{};
      send(res,200,await rpc('lv_admin_acao',{org:body.organization,acao:body.acao,dados}));
+    }else if(action==='admin-robos'&&req.method==='GET'){
+     // Robôs da empresa: o que está ligado, em teste e o que falta configurar (sem segredos).
+     if(!uuidOk(q.get('organization')))throw {status:400,message:'Empresa inválida.'};
+     send(res,200,await rpc('lv_admin_robos',{org:q.get('organization')}));
+    }else if(action==='admin-robo-ativo'&&req.method==='POST'){
+     if(!uuidOk(body.organization)||!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Robô inválido.'};
+     const r=await rpc('lv_admin_robo_ativo',{org:body.organization,agente:body.agente,ativo:body.ativo===true});
+     if(r&&r.ok===false)throw {status:400,message:motorErro(r,'Não deu para mudar o robô.')};
+     send(res,200,await rpc('lv_admin_robos',{org:body.organization}));
     }else if(action==='admin-suporte'&&req.method==='POST'){
      if(!uuidOk(body.organization))throw {status:400,message:'Empresa inválida.'};
      if(body.encerrar===true)send(res,200,await rpc('lv_admin_suporte_encerrar',{org:body.organization}));
