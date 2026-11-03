@@ -119,6 +119,9 @@ const INSISTENCIA = String.raw`const __cliAgora = (() => { try { return __sa($('
 const __topou = /^\s*(sim|s|pode|pode sim|ok|claro|manda|bora|vamos|beleza|blz|isso|uhum|aham|quero)\b/.test(__cliAgora);
 const __ultDelaT = __sa((Array.isArray(__est.hist) ? __est.hist : []).filter(l => String(l).startsWith(__nomeIA + ':')).slice(-1)[0] || '');
 const __insistiu = (campo) => !__topou && (__INTENCAO[campo] || []).some(re => re.test(__ultDelaT));
+// pedido em forma de ordem ("me passa seu CPF") também é pergunta para a trava
+const __pedido = (p) => /\b(me passa|me manda|me informa|me envia|pode me passar|pode me informar|preciso d[oa]s?|so falta|qual (e )?(o |a )?(seu|sua))\b/.test(__sa(p))
+  && Object.keys(__INTENCAO).some(c => (__sabe[c] || __insistiu(c)) && __INTENCAO[c].some(re => re.test(__sa(p))));
 if ((Array.isArray(__est.hist) ? __est.hist : []).length && messages.length) {
   const __semOi = String(messages[0]).replace(/^\s*(ol[aá]|oi|opa|bom dia|boa tarde|boa noite)(,?\s+[A-ZÀ-Ú][\wÀ-ú]*)?\s*[,!.]+\s*/i, '');
   if (__semOi && __semOi !== messages[0]) messages[0] = __semOi.charAt(0).toUpperCase() + __semOi.slice(1);
@@ -133,7 +136,9 @@ const __conviteE = ${CONVITE_RE};
 const __recusaE = ${RECUSA_RE};
 const __ultDela = (Array.isArray(prev.hist) ? prev.hist : []).filter(l => String(l).startsWith(__L.nomeIA + ':')).slice(-1)[0] || '';
 const convitesVisita = (Number(prev.convitesVisita) || 0) + (__conviteE.test(__saE(msgBot)) ? 1 : 0);
-const visitaRecusada = !!prev.visitaRecusada || (__conviteE.test(__saE(__ultDela)) && __recusaE.test(__saE(msgCliente)));
+// recusa conta depois de um convite, ou quando o próprio cliente fala de não vir ("moro longe, depois eu vejo de passar")
+const visitaRecusada = !!prev.visitaRecusada || (__recusaE.test(__saE(msgCliente)) &&
+  (__conviteE.test(__saE(__ultDela)) || /(longe|passar|ir ai|ir na loja|ir ate|visita)/.test(__saE(msgCliente))));
 const perguntas = (Array.isArray(prev.perguntas) ? prev.perguntas : [])
   .concat(String(msgBot).split(/(?<=[?!.])\\s+/).filter(p => /\\?\\s*$/.test(p)).map(p => p.trim().slice(0, 140)))
   .slice(-10);
@@ -203,6 +208,8 @@ function corrigirConversa(w) {
   t = trocar(t, "    if (__sabe[campo] && res.some(re => re.test(s))) { __cortes.push(campo + ': ' + p.slice(0, 80)); return false; }",
     "    if ((__sabe[campo] || __insistiu(campo)) && res.some(re => re.test(s))) { __cortes.push((__sabe[campo] ? '' : 'insistiu ') + campo + ': ' + p.slice(0, 80)); return false; }", 1, 'Code JS');
   t = trocar(t, 'if (!/\\?/.test(p)) return true;', 'if (!__ehPergunta(p)) return true;', 2, 'Code JS');
+  t = trocar(t, '  if (!__ehPergunta(p)) return true;\n  const s = __sa(p);\n  for (const [campo',
+    '  if (!__ehPergunta(p) && !__pedido(p)) return true;\n  const s = __sa(p);\n  for (const [campo', 1, 'Code JS');
   trava.parameters.jsCode = t;
 
   // teste de 02/11: a IA escreveu [ENTRADA:Não informado] e [NASC: não informado]; o motor guardava como resposta

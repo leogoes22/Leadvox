@@ -142,6 +142,10 @@ test('o estado conta os convites, percebe a recusa e guarda as perguntas que a I
  assert.equal(e.convitesVisita,1); assert.equal(e.visitaRecusada,false);
  e=rodar(prev,'pode ser amanhã sim','Combinado!');
  assert.equal(e.visitaRecusada,false,'aceitar não é recusar');
+ e=rodar({hist:['Lu: Me passa seu CPF?']},'Moro longe, depois eu vejo de passar aí','Tranquilo!');
+ assert.equal(e.visitaRecusada,true,'recusa sem convite antes, falando de vir à loja');
+ e=rodar({hist:['Lu: Me passa seu CPF?']},'vou pensar no valor','Claro!');
+ assert.equal(e.visitaRecusada,false,'"vou pensar" sem falar de vir não é recusa de visita');
 });
 
 test('a ficha mostra a situação do convite e as perguntas que não podem voltar', () => {
@@ -185,6 +189,8 @@ test('não pede o mesmo dado de novo quando o cliente desconversou, e não cumpr
  let r=trava(t,{hist},'Moro longe, depois eu vejo',['Boa noite, Leonardo. Entendo! Mesmo assim, qual é o seu CPF?']);
  assert.equal(r.__limpar('Entendo! Mesmo assim, qual é o seu CPF?'),'Entendo!');
  assert.match(r.messages[0],/^Entendo!/,'tirou o "Boa noite, Leonardo."');
+ assert.equal(r.__limpar('Tranquilo. Por favor, me passa seu CPF e a data de nascimento.'),'Tranquilo.','pedido em forma de ordem também sai');
+ assert.equal(r.__limpar('Me passa uma foto do Gol.'),'Me passa uma foto do Gol.','ordem sobre outra coisa fica');
  r=trava(t,{hist},'sim',['Perfeito!']);
  assert.equal(r.__limpar('Perfeito! Me passa seu CPF?'),'Perfeito! Me passa seu CPF?','topou: pode pedir');
  r=trava(t,{hist:[]},'Oi',['Boa noite! Tudo bem?']);
