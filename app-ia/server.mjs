@@ -56,7 +56,7 @@ export function createApp(options={}) {
   if(await accountApi(req,res,caminho))return;
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'});return res.end('Método não permitido');}
   let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);return res.end('Endereço inválido');}
-  if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(req.method==='HEAD'?undefined:JSON.stringify({status:'ok',application:'leadvox-ia',mode:'homologacao',version:'0.2.0'}));}
+  if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(req.method==='HEAD'?undefined:JSON.stringify({status:'ok',application:'leadvox-ia',mode:'producao',version:'1.0.0'}));}
   if(pathname.startsWith('/api/')){res.writeHead(404,{'Content-Type':'application/json'});return res.end(JSON.stringify({error:'Integração real ainda não habilitada'}));}
   if(pathname.split('/').some(p=>p.startsWith('.'))||pathname.includes('\\')||pathname.includes('\0')){res.writeHead(404);return res.end('Não encontrado');}
   if(pathname==='/vendedor')pathname='/vendedor.html';

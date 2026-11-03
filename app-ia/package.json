@@ -1,9 +1,9 @@
 {
   "name": "leadvox-ia-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Aplicativo LeadVox IA — homologação com dados demonstrativos",
+  "description": "Aplicativo LeadVox IA — painel de produção",
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs"

@@ -1,6 +1,6 @@
-# LeadVox IA — painel único (homologação)
+# LeadVox IA — painel único
 
-Versão 0.2.0. Um só endereço para o lojista: login da conta, empresa, os painéis de IA que já funcionam e o financeiro dos clientes.
+Versão 1.0.0 (produção). Um só endereço para o lojista: login da conta, empresa, os painéis de IA que já funcionam e o financeiro dos clientes.
 
 ## Identidade visual
 Mesma de leadvox.com.br/agente-ia.html e /sdr/: fundo #070d1c, cartões #0e1730, linhas #1f2b4a, verde #2be87b, títulos em Syne e texto em DM Sans, abas em pílula. Tokens e componentes em `public/lv.css`. Não usar tema claro.
