@@ -1,4 +1,5 @@
 import { schedule, cycles } from '/billing-schedule.js';
+import { modeloRegras, sugerirItem, montarRegra, juntarRegras } from '/modelos-regras.js';
 
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -215,6 +216,7 @@ const IC = {
   grafico: '<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',
   livro: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19V5"/>',
   carro: '<path d="M5 16V11l2-5h10l2 5v5M3 16h18v3H3zM5 11h14"/><circle cx="7.5" cy="16" r="1.5"/><circle cx="16.5" cy="16" r="1.5"/>',
+  origem: '<path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
   tag: '<path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/>',
   funil: '<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
   kanban: '<rect x="3" y="4" width="5" height="14" rx="1"/><rect x="10" y="4" width="5" height="9" rx="1"/><rect x="17" y="4" width="4" height="11" rx="1"/>',
@@ -246,7 +248,8 @@ const MENU = [
   ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
-  ['status', 'Status do lead', 'kanban', 'As etapas do funil da sua LeadVox.'],
+  ['status', 'Etapas do funil', 'kanban', 'As etapas do funil da sua LeadVox.'],
+  ['origens', 'Origens do lead', 'origem', 'De onde vêm os seus clientes, na sua LeadVox.'],
   ['usuarios', 'Usuários LeadVox', 'pessoas', 'Quem atende na sua LeadVox.'],
   ['departamentos', 'Departamentos', 'predio', 'Para onde a IA passa o cliente.'],
   ['motivos', 'Motivos de fechamento', 'bandeira', 'Por que um atendimento termina.'],
@@ -258,11 +261,12 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
-  status: ['Seus status do lead aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
+  status: ['Suas etapas do funil aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
+  origens: ['Suas origens do lead aparecem aqui', 'Puxadas da sua LeadVox: Instagram, site, indicação… A IA marca de onde o cliente veio.'],
   usuarios: ['Seus usuários aparecem aqui', 'Quem atende na sua LeadVox. A IA passa o cliente para a pessoa certa.'],
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
   motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…'],
@@ -1123,6 +1127,75 @@ $('rgTexto').addEventListener('keydown', e => {
   else if (e.key === 'Escape') { e.preventDefault(); fecharMenu(); }
 });
 $('rgGrupo').addEventListener('input', conferirAcoes);
+// Modelo pronto: as situações já escritas para a função e o ramo; cada ação é escolhida numa lista da LeadVox, sem digitar nome.
+let mdLinhas = [];
+const MD_LISTA = { ETIQUETA: 'etiquetas', TIRAR_ETIQUETA: 'etiquetas', ETAPA: 'status', ORIGEM: 'origens' };
+const MD_ROTULO = { ETIQUETA: 'Etiqueta', TIRAR_ETIQUETA: 'Tirar etiqueta', ETAPA: 'Etapa do funil', ORIGEM: 'Origem do lead', DEPARTAMENTO: 'Passar para o departamento', NOTA: 'Nota interna' };
+const nomesLeadVox = k => (listas[k] || []).map(x => limpaNome(x.name)).filter(Boolean);
+// departamento: os que já estão no quadro abaixo e os da LeadVox (ao usar, entra no quadro com a fila preenchida)
+const mdOpcoes = cod => cod === 'DEPARTAMENTO'
+  ? [...new Set([...setoresAtuais().map(s => limpaNome(s.nome)), ...nomesLeadVox('departamentos')])]
+  : nomesLeadVox(MD_LISTA[cod]);
+async function abrirModelo(forcar) {
+  if (!agDados) return;
+  $('mdCorpo').innerHTML = '<p class="muted">Buscando as listas da sua LeadVox…</p>';
+  $('mdUsar').disabled = true;
+  if (!$('dlgModelo').open) $('dlgModelo').showModal();
+  if (forcar) ['etiquetas', 'status', 'origens', 'departamentos'].forEach(k => { listas[k] = null; });
+  await carregarListasIA();
+  if (agDados) atualizarListasAcoes();
+  desenharModelo();
+}
+function desenharModelo() {
+  const nicho = NICHOS[cfg.niche] || NICHOS.outro;
+  $('mdTitulo').textContent = 'Modelo pronto: ' + nomeTipo(agDados.tipo) + ' · ' + nicho.n;
+  if (!chat?.connected) {
+    $('mdCorpo').innerHTML = '<p class="alerta">Conecte a sua LeadVox em Credenciais de API. As etiquetas, etapas e origens do modelo vêm de lá.</p>';
+    return;
+  }
+  mdLinhas = modeloRegras(agDados.tipo, cfg.niche, nomesLeadVox('origens')).map(l => ({ ...l, acoes: l.acoes.map(a => ({ ...a, opcoes: a.texto ? null : mdOpcoes(a.cod) })) }));
+  mdLinhas.forEach(l => l.acoes.forEach(a => { if (a.opcoes) a.valor = sugerirItem(a.opcoes, a.sugere); }));
+  const marcadas = mdLinhas.flatMap(l => l.acoes).filter(a => a.opcoes && a.valor).length;
+  $('mdResumo').textContent = marcadas
+    ? marcadas + (marcadas === 1 ? ' ação já veio marcada porque o nome bate' : ' ações já vieram marcadas porque o nome bate') + ' com a sua LeadVox. Confira e escolha o resto.'
+    : 'Escolha em cada linha o que a IA deve marcar. O que ficar em "Não usar" fica de fora.';
+  $('mdCorpo').innerHTML = mdLinhas.map((l, i) => `<fieldset class="md-linha" data-md="${i}">
+    <label class="check-lin"><input type="checkbox" data-md-usa checked aria-label="Usar esta regra"><input type="text" data-md-q maxlength="200" value="${esc(l.quando)}" aria-label="Situação"></label>
+    <div class="md-acoes">${l.acoes.map((a, j) => {
+      const id = `md${i}a${j}`;
+      if (!a.opcoes) return `<div><label for="${id}">${esc(MD_ROTULO[a.cod])}</label><input id="${id}" data-md-a="${j}" maxlength="200" value="${esc(a.texto)}"></div>`;
+      return `<div><label for="${id}">${esc(MD_ROTULO[a.cod])}</label><select id="${id}" data-md-a="${j}"><option value="">Não usar</option>${a.opcoes.map(n => `<option value="${esc(n)}" ${n === a.valor ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
+    }).join('')}</div></fieldset>`).join('');
+  $('mdUsar').disabled = false;
+}
+$('rgModelo').onclick = () => abrirModelo(false);
+$('mdAtualizar').onclick = () => abrirModelo(true);
+$('mdUsar').onclick = () => {
+  const novas = [], deps = [];
+  $('mdCorpo').querySelectorAll('[data-md]').forEach(f => {
+    if (!f.querySelector('[data-md-usa]').checked) return;
+    const l = mdLinhas[+f.dataset.md], quando = f.querySelector('[data-md-q]').value;
+    const acoes = l.acoes.map((a, j) => ({ cod: a.cod, valor: f.querySelector(`[data-md-a="${j}"]`).value }));
+    const regra = montarRegra(quando, acoes); if (!regra) return;
+    novas.push(regra);
+    acoes.filter(a => a.cod === 'DEPARTAMENTO' && a.valor).forEach(a => deps.push({ nome: limpaNome(a.valor), quando: limpaNome(quando).replace(/^quando\s+/i, '') }));
+  });
+  if (!novas.length) return toast('Escolha pelo menos uma ação em alguma regra.', true);
+  const texto = juntarRegras($('rgTexto').value, novas);
+  if (texto.length > 4000) return toast('As regras passariam do limite de 4.000 caracteres. Desmarque algumas ou apague regras antigas.', true);
+  $('rgTexto').value = texto;
+  // departamento novo entra no quadro, com a fila que veio da LeadVox
+  let mudou = false;
+  for (const d of deps) {
+    if (setoresAtuais().some(s => semAc(s.nome) === semAc(d.nome)) || setoresEd.length >= 12) continue;
+    const dep = (listas.departamentos || []).find(x => semAc(x.name) === semAc(d.nome)); if (!dep) continue;
+    setoresEd.push({ nome: d.nome, filaId: String(dep.id), quando: d.quando, distribuicao: 'fila', vendedores: [], trocaMin: 0 }); mudou = true;
+  }
+  if (mudou) desenharSetores();
+  $('dlgModelo').close(); marcarRg(); conferirAcoes();
+  toast('Modelo colocado nas regras. Confira e clique em Salvar ações e regras.');
+  $('rgTexto').focus();
+};
 // responsável da oportunidade: o vendedor do ticket (com reserva) ou sempre a mesma pessoa
 function modoResp() {
   const fixo = $('rgModoResp').value === 'fixo';
@@ -1185,7 +1258,7 @@ $('oaForm').onsubmit = async e => {
 };
 
 let chat = null, listas = {};
-const DA_LEADVOX = { etiquetas: 1, status: 1, usuarios: 1, departamentos: 1, motivos: 1 };
+const DA_LEADVOX = { etiquetas: 1, status: 1, origens: 1, usuarios: 1, departamentos: 1, motivos: 1 };
 async function carregarChat() { chat = await api('chat-credentials?organization=' + encodeURIComponent(empresa.id)); }
 
 function desenharCred() {
@@ -1543,7 +1616,7 @@ const TOUR_PAINEL = () => [
   { alvo: '[data-pg="oportunidades"]', menu: 1, t: 'Oportunidades', txt: 'O funil de vendas da sua LeadVox, com cada cliente na etapa em que está.' },
   { ir: 'agentes:conhecimento', alvo: '[data-ag="conhecimento"]', t: 'Base de conhecimento', txt: 'Tudo o que este agente sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
   { alvo: '[data-pg="estoque"]', menu: 1, t: CATALOGO[tipoCatalogo()].titulo, txt: CATALOGO[tipoCatalogo()].desc + ' A IA só oferece o que está aqui.' },
-  { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, status do lead, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
+  { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, etapas do funil, origens, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
   { alvo: '[data-pg="canais"]', menu: 1, t: 'Canais WhatsApp', txt: 'O endereço que você cola na LeadVox para as mensagens chegarem até a IA, e o link do Plugin do Vendedor.' },
   { alvo: '[data-pg="credenciais"]', menu: 1, t: 'Credenciais de API', txt: 'Onde você conecta a LeadVox, o estoque e outras contas. As chaves ficam guardadas em cofre e não voltam para a tela.' },
   { alvo: '[data-pg="conta"]', menu: 1, t: 'Minha conta', txt: 'Dados da empresa e da loja, o seu plano e a senha.' },

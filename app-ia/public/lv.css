@@ -374,6 +374,11 @@ textarea { min-height: 90px; resize: vertical; }
 .ts-envio input { flex: 1; }
 
 /* regras com @ */
+.md-linha { border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; margin: 10px 0 0; min-width: 0; }
+.md-linha .check-lin { margin-top: 0; }
+.md-linha .check-lin input[type="text"] { flex: 1; min-width: 0; width: 100%; font-weight: 600; }
+.md-acoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; margin-top: 8px; }
+.md-acoes > div { min-width: 0; }
 .rg-caixa { position: relative; margin-top: 12px; }
 .rg-menu { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; margin-top: 4px; max-height: 280px; overflow-y: auto;
   background: var(--painel2); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: 0 12px 30px rgba(0,0,0,.45); }

@@ -299,6 +299,7 @@
             <div class="card">
               <h3>Regras da IA</h3>
               <p class="muted">Cada regra é a situação e, logo depois, as ações (uma por linha fica mais fácil de ler, mas não é obrigatório). Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
+              <div class="form-bts" style="margin-top:10px"><button type="button" class="principal sm" id="rgModelo">Usar modelo pronto</button></div>
               <div class="rg-caixa">
                 <textarea id="rgTexto" maxlength="4000" style="min-height:180px" placeholder="Ex.: Quando o cliente disser que quer um orçamento: @Adicionar etiqueta @Mudar etapa do funil&#10;Quando pedir para falar com o gerente: @Transferir para pessoa @Nota interna"></textarea>
                 <div class="rg-menu" id="rgMenu" role="listbox" aria-label="Ações" hidden></div>
@@ -720,6 +721,14 @@
     </div>
   </div>
   <div id="emAvisos"></div>
+</dialog>
+
+<dialog id="dlgModelo" class="janela larga" aria-labelledby="mdTitulo">
+  <div class="janela-topo"><h2 id="mdTitulo">Modelo pronto</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
+  <p class="muted" id="mdResumo">Escolha em cada linha o que a IA deve marcar.</p>
+  <div id="mdCorpo"></div>
+  <p class="muted" style="font-size:13px;margin-top:12px">Faltou uma etiqueta ou etapa? Crie na sua LeadVox e clique em Atualizar listas. As regras que já estão escritas continuam; nada é apagado.</p>
+  <div class="form-bts"><button type="button" class="principal" id="mdUsar">Colocar nas regras</button><button type="button" class="sm" id="mdAtualizar">Atualizar listas</button></div>
 </dialog>
 
 <dialog id="dlgGuia" class="janela larga" aria-labelledby="guiaTitulo">
