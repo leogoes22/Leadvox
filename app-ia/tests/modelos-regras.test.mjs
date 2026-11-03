@@ -45,6 +45,7 @@ test('a built rule is the format the motor and the panel read, and unused action
  assert.deepEqual([...r.matchAll(RE_ACAO)].map(m=>m[1]),['ETIQUETA','NOTA']);
  assert.equal(montarRegra('Quando x',[{cod:'ETIQUETA',valor:''}]),'');
  assert.equal(montarRegra('',[{cod:'ETIQUETA',valor:'a'}]),'');
+ assert.equal(montarRegra('Quando x',[{cod:'ETIQUETA',valor:''},{cod:'NOTA',valor:'resumo'}]),'');
 });
 test('joining keeps what was written and does not repeat a line',()=>{
  assert.equal(juntarRegras('',['a: [NOTA:x]']),'a: [NOTA:x]');

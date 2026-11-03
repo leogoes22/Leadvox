@@ -91,11 +91,12 @@ export function modeloRegras(tipo, nicho, origens = []) {
   return linhas;
 }
 
-// Uma linha pronta para o motor: a situação e as ações escolhidas. Sem nenhuma ação, a linha não entra.
+// Uma linha pronta para o motor: a situação e as ações escolhidas. Sem ação escolhida (a nota sozinha não conta), a linha não entra.
 export function montarRegra(quando, acoes) {
-  const marcas = (acoes || []).map(a => ({ cod: a.cod, valor: limpo(a.valor) })).filter(a => a.valor).map(a => '[' + a.cod + ':' + a.valor + ']');
+  const usadas = (acoes || []).map(a => ({ cod: a.cod, valor: limpo(a.valor) })).filter(a => a.valor);
   const situacao = limpo(quando).replace(/[:\s]+$/, '');
-  return situacao && marcas.length ? situacao + ': ' + marcas.join(' ') : '';
+  if (!situacao || !usadas.some(a => a.cod !== 'NOTA')) return '';
+  return situacao + ': ' + usadas.map(a => '[' + a.cod + ':' + a.valor + ']').join(' ');
 }
 
 // Junta com o que já estava escrito: nada é apagado e a linha igual não entra duas vezes.
