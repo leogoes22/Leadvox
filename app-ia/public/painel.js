@@ -1154,8 +1154,8 @@ function desenharModelo() {
     return;
   }
   mdLinhas = modeloRegras(agDados.tipo, cfg.niche, nomesLeadVox('origens')).map(l => ({ ...l, acoes: l.acoes.map(a => ({ ...a, opcoes: a.texto ? null : mdOpcoes(a.cod) })) }));
-  mdLinhas.forEach(l => l.acoes.forEach(a => { if (a.opcoes) a.valor = sugerirItem(a.opcoes, a.sugere); }));
-  const marcadas = mdLinhas.flatMap(l => l.acoes).filter(a => a.opcoes && a.valor).length;
+  mdLinhas.forEach(l => l.acoes.forEach(a => { if (a.opcoes && !a.valor) a.valor = sugerirItem(a.opcoes, a.sugere); }));
+  const marcadas = mdLinhas.flatMap(l => l.acoes).filter(a => a.opcoes && a.valor && a.cod !== 'ORIGEM').length;
   $('mdResumo').textContent = marcadas
     ? marcadas + (marcadas === 1 ? ' ação já veio marcada porque o nome bate' : ' ações já vieram marcadas porque o nome bate') + ' com a sua LeadVox. Confira e escolha o resto.'
     : 'Escolha em cada linha o que a IA deve marcar. O que ficar em "Não usar" fica de fora.';
@@ -1163,7 +1163,9 @@ function desenharModelo() {
     <label class="check-lin"><input type="checkbox" data-md-usa checked aria-label="Usar esta regra"><input type="text" data-md-q maxlength="200" value="${esc(l.quando)}" aria-label="Situação"></label>
     <div class="md-acoes">${l.acoes.map((a, j) => {
       const id = `md${i}a${j}`;
-      if (!a.opcoes) return `<div><label for="${id}">${esc(MD_ROTULO[a.cod])}</label><input id="${id}" data-md-a="${j}" maxlength="200" value="${esc(a.texto)}"></div>`;
+      // a origem já está na própria linha; a nota do motor leva a regra e a última mensagem do cliente
+      if (a.cod === 'ORIGEM') return `<input type="hidden" data-md-a="${j}" value="${esc(a.valor)}">`;
+      if (!a.opcoes) return `<div><label for="${id}">${esc(MD_ROTULO[a.cod])}</label><select id="${id}" data-md-a="${j}"><option value="${esc(a.texto)}">Sim, com a última mensagem do cliente</option><option value="">Não usar</option></select></div>`;
       return `<div><label for="${id}">${esc(MD_ROTULO[a.cod])}</label><select id="${id}" data-md-a="${j}"><option value="">Não usar</option>${a.opcoes.map(n => `<option value="${esc(n)}" ${n === a.valor ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
     }).join('')}</div></fieldset>`).join('');
   $('mdUsar').disabled = false;
@@ -1182,7 +1184,7 @@ $('mdUsar').onclick = () => {
   });
   if (!novas.length) return toast('Escolha pelo menos uma ação em alguma regra.', true);
   const texto = juntarRegras($('rgTexto').value, novas);
-  if (texto.length > 4000) return toast('As regras passariam do limite de 4.000 caracteres. Desmarque algumas ou apague regras antigas.', true);
+  if (texto.length > 12000) return toast('As regras passariam do limite de 12.000 caracteres. Desmarque algumas ou apague regras antigas.', true);
   $('rgTexto').value = texto;
   // departamento novo entra no quadro, com a fila que veio da LeadVox
   let mudou = false;

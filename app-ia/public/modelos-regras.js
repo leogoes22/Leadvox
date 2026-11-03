@@ -15,9 +15,10 @@ const RAMOS = {
 };
 
 // Palavras em ordem de prioridade: a primeira que aparecer no nome de um item da LeadVox já vem marcada.
-const INTERESSE = ['interessado', 'interesse', 'quente', 'qualificado'];
+const INTERESSE = ['interessado', 'quente', 'qualificado'];
 const ETAPA_INTERESSE = ['qualificado', 'qualificacao', 'em atendimento', 'negociacao', 'proposta'];
-const AGENDA = ['agendad', 'agendamento', 'visita', 'consulta'];
+const AGENDA = ['agendad', 'agendamento'];
+const ETAPA_AGENDA = [...AGENDA, 'visita', 'consulta'];
 const FECHAR = ['fechamento', 'quente', 'comprador', 'negociacao'];
 const ETAPA_FECHAR = ['fechamento', 'negociacao', 'proposta'];
 const SEM_INTERESSE = ['sem interesse', 'desinteress', 'perdido', 'frio', 'descart'];
@@ -36,7 +37,7 @@ const financeiro = { quando: 'Quando o assunto for pagamento, boleto ou nota fis
 const POR_TIPO = {
   sdr: r => [
     { quando: 'Quando o cliente pedir preço, valor ou condição', acoes: [et(...INTERESSE), ep(...ETAPA_INTERESSE)] },
-    { quando: 'Quando o cliente ' + r.agendar, acoes: [et(...AGENDA), ep(...AGENDA), nt('o que o cliente quer e o dia combinado')] },
+    { quando: 'Quando o cliente ' + r.agendar, acoes: [et(...AGENDA), ep(...ETAPA_AGENDA), nt('o que o cliente quer e o dia combinado')] },
     { quando: 'Quando o cliente ' + r.fechar, acoes: [et(...FECHAR), ep(...ETAPA_FECHAR), dp(...VENDAS), nt('resumo do que o cliente quer fechar')] },
     { quando: 'Quando o cliente disser que não tem interesse ou que já resolveu', acoes: [et(...SEM_INTERESSE), ep(...SEM_INTERESSE)] },
     pessoa(VENDAS)
@@ -44,7 +45,7 @@ const POR_TIPO = {
   recepcao: r => [
     { quando: 'Quando o cliente quiser comprar ou pedir preço', acoes: [et(...INTERESSE), dp(...VENDAS)] },
     { quando: 'Quando o cliente ' + r.agendar, acoes: [et(...AGENDA), dp(...VENDAS), nt('o que o cliente quer e o dia combinado')] },
-    { quando: 'Quando o cliente já for cliente e tiver uma dúvida ou um problema', acoes: [et('suporte', 'cliente'), dp(...SUPORTE)] },
+    { quando: 'Quando o cliente já for cliente e tiver uma dúvida ou um problema', acoes: [et('suporte'), dp(...SUPORTE)] },
     financeiro,
     pessoa(['atendimento', ...VENDAS])
   ],
@@ -63,7 +64,7 @@ const POR_TIPO = {
     pessoa(VENDAS)
   ],
   agendamento: r => [
-    { quando: 'Quando o cliente ' + r.agendar, acoes: [et(...AGENDA), ep(...AGENDA), nt('o dia e o horário combinados')] },
+    { quando: 'Quando o cliente ' + r.agendar, acoes: [et(...AGENDA), ep(...ETAPA_AGENDA), nt('o dia e o horário combinados')] },
     { quando: 'Quando o cliente quiser cancelar ou remarcar', acoes: [et('cancel', 'remarc'), nt('o que o cliente pediu')] },
     financeiro,
     pessoa(['atendimento', ...VENDAS])
@@ -84,8 +85,8 @@ export function sugerirItem(nomes, palavras) {
 // As linhas do modelo: uma cópia nova a cada chamada, com uma linha por origem que existe na LeadVox do cliente.
 export function modeloRegras(tipo, nicho, origens = []) {
   const linhas = (POR_TIPO[tipo] || POR_TIPO.sdr)(RAMOS[nicho] || RAMOS.outro).map(l => ({ quando: l.quando, acoes: l.acoes.map(a => ({ ...a })) }));
-  for (const o of origens.map(limpo).filter(Boolean).slice(0, 6)) {
-    linhas.push({ quando: 'Quando o cliente disser que conheceu a empresa por ' + o, acoes: [{ cod: 'ORIGEM', sugere: [o] }] });
+  for (const o of origens.map(limpo).filter(Boolean).slice(0, 12)) {
+    linhas.push({ quando: 'Quando o cliente indicar que veio de ' + o, acoes: [{ cod: 'ORIGEM', sugere: [o], valor: o }] });
   }
   return linhas;
 }

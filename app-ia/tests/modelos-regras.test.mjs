@@ -12,12 +12,12 @@ test('every agent type and niche gets rules, written for that niche',()=>{
  assert.ok(modeloRegras('sdr','automotivo').some(l=>/test drive/.test(l.quando)));
  assert.ok(modeloRegras('sdr','educacao').some(l=>/matrícula/.test(l.quando)));
 });
-test('origin rows come only from the LeadVox list of the client, at most six',()=>{
+test('origin rows come only from the LeadVox list of the client, at most twelve, already chosen',()=>{
  const base=modeloRegras('sdr','outro').length;
  assert.equal(modeloRegras('sdr','outro',[]).length,base);
- const l=modeloRegras('sdr','outro',['Instagram','  ','Site','a','b','c','d','e']);
+ const l=modeloRegras('sdr','outro',['Instagram','  ','Site',...'abcdefghijklmn']);
  const origens=l.filter(x=>x.acoes[0].cod==='ORIGEM');
- assert.equal(origens.length,6);assert.match(origens[0].quando,/por Instagram$/);assert.deepEqual(origens[0].acoes[0].sugere,['Instagram']);
+ assert.equal(origens.length,12);assert.match(origens[0].quando,/veio de Instagram$/);assert.equal(origens[0].acoes[0].valor,'Instagram');
 });
 test('each call returns a fresh copy, so one screen cannot change the next',()=>{
  const a=modeloRegras('sdr','outro');a[0].acoes[0].valor='x';a[0].quando='y';
@@ -33,6 +33,11 @@ test('suggestion ignores accents and case, follows priority and never invents an
 test('a funnel name does not count as a match for its steps',()=>{
  assert.equal(sugerirItem(['Agendamento › Novo','Vendas › Agendado'],['agendad']),'Vendas › Agendado');
  assert.equal(sugerirItem(['Negociação › Novo'],['negociacao']),'');
+});
+test('vague words do not mark the wrong tag of a real LeadVox list',()=>{
+ const reais=['• 🚗 Interesse Hatch','• ✅ Cliente Compareceu na Visita','📅 Visita agendada','💵 À vista'];
+ const m=modeloRegras('recepcao','automotivo'),et=i=>sugerirItem(reais,m[i].acoes.find(a=>a.cod==='ETIQUETA').sugere);
+ assert.equal(et(0),'');assert.equal(et(1),'📅 Visita agendada');assert.equal(et(2),'');
 });
 test('a built rule is the format the motor and the panel read, and unused actions stay out',()=>{
  const r=montarRegra('Quando o cliente pedir preço:  ',[{cod:'ETIQUETA',valor:'Quente'},{cod:'ETAPA',valor:''},{cod:'NOTA',valor:'resumo [do] caso'}]);
