@@ -107,6 +107,12 @@ return [{ json: { output: { messages: m } } }];`;
 const CONVITE_RE = String.raw`/(passar|vir|vem|dar um pulo|visitar|conhecer|ver (ela|ele|a moto|o carro|de perto|pessoalmente)).{0,60}(hoje|amanha|segunda|terca|quarta|quinta|sexta|sabado|domingo|semana|loja|de perto|pessoalmente)/`;
 const RECUSA_RE = String.raw`/\b(nao (posso|consigo|da|vou poder|tenho como|vai dar)|moro longe|e longe|longe daqui|depois (eu )?(vejo|passo|vou|falo|marco)|outro dia|(so|to|estou) (so )?(pesquisando|olhando|vendo)|vou pensar|sem tempo|semana que vem|mais pra frente|nao sei quando)/`;
 
+// Marcação da IA sem valor de verdade ([ENTRADA:Não informado], [NASC: -]) não conta como dado coletado.
+const SEM_VALOR_RE = String.raw`/^(n[aã]o\s+informad[oa]s?|n\/?a|-+|\?+|indefinid[oa]|pendente|a\s+confirmar|sem\s+informa[cç][aã]o|desconhecid[oa])$/i`;
+// "viu?", "né?", "tá?" no fim de uma afirmação não fazem dela uma pergunta (a trava apagava a resposta).
+const TAG_PERGUNTA = String.raw`const __ehPergunta = (p) => /\?/.test(String(p).replace(/[,\s—–-]*\b(viu|n[eé]|t[aá]|certo|beleza|ok)\s*\?[\s\p{Extended_Pictographic}!.]*$/iu, ''));
+`;
+
 // Montar Estado: guarda quantos convites ela já fez, se o cliente recusou e as últimas perguntas dela
 const ESTADO_EXTRA = `
 // TESTE — convites de visita, recusa e perguntas já feitas (para a IA não repetir)
@@ -177,7 +183,16 @@ function corrigirConversa(w) {
     "  visita: [/(que dia|qual dia|quando) (voce |vc )?(pode|consegue|prefere|quer|gostaria de) (vir|passar|dar um pulo|visitar)/, /(agendar|marcar) (a |uma |sua )?visita/, " + CONVITE_RE + "]", 1, 'Code JS');
   t = trocar(t, "      : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'\n", '', 1, 'Code JS');
   t = trocar(t, '    if (__prox) messages.push(__prox);', '    if (__prox && !__repetida(__prox)) messages.push(__prox);', 1, 'Code JS');
+  // teste de 02/11: "Na entrada aceitamos cartão… dá pra parcelar, viu?" foi apagada como se fosse pergunta
+  t = trocar(t, 'const __cortes = [];', TAG_PERGUNTA + 'const __cortes = [];', 1, 'Code JS');
+  t = trocar(t, 'if (!/\\?/.test(p)) return true;', 'if (!__ehPergunta(p)) return true;', 2, 'Code JS');
   trava.parameters.jsCode = t;
+
+  // teste de 02/11: a IA escreveu [ENTRADA:Não informado] e [NASC: não informado]; o motor guardava como resposta
+  // e a trava passava a cortar essas perguntas. Marcação sem valor de verdade é ignorada.
+  const detectar = no(w, 'Detectar Acao');
+  detectar.parameters.jsCode = trocar(detectar.parameters.jsCode, "  return m ? m[1].trim() : '';\n};\n\nconst nomeDetectado = tag('NOME')",
+    "  const v = m ? m[1].trim() : '';\n  return " + SEM_VALOR_RE + ".test(v) ? '' : v;\n};\n\nconst nomeDetectado = tag('NOME')", 1, 'Detectar Acao');
 }
 
 function economizar(original, opcoes) {

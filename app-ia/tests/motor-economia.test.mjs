@@ -40,12 +40,28 @@ const __INTENCAO = {
   visita: [/(que dia|qual dia|quando) (voce |vc )?(pode|consegue|prefere|quer|gostaria de) (vir|passar|dar um pulo|visitar)/, /(agendar|marcar) (a |uma |sua )?visita/]
 };
 const __repetida = (q) => false;
+const __cortes = [];
+const __limpar = (m) => String(m).split(/(?<=[?!.])\\s+/).filter(p => {
+  if (!/\\?/.test(p)) return true;
+  return false;
+}).join(' ').trim();
+const __lote = (m) => String(m).split(/(?<=[?!.])\\s+/).filter(p => {
+    if (!/\\?/.test(p)) return true;
+    return false;
+  }).join(' ');
 let messages = [];
     const __prox = !__sabe.veiculo ? 'Qual?'
       : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'
       : '';
     if (__prox) messages.push(__prox);
-return { __sabe, __INTENCAO };`;
+return { __sabe, __INTENCAO, __limpar, __lote };`;
+const DETECTAR=`const tag = (nome) => {
+  const m = output.match(new RegExp('\\\\[' + nome + ':\\\\s*([^\\\\]]+)\\\\]', 'i'));
+  return m ? m[1].trim() : '';
+};
+
+const nomeDetectado = tag('NOME') || null;
+return { entrada: tag('ENTRADA'), nasc: tag('NASC'), nome: nomeDetectado };`;
 const ligar=(de,para,tipo='main',saida=0)=>({[de]:{[tipo]:Object.assign([],{[saida]:[{node:para,type:tipo,index:0}]})}});
 const MOTOR={id:'xQ7',name:'V1.4.4 SDR Motor',active:true,versionId:'v1',settings:{executionOrder:'v1'},
  nodes:[
@@ -59,7 +75,8 @@ const MOTOR={id:'xQ7',name:'V1.4.4 SDR Motor',active:true,versionId:'v1',setting
   {name:'Parser Chain',type:'@n8n/n8n-nodes-langchain.chainLlm',position:[10,20],parameters:{}},
   {name:'OpenAI Parser',type:'@n8n/n8n-nodes-langchain.lmChatOpenAi',parameters:{},credentials:{openAiApi:{id:'prod',name:'Elluxcar API'}}},
   {name:'Output Parser',type:'@n8n/n8n-nodes-langchain.outputParserStructured',parameters:{}},
-  {name:'Code JS',type:'n8n-nodes-base.code',parameters:{jsCode:TRAVA}}],
+  {name:'Code JS',type:'n8n-nodes-base.code',parameters:{jsCode:TRAVA}},
+  {name:'Detectar Acao',type:'n8n-nodes-base.code',parameters:{jsCode:DETECTAR}}],
  connections:{...ligar('OpenAI Model','AI Agent','ai_languageModel'),...ligar('Memory','AI Agent','ai_memory'),
   ...ligar('Router Depto','Parser Chain','main',3),...ligar('OpenAI Parser','Parser Chain','ai_languageModel'),
   ...ligar('Output Parser','Parser Chain','ai_outputParser'),...ligar('Parser Chain','Code JS')}};
@@ -139,6 +156,17 @@ test('a trava não deixa o convite voltar e o código não acrescenta convite so
  assert.match(p,/NATURALIDADE/);
  for(const r of ['Pergunta pendente vem antes de tudo','Resposta curta se lê pelo contexto','Interesse não é agendamento']) assert.ok(p.includes(r),r); assert.ok(p.indexOf('NATURALIDADE')<p.indexOf('📌 DADOS DESTE ATENDIMENTO'),'regra fica na parte fixa');
  assert.doesNotMatch(p,/tem que empurrar o atendimento|perdeu\no fio/);
+});
+
+test('marcação "não informado" não vira dado e "viu?" no fim não apaga a resposta', () => {
+ const w=B();
+ const det=output=>new Function('output',codigoDe(w,'Detectar Acao'))(output);
+ assert.deepEqual(det('Ok! [ENTRADA:Não informado] [NASC: não informado] [NOME:Leonardo]'),{entrada:'',nasc:'',nome:'Leonardo'});
+ assert.equal(det('[ENTRADA:5000]').entrada,'5000'); assert.equal(det('[ENTRADA:nao]').entrada,'nao');
+ const {__limpar,__lote}=new Function('__da','__est','__L','__opc',codigoDe(w,'Code JS'))({},{hist:[]},{nomeIA:'Lu'},'');
+ // no recorte, toda pergunta de verdade é cortada: a afirmação com "viu?" tem que ficar
+ assert.equal(__limpar('Na entrada aceitamos cartão, dá pra parcelar, viu? Quer seguir com a simulação?'),'Na entrada aceitamos cartão, dá pra parcelar, viu?');
+ assert.equal(__lote('Combinado, tá? Pode ser amanhã?'),'Combinado, tá?');
 });
 
 const balao=texto=>new Function('$',QUEBRAR_BALOES)(()=>({first:()=>({json:{output:texto}})}))[0].json.output.messages;
