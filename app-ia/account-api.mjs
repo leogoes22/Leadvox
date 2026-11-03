@@ -74,6 +74,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   if(!r.ok)throw {status:r.status===429?429:400,message:r.status===429?'Muitas tentativas. Aguarde alguns minutos.':'Não foi possível concluir. Confira os dados e tente novamente.'};
   return data;
  }
+ // O painel faz várias chamadas juntas e o token de renovação só vale uma vez: todas usam a mesma renovação.
+ const renovacoes=new Map();
+ function renovarSessao(refresh){
+  const agora=Date.now();
+  for(const [k,v] of renovacoes)if(v.ate<agora)renovacoes.delete(k);
+  let r=renovacoes.get(refresh);
+  if(!r){
+   r={ate:agora+30000,p:upstream('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:refresh}})};
+   renovacoes.set(refresh,r);r.p.catch(()=>renovacoes.delete(refresh));
+  }
+  return r.p;
+ }
  // False until database/platform_admin.sql has been applied.
  async function isPlatformAdmin(token){try{return (await upstream('/rest/v1/rpc/lv_is_platform_admin',{method:'POST',token,body:{}}))===true;}catch{return false;}}
  return async(req,res,pathname)=>{
@@ -88,9 +100,17 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
    const expected=(secure?'https://':'http://')+host;
    if(req.headers.origin!==expected){send(res,403,{error:'Origem inválida'});return true;}
   }
-  const cookie=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('__Host-lv_session='));
-  const token=cookie?.slice('__Host-lv_session='.length);
-  const setSession=(session)=>res.setHeader('Set-Cookie','__Host-lv_session='+encodeURIComponent(session.access_token)+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age='+Math.min(Number(session.expires_in)||3600,3600));
+  const lerCookie=nome=>{
+   const c=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(nome+'='));
+   try{return c?decodeURIComponent(c.slice(nome.length+1)):'';}catch{return '';}
+  };
+  const token=lerCookie('__Host-lv_session'),renova=lerCookie('__Host-lv_renova');
+  const COOKIE='; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=';
+  // O acesso vale 1 hora; a renovação (30 dias no mesmo aparelho) só existe neste cookie e nunca chega à página.
+  const setSession=(session)=>res.setHeader('Set-Cookie',[
+   '__Host-lv_session='+encodeURIComponent(session.access_token)+COOKIE+Math.min(Number(session.expires_in)||3600,3600),
+   ...(session.refresh_token?['__Host-lv_renova='+encodeURIComponent(session.refresh_token)+COOKIE+2592000]:[])]);
+  const limparSessao=()=>res.setHeader('Set-Cookie',['__Host-lv_session=','__Host-lv_renova='].map(c=>c+COOKIE+'0'));
   try{
    let body={};
    const action=pathname.slice('/api/account/'.length);
@@ -103,7 +123,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
    const publicActions=['login','signup','verify','recover'];
    if(publicActions.includes(action)){
     if(req.method!=='POST')throw {status:405,message:'Método não permitido.'};
-    const now=Date.now(),ip=req.socket.remoteAddress||'unknown';
+    // Atrás do proxy, o endereço da conexão é o do proxy (todos os clientes juntos): vale o último salto, que o próprio proxy escreve.
+    const now=Date.now(),ip=String(req.headers['x-forwarded-for']||'').split(',').pop().trim()||req.socket.remoteAddress||'unknown';
     for(const [key,v] of attempts)if(v.until<now)attempts.delete(key);
     const a=attempts.get(ip)||{count:0,until:now+900000};a.count++;attempts.set(ip,a);
     if(a.count>20||attempts.size>10000)throw {status:429,message:'Muitas tentativas. Aguarde alguns minutos.'};
@@ -126,14 +147,23 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     }
     return true;
    }
-   if(!token)throw {status:401,message:'Entre na sua conta.'};
-   let user;try{user=await upstream('/auth/v1/user',{token:decodeURIComponent(token)});}catch{throw {status:401,message:'Sessão expirada. Entre novamente.'};}
+   if(!token&&!renova)throw {status:401,message:'Entre na sua conta.'};
+   let authToken=token,user=null;
+   // Serviço fora do ar não é sessão vencida: não derruba ninguém nem gasta a renovação.
+   if(token){try{user=await upstream('/auth/v1/user',{token});}catch(e){if(e.status===503)throw e;}}
+   if(!user&&renova){
+    let s;try{s=await renovarSessao(renova);}catch(e){if(e.status===503||e.status===429)throw e;}
+    if(!s?.access_token){limparSessao();throw {status:401,message:'Sessão expirada. Entre novamente.'};}
+    setSession(s);authToken=s.access_token;
+    user=await upstream('/auth/v1/user',{token:authToken}).catch(e=>{if(e.status===503)throw e;return null;});
+   }
+   if(!user)throw {status:401,message:'Sessão expirada. Entre novamente.'};
    if(!user?.id||!user.email_confirmed_at)throw {status:401,message:'Confirme seu e-mail antes de continuar.'};
-   const authToken=decodeURIComponent(token);
    if(action==='billing'){await handleBilling({req,body,user,authToken,upstream,send,res});}
    else if(action==='logout'&&req.method==='POST'){
-    await upstream('/auth/v1/logout',{method:'POST',token:authToken,body:{}});
-    res.setHeader('Set-Cookie','__Host-lv_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');send(res,200,{ok:true});
+    // Sair limpa este aparelho mesmo se o serviço de login não responder agora.
+    await upstream('/auth/v1/logout',{method:'POST',token:authToken,body:{}}).catch(()=>{});
+    limparSessao();send(res,200,{ok:true});
    }else if(action==='password'&&req.method==='POST'){
     if(typeof body.password!=='string'||body.password.length<12||body.password.length>128)throw {status:400,message:'Use uma senha de 12 a 128 caracteres.'};
     await upstream('/auth/v1/user',{method:'PUT',token:authToken,body:{password:body.password}});send(res,200,{ok:true});
