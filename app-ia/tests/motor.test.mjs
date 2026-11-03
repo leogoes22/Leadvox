@@ -19,7 +19,7 @@ async function fixture(t,{chat=null,erroSalvar=null,ativo=null}={}){
   if(fn==='lv_chat_secret')return ok(chat?[chat]:[]);
   if(fn==='lv_motor_status')return ok({vinculado:true,conta:'loja-teste-ab12',agentes:[],tipos:[{codigo:'sdr',nome:'SDR'}]});
   if(fn==='lv_motor_salvar_agente')return ok(erroSalvar?{ok:false,erro:erroSalvar}:{ok:true,versao:4});
-  if(fn==='lv_motor_ativo'&&ativo)return ok(ativo);
+  if(fn==='lv_motor_ativo'&&ativo)return ok(Array.isArray(ativo)?ativo.shift()??{ok:true}:ativo);
   if(fn==='lv_motor_agente')return ok({chave:'loja-teste-ab12-x',tipo:'sdr',versao:3,config:{}});
   return ok({ok:true});
  }});
@@ -57,6 +57,17 @@ test('turning on an unfinished agent says what is missing',async t=>{
  assert.equal(r.status,400);assert.match((await r.json()).error,/Para ligar o agente: preencha nome.*; ligue o WhatsApp/);
  const g=await fixture(t);await g.post({acao:'salvar',agente:'loja-teste-ab12-x',config:{},versaoBase:3,concluir:true});
  assert.equal(g.calls.find(c=>c.fn==='lv_motor_salvar_agente').body.concluir,true);
+});
+test('turning on an agent connects the saved LeadVox number first when the motor still has none',async t=>{
+ const tok=jwt({tenantId:2,sessionId:316});
+ const f=await fixture(t,{chat:{api_root:'https://chatapi.leadvox.com.br/v1',api_id:'4baa-7f22',token:tok},ativo:[{ok:false,erro:'pendencias',pendencias:['sem_conexao']},{ok:true}]});
+ const r=await f.post({acao:'ativo',agente:'loja-teste-ab12-x',ativo:true});
+ assert.equal(r.status,200);
+ assert.deepEqual(f.calls.map(c=>c.fn),['lv_motor_ativo','lv_chat_secret','lv_motor_conectar','lv_motor_ativo','lv_motor_status']);
+ const g=await fixture(t,{ativo:{ok:false,erro:'pendencias',pendencias:['sem_conexao']}});
+ const s=await g.post({acao:'ativo',agente:'loja-teste-ab12-x',ativo:true});
+ assert.equal(s.status,400);assert.match((await s.json()).error,/conecte sua LeadVox em Credenciais de API/);
+ assert.equal(g.calls.filter(c=>c.fn==='lv_motor_ativo').length,1);
 });
 test('dashboard reads the account report for a valid period only',async t=>{
  const f=await fixture(t);

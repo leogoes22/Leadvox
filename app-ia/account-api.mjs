@@ -18,7 +18,7 @@ const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. R
  sem_credencial:'Conecte sua LeadVox em Credenciais de API primeiro.',token_sem_sessao:'O token da LeadVox não traz o número (sessão). Gere a URL da API a partir do canal de WhatsApp.',
  config_grande_demais:'A configuração ficou grande demais.',config_invalida:'Configuração inválida.',agente:'Agente não encontrado.'};
 // Why the motor refuses to turn an agent on (iag__pendencias).
-const MOTOR_PENDENCIAS={nao_configurado:'preencha nome e "como ele se apresenta" e salve',sem_departamento:'escolha o departamento deste agente',sem_conexao:'ligue o WhatsApp (Credenciais de API)',conta_suspensa:'a conta está suspensa',arquivado:'o agente está arquivado'};
+const MOTOR_PENDENCIAS={nao_configurado:'preencha nome e "como ele se apresenta" e salve',sem_departamento:'escolha o departamento deste agente',sem_conexao:'ligue o WhatsApp: conecte sua LeadVox em Credenciais de API',conta_suspensa:'a conta está suspensa',arquivado:'o agente está arquivado'};
 function motorErro(r,msg){
  if(r.erro==='pendencias'&&Array.isArray(r.pendencias))return 'Para ligar o agente: '+r.pendencias.map(p=>MOTOR_PENDENCIAS[p]||p).join('; ')+'.';
  return MOTOR_ERROS[r.erro]||msg;
@@ -244,7 +244,11 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       falha(r,'Não deu para salvar onde o agente atende.');
      }else if(acao==='ativo'){
       if(!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Agente inválido.'};
-      falha(await rpc('lv_motor_ativo',{agente:body.agente,ativo:body.ativo===true}),'Não deu para mudar o agente.');
+      let r=await rpc('lv_motor_ativo',{agente:body.agente,ativo:body.ativo===true});
+      // A IA foi criada antes de conectar a LeadVox: com a LeadVox já em Credenciais, liga o número ao motor e tenta de novo.
+      if(body.ativo===true&&r?.ok===false&&r.erro==='pendencias'&&Array.isArray(r.pendencias)&&r.pendencias.includes('sem_conexao')&&(await conectar())?.ok!==false)
+       r=await rpc('lv_motor_ativo',{agente:body.agente,ativo:true});
+      falha(r,'Não deu para mudar o agente.');
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
