@@ -14,7 +14,7 @@ export const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINE
 export const TERMOS_VERSAO='2026-11-01';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
 const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. Recarregue para ver a versão nova.',sem_vaga:'Sua conta já tem o máximo de agentes.',tipo:'Tipo de agente inválido.',
- conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
+ conexao_em_uso_motor_ia:'Esse número da LeadVox já está ligado a outra conta do motor. Para não ter duas IAs respondendo o mesmo cliente, conecte em Credenciais a API de outro número.',conexao_em_uso_motor_sdr:'Esse número da LeadVox já está ligado a uma loja do SDR.',
  sem_credencial:'Conecte sua LeadVox em Credenciais de API primeiro.',token_sem_sessao:'O token da LeadVox não traz o número (sessão). Gere a URL da API a partir do canal de WhatsApp.',
  config_grande_demais:'A configuração ficou grande demais.',config_invalida:'Configuração inválida.',agente:'Agente não encontrado.'};
 // Why the motor refuses to turn an agent on (iag__pendencias).
@@ -246,8 +246,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       if(!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Agente inválido.'};
       let r=await rpc('lv_motor_ativo',{agente:body.agente,ativo:body.ativo===true});
       // A IA foi criada antes de conectar a LeadVox: com a LeadVox já em Credenciais, liga o número ao motor e tenta de novo.
-      if(body.ativo===true&&r?.ok===false&&r.erro==='pendencias'&&Array.isArray(r.pendencias)&&r.pendencias.includes('sem_conexao')&&(await conectar())?.ok!==false)
-       r=await rpc('lv_motor_ativo',{agente:body.agente,ativo:true});
+      if(body.ativo===true&&r?.ok===false&&r.erro==='pendencias'&&Array.isArray(r.pendencias)&&r.pendencias.includes('sem_conexao')){
+       const cx=await conectar();
+       // sem LeadVox em Credenciais: vale a lista de pendências; outro motivo (ex.: número já de outra conta): diz qual
+       if(cx?.ok===false&&cx.erro!=='sem_credencial')falha(cx,'Não deu para ligar a LeadVox ao motor.');
+       if(cx?.ok!==false)r=await rpc('lv_motor_ativo',{agente:body.agente,ativo:true});
+      }
       falha(r,'Não deu para mudar o agente.');
      }else throw {status:400,message:'Ação inválida.'};
     }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
