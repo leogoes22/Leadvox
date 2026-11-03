@@ -20,6 +20,8 @@ Node.js 24, sem dependências: `npm start` e `npm test`. Padrão http://127.0.0.
 ## Coolify / Hostinger
 Contexto de build = esta pasta, Dockerfile incluído, porta interna 3000. Conferir /api/health. O proxy deve sobrescrever X-Forwarded-Proto.
 
+Deploy automático: todo push na `main` avisa o Coolify pelo webhook do GitHub, e o Coolify monta e publica sozinho. A montagem roda `npm test` antes; se algum teste falhar, a versão nova não entra no ar e o painel segue na anterior. O GitHub Actions ("Testes LeadVox IA") roda os mesmos testes e confere a montagem a cada mudança. SQL novo em `database/` termina anotando o arquivo em `leadvox_private.sql_aplicado` (ver `controle.sql`).
+
 ## Próximos passos
 1. Entrega do código por e-mail (SMTP próprio no Supabase) e a jornada completa de login com contato@leadvox.com.br.
 2. Entrar nos Agentes e no SDR com a mesma conta: o servidor guarda o vínculo empresa ↔ conta do n8n e fala com os webhooks, sem segundo login.
