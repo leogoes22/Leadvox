@@ -32,29 +32,37 @@ const estado = {
   hist: hist.slice(-16)
 };
 return estado;`;
-const TRAVA=`const __tem = (...v) => v.some(x => String(x ?? '').trim() !== '');
+const TRAVA=`let messages = ($msgs || []).slice();
+const __tem = (...v) => v.some(x => String(x ?? '').trim() !== '');
 const __sabe = {
+  entrada: __tem(__da.entradaDetectada, __est.entrada),
   visita: __tem(__da.visitaDetectada, __est.visita),
 };
+const __sa = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
 const __INTENCAO = {
+  entrada: [/\\bentrada\\b/], cpf: [/\\bcpf\\b/],
   visita: [/(que dia|qual dia|quando) (voce |vc )?(pode|consegue|prefere|quer|gostaria de) (vir|passar|dar um pulo|visitar)/, /(agendar|marcar) (a |uma |sua )?visita/]
 };
+const __nomeIA = String(__L.nomeIA || '');
 const __repetida = (q) => false;
 const __cortes = [];
 const __limpar = (m) => String(m).split(/(?<=[?!.])\\s+/).filter(p => {
   if (!/\\?/.test(p)) return true;
-  return false;
+  const s = __sa(p);
+  for (const [campo, res] of Object.entries(__INTENCAO)) {
+    if (__sabe[campo] && res.some(re => re.test(s))) { __cortes.push(campo + ': ' + p.slice(0, 80)); return false; }
+  }
+  return true;
 }).join(' ').trim();
 const __lote = (m) => String(m).split(/(?<=[?!.])\\s+/).filter(p => {
     if (!/\\?/.test(p)) return true;
     return false;
   }).join(' ');
-let messages = [];
     const __prox = !__sabe.veiculo ? 'Qual?'
       : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'
       : '';
     if (__prox) messages.push(__prox);
-return { __sabe, __INTENCAO, __limpar, __lote };`;
+return { __sabe, __INTENCAO, __limpar, __lote, messages, __cortes };`;
 const DETECTAR=`const tag = (nome) => {
   const m = output.match(new RegExp('\\\\[' + nome + ':\\\\s*([^\\\\]]+)\\\\]', 'i'));
   return m ? m[1].trim() : '';
@@ -119,6 +127,9 @@ test('o conversor para se o motor tiver mudado', () => {
 });
 
 const B=()=>economizar(MOTOR,{nome:'TESTE B',path:'sdr-motor-teste-b',credencial:CRED});
+// roda o nó "Code JS" como no n8n: $('Formatar Estoque') traz a mensagem do cliente
+const trava=(codigo,est,cliente='',msgs=[])=>new Function('__da','__est','__L','__opc','$msgs','$',codigo)
+ ({},est,{nomeIA:'Lu'},'',msgs,()=>({first:()=>({json:{mensagemConsolidada:cliente}})}));
 const codigoDe=(w,n)=>w.nodes.find(x=>x.name===n).parameters.jsCode;
 
 test('o estado conta os convites, percebe a recusa e guarda as perguntas que a IA já fez', () => {
@@ -146,7 +157,7 @@ test('a ficha mostra a situação do convite e as perguntas que não podem volta
 test('a trava não deixa o convite voltar e o código não acrescenta convite sozinho', () => {
  const w=B(); const t=codigoDe(w,'Code JS');
  assert.doesNotMatch(t,/Fica melhor pra você vir conhecer/); assert.match(t,/__prox && !__repetida\(__prox\)/);
- const rodar=est=>new Function('__da','__est','__L','__opc',t)({},est,{nomeIA:'Lu'},'');
+ const rodar=est=>trava(t,est);
  assert.equal(rodar({hist:['Lu: Consegue passar aqui amanhã pra ver ela de perto?']}).__sabe.visita,true,'convite na mensagem anterior');
  assert.equal(rodar({hist:['Lu: Qual moto?'],visitaRecusada:true}).__sabe.visita,true);
  assert.equal(rodar({hist:['Lu: Qual moto?']}).__sabe.visita,false);
@@ -163,10 +174,21 @@ test('marcação "não informado" não vira dado e "viu?" no fim não apaga a re
  const det=output=>new Function('output',codigoDe(w,'Detectar Acao'))(output);
  assert.deepEqual(det('Ok! [ENTRADA:Não informado] [NASC: não informado] [NOME:Leonardo]'),{entrada:'',nasc:'',nome:'Leonardo'});
  assert.equal(det('[ENTRADA:5000]').entrada,'5000'); assert.equal(det('[ENTRADA:nao]').entrada,'nao');
- const {__limpar,__lote}=new Function('__da','__est','__L','__opc',codigoDe(w,'Code JS'))({},{hist:[]},{nomeIA:'Lu'},'');
- // no recorte, toda pergunta de verdade é cortada: a afirmação com "viu?" tem que ficar
- assert.equal(__limpar('Na entrada aceitamos cartão, dá pra parcelar, viu? Quer seguir com a simulação?'),'Na entrada aceitamos cartão, dá pra parcelar, viu?');
+ const {__limpar,__lote}=trava(codigoDe(w,'Code JS'),{hist:[],entrada:'5000'});
+ // com a entrada já sabida, a pergunta da entrada sai; a afirmação com "viu?" fica
+ assert.equal(__limpar('Na entrada aceitamos cartão, dá pra parcelar, viu? Qual o valor da entrada?'),'Na entrada aceitamos cartão, dá pra parcelar, viu?');
  assert.equal(__lote('Combinado, tá? Pode ser amanhã?'),'Combinado, tá?');
+});
+
+test('não pede o mesmo dado de novo quando o cliente desconversou, e não cumprimenta no meio da conversa', () => {
+ const t=codigoDe(B(),'Code JS'), hist=['Cliente: tenho um gol','Lu: Show! Me passa seu CPF e sua data de nascimento?'];
+ let r=trava(t,{hist},'Moro longe, depois eu vejo',['Boa noite, Leonardo. Entendo! Mesmo assim, qual é o seu CPF?']);
+ assert.equal(r.__limpar('Entendo! Mesmo assim, qual é o seu CPF?'),'Entendo!');
+ assert.match(r.messages[0],/^Entendo!/,'tirou o "Boa noite, Leonardo."');
+ r=trava(t,{hist},'sim',['Perfeito!']);
+ assert.equal(r.__limpar('Perfeito! Me passa seu CPF?'),'Perfeito! Me passa seu CPF?','topou: pode pedir');
+ r=trava(t,{hist:[]},'Oi',['Boa noite! Tudo bem?']);
+ assert.equal(r.messages[0],'Boa noite! Tudo bem?','primeira mensagem mantém o cumprimento');
 });
 
 const balao=texto=>new Function('$',QUEBRAR_BALOES)(()=>({first:()=>({json:{output:texto}})}))[0].json.output.messages;

@@ -112,6 +112,18 @@ const SEM_VALOR_RE = String.raw`/^(n[aã]o\s+informad[oa]s?|n\/?a|-+|\?+|indefin
 // "viu?", "né?", "tá?" no fim de uma afirmação não fazem dela uma pergunta (a trava apagava a resposta).
 const TAG_PERGUNTA = String.raw`const __ehPergunta = (p) => /\?/.test(String(p).replace(/[,\s—–-]*\b(viu|n[eé]|t[aá]|certo|beleza|ok)\s*\?[\s\p{Extended_Pictographic}!.]*$/iu, ''));
 `;
+// 2ª rodada do teste: ela pedia CPF em toda resposta enquanto o cliente falava de outra coisa, e cumprimentava
+// de novo no meio da conversa ("Boa noite, Leonardo."). Pedido feito na mensagem anterior e o cliente não topou
+// (nem "sim", "pode", "manda"…) → a mesma pergunta sai desta resposta; volta numa próxima.
+const INSISTENCIA = String.raw`const __cliAgora = (() => { try { return __sa($('Formatar Estoque').first().json.mensagemConsolidada || ''); } catch (e) { return ''; } })();
+const __topou = /^\s*(sim|s|pode|pode sim|ok|claro|manda|bora|vamos|beleza|blz|isso|uhum|aham|quero)\b/.test(__cliAgora);
+const __ultDelaT = __sa((Array.isArray(__est.hist) ? __est.hist : []).filter(l => String(l).startsWith(__nomeIA + ':')).slice(-1)[0] || '');
+const __insistiu = (campo) => !__topou && (__INTENCAO[campo] || []).some(re => re.test(__ultDelaT));
+if ((Array.isArray(__est.hist) ? __est.hist : []).length && messages.length) {
+  const __semOi = String(messages[0]).replace(/^\s*(ol[aá]|oi|opa|bom dia|boa tarde|boa noite)(,?\s+[A-ZÀ-Ú][\wÀ-ú]*)?\s*[,!.]+\s*/i, '');
+  if (__semOi && __semOi !== messages[0]) messages[0] = __semOi.charAt(0).toUpperCase() + __semOi.slice(1);
+}
+`;
 
 // Montar Estado: guarda quantos convites ela já fez, se o cliente recusou e as últimas perguntas dela
 const ESTADO_EXTRA = `
@@ -142,6 +154,9 @@ const NATURALIDADE = `## 🌊 NATURALIDADE — vale acima das etapas, do encerra
 - Converse como um vendedor de verdade, não como um formulário. As etapas são um guia, não uma obrigação a cada mensagem.
 - *Pergunta pendente vem antes de tudo.* Se o cliente perguntou algo e ainda não teve resposta, a sua próxima mensagem responde isso primeiro, de verdade. Fez duas perguntas? Responda as duas, na ordem. Nunca troque a resposta por frase genérica nem pule a pergunta para seguir o roteiro. Só depois, se fizer sentido, avance UM passo. Às vezes a resposta basta: nem toda mensagem precisa terminar com pergunta.
 - *Resposta curta se lê pelo contexto.* "Sim", "não", "pode ser", "manda", "quanto?", "amanhã", "sábado" respondem à SUA última mensagem. Continue dali, sem recomeçar e sem perguntar de novo o que ele acabou de responder.
+- *Mostre na hora.* O cliente disse o que procura (tipo, faixa de preço, câmbio ou modelo)? Mostre JÁ nesta mensagem as opções reais do estoque, com foto. Não diga "vou separar" e não pergunte antes se ele tem um modelo em mente.
+- *Não insista no mesmo dado.* Pediu CPF, nascimento, entrada ou outro dado e o cliente falou de outra coisa? Responda o que ele trouxe e NÃO peça o mesmo dado nesta mensagem. Retome mais tarde, no máximo mais uma vez.
+- *Sem cumprimentar de novo.* "Olá", "Oi", "Bom dia", "Boa tarde" e "Boa noite" só na primeira mensagem da conversa.
 - *Interesse não é agendamento.* "Vou ver", "quem sabe", "talvez eu passe aí" ou "quero conhecer" ainda não são visita marcada. Visita só existe com dia E horário confirmados pelo cliente: antes disso, nunca diga "combinado", "está agendado" ou "te espero", e nunca marque a visita.
 - Nunca repita uma pergunta que está em "PERGUNTAS QUE VOCE JA FEZ" na ficha, nem com outras palavras. Se precisar confirmar algo, diga o que já sabe ("Você comentou que vai financiar, né?") em vez de perguntar de novo.
 - Convite pra visita: no máximo 2 na conversa inteira, nunca em duas mensagens seguidas e nunca no lugar de responder o que o cliente perguntou. Siga a ficha: se ela diz que ele recusou ou que os convites acabaram, não convide mais.
@@ -184,7 +199,9 @@ function corrigirConversa(w) {
   t = trocar(t, "      : !__sabe.visita ? 'Fica melhor pra você vir conhecer pessoalmente ' + (__opc || 'essa semana') + '?'\n", '', 1, 'Code JS');
   t = trocar(t, '    if (__prox) messages.push(__prox);', '    if (__prox && !__repetida(__prox)) messages.push(__prox);', 1, 'Code JS');
   // teste de 02/11: "Na entrada aceitamos cartão… dá pra parcelar, viu?" foi apagada como se fosse pergunta
-  t = trocar(t, 'const __cortes = [];', TAG_PERGUNTA + 'const __cortes = [];', 1, 'Code JS');
+  t = trocar(t, 'const __cortes = [];', TAG_PERGUNTA + INSISTENCIA + 'const __cortes = [];', 1, 'Code JS');
+  t = trocar(t, "    if (__sabe[campo] && res.some(re => re.test(s))) { __cortes.push(campo + ': ' + p.slice(0, 80)); return false; }",
+    "    if ((__sabe[campo] || __insistiu(campo)) && res.some(re => re.test(s))) { __cortes.push((__sabe[campo] ? '' : 'insistiu ') + campo + ': ' + p.slice(0, 80)); return false; }", 1, 'Code JS');
   t = trocar(t, 'if (!/\\?/.test(p)) return true;', 'if (!__ehPergunta(p)) return true;', 2, 'Code JS');
   trava.parameters.jsCode = t;
 
