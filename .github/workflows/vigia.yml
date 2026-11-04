@@ -1,10 +1,10 @@
-# Vigia de fora: confere de 10 em 10 min se o que atende os clientes está no ar.
+# Vigia de fora: confere de 15 em 15 min se o que atende os clientes está no ar.
 # Roda no GitHub, longe dos servidores, então avisa mesmo se o n8n antigo ou a VPS caírem inteiros.
 # Se algo cair, a execução falha e o GitHub manda e-mail para quem cuida do repositório.
 name: Vigia LeadVox
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '7,22,37,52 * * * *' # fora dos minutos cheios, quando o GitHub mais atrasa ou pula agendamentos
   workflow_dispatch:
 permissions: {}
 jobs:
