@@ -1,4 +1,4 @@
-import {createAccountApi,N8N_WEBHOOK} from './account-api.mjs';
+import {createAccountApi,n8nDaConta} from './account-api.mjs';
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -105,7 +105,7 @@ export function createApp(options={}) {
    if(!itens.length)return responder(400,{ok:false,erro:'Escreva o texto da mensagem.'});
    corpo.itemId=String(b.itemId);corpo.modo=['ficha','completa','fotos','video'].includes(b.modo)?b.modo:'ficha';corpo.itens=itens;
   }
-  let r;try{r=await fetchImpl(N8N_WEBHOOK+'iag-plugin-vendedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:AbortSignal.timeout(70000),redirect:'error'});}
+  let r;try{r=await fetchImpl(n8nDaConta(b.k)+'iag-plugin-vendedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:AbortSignal.timeout(70000),redirect:'error'});}
   catch{return responder(502,{ok:false,erro:'O motor da IA não respondeu. Tente de novo em instantes.'});}
   const dados=await r.json().catch(()=>null);
   if(!dados||typeof dados!=='object')return responder(502,{ok:false,erro:'O motor da IA não respondeu. Tente de novo em instantes.'});

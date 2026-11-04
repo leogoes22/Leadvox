@@ -7,9 +7,11 @@ import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
-// Motor do painel no n8n novo (VPS). Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
-// Até o "pronto para venda" o motor do painel roda no n8n antigo; o n8n novo (n8n.leadvox.com.br) volta depois.
-export const N8N_WEBHOOK='https://webhook.lv-mktdeconversa.com/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+// Motor do painel: conta nova já nasce no n8n novo (VPS); as contas abaixo seguem no antigo até a virada de cada uma.
+// Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
+export const N8N_ANTIGO='https://webhook.lv-mktdeconversa.com/webhook/',N8N_NOVO='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+const CONTAS_N8N_ANTIGO=new Set(['brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9','leadvox-5c95bde0','lajes-bueno-0f4d201f','motoliketeste-3eaec7f7']);
+export const n8nDaConta=(conta)=>CONTAS_N8N_ANTIGO.has(String(conta||''))?N8N_ANTIGO:N8N_NOVO;
 // Versão dos Termos de Uso e da Política de Privacidade (public/termos.html e privacidade.html). Trocar a data pede o aceite de novo.
 export const TERMOS_VERSAO='2026-11-01';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.
@@ -303,10 +305,10 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     if(!r?.vinculado)return send(res,200,{vinculado:false}),true;
     if(!/^[0-9a-f]{24}$/.test(r.token||'')){
      // o n8n calcula o token (o segredo do motor fica só lá); pede para gerar agora em vez de esperar a rodada de 2 min
-     try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
+     try{await fetchImpl(n8nDaConta(r.conta)+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
      return send(res,200,{vinculado:true,pendente:true,ultimoEvento:r.ultimoEvento||null,ultimoEnvio:envioDe(r)}),true;
     }
-    send(res,200,{vinculado:true,url:N8N_WEBHOOK+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null,ultimoEnvio:envioDe(r),
+    send(res,200,{vinculado:true,url:n8nDaConta(r.conta)+SENTINELA_PATH+'?k='+encodeURIComponent(r.conta)+'&t='+r.token,ultimoEvento:r.ultimoEvento||null,ultimoEnvio:envioDe(r),
      // Plugin do Vendedor: o painel monta o link com o próprio endereço (/vendedor?k=&t=)
      plugin:/^[0-9a-f]{24}$/.test(r.tokenPlugin||'')?{conta:r.conta,t:r.tokenPlugin}:null});
    }else if(action==='simular'&&req.method==='POST'){
@@ -320,12 +322,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     catch{throw {status:400,message:'Só o dono da empresa pode testar a IA (ou falta liberar no banco).'};}
     // Super Admin olhando a empresa de fora não é dono: o banco não entrega a chave do teste.
     if(ev?.vinculado===false&&st?.vinculado!==false)throw {status:403,message:'Só quem é da empresa pode testar a IA. Entre com a conta do cliente para usar o Testar a IA.'};
-    if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){try{await fetchImpl(N8N_WEBHOOK+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000)});}catch{}
+    if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){try{await fetchImpl(n8nDaConta(ev?.conta)+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000)});}catch{}
      throw {status:400,message:'A sua IA ainda está sendo preparada. Tente de novo em 1 minuto.'};}
     const ag=(st?.agentes||[]).find(a=>a.chave===agente);if(!ag)throw {status:400,message:'Agente não encontrado.'};
     // telefone de mentira e fixo por teste: a conversa tem memória própria e nunca cai no WhatsApp de ninguém
     const tel='55000'+String(parseInt(createHash('sha256').update(org+':'+sessao).digest('hex').slice(0,12),16)).slice(0,8).padStart(8,'0');
-    let r;try{r=await fetchImpl(N8N_WEBHOOK+'iag-simulador?k='+encodeURIComponent(ev.conta)+'&t='+ev.token,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json'},
+    let r;try{r=await fetchImpl(n8nDaConta(ev.conta)+'iag-simulador?k='+encodeURIComponent(ev.conta)+'&t='+ev.token,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json'},
      body:JSON.stringify({sessionId:tel,chatInput:mensagem,Departamento:ag.departamentoId||null,ticketId:'',nomeContato:'Teste do painel',simulacao:true})});}
     catch{throw {status:502,message:'A IA demorou demais para responder. Tente de novo.'};}
     const d=await r.json().catch(()=>null);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp} from '../server.mjs';
-import {jwtPayload} from '../account-api.mjs';
+import {jwtPayload,n8nDaConta} from '../account-api.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
 const org='22222222-2222-4222-8222-222222222222';
 const jwt=p=>'eyJhbGciOiJIUzI1NiJ9.'+Buffer.from(JSON.stringify(p)).toString('base64url')+'.assinatura';
@@ -111,7 +111,7 @@ test('events webhook address is built from the account token, or asks n8n to cre
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  const base='http://127.0.0.1:'+s.address().port,get=()=>fetch(base+'/api/account/eventos?organization='+org,{headers:{Cookie:'__Host-lv_session=x'}}).then(r=>r.json());
  const r0=await get();
- assert.equal(r0.url,'https://webhook.lv-mktdeconversa.com/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
+ assert.equal(r0.url,'https://n8n.leadvox.com.br/webhook/iag-sentinela-v3?k=loja-teste-ab12&t=0123456789abcdef01234567');
  // último envio recusado pela LeadVox chega ao painel só com os campos do aviso
  assert.deepEqual(r0.ultimoEnvio,{ok:false,ts:1793142318345,status:404,erro:'{"error":"ERR_SESSION_NOT_FOUND"}'});
  token=null;const r=await get();assert.equal(r.pendente,true);assert.equal(r.url,undefined);
@@ -299,4 +299,11 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.deepEqual({i:oc.itens,d:oc.desconto,f:oc.frete.tipo,m:oc.modo},{i:[{id:'38',nome:'',qtd:120,preco:12.9,unidade:''},{id:'',nome:'Item avulso',qtd:2.5,preco:1000,unidade:'kg'}],d:{tipo:'pct',valor:100},f:'combinar',m:'previa'});
  assert.deepEqual(envios[3].itens[0],{body:'oi',mediaUrl:''});assert.deepEqual(Object.keys(envios[3].itens[1]).sort(),['body','mediaUrl']);
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
+});
+
+test('n8n da conta: conta nova vai para o n8n novo; as antigas ficam no antigo até a virada',()=>{
+ assert.equal(n8nDaConta('cliente-novo-12345678'),'https://n8n.leadvox.com.br/webhook/');
+ assert.equal(n8nDaConta(''),'https://n8n.leadvox.com.br/webhook/');
+ for(const c of ['p5-motors-d6a0d8aa','leadvox-crm-ia-a6d3e545'])assert.equal(n8nDaConta(c),'https://n8n.leadvox.com.br/webhook/');
+ for(const c of ['brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9'])assert.equal(n8nDaConta(c),'https://webhook.lv-mktdeconversa.com/webhook/');
 });
