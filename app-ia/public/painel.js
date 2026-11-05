@@ -183,6 +183,7 @@ $('mProximo').onclick = async () => {
 
 document.querySelectorAll('[data-sair]').forEach(b => b.onclick = async () => {
   document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  desligarSuporte();
   try { await api('logout', {}); } catch {}
   conta = null; setModo('login'); porta(false);
 });
@@ -308,6 +309,7 @@ function abrirApp(pg) {
   const querAssinar = pg === 'assinar';
   carregarAssinatura().then(() => { if (querAssinar) abrirAssinar(); }).catch(() => {});
   abrir(querAssinar ? 'conta' : pg);
+  setTimeout(ligarSuporte, 1500);
 }
 
 /* ═══════════ TERMOS ═══════════ */
@@ -1543,24 +1545,34 @@ function desenharPronto() {
 /* ═══════════ PRIMEIROS PASSOS ═══════════ */
 // Botão no topo: os passos para pôr a IA no ar (marcam sozinhos), como a plataforma funciona, um tour
 // que aponta cada coisa na tela e as dúvidas comuns. Abre sozinho na primeira vez em cada empresa.
-// Suporte pelo webchat da LeadVox (o mesmo do site leadvox.com.br): o script só carrega quando a pessoa pede ajuda,
-// sem a bolinha fixa na tela; o chat já abre sabendo de qual empresa e e-mail a pessoa é.
+// Suporte pelo webchat da LeadVox (o mesmo do site leadvox.com.br): balão flutuante em todas as telas depois do login;
+// o chat já abre sabendo de qual empresa e e-mail a pessoa é.
 const WEBCHAT = { sdk: 'https://chat.leadvox.com.br/webchat/sdk.js', token: '78ed9e3c-95ca-4b18-80e5-daa62c3ceb02', base: 'https://chatapi.leadvox.com.br' };
 let webchat = null;
-function abrirSuporte() {
+function carregarWebchat() {
   if (!webchat) webchat = new Promise((ok, falha) => {
-    window.envioMensagemSettings = { hideMessageBubble: true };
     const s = document.createElement('script'); s.src = WEBCHAT.sdk; s.async = true;
     s.onload = () => { try { window.envioMensagemSDK.run({ widgetToken: WEBCHAT.token, baseUrl: WEBCHAT.base }); ok(); } catch (e) { falha(e); } };
     s.onerror = () => falha(Error('webchat'));
     document.head.appendChild(s);
   });
-  webchat.then(() => {
+  return webchat;
+}
+function identificarSuporte() {
+  try { window.$envioMensagemChat.setUser(conta.user.email, { name: (cfg.displayName || empresa.name) + ' · ' + conta.user.email, email: conta.user.email }); } catch {}
+}
+function ligarSuporte() {
+  carregarWebchat().then(() => { identificarSuporte(); try { window.$envioMensagemChat.toggleBubbleVisibility('show'); } catch {} }).catch(() => { webchat = null; });
+}
+function desligarSuporte() {
+  try { const c = window.$envioMensagemChat; c.reset(); c.toggleBubbleVisibility('hide'); } catch {}
+}
+function abrirSuporte() {
+  carregarWebchat().then(() => {
     // a janela do guia fica por cima de tudo; fecha para o chat aparecer
     if ($('dlgGuia').open) $('dlgGuia').close();
-    const c = window.$envioMensagemChat;
-    try { c.setUser(conta.user.email, { name: (cfg.displayName || empresa.name) + ' · ' + conta.user.email, email: conta.user.email }); } catch {}
-    c.open();
+    identificarSuporte();
+    window.$envioMensagemChat.open();
   }).catch(() => { webchat = null; toast('Não deu para abrir o chat agora. Tente de novo em instantes.', true); });
 }
 function passosGuia() {
