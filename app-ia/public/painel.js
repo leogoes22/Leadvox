@@ -2096,6 +2096,7 @@ function abrirEmpresa(id) {
   const e = lv.find(x => x.id === id); if (!e) return;
   emAtual = e; const c = e.cobranca || {}, s = SIT[c.status] || [c.status, ''], u = e.uso7 || {};
   $('emTitulo').textContent = e.nome;
+  $('emExcluirNome').value = ''; $('emExcluir').disabled = true; document.querySelector('.em-excluir').open = false;
   const it = (r, v) => v ? `<div><span>${r}</span>${v}</div>` : '';
   $('emResumo').innerHTML = `<p><span class="st ${s[1]}">${esc(s[0])}</span></p><div class="ag-dados" style="margin-top:8px">
     ${it('Plano', c.planoNome ? esc(c.planoNome) + ' · ' + dinheiro(c.valorCents) + '/mês' : '')}${it('Pagamento', esc(FORMA_NOME[c.forma] || ''))}
@@ -2197,6 +2198,20 @@ document.querySelectorAll('[data-em]').forEach(b => b.onclick = async () => {
     await carregarLv(); abrirEmpresa(e.id);
   } catch (err) { toast(err.message, true); } finally { b.disabled = false; }
 });
+
+// Excluir o cliente de vez: o botão só libera com o nome exato da empresa.
+$('emExcluirNome').oninput = () => { $('emExcluir').disabled = !emAtual || $('emExcluirNome').value.trim() !== emAtual.nome.trim(); };
+$('emExcluir').onclick = async () => {
+  const e = emAtual; if (!e) return;
+  $('emExcluir').disabled = true;
+  try {
+    await api('admin-excluir', { organization: e.id, confirma: $('emExcluirNome').value });
+    try { if (localStorage.getItem('lv_empresa') === e.id) localStorage.removeItem('lv_empresa'); } catch {}
+    $('dlgEmpresa').close(); toast(e.nome + ' foi excluída.');
+    if (empresa?.id === e.id) return carregar();
+    await carregarLv();
+  } catch (err) { toast(err.message, true); $('emExcluir').disabled = false; }
+};
 
 /* ═══════════ CLIENTES E COBRANÇAS ═══════════ */
 let fin = null, cAba = 'customers', editando = null;

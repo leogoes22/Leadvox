@@ -721,6 +721,12 @@
     </div>
   </div>
   <div id="emAvisos"></div>
+  <details class="em-excluir">
+    <summary>Excluir este cliente</summary>
+    <p class="muted" style="font-size:13px">Apaga de vez a empresa, os robôs, o catálogo, as cobranças e as chaves. Os arquivos saem na limpeza da madrugada. <b>Não tem como desfazer.</b> Para só parar a IA, use Suspender.</p>
+    <label for="emExcluirNome">Digite o nome da empresa para confirmar</label><input id="emExcluirNome" maxlength="120" autocomplete="off">
+    <div class="form-bts"><button class="sm perigo" type="button" id="emExcluir" disabled>Excluir de vez</button></div>
+  </details>
 </dialog>
 
 <dialog id="dlgModelo" class="janela larga" aria-labelledby="mdTitulo">

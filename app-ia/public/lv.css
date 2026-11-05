@@ -437,6 +437,8 @@ textarea { min-height: 90px; resize: vertical; }
 .em-acoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 14px; }
 .em-acoes > div { min-width: 0; } .em-acoes h3 { font-size: 15px; }
 @media (max-width: 780px) { .em-acoes { grid-template-columns: 1fr; } }
+.em-excluir { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--linha); }
+.em-excluir summary { cursor: pointer; color: var(--erro); font-size: 14px; }
 .st.atraso { color: var(--erro); border-color: rgba(255,107,107,.4); }
 .lv-tabela .st, .lv-tabela td.num { white-space: nowrap; }
 /* aceite dos termos (cadastro e versão nova) */

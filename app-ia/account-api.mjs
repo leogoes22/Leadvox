@@ -212,6 +212,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(!uuidOk(body.organization)||!['estender','plano','cortesia','suspender','reativar','obs','lembrete'].includes(body.acao))throw {status:400,message:'Ação inválida.'};
      const dados=body.dados&&typeof body.dados==='object'&&!Array.isArray(body.dados)?body.dados:{};
      send(res,200,await rpc('lv_admin_acao',{org:body.organization,acao:body.acao,dados}));
+    }else if(action==='admin-excluir'&&req.method==='POST'){
+     // Excluir o cliente de vez: só o Super Admin, digitando o nome da empresa. O banco confere de novo.
+     if(!uuidOk(body.organization)||typeof body.confirma!=='string'||!body.confirma.trim())throw {status:400,message:'Digite o nome da empresa para confirmar.'};
+     const r=await rpc('lv_admin_excluir_empresa',{org:body.organization,confirma:body.confirma.slice(0,120)});
+     const erros={confirmacao:'O nome digitado não confere com o da empresa.',propria_conta:'Esta é a sua própria empresa: ela não pode ser excluída por aqui.',assinatura_ativa:'Esta empresa ainda tem assinatura no Asaas. Cancele a assinatura antes de excluir.',nao_encontrada:'Empresa não encontrada. Atualize a lista.'};
+     if(!r||r.ok!==true)throw {status:400,message:erros[r?.erro]||'Não deu para excluir a empresa.'};
+     send(res,200,{ok:true,nome:r.nome});
     }else if(action==='admin-robos'&&req.method==='GET'){
      // Robôs da empresa: o que está ligado, em teste e o que falta configurar (sem segredos).
      if(!uuidOk(q.get('organization')))throw {status:400,message:'Empresa inválida.'};
