@@ -670,7 +670,7 @@ $('arqForm').onsubmit = async e => {
   try {
     let url = arqEditando?.url || link, tipo = arqEditando?.tipo || 'link';
     if (arquivo) {
-      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: arquivo });
+      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: await arquivo.arrayBuffer() });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw Error(d.error || 'Não deu para enviar o arquivo.');
       url = d.url; tipo = d.tipo;
