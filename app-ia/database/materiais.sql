@@ -40,7 +40,7 @@ begin
  v_desc:=left(btrim(coalesce(item->>'descricao','')),300);
  if v_titulo='' then return jsonb_build_object('ok',false,'erro','titulo'); end if;
  if v_tipo not in('pdf','video','imagem','link') then return jsonb_build_object('ok',false,'erro','tipo'); end if;
- if v_url !~ '^https://\S{1,490}$' then return jsonb_build_object('ok',false,'erro','url'); end if;
+ if v_url !~ '^https://\S+$' or length(v_url)>500 then return jsonb_build_object('ok',false,'erro','url'); end if;
  if v_id is not null then
   select url into atual from public.iag_material where id=v_id and conta=v_conta;
   if atual is null then return jsonb_build_object('ok',false,'erro','nao_encontrado'); end if;
