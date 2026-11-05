@@ -15,12 +15,14 @@ alter table leadvox_private.contas_excluidas enable row level security;
 revoke all on leadvox_private.contas_excluidas from public,anon,authenticated;
 
 create or replace function public.lv_admin_excluir_empresa(org uuid,confirma text) returns jsonb language plpgsql security definer set search_path='' as $$
-declare o public.lv_organizations; v_conta text; a leadvox_private.saas_assinaturas; cofre uuid[];
+declare o public.lv_organizations; v_conta text; v_exibido text; a leadvox_private.saas_assinaturas; cofre uuid[];
 begin
  if not public.lv_is_platform_admin() then raise exception 'forbidden'; end if;
  select * into o from public.lv_organizations where id=org for update;
  if o.id is null then return jsonb_build_object('ok',false,'erro','nao_encontrada'); end if;
- if btrim(coalesce(confirma,''))<>btrim(o.name) then return jsonb_build_object('ok',false,'erro','confirmacao'); end if;
+ -- o Super Admin vê o nome de exibição da empresa, que pode ser diferente do nome do cadastro: vale qualquer um dos dois
+ select nullif(btrim(settings->>'displayName'),'') into v_exibido from public.lv_workspace where organization_id=org;
+ if btrim(coalesce(confirma,'')) not in (btrim(o.name),coalesce(v_exibido,btrim(o.name))) then return jsonb_build_object('ok',false,'erro','confirmacao'); end if;
  if o.owner_id=auth.uid() then return jsonb_build_object('ok',false,'erro','propria_conta'); end if;
  select * into a from leadvox_private.saas_assinaturas where organization_id=org;
  if a.asaas_assinatura is not null and a.status<>'cancelada' then return jsonb_build_object('ok',false,'erro','assinatura_ativa'); end if;

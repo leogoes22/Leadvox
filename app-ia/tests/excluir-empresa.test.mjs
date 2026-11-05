@@ -41,7 +41,7 @@ test('refusals from the database become clear messages',async t=>{
 });
 test('the database rechecks admin, name, own company and subscription, and clears the vault',()=>{
  const sql=readFileSync(new URL('../database/excluir_empresa.sql',import.meta.url),'utf8');
- for(const re of [/if not public\.lv_is_platform_admin\(\) then raise exception 'forbidden'/,/'confirmacao'/,/'propria_conta'/,/'assinatura_ativa'/,/delete from vault\.secrets where id=any\(cofre\)/,/delete from public\.iag_conta where chave=v_conta/,/saas_admin_log/])assert.match(sql,re);
+ for(const re of [/if not public\.lv_is_platform_admin\(\) then raise exception 'forbidden'/,/'confirmacao'/,/settings->>'displayName'/,/'propria_conta'/,/'assinatura_ativa'/,/delete from vault\.secrets where id=any\(cofre\)/,/delete from public\.iag_conta where chave=v_conta/,/saas_admin_log/])assert.match(sql,re);
  assert.match(sql,/revoke all on function public\.iag_arquivos_excluidos\(int\) from public,anon,authenticated/);
  assert.match(sql,/grant execute on function public\.iag_arquivos_excluidos\(int\) to service_role/);
 });
