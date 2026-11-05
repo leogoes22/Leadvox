@@ -67,6 +67,19 @@ export function cleanSettings(input){
  }
  return out;
 }
+// Arquivos da IA: confere o conteúdo de verdade, não o nome. Vídeo em H.265 o WhatsApp não reproduz.
+const MATERIAL_MAX=16777216,MATERIAL_PASTA=URL_BASE+'/storage/v1/object/public/lv-materiais/';
+export function tipoDoArquivo(b){
+ if(!b||b.length<500)return {erro:'Esse arquivo está vazio ou incompleto.'};
+ if(b.subarray(0,5).toString('latin1')==='%PDF-')return {tipo:'pdf',mime:'application/pdf',ext:'pdf'};
+ const foto=b[0]===0xff&&b[1]===0xd8&&b[2]===0xff?['image/jpeg','jpg']:b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))?['image/png','png']:null;
+ if(foto){if(b.length>5242880)return {erro:'A imagem pode ter até 5 MB.'};return {tipo:'imagem',mime:foto[0],ext:foto[1]};}
+ if(b.subarray(4,8).toString('latin1')==='ftyp'){
+  if(b.includes('hvc1')||b.includes('hev1'))return {erro:'Esse vídeo está em H.265, que o WhatsApp não reproduz. Exporte em MP4 H.264.'};
+  return {tipo:'video',mime:'video/mp4',ext:'mp4'};
+ }
+ return {erro:'Envie um vídeo MP4, um PDF ou uma imagem JPG ou PNG.'};
+}
 export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  const attempts=new Map(),testesGrupo=new Map(),simulacoes=new Map(); // testesGrupo: um teste de grupo a cada 20 s; simulacoes: uma mensagem de teste por vez
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
@@ -114,9 +127,14 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
    ...(session.refresh_token?['__Host-lv_renova='+encodeURIComponent(session.refresh_token)+COOKIE+2592000]:[])]);
   const limparSessao=()=>res.setHeader('Set-Cookie',['__Host-lv_session=','__Host-lv_renova='].map(c=>c+COOKIE+'0'));
   try{
-   let body={};
+   let body={},arquivo=null;
    const action=pathname.slice('/api/account/'.length);
-   if(req.method==='POST'){
+   if(req.method==='POST'&&action==='material-arquivo'){
+    // arquivo da IA: vem cru (vídeo de até 16 MB), não em JSON
+    const partes=[];let total=0;
+    for await(const chunk of req){total+=chunk.length;if(total>MATERIAL_MAX)throw {status:413,message:'O arquivo pode ter até 16 MB, o limite do WhatsApp para vídeo.'};partes.push(chunk);}
+    arquivo=Buffer.concat(partes);
+   }else if(req.method==='POST'){
     // foto do estoque vem em base64 (já reduzida no aparelho): só essa ação aceita corpo maior
     const limite=action==='estoque-foto'?2900000:110000;
     let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>limite)throw {status:413,message:action==='estoque-foto'?'A foto é grande demais (até 2 MB).':'Dados muito grandes.'};}
@@ -408,6 +426,38 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     let r;try{r=await upstream('/rest/v1/rpc/lv_motor_relatorio',{method:'POST',token:authToken,body:{org,ini,fim}});}catch{return send(res,200,{setupPending:true}),true;}
     if(r?.erro==='periodo')throw {status:400,message:'Escolha um período de até 1 ano.'};
     send(res,200,r);
+   }else if(action==='materiais'&&req.method==='GET'){
+    // Arquivos que a IA pode enviar (aba Arquivos do agente).
+    const org=new URL(req.url,'https://localhost').searchParams.get('organization');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    let r;try{r=await upstream('/rest/v1/rpc/lv_motor_materiais',{method:'POST',token:authToken,body:{org}});}catch{return send(res,200,{setupPending:true,materiais:[]}),true;}
+    send(res,200,r);
+   }else if(action==='material-arquivo'&&req.method==='POST'){
+    const org=new URL(req.url,'https://localhost').searchParams.get('organization');
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const a=tipoDoArquivo(arquivo);
+    if(a.erro)throw {status:400,message:a.erro};
+    let st;try{st=await upstream('/rest/v1/rpc/lv_motor_status',{method:'POST',token:authToken,body:{org}});}catch{st=null;}
+    if(!st?.vinculado||!/^[a-z0-9-]{3,60}$/.test(st.conta||''))throw {status:400,message:'Ligue a sua IA antes de enviar arquivos.'};
+    const caminho=st.conta+'/'+Date.now().toString(36)+'-'+randomBytes(6).toString('hex')+'.'+a.ext;
+    let r;try{r=await fetchImpl(URL_BASE+'/storage/v1/object/lv-materiais/'+caminho,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+authToken,'Content-Type':a.mime,'x-upsert':'false','Cache-Control':'max-age=31536000'},
+     body:arquivo,signal:AbortSignal.timeout(120000),redirect:'error'});}catch{throw {status:503,message:'Não deu para enviar o arquivo agora. Tente de novo.'};}
+    if(!r.ok)throw {status:r.status===403?403:400,message:r.status===403?'Só o dono ou um admin da empresa envia arquivos.':'O arquivo não foi aceito. Confira o formato e o tamanho.'};
+    send(res,200,{url:MATERIAL_PASTA+caminho,tipo:a.tipo});
+   }else if(action==='material-salvar'&&req.method==='POST'){
+    if(!/^[0-9a-f-]{36}$/.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};
+    const m=body.material&&typeof body.material==='object'?body.material:{};
+    const r=await upstream('/rest/v1/rpc/lv_motor_material_salvar',{method:'POST',token:authToken,body:{org:body.organization,item:{id:Number.isInteger(m.id)?m.id:null,titulo:String(m.titulo||''),tipo:String(m.tipo||''),url:String(m.url||''),descricao:String(m.descricao||'')}}});
+    const erros={titulo:'Dê um título para o arquivo.',tipo:'Tipo de arquivo inválido.',url:'Envie um arquivo ou cole um link que comece com https://.',limite:'Esta conta chegou ao limite de 50 arquivos.',nao_encontrado:'Arquivo não encontrado. Atualize a lista.'};
+    if(!r||r.ok!==true)throw {status:400,message:erros[r?.erro]||'Não deu para salvar o arquivo.'};
+    send(res,200,r);
+   }else if(action==='material-excluir'&&req.method==='POST'){
+    if(!/^[0-9a-f-]{36}$/.test(body.organization||'')||!Number.isInteger(body.id))throw {status:400,message:'Arquivo inválido.'};
+    const r=await upstream('/rest/v1/rpc/lv_motor_material_excluir',{method:'POST',token:authToken,body:{org:body.organization,material:body.id}});
+    if(!r||r.ok!==true)throw {status:400,message:'Arquivo não encontrado. Atualize a lista.'};
+    // apaga o arquivo da pasta da empresa; link ou arquivo antigo fica só fora da lista
+    if(String(r.url||'').startsWith(MATERIAL_PASTA)){try{await fetchImpl(URL_BASE+'/storage/v1/object/lv-materiais/'+r.url.slice(MATERIAL_PASTA.length),{method:'DELETE',headers:{apikey:KEY,Authorization:'Bearer '+authToken},signal:AbortSignal.timeout(20000),redirect:'error'});}catch{}}
+    send(res,200,{ok:true});
    }else if(action==='estoque-foto'&&req.method==='POST'){
     // Foto do veículo: confere que é imagem de verdade e grava na pasta da conta (lv-estoque/<conta>/...), com o login de quem enviou.
     if(!/^[0-9a-f-]{36}$/.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};

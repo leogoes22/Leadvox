@@ -254,7 +254,6 @@ const MENU = [
   ['usuarios', 'Usuários LeadVox', 'pessoas', 'Quem atende na sua LeadVox.'],
   ['departamentos', 'Departamentos', 'predio', 'Para onde a IA passa o cliente.'],
   ['motivos', 'Motivos de fechamento', 'bandeira', 'Por que um atendimento termina.'],
-  ['arquivos', 'Arquivos da IA', 'arquivo', 'Materiais que a IA pode mandar.'],
   ['canais', 'Canais WhatsApp', 'zap', 'Os números onde a IA atende.'],
   ['credenciais', 'Credenciais de API', 'chave', 'LeadVox, estoque e cobranças.'],
   '-',
@@ -263,15 +262,14 @@ const MENU = [
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
 const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
-  departamentos: 'vLista', motivos: 'vLista', arquivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
+  departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
   status: ['Suas etapas do funil aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
   origens: ['Suas origens do lead aparecem aqui', 'Puxadas da sua LeadVox: Instagram, site, indicação… A IA marca de onde o cliente veio.'],
   usuarios: ['Seus usuários aparecem aqui', 'Quem atende na sua LeadVox. A IA passa o cliente para a pessoa certa.'],
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
-  motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…'],
-  arquivos: ['Arquivos da IA chegam na próxima etapa', 'Catálogo, fotos, PDFs e materiais que a IA pode mandar no WhatsApp. Enquanto isso, preencha a base de conhecimento.']
+  motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…']
 };
 const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
@@ -597,8 +595,95 @@ async function abrirAgenteMotor(chave) {
     desenharAgente(); $('agDetalhe').hidden = false;
     document.querySelectorAll('[data-abrir-ag]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.abrirAg === chave)));
     if (kAberta()) { limparK(); desenharConhecimento(); }
+    if (arqAberta()) abrirArquivos();
   } catch (err) { toast(err.message, true); }
 }
+
+/* ═══════════ ARQUIVOS DA IA (aba do agente) ═══════════ */
+// A biblioteca é da empresa (iag_material); cada agente guarda em config.materiais quais usa e quando manda.
+let arqLista = [], arqEditando = null;
+const TIPO_ARQ = { video: 'Vídeo', pdf: 'PDF', imagem: 'Imagem', link: 'Link' };
+const arqAberta = () => document.querySelector('[data-ag="arquivos"]')?.getAttribute('aria-pressed') === 'true';
+const arqDoAgente = () => (Array.isArray(agDados?.config?.materiais) ? agDados.config.materiais : []);
+const arqQuandoTexto = m => m.quando === 'tema' ? 'Quando falar de ' + (m.tema || 'um assunto') : m.quando === 'fim' ? 'No fim, antes de passar para a equipe' : 'Quando o cliente pedir';
+async function abrirArquivos() {
+  if (!agDados) return;
+  limparArq();
+  try { const r = await api('materiais?organization=' + encodeURIComponent(empresa.id)); arqLista = r.materiais || []; desenharArquivos(); }
+  catch (err) { $('arqLista').innerHTML = '<p class="muted">Não deu para carregar os arquivos.</p>'; toast(err.message, true); }
+}
+function desenharArquivos() {
+  const usados = arqDoAgente();
+  $('arqLista').innerHTML = arqLista.length ? arqLista.map(m => {
+    const u = usados.find(x => String(x.id) === String(m.id));
+    return `<div class="item"><div><b>${esc(m.titulo)}</b><small>${esc(TIPO_ARQ[m.tipo] || m.tipo)} · ${u ? esc(arqQuandoTexto(u)) : 'Não usado por este agente'}</small></div>
+      <div class="bts"><a class="sm" href="${esc(m.url)}" target="_blank" rel="noopener">Abrir ↗</a><button type="button" class="sm" data-arq-usa="${m.id}">${u ? 'Tirar deste agente' : 'Usar neste agente'}</button><button type="button" class="sm" data-arq-ed="${m.id}">Editar</button><button type="button" class="sm perigo" data-arq-ex="${m.id}">Excluir</button></div></div>`;
+  }).join('') : '<p class="muted">Nenhum arquivo ainda. Envie o primeiro abaixo.</p>';
+  document.querySelectorAll('[data-arq-usa]').forEach(b => b.onclick = () => alternarArq(Number(b.dataset.arqUsa)));
+  document.querySelectorAll('[data-arq-ed]').forEach(b => b.onclick = () => editarArq(Number(b.dataset.arqEd)));
+  document.querySelectorAll('[data-arq-ex]').forEach(b => b.onclick = () => excluirArq(Number(b.dataset.arqEx)));
+}
+function limparArq() {
+  arqEditando = null; $('arqForm').reset(); $('arqFormTitulo').textContent = 'Novo arquivo';
+  $('arqOrigem').hidden = false; $('arqCancelar').hidden = true; $('arqTemaBox').hidden = true;
+}
+async function salvarMateriaisAgente(lista) {
+  const config = { ...agDados.config, materiais: lista };
+  const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
+  agDados = { ...agDados, config, versao: r?.versao ?? agDados.versao };
+}
+async function alternarArq(id) {
+  const usados = arqDoAgente(), tem = usados.some(x => String(x.id) === String(id));
+  try {
+    await salvarMateriaisAgente(tem ? usados.filter(x => String(x.id) !== String(id)) : [...usados, { id, quando: 'pedir', tema: '', legenda: '' }]);
+    toast(tem ? 'Tirado deste agente.' : 'Agora este agente pode enviar este arquivo.');
+    desenharArquivos();
+  } catch {}
+}
+function editarArq(id) {
+  const m = arqLista.find(x => x.id === id); if (!m) return;
+  const u = arqDoAgente().find(x => String(x.id) === String(id)) || {};
+  arqEditando = m; $('arqFormTitulo').textContent = 'Editar arquivo'; $('arqOrigem').hidden = true; $('arqCancelar').hidden = false;
+  $('arqTitulo').value = m.titulo || ''; $('arqDescricao').value = m.descricao || ''; $('arqQuando').value = u.quando || 'pedir';
+  $('arqTema').value = u.tema || ''; $('arqLegenda').value = u.legenda || ''; $('arqTemaBox').hidden = $('arqQuando').value !== 'tema';
+  $('arqTitulo').focus();
+}
+async function excluirArq(id) {
+  const m = arqLista.find(x => x.id === id); if (!m) return;
+  if (!confirm('Excluir "' + m.titulo + '"? Ele sai de todos os agentes e não tem como desfazer.')) return;
+  try {
+    await api('material-excluir', { organization: empresa.id, id });
+    await abrirAgenteMotor(agSel); toast('Arquivo excluído.');
+  } catch (err) { toast(err.message, true); }
+}
+$('arqCancelar').onclick = limparArq;
+$('arqQuando').onchange = () => { $('arqTemaBox').hidden = $('arqQuando').value !== 'tema'; };
+$('arqForm').onsubmit = async e => {
+  e.preventDefault();
+  const bt = $('arqSalvar'), arquivo = $('arqArquivo').files[0], link = $('arqLink').value.trim(), titulo = $('arqTitulo').value.trim();
+  const quando = $('arqQuando').value, tema = $('arqTema').value.trim();
+  if (!titulo) return toast('Dê um título para o arquivo.', true);
+  if (quando === 'tema' && !tema) return toast('Escreva de qual assunto a IA deve falar para enviar.', true);
+  if (!arqEditando && !arquivo && !link) return toast('Escolha um arquivo ou cole um link.', true);
+  if (!arqEditando && arquivo && link) return toast('Use o arquivo ou o link, não os dois.', true);
+  bt.disabled = true; bt.textContent = arquivo ? 'Enviando…' : 'Salvando…';
+  try {
+    let url = arqEditando?.url || link, tipo = arqEditando?.tipo || 'link';
+    if (arquivo) {
+      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: arquivo });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw Error(d.error || 'Não deu para enviar o arquivo.');
+      url = d.url; tipo = d.tipo;
+    }
+    const s = await api('material-salvar', { organization: empresa.id, material: { id: arqEditando?.id ?? null, titulo, tipo, url, descricao: $('arqDescricao').value.trim() } });
+    const item = { id: s.id, quando, tema: quando === 'tema' ? tema : '', legenda: $('arqLegenda').value.trim() };
+    const usados = arqDoAgente();
+    await salvarMateriaisAgente(usados.some(x => String(x.id) === String(s.id)) ? usados.map(x => String(x.id) === String(s.id) ? item : x) : [...usados, item]);
+    toast('Arquivo salvo. Este agente já pode enviar.');
+    await abrirArquivos();
+  } catch (err) { toast(err.message, true); }
+  finally { bt.disabled = false; bt.textContent = 'Salvar arquivo'; }
+};
 
 function desenharAgente() {
   if (!agDados) return;
@@ -646,6 +731,7 @@ document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-ag]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   document.querySelectorAll('[data-agp]').forEach(p => p.hidden = p.dataset.agp !== b.dataset.ag);
   if (b.dataset.ag === 'conhecimento') abrirConhecimento();
+  if (b.dataset.ag === 'arquivos') abrirArquivos();
 });
 document.querySelector('[data-ag="identidade"]').setAttribute('aria-pressed', 'true');
 $('agIdentidade').onsubmit = async e => {
@@ -1795,7 +1881,7 @@ async function desenharLista(pg, forcar) {
     $('listaVazio').innerHTML = `<b>${titulo}</b>${texto}` + (ir ? `<br><button type="button" data-ir="${ir[0]}">${ir[1]}</button>` : '');
     ligarIr($('listaVazio'));
   };
-  if (!DA_LEADVOX[pg]) return vazio(t, d, pg === 'arquivos' ? ['conhecimento', 'Abrir base de conhecimento'] : null);
+  if (!DA_LEADVOX[pg]) return vazio(t, d, null);
   if (!chat?.connected) return vazio(t, d, ['credenciais', 'Conectar minha LeadVox']);
   $('listaVazio').hidden = true; $('listaTopo').hidden = false;
   $('listaInfo').textContent = 'Da sua LeadVox · conta ' + chat.apiId; $('listaItens').innerHTML = '<p class="muted" style="padding:12px 0">Buscando na LeadVox…</p>';

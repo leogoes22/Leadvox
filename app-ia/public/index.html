@@ -142,6 +142,7 @@
             <button type="button" data-ag="multimodal">Multimodal</button>
             <button type="button" data-ag="canais">Canais e gatilhos</button>
             <button type="button" data-ag="automacoes">Ações e regras</button>
+            <button type="button" data-ag="arquivos">Arquivos</button>
             <button type="button" data-ag="testar">💬 Testar a IA</button>
           </nav>
           <div id="agConhecimento" data-agp="conhecimento" hidden>
@@ -294,6 +295,30 @@
             <div class="ag-dados" id="canaisDados"></div>
             <div class="vazio"><b>Gatilhos chegam com a conexão da LeadVox</b>Em qual fila a IA entra, palavra que liga ou desliga a IA e horário de atendimento.
               <br><button type="button" data-ir="credenciais">Ver credenciais de API</button></div>
+          </div>
+          <div class="card" id="agArquivos" data-agp="arquivos" hidden>
+            <h3>Arquivos que a IA pode enviar</h3>
+            <p class="muted" style="font-size:14px">Vídeo, PDF, imagem ou link. Você escolhe quando este agente manda cada um na conversa.</p>
+            <div id="arqLista"><p class="muted">Carregando…</p></div>
+            <form id="arqForm" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linha)">
+              <h4 id="arqFormTitulo" style="margin:0 0 8px">Novo arquivo</h4>
+              <div id="arqOrigem">
+                <label for="arqArquivo">Arquivo <small>(vídeo MP4 ou PDF até 16 MB, imagem JPG ou PNG até 5 MB)</small></label>
+                <input id="arqArquivo" type="file" accept="video/mp4,application/pdf,image/jpeg,image/png">
+                <label for="arqLink">Ou cole um link <small>(começando com https://)</small></label>
+                <input id="arqLink" type="url" maxlength="490" placeholder="https://" autocomplete="off">
+              </div>
+              <label for="arqTitulo">Título <small>(a IA usa para saber o que é)</small></label>
+              <input id="arqTitulo" maxlength="120" placeholder="Vídeo de apresentação da empresa" autocomplete="off">
+              <label for="arqQuando">Quando a IA envia</label>
+              <select id="arqQuando"><option value="pedir">Quando o cliente pedir</option><option value="tema">Quando falar de um assunto</option><option value="fim">No fim, antes de passar para a equipe</option></select>
+              <div id="arqTemaBox" hidden><label for="arqTema">Qual assunto</label><input id="arqTema" maxlength="200" placeholder="como funciona o produto" autocomplete="off"></div>
+              <label for="arqLegenda">Mensagem junto do arquivo <small>(opcional)</small></label>
+              <input id="arqLegenda" maxlength="300" placeholder="Dá uma olhada neste vídeo 👇" autocomplete="off">
+              <label for="arqDescricao">O que tem no arquivo <small>(opcional, ajuda a IA a escolher)</small></label>
+              <input id="arqDescricao" maxlength="300" autocomplete="off">
+              <div class="form-bts" style="margin-top:12px"><button class="principal sm" type="submit" id="arqSalvar">Salvar arquivo</button><button class="sm" type="button" id="arqCancelar" hidden>Cancelar</button></div>
+            </form>
           </div>
           <form id="agAcoes" data-agp="automacoes" hidden>
             <div class="card">

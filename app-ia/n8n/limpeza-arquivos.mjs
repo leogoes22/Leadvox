@@ -18,7 +18,7 @@ for (const i of $input.all()) {
 return Object.entries(por).map(([bucket, prefixes]) => ({ json: { bucket, prefixes } }));`;
 
 // Contas excluídas: as fotos entram aqui, mas só o que o banco listou como pasta de conta excluída.
-export const separarExcluidosCode = String.raw`const PASTAS = ['lv-estoque', 'lv-audio', 'lv-propostas', 'iag-arquivos'];
+export const separarExcluidosCode = String.raw`const PASTAS = ['lv-estoque', 'lv-audio', 'lv-propostas', 'iag-arquivos', 'lv-materiais'];
 const por = {};
 for (const i of $input.all()) {
   const { bucket, caminho } = i.json || {};
