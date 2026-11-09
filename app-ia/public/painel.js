@@ -2873,8 +2873,9 @@ function desenharSite() {
     <button type="button" class="sm" data-st-tira="${i}" aria-label="Tirar esta data">Tirar</button></div></div>`;
   const codigo = s.conta ? `<script src="${location.origin}/site/tema.js" data-loja="${s.conta}" defer></script>` : '';
   const siteLoja = (cfg.loja && cfg.loja.site) || '';
-  el.innerHTML = `
-    <div class="card estreito"><h3>1 · Ligar no seu site</h3>
+  el.innerHTML = `<div id="stModelo"></div>
+    <h2 class="st-secao">Temas e campanha</h2>
+    <div class="card estreito"><h3>1 · Ligar no seu site (só para site próprio)</h3>
       ${s.conta ? `<p class="muted" style="margin-top:6px">Cole este código uma vez no seu site, antes de &lt;/body&gt;. Nos sites feitos pela LeadVox, a gente já cola para você.</p>
         <div class="form-bts" style="flex-wrap:nowrap"><input id="stCodigo" readonly value="${esc(codigo)}"><button type="button" class="sm" id="stCopiar">Copiar</button></div>`
         : '<p class="alerta" style="margin-top:6px">Ligue a sua IA primeiro (menu Agentes): o código do site usa a conta da IA.</p>'}
@@ -2906,6 +2907,7 @@ function desenharSite() {
       <div class="form-bts"><button class="principal" id="stSalvar">Salvar</button></div>
       <p class="alerta" id="stErro" hidden></p>
     </form>`;
+  desenharSiteModelo();
   let arte = c.arte || '';
   const agenda = () => [...document.querySelectorAll('#stAgenda .st-linha')].map(l => ({ tema: l.querySelector('.stAgTema').value, inicio: l.querySelector('.stAgIni').value, fim: l.querySelector('.stAgFim').value }));
   const ligarTira = () => document.querySelectorAll('[data-st-tira]').forEach(b => b.onclick = () => { const l = agenda(); l.splice(Number(b.dataset.stTira), 1); redesenharAgenda(l); });
@@ -2944,5 +2946,110 @@ function desenharSite() {
     try { await api('site-temas', { organization: empresa.id, conta: siteCfg?.conta || '', config }); toast('Site atualizado. Aparece no site em até 1 minuto.'); await carregarSite(); }
     catch (err) { mostra($('stErro'), err.message); }
     finally { bt.disabled = false; bt.textContent = 'Salvar'; }
+  };
+}
+
+// ═══ Site da loja: modelo, identidade, textos e publicar (public/site/motor.js + /site/modelos/<id>.css) ═══
+const SITE_MODELOS = [
+  ['garagem', 'Garagem', 'Escuro ripado, títulos fortes e a sua cor em destaque. Ótimo para motos e seminovos.', true],
+  ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', false],
+  ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', false],
+  ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', false],
+  ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', false]
+];
+const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
+function desenharSiteModelo() {
+  const box = $('stModelo'); if (!box) return;
+  const s = siteCfg || {}, i = s.identidade || {}, modelo = s.modelo || 'garagem';
+  const nomePadrao = i.nome || cfg.displayName || empresa.name || '';
+  if (!s.conta) { box.innerHTML = '<div class="card estreito"><h3>Modelo do site</h3><p class="alerta" style="margin-top:6px">Ligue a sua IA primeiro (menu Agentes): o site usa a conta e o estoque da IA.</p></div>'; return; }
+  const endereco = location.origin + '/s/' + s.conta + '/';
+  box.innerHTML = `<form class="card estreito" id="smForm">
+    <h3>Modelo do site</h3>
+    <p class="muted" style="margin-top:6px">Escolha o visual. O estoque entra sozinho e você pode trocar de modelo quando quiser.</p>
+    <div class="sm-modelos">${SITE_MODELOS.map(([id, n, d, ok]) => `<label class="sm-modelo${ok ? '' : ' breve'}">
+      <input type="radio" name="smModelo" value="${id}"${id === modelo ? ' checked' : ''}${ok ? '' : ' disabled'}>
+      <span class="sm-amostra sm-${id}"><i></i><i></i><i></i></span>
+      <b>${esc(n)}</b><small>${esc(d)}</small>
+      ${ok ? `<a href="/s/demo/?modelo=${id}" target="_blank" rel="noopener" class="sm-previa">Ver prévia</a>` : '<span class="sm-previa">Em preparação</span>'}</label>`).join('')}</div>
+    <h3 class="st-tit">Identidade</h3>
+    <div class="duas"><div><label for="smNome">Nome da loja</label><input id="smNome" maxlength="60" required value="${esc(nomePadrao)}"></div>
+      <div><label for="smFonte">Fonte</label><select id="smFonte">${SITE_FONTES.map(([v, n]) => `<option value="${v}"${v === (i.fonte || 'saira') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>
+    <label for="smLogoArq">Logo (PNG com fundo transparente fica melhor; até 5 MB)</label>
+    <div class="form-bts"><input type="file" id="smLogoArq" accept="image/png,image/jpeg"><button type="button" class="sm" id="smLogoTira"${i.logo ? '' : ' hidden'}>Tirar a logo</button></div>
+    <img id="smLogoPrev" class="sm-logo" alt="Logo da loja" src="${esc(i.logo || '')}"${i.logo ? '' : ' hidden'}>
+    <div class="duas"><div><label for="smCor1">Cor principal (botões e destaques)</label><input type="color" id="smCor1" value="${esc(i.cor1 || '#d6921e')}"></div>
+      <div><label for="smCor2">Cor de fundo</label><input type="color" id="smCor2" value="${esc(i.cor2 || '#121110')}"></div></div>
+    <div class="form-bts"><button type="button" class="sm" id="smSugCores"${i.logo ? '' : ' disabled'}>Sugerir cores da logo</button><span class="muted" id="smCoresInfo"></span></div>
+    <h3 class="st-tit">Textos</h3>
+    <label for="smFrase">Frase da capa</label><input id="smFrase" maxlength="90" value="${esc(i.frase || '')}" placeholder="Seu próximo veículo está no nosso pátio.">
+    <label for="smSub">Subtítulo</label><input id="smSub" maxlength="200" value="${esc(i.subtitulo || '')}" placeholder="Seminovos revisados, com foto, ficha e preço. Financiamento com resposta no mesmo dia.">
+    <label for="smSobre">Sobre a loja</label><textarea id="smSobre" maxlength="600" rows="3" placeholder="Há quanto tempo a loja existe, o que ela tem de diferente…">${esc(i.sobre || '')}</textarea>
+    <h3 class="st-tit">Contato</h3>
+    <div class="duas"><div><label for="smZap">WhatsApp (para onde vão os clientes)</label><input id="smZap" inputmode="tel" maxlength="20" value="${esc(i.whatsapp || cfg.whatsapp || '')}" placeholder="(21) 99999-9999"></div>
+      <div><label for="smTel">Telefone fixo (opcional)</label><input id="smTel" maxlength="20" value="${esc(i.telefone || '')}"></div></div>
+    <div class="duas"><div><label for="smEnd">Endereço</label><input id="smEnd" maxlength="160" value="${esc(i.endereco || '')}"></div>
+      <div><label for="smHora">Horário</label><input id="smHora" maxlength="120" value="${esc(i.horario || '')}" placeholder="Seg a sex 9h às 18h · Sáb 9h às 14h"></div></div>
+    <div class="duas"><div><label for="smInsta">Instagram</label><input id="smInsta" maxlength="31" value="${esc(i.instagram ? '@' + i.instagram : '')}" placeholder="@sualoja"></div>
+      <div><label for="smMapa">Link do Google Maps (opcional)</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div></div>
+    <h3 class="st-tit">Estoque</h3>
+    <p class="muted" style="margin-top:6px">${Number(s.veiculos) || 0} veículo(s) disponível(is) no menu Estoque. O site mostra os mesmos, com fotos e preço, e atualiza sozinho.</p>
+    <h3 class="st-tit">Publicar</h3>
+    <label class="st-check"><input type="checkbox" id="smPub"${s.publicado ? ' checked' : ''}> Site publicado (aparece no Google)</label>
+    <p class="muted">Endereço do site: <a href="${esc(endereco)}" target="_blank" rel="noopener">${esc(endereco)}</a>. Para usar o domínio da loja, fale com a LeadVox.</p>
+    <div class="form-bts"><button class="principal" id="smSalvar">Salvar o site</button>${s.modelo ? `<a class="sm" href="${esc(endereco)}" target="_blank" rel="noopener">Abrir o meu site</a>` : ''}</div>
+    <p class="alerta" id="smErro" hidden></p>
+  </form>`;
+  let logo = i.logo || '';
+  $('smLogoArq').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    if (f.size > 5242880) { ev.target.value = ''; return toast('A logo pode ter até 5 MB.', true); }
+    try {
+      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: f });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.tipo !== 'imagem') throw Error(d.error || 'Envie a logo em PNG ou JPG.');
+      logo = d.url; $('smLogoPrev').src = logo; $('smLogoPrev').hidden = false; $('smLogoTira').hidden = false; $('smSugCores').disabled = false;
+      sugerirCores(true);
+    } catch (err) { ev.target.value = ''; toast(err.message, true); }
+  };
+  $('smLogoTira').onclick = () => { logo = ''; $('smLogoPrev').hidden = true; $('smLogoTira').hidden = true; $('smLogoArq').value = ''; $('smSugCores').disabled = true; };
+  $('smSugCores').onclick = () => sugerirCores(false);
+  // cores da logo: lê os pixels, junta os parecidos e escolhe a cor mais forte (principal) e uma escura para o fundo
+  function sugerirCores(silencioso) {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'), w = 64, hh = Math.max(1, Math.round(64 * img.height / img.width)); c.width = w; c.height = hh;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, w, hh);
+        const px = ctx.getImageData(0, 0, w, hh).data, grupos = {};
+        for (let k = 0; k < px.length; k += 4) {
+          if (px[k + 3] < 128) continue;
+          const r = px[k], g = px[k + 1], b = px[k + 2], max = Math.max(r, g, b), min = Math.min(r, g, b);
+          const chave = (r >> 5) + ',' + (g >> 5) + ',' + (b >> 5);
+          const gr = grupos[chave] || (grupos[chave] = { n: 0, r: 0, g: 0, b: 0, sat: 0 });
+          gr.n++; gr.r += r; gr.g += g; gr.b += b; gr.sat += max ? (max - min) / max : 0;
+        }
+        const lista = Object.values(grupos).map(gr => ({ n: gr.n, cor: [gr.r / gr.n, gr.g / gr.n, gr.b / gr.n].map(Math.round), sat: gr.sat / gr.n }));
+        const hex = c3 => '#' + c3.map(v => v.toString(16).padStart(2, '0')).join('');
+        const forte = lista.filter(x => x.sat > 0.35 && Math.max(...x.cor) > 70).sort((a, b) => b.n * b.sat - a.n * a.sat)[0];
+        if (!forte) { if (!silencioso) toast('Não achei uma cor forte na logo. Escolha à mão.', true); return; }
+        const fundo = forte.cor.map(v => Math.round(v * 0.12 + 8));
+        $('smCor1').value = hex(forte.cor); $('smCor2').value = hex(fundo);
+        $('smCoresInfo').textContent = 'Cores sugeridas a partir da logo. Ajuste se quiser.';
+      } catch { if (!silencioso) toast('Não deu para ler as cores da logo. Escolha à mão.', true); }
+    };
+    img.onerror = () => { if (!silencioso) toast('Não deu para abrir a logo.', true); };
+    img.src = logo;
+  }
+  $('smForm').onsubmit = async ev => {
+    ev.preventDefault(); const bt = $('smSalvar'); $('smErro').hidden = true;
+    const modeloSel = (document.querySelector('input[name="smModelo"]:checked') || {}).value || 'garagem';
+    const identidade = { nome: $('smNome').value.trim(), logo: logo || null, cor1: $('smCor1').value, cor2: $('smCor2').value, fonte: $('smFonte').value,
+      frase: $('smFrase').value.trim(), subtitulo: $('smSub').value.trim(), sobre: $('smSobre').value.trim(), whatsapp: $('smZap').value, telefone: $('smTel').value.trim(),
+      endereco: $('smEnd').value.trim(), horario: $('smHora').value.trim(), instagram: $('smInsta').value.trim().replace(/^@/, ''), mapa: $('smMapa').value.trim() };
+    bt.disabled = true; bt.textContent = 'Salvando…';
+    try { await api('site-modelo', { organization: empresa.id, conta: s.conta, modelo: modeloSel, identidade, publicado: $('smPub').checked }); toast('Site salvo. Aparece em até 1 minuto.'); await carregarSite(); }
+    catch (err) { mostra($('smErro'), err.message); }
+    finally { bt.disabled = false; bt.textContent = 'Salvar o site'; }
   };
 }

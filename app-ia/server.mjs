@@ -60,6 +60,11 @@ export function createApp(options={}) {
   if(pathname.startsWith('/api/')){res.writeHead(404,{'Content-Type':'application/json'});return res.end(JSON.stringify({error:'Integração real ainda não habilitada'}));}
   if(pathname.split('/').some(p=>p.startsWith('.'))||pathname.includes('\\')||pathname.includes('\0')){res.writeHead(404);return res.end('Não encontrado');}
   if(pathname==='/vendedor')pathname='/vendedor.html';
+  // site da loja: /s/<conta>/ abre o modelo escolhido no painel (public/site/loja.html lê os dados de /api/site/dados)
+  if(/^\/s\/[a-z0-9-]{3,60}\/?$/.test(pathname)){
+   if(!pathname.endsWith('/')){res.writeHead(301,{Location:pathname+'/'});return res.end();}
+   pathname='/site/loja.html';
+  }
   let file=path.resolve(root,'.'+pathname);
   if(!file.startsWith(root+path.sep)&&file!==root){res.writeHead(404);return res.end('Não encontrado');}
   try{if(pathname.endsWith('/'))file=path.join(file,'index.html');await stat(file);

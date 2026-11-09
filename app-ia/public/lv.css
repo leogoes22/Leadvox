@@ -533,3 +533,22 @@ textarea { min-height: 90px; resize: vertical; }
 .st-previa{margin-top:22px}
 @media(max-width:640px){.st-datas{flex-wrap:wrap}.st-check{margin-top:8px}.st-previa{margin-top:0}}
 .st-arte[hidden]{display:none}
+/* Site da loja: modelos e identidade */
+.st-secao{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:26px 0 10px}
+.sm-modelos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}
+.sm-modelo{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer}
+.sm-modelo input{position:absolute;opacity:0;pointer-events:none}
+.sm-modelo:has(input:checked){border-color:#2be87b;box-shadow:0 0 0 3px rgba(43,232,123,.15)}
+.sm-modelo.breve{opacity:.55;cursor:default}
+.sm-modelo small{color:var(--muted);font-size:12px;line-height:1.35}
+.sm-previa{font-size:12px;font-weight:700;margin-top:auto}
+.sm-amostra{display:flex;gap:4px;height:46px;border-radius:8px;padding:6px;align-items:flex-end}
+.sm-amostra i{flex:1;border-radius:4px;height:100%}
+.sm-garagem{background:#121110}.sm-garagem i{background:#d6921e}.sm-garagem i:nth-child(2){height:60%;background:#26231f}.sm-garagem i:nth-child(3){height:80%}
+.sm-premium{background:#050506}.sm-premium i{background:#c9a227}.sm-premium i:nth-child(2){height:40%;background:#141417}.sm-premium i:nth-child(3){height:70%;background:#2a2a30}
+.sm-neon{background:#070409}.sm-neon i{background:#7b2ff7}.sm-neon i:nth-child(2){height:55%;background:#ff3d7f}.sm-neon i:nth-child(3){height:75%;background:#1a1025}
+.sm-claro{background:#f3f3f4}.sm-claro i{background:#d71920}.sm-claro i:nth-child(2){height:50%;background:#1a1b1f}.sm-claro i:nth-child(3){height:80%;background:#fff}
+.sm-editorial{background:#0a0a0c}.sm-editorial i{background:#e9e4da}.sm-editorial i:nth-child(2){height:45%;background:#1f7a4d}.sm-editorial i:nth-child(3){height:70%;background:#17171b}
+.sm-logo{display:block;max-width:200px;max-height:90px;object-fit:contain;margin-top:8px;padding:8px;border-radius:10px;background:repeating-conic-gradient(#2224 0 25%,transparent 0 50%) 50%/16px 16px}
+.sm-logo[hidden]{display:none}
+input[type=color]{height:44px;padding:4px;cursor:pointer}

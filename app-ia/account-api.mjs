@@ -36,7 +36,10 @@ const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const PAPEIS_PAINEL=['owner','admin','member'];
 export const SITE_ERROS={dados:'Dados inválidos.',tema:'Escolha um tema da lista.',agenda:'Confira as datas da agenda: o fim vem depois do início e cada tema dura até 2 meses.',
  campanha:'Confira os dados da campanha.',campanha_titulo:'Dê um título para a campanha.',campanha_validade:'Confira a data de validade da campanha.',
- campanha_arte:'Envie a arte de novo (JPG ou PNG de até 5 MB).'};
+ campanha_arte:'Envie a arte de novo (JPG ou PNG de até 5 MB).',sem_conta:'Ligue a sua IA primeiro (menu Agentes): o site usa a conta da IA.',
+ modelo:'Escolha um dos modelos.',logo:'Envie a logo de novo (JPG ou PNG de até 5 MB).',cor:'Escolha as cores do site.',fonte:'Escolha uma fonte da lista.',
+ whatsapp:'Confira o WhatsApp: DDD e número.',instagram:'Confira o Instagram (só o nome, sem o link).',mapa:'O link do mapa precisa começar com https://.',
+ nome:'Coloque o nome da loja.',publicar_sem_zap:'Para publicar, coloque o WhatsApp da loja: é para onde vão os clientes.'};
 export const USUARIOS_ERROS={email:'Confira o e-mail.',papel:'Escolha a função: dono, admin ou membro.',
  so_dono:'Só o dono mexe em quem é dono ou dá a função de dono.',limite:'Hoje já entraram 30 pessoas novas nesta empresa. Tente amanhã ou fale com a LeadVox.',
  ja_membro:'Essa pessoa já entra no painel desta empresa.',principal:'O dono principal da conta não pode ser removido nem mudar de função.',
@@ -133,8 +136,24 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   temasCache.set(loja,{ate:agora+60000,dados});
   resp(200,dados,'public, max-age=60');
  }
+ // Dados do site da loja (modelo, identidade e estoque): públicos, guardados 60 s por loja.
+ const dadosCache=new Map();
+ async function siteDados(req,res){
+  const resp=(status,data,cache)=>{res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':cache||'no-store'});res.end(req.method==='HEAD'?undefined:JSON.stringify(data));};
+  if(!['GET','HEAD'].includes(req.method))return resp(405,{ativo:false});
+  const loja=new URL(req.url,'https://localhost').searchParams.get('loja')||'';
+  if(!/^[a-z0-9-]{3,60}$/.test(loja))return resp(400,{ativo:false});
+  const agora=Date.now(),guardado=dadosCache.get(loja);
+  if(guardado&&guardado.ate>agora)return resp(200,guardado.dados,'public, max-age=60');
+  let dados;try{dados=await upstream('/rest/v1/rpc/lv_site_dados',{method:'POST',body:{p_conta:loja}});}catch{return resp(503,{ativo:false,erro:'indisponivel'});}
+  dados=dados&&typeof dados==='object'?dados:{ativo:false};
+  if(dadosCache.size>500)dadosCache.clear();
+  dadosCache.set(loja,{ate:agora+60000,dados});
+  resp(200,dados,'public, max-age=60');
+ }
  return async(req,res,pathname)=>{
   if(pathname==='/api/site/tema'){await siteTema(req,res);return true;}
+  if(pathname==='/api/site/dados'){await siteDados(req,res);return true;}
   if(!pathname.startsWith('/api/account/'))return false;
   const host=req.headers.host||'';
   const local=allowLocal&&/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host);
@@ -260,6 +279,15 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(typeof body.conta==='string')temasCache.delete(body.conta);
      send(res,200,{ok:true});
     }
+   }else if(action==='site-modelo'&&req.method==='POST'){
+    // Modelo do site, identidade (logo, cores, fonte), textos e contatos. O banco confere quem pode e cada campo.
+    if(!UUID_RE.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};
+    let r;try{r=await upstream('/rest/v1/rpc/lv_site_modelo_salvar',{method:'POST',token:authToken,body:{org:body.organization,
+     p_modelo:typeof body.modelo==='string'?body.modelo:null,ident:body.identidade&&typeof body.identidade==='object'?body.identidade:{},p_publicado:body.publicado===true}});}
+    catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe no site.'};}
+    if(!r||r.ok!==true)throw {status:400,message:SITE_ERROS[r?.erro]||'Não deu para salvar o site. Confira os campos.'};
+    if(typeof body.conta==='string'){dadosCache.delete(body.conta);temasCache.delete(body.conta);}
+    send(res,200,{ok:true});
    }else if(action==='usuarios-painel'){
     // Quem entra no painel da empresa: ver, cadastrar, trocar a função, remover e mandar a redefinição de senha.
     // Dono, admin e Super Admin; o banco confere quem pode o quê. Criar login e trocar e-mail passam pela função "usuarios",
