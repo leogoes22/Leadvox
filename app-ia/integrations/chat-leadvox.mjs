@@ -65,6 +65,10 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  }
  return Object.freeze({
   users:()=>get(ext('users/'+api)),
+  // Atendimentos e mensagens, pelas rotas da tela (fora do /v1), para o histórico do rastreamento de anúncios.
+  // A mensagem guarda em "raw" o que o WhatsApp mandou, inclusive o anúncio (raw.referral) na primeira mensagem.
+  tickets:(status,page)=>get('/tickets?status='+id(status)+'&showAll=true&pageNumber='+Math.max(1,Math.floor(Number(page)||1)),true),
+  messages:(ticketId,page)=>get('/messages/'+id(ticketId)+'?pageNumber='+Math.max(1,Math.floor(Number(page)||1)),true),
   tags:()=>get(ext(api+'/tags')),
   pipelineSteps:()=>get(ext(api+'/pipeline-steps')),
   // The departments (queues) route is not documented; like the SDR Motor, try the known candidates and keep the first list.

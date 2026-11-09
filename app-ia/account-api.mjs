@@ -6,6 +6,7 @@ import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 import {configRastreio,conferirMeta,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
+import {lerPaginaHistorico,STATUS_HISTORICO} from './integrations/rastreio-historico.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel: conta nova já nasce no n8n novo (VPS); as contas abaixo seguem no antigo até a virada de cada uma.
@@ -595,6 +596,30 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      send(res,200,{items:normalizeItems(list)});
     }else throw {status:405,message:'Método não permitido.'};
+   }else if(action==='rastreio-importar'&&req.method==='POST'){
+    // Histórico dos últimos 30 dias: uma página de atendimentos da LeadVox por chamada (o painel repete até acabar).
+    // previa=true só conta o que acharia; sem prévia grava os leads de anúncio que ainda não existem.
+    const org=body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const status=STATUS_HISTORICO.includes(body.status)?body.status:'open',pagina=Math.min(400,Math.max(1,Math.floor(Number(body.pagina)||1)));
+    const rpc=(fn,args)=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:args});
+    let a;try{a=await rpc('lv_rastreio',{org});}catch{a=null;}
+    if(!a?.liberado||!a.podeEditar)throw {status:403,message:'Só o dono ou um admin da empresa, com o módulo liberado, pode importar o histórico.'};
+    let rows;try{rows=await rpc('lv_chat_secret',{org});}catch{rows=[];}
+    if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API para importar o histórico.'};
+    const cliente=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});
+    let p;try{p=await lerPaginaHistorico({cliente,status,pagina,desde:Date.now()-30*864e5});}
+    catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou ler os atendimentos com o token salvo. Conecte de novo em Credenciais de API.'}
+     :{status:502,message:'A LeadVox não devolveu os atendimentos agora. Tente de novo em instantes.'};}
+    let gravados=0;
+    if(body.previa!==true&&p.leads.length){
+     const leads=await Promise.all(p.leads.map(async l=>({contato:l.contato,hash:l.telefone?await sha256(l.telefone):null,final:l.telefone.slice(-4),nome:l.nome,
+      anuncio:l.anuncio,titulo:l.titulo,link:l.link,clid:l.clid,midia:l.midia,quando:l.quando})));
+     try{gravados=(await rpc('lv_rastreio_importar',{org,leads}))?.gravados||0;}catch{throw {status:400,message:'Não deu para gravar o histórico. O banco ainda não tem a importação (rastreio_importar.sql)?'};}
+    }
+    const prox=p.temMais?{status,pagina:pagina+1}:(STATUS_HISTORICO[STATUS_HISTORICO.indexOf(status)+1]?{status:STATUS_HISTORICO[STATUS_HISTORICO.indexOf(status)+1],pagina:1}:null);
+    send(res,200,{status,pagina,lidos:p.lidos,naJanela:p.naJanela,achados:p.leads.length,gravados,erros:p.erros,
+     amostra:p.leads.slice(0,3).map(l=>({titulo:l.titulo,quando:l.quando})),proxima:prox});
    }else if(action==='rastreio'||action==='rastreio-relatorio'||action==='rastreio-teste'){
     // Rastreamento de anúncios (módulo extra). O webhook e o envio à Meta ficam na função "rastreio" do Supabase;
     // aqui o dono configura, confere o token na Meta antes de salvar e manda um evento de teste.
