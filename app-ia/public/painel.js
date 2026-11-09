@@ -2953,7 +2953,7 @@ function desenharSite() {
 const SITE_MODELOS = [
   ['garagem', 'Garagem', 'Escuro ripado, títulos fortes e a sua cor em destaque. Ótimo para motos e seminovos.', true],
   ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', true],
-  ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', false],
+  ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', true],
   ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', true],
   ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', false]
 ];
