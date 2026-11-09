@@ -246,9 +246,7 @@ const UNIDADES = ['un.', 'kg', 'g', 'L', 'm', 'm²', 'cx.', 'pct.', 'par', 'kit'
 const itemMenu = m => m[0] === 'estoque' ? (c => ['estoque', c.titulo, c.ic, c.desc])(CATALOGO[tipoCatalogo()]) : m;
 const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
-  ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
-  ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
-  ['rastreio', 'Rastreamento de anúncios', 'alvo', 'Qual anúncio trouxe cada lead e cada venda, e o aviso para a Meta.'],
+  ['painel', 'Painel', 'grafico', 'Visão geral, oportunidades e anúncios.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
   ['status', 'Etapas do funil', 'kanban', 'As etapas do funil da sua LeadVox.'],
@@ -263,7 +261,14 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
+// O item Painel do menu junta três telas em abas; cada aba continua com o seu endereço (#dashboard, #oportunidades, #rastreio).
+const PAINEL_ABAS = [
+  ['dashboard', 'Visão geral', 'grafico', 'O que a IA fez no período.'],
+  ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
+  ['rastreio', 'Anúncios', 'alvo', 'Qual anúncio trouxe cada lead e cada venda, e o aviso para a Meta.']
+];
+let painelAba = 'dashboard';
+const SECAO = { agentes: 'vAgentes', painel: 'vDashboard', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
@@ -445,11 +450,16 @@ let abaAtual = 'agentes';
 const kAberta = () => abaAtual === 'agentes' && document.querySelector('[data-ag="conhecimento"]')?.getAttribute('aria-pressed') === 'true';
 function abrir(pg) {
   if (pg === 'conhecimento') { abrir('agentes'); document.querySelector('[data-ag="conhecimento"]')?.click(); return; }
+  if (pg === 'painel') pg = painelAba;
   if (!visivel(pg)) pg = 'agentes';
   abaAtual = pg;
-  const item = itemMenu(MENU.find(m => m[0] === pg));
+  const aba = PAINEL_ABAS.find(m => m[0] === pg);
+  if (aba) painelAba = pg;
+  const item = aba ? ['painel', 'Painel', aba[2], aba[3]] : itemMenu(MENU.find(m => m[0] === pg));
+  $('painelAbas').hidden = !aba;
+  document.querySelectorAll('#painelAbas [data-ir]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ir === pg)));
   for (const id of new Set(Object.values(SECAO))) $(id).hidden = id !== SECAO[pg];
-  document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === pg ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === item[0] ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
   if (LISTA[pg]) desenharLista(pg);
   if (pg === 'credenciais') { desenharCred(); desenharConexoes(); carregarOpenAI(); }
@@ -1715,8 +1725,7 @@ const TOUR_PAINEL = () => [
   { ir: 'agentes', alvo: '#prontoBox', t: 'Sua IA está pronta?', txt: 'Mostra o que falta para a IA atender sozinha. Cada item tem um botão Resolver que leva ao lugar certo.' },
   { ir: 'agentes:testar', alvo: '[data-ag="testar"]', t: 'Testar a IA', txt: 'Converse com a IA como se fosse um cliente. Nada vai para o WhatsApp, a LeadVox nem o funil.' },
   { ir: 'agentes', alvo: '#agLiga', t: 'Liga e desliga', txt: 'Ligada, a IA responde os clientes. Desligou, ela para na hora. O Modo de teste logo abaixo faz ela responder só os seus números.' },
-  { alvo: '[data-pg="dashboard"]', menu: 1, t: 'Dashboard', txt: 'Quantos clientes a IA atendeu, quantos passou para a equipe e como foi o período.' },
-  { alvo: '[data-pg="oportunidades"]', menu: 1, t: 'Oportunidades', txt: 'O funil de vendas da sua LeadVox, com cada cliente na etapa em que está.' },
+  { alvo: '[data-pg="painel"]', menu: 1, t: 'Painel', txt: 'Três abas: Visão geral (o que a IA fez no período), Oportunidades (o funil da sua LeadVox) e Anúncios (qual anúncio trouxe cada lead e cada venda).' },
   { ir: 'agentes:conhecimento', alvo: '[data-ag="conhecimento"]', t: 'Base de conhecimento', txt: 'Tudo o que este agente sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
   { alvo: '[data-pg="estoque"]', menu: 1, t: CATALOGO[tipoCatalogo()].titulo, txt: CATALOGO[tipoCatalogo()].desc + ' A IA só oferece o que está aqui.' },
   { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, etapas do funil, origens, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
@@ -2523,7 +2532,7 @@ const rsReais = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency',
 const EVENTO_QUALIF = { QualifiedLead: 'Lead qualificado (QualifiedLead)', Lead: 'Lead (Lead)', LeadSubmitted: 'Lead na conversa (LeadSubmitted)', Contact: 'Contato (Contact)',
   Schedule: 'Agendamento (Schedule)', SubmitApplication: 'Ficha enviada (SubmitApplication)', CompleteRegistration: 'Cadastro completo (CompleteRegistration)' };
 async function carregarRastreio() {
-  const el = $('rsConteudo'); el.innerHTML = '<div class="card"><p class="muted">Carregando…</p></div>'; rastRel = null;
+  const el = $('rsConteudo'); el.innerHTML = '<div class="card"><p class="muted">Carregando…</p></div>'; rastRel = null; rsAbertos = null;
   try { rast = await api('rastreio?organization=' + encodeURIComponent(empresa.id)); }
   catch (err) { el.innerHTML = `<div class="card"><p class="alerta">${esc(err.message)}</p></div>`; return; }
   desenharRastreio();
@@ -2544,26 +2553,28 @@ function desenharRastreio() {
     return;
   }
   const ed = r.podeEditar, dis = ed ? '' : ' disabled', quando = r.ultimoEvento ? new Date(r.ultimoEvento).toLocaleString('pt-BR') : '';
-  const recente = r.ultimoEvento && Date.now() - Date.parse(r.ultimoEvento) < 36 * 3600e3;
+  // Configuração em três linhas com status. O passo que falta vem aberto (amarelo); os prontos ficam fechados (verde).
+  const ps = rsPassos(r);
+  if (!rsAbertos) rsAbertos = new Set([1, 2, 3].filter(k => !ps[k][2]));
+  const passo = (k, titulo, corpo) => { const ab = rsAbertos.has(k); return `<div class="rs-passo" data-rs-passo="${k}">
+    <div class="rs-passo-topo"><b>${k}. ${titulo}</b><span class="st ${ps[k][0]}">${esc(ps[k][1])}</span>
+      <button type="button" class="sm" data-rs-abrir="${k}" aria-expanded="${ab}">${ab ? 'Fechar' : 'Abrir'}</button></div>
+    <div class="rs-passo-corpo"${ab ? '' : ' hidden'}>${corpo}</div></div>`; };
   el.innerHTML = `
     <div class="card"><div class="lista-topo"><div><h3>Rastreamento de anúncios</h3>
-      <p class="muted" style="margin-top:4px">${r.ativo ? '<span class="st on">Ligado</span> registrando leads de anúncio e avisando a Meta' : '<span class="st rascunho">Desligado</span> ligue depois de seguir os 3 passos abaixo'}</p></div>
-      ${ed ? `<span class="liga"><button type="button" class="switch grande" role="switch" aria-checked="${!!r.ativo}" id="rsAtivo" aria-label="Rastreamento ligado"><span></span></button></span>` : ''}</div></div>
-    <div class="rs-grade">
-    <div class="card"><h3>1. Receber os eventos da LeadVox</h3>
-      <p class="muted" style="margin-top:4px">Crie na LeadVox uma API só para o rastreamento. Assim o rastreamento não mexe na API que a sua IA usa.</p>
+      <p class="muted" style="margin-top:4px">${r.ativo ? '<span class="st on">Ligado</span> registrando leads de anúncio e avisando a Meta' : '<span class="st rascunho">Desligado</span> ligue depois de configurar os 3 passos abaixo'}</p></div>
+      ${ed ? `<span class="liga"><button type="button" class="switch grande" role="switch" aria-checked="${!!r.ativo}" id="rsAtivo" aria-label="Rastreamento ligado"><span></span></button></span>` : ''}</div>
+    ${passo(1, 'Eventos da LeadVox', `<p class="muted">Crie na LeadVox uma API só para o rastreamento. Assim o rastreamento não mexe na API que a sua IA usa.</p>
       ${r.url ? `<div class="ev-url"><input id="rsUrl" readonly aria-label="Endereço do webhook do rastreamento" value="${esc(r.url)}"><button type="button" class="principal sm" id="rsCopiar">Copiar</button></div>` : '<p class="muted">Só o dono ou um admin vê o endereço.</p>'}
-      <p style="margin-top:10px;font-size:14px">${recente ? `<span class="st on">✓ Recebendo eventos</span> <small class="muted">último em ${esc(quando)}</small>`
-        : `<span class="st rascunho">Nenhum evento recente</span> <small class="muted">${quando ? 'último em ' + esc(quando) : 'ainda não chegou nada por este endereço'}</small>`}</p>
+      <p class="muted" style="margin-top:8px;font-size:13px">${quando ? 'Último evento em ' + esc(quando) + '.' : 'Ainda não chegou nada por este endereço.'}</p>
       <ol class="passos-ev"><li>Na LeadVox, abra <b>Configurações → API</b> e crie uma <b>API nova</b> com o nome <b>Rastreamento LeadVox IA</b>, no mesmo canal de WhatsApp dos anúncios.</li>
         <li>No campo <b>Webhook</b>, cole o endereço acima.</li>
         <li>Marque os eventos de <b>mensagens</b> e de <b>oportunidades</b> e salve.</li>
-        <li>Mande um "oi" para o WhatsApp da empresa: aqui aparece <b>✓ Recebendo eventos</b>.</li></ol>
-      <p class="muted" style="font-size:12.5px;margin-top:6px">O endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p></div>
-    <form class="card" id="rsMeta"><h3>2. Conectar o pixel da Meta</h3>
-      <p class="muted" style="margin-top:4px">No Gerenciador de Eventos: escolha o pixel → <b>Configurações</b> → <b>API de Conversões</b> → <b>Gerar token de acesso</b>. O ID do pixel aparece no topo da mesma tela.</p>
-      <label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}>
-      <label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}>
+        <li>Mande um "oi" para o WhatsApp da empresa: esta linha fica verde, com <b>✓ Recebendo</b>.</li></ol>
+      <p class="muted" style="font-size:12.5px;margin-top:6px">O endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p>`)}
+    ${passo(2, 'Pixel da Meta', `<form id="rsMeta"><p class="muted">No Gerenciador de Eventos: escolha o pixel → <b>Configurações</b> → <b>API de Conversões</b> → <b>Gerar token de acesso</b>. O ID do pixel aparece no topo da mesma tela.</p>
+      <div class="duas"><div><label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}></div>
+        <div><label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}></div></div>
       <label for="rsTeste">Código de teste <small>(opcional: aba Eventos de teste, ex.: TEST12345)</small></label><input id="rsTeste" maxlength="40" value="${esc(r.testeCodigo || '')}"${dis}>
       <details class="rs-avancado"${r.temTokenAnuncios ? '' : ' open'}><summary>Conta de anúncio e campanha de cada lead ${r.temTokenAnuncios ? '<span class="st on">conectado</span>' : '<small>(recomendado)</small>'}</summary>
         <p class="muted" style="margin-top:6px">O WhatsApp só informa o anúncio. Com este token o painel mostra a conta de anúncio, a campanha e o conjunto, e separa os resultados por conta.</p>
@@ -2576,25 +2587,44 @@ function desenharRastreio() {
         <div class="duas"><div><label for="rsWaba">ID da conta do WhatsApp Business</label><input id="rsWaba" inputmode="numeric" maxlength="20" value="${esc(r.wabaId || '')}"${dis}></div>
           <div><label for="rsPage">ID da página do Facebook</label><input id="rsPage" inputmode="numeric" maxlength="20" value="${esc(r.pageId || '')}"${dis}></div></div></details>
       ${ed ? '<div class="form-bts"><button class="principal" type="submit">Salvar</button><button type="button" id="rsEnviarTeste">Enviar teste</button></div>' : ''}
-      <p class="dica">O token fica criptografado e não aparece de novo. O teste manda uma compra de R$ 1,00 marcada como teste: ela só aparece em Eventos de teste e não conta nas campanhas.</p></form>
-    <div class="card"><h3>3. Quando avisar a Meta</h3>
+      <p class="dica">O token fica criptografado e não aparece de novo. O teste manda uma compra de R$ 1,00 marcada como teste: ela só aparece em Eventos de teste e não conta nas campanhas.</p></form>`)}
+    ${passo(3, 'Quando avisar a Meta', `<form id="rsQuando">
       <label class="aceite"><input type="checkbox" id="rsCompra"${r.enviarCompra !== false ? ' checked' : ''}${dis}><span><b>Venda:</b> quando o card vai para <b>Ganho</b>, envia uma compra (Purchase) com o valor do card.</span></label>
       <p style="margin-top:12px"><b>Lead qualificado:</b> quando o card entra em uma destas etapas</p><div id="rsEtapas"><p class="muted">Carregando as etapas da LeadVox…</p></div>
       <label for="rsEvento">Evento enviado para o lead qualificado</label><select id="rsEvento"${dis}>${Object.entries(EVENTO_QUALIF).map(([k, n]) => `<option value="${k}"${k === (r.eventoQualificado || 'QualifiedLead') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <p class="dica">Só vão para a Meta os clientes que chegaram por anúncio, uma vez por card. Ajuste aqui e clique em Salvar no passo 2.</p></div>
+      ${ed ? '<div class="form-bts"><button class="principal" type="submit">Salvar</button></div>' : ''}
+      <p class="dica">Só vão para a Meta os clientes que chegaram por anúncio, uma vez por card.</p></form>`)}
     </div>
     <div class="card" id="rsRel"><p class="muted">Carregando os resultados…</p></div>`;
+  document.querySelectorAll('[data-rs-abrir]').forEach(b => b.onclick = () => {
+    const k = Number(b.dataset.rsAbrir), corpo = b.closest('.rs-passo').querySelector('.rs-passo-corpo'), abrirAgora = corpo.hidden;
+    corpo.hidden = !abrirAgora; b.textContent = abrirAgora ? 'Fechar' : 'Abrir'; b.setAttribute('aria-expanded', String(abrirAgora));
+    if (abrirAgora) rsAbertos.add(k); else rsAbertos.delete(k);
+  });
   if (r.url) $('rsCopiar').onclick = async () => {
     try { await navigator.clipboard.writeText(r.url); } catch { $('rsUrl').select(); document.execCommand('copy'); }
     toast('Endereço copiado. Cole na API nova da LeadVox, no campo Webhook.');
   };
   if (!ed) { desenharEtapasRastreio(); return; }
-  $('rsMeta').onsubmit = ev => { ev.preventDefault(); salvarRastreio(); };
+  $('rsMeta').onsubmit = ev => { ev.preventDefault(); salvarRastreio(undefined, 2); };
+  $('rsQuando').onsubmit = ev => { ev.preventDefault(); salvarRastreio(undefined, 3); };
   $('rsAtivo').onclick = () => salvarRastreio(!r.ativo);
   $('rsEnviarTeste').onclick = async () => {
     const b = $('rsEnviarTeste'); b.disabled = true;
     try { const d = await api('rastreio-teste', { organization: empresa.id }); toast(d.detalhe + ' Confira em Eventos de teste no Gerenciador de Eventos.'); }
     catch (err) { toast(err.message, true); } finally { b.disabled = false; }
+  };
+}
+// Status de cada passo da configuração: [classe, texto, pronto]. rsAbertos guarda os passos abertos (null = decidir pelo que falta).
+let rsAbertos = null;
+function rsPassos(r) {
+  const recente = r.ultimoEvento && Date.now() - Date.parse(r.ultimoEvento) < 36 * 3600e3;
+  const n = (r.etapasQualificado || []).length;
+  const quando = [r.enviarCompra !== false ? 'Ganho' : '', n ? n + (n === 1 ? ' etapa' : ' etapas') : ''].filter(Boolean).join(' + ');
+  return {
+    1: recente ? ['on', '✓ Recebendo', true] : ['rascunho', r.ultimoEvento ? 'Sem eventos recentes' : 'Falta configurar', false],
+    2: r.pixelId && r.temToken ? ['on', '✓ Conectado' + (r.temTokenAnuncios ? ' · conta e campanha' : ''), true] : ['rascunho', 'Falta configurar', false],
+    3: quando ? ['on', '✓ ' + quando, true] : ['rascunho', 'Falta configurar', false]
   };
 }
 let rastEtapas = null;
@@ -2611,7 +2641,8 @@ function desenharEtapasRastreio() {
   el.innerHTML = rastEtapas.length ? `<div class="rs-etapas">${rastEtapas.map(s => `<label class="aceite"><input type="checkbox" data-rs-etapa="${esc(s.id)}"${marcadas.has(String(s.id)) ? ' checked' : ''}${dis}><span>${esc(s.name)}</span></label>`).join('')}</div>`
     : '<p class="muted">A LeadVox não devolveu etapas de funil.</p>';
 }
-async function salvarRastreio(ativo) {
+// passo: 2 ou 3 quando o Salvar é de um bloco (ele fecha sozinho se ficou pronto). Todos os campos vão juntos: o banco guarda a configuração inteira.
+async function salvarRastreio(ativo, passo) {
   const etapas = $('rsEtapas').querySelector('[data-rs-etapa]') ? [...document.querySelectorAll('[data-rs-etapa]:checked')].map(x => Number(x.dataset.rsEtapa)) : (rast.etapasQualificado || []);
   const corpo = { organization: empresa.id, ativo: ativo === undefined ? !!rast.ativo : ativo, modo: $('rsModo').value, pixelId: $('rsPixel').value.trim(), tokenMeta: $('rsToken').value.trim(), tokenAnuncios: $('rsTokenAds').value.trim(),
     testeCodigo: $('rsTeste').value.trim(), wabaId: $('rsWaba').value.trim(), pageId: $('rsPage').value.trim(), enviarCompra: $('rsCompra').checked,
@@ -2619,6 +2650,7 @@ async function salvarRastreio(ativo) {
   try {
     const d = await api('rastreio', corpo); rast = { ...rast, ...d };
     toast(d.aviso || (ativo === true ? 'Rastreamento ligado.' : ativo === false ? 'Rastreamento desligado.' : 'Rastreamento salvo.'), !!d.aviso);
+    if (passo && rsPassos(rast)[passo][2]) rsAbertos?.delete(passo);
     const rel = $('rsRel').innerHTML; desenharRastreio(); $('rsRel').innerHTML = rel; ligarPeriodoRastreio(); desenharEtapasRastreio();
   } catch (err) { toast(err.message, true); }
 }
