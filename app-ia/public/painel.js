@@ -2954,7 +2954,7 @@ const SITE_MODELOS = [
   ['garagem', 'Garagem', 'Escuro ripado, títulos fortes e a sua cor em destaque. Ótimo para motos e seminovos.', true],
   ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', true],
   ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', false],
-  ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', false],
+  ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', true],
   ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', false]
 ];
 const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
@@ -2979,7 +2979,7 @@ function desenharSiteModelo() {
     <div class="form-bts"><input type="file" id="smLogoArq" accept="image/png,image/jpeg"><button type="button" class="sm" id="smLogoTira"${i.logo ? '' : ' hidden'}>Tirar a logo</button></div>
     <img id="smLogoPrev" class="sm-logo" alt="Logo da loja" src="${esc(i.logo || '')}"${i.logo ? '' : ' hidden'}>
     <div class="duas"><div><label for="smCor1">Cor principal (botões e destaques)</label><input type="color" id="smCor1" value="${esc(i.cor1 || '#d6921e')}"></div>
-      <div><label for="smCor2">Cor de fundo</label><input type="color" id="smCor2" value="${esc(i.cor2 || '#121110')}"></div></div>
+      <div><label for="smCor2">Cor de fundo (no modelo Claro: topo e faixas)</label><input type="color" id="smCor2" value="${esc(i.cor2 || '#121110')}"></div></div>
     <div class="form-bts"><button type="button" class="sm" id="smSugCores"${i.logo ? '' : ' disabled'}>Sugerir cores da logo</button><span class="muted" id="smCoresInfo"></span></div>
     <h3 class="st-tit">Textos</h3>
     <label for="smFrase">Frase da capa</label><input id="smFrase" maxlength="90" value="${esc(i.frase || '')}" placeholder="Seu próximo veículo está no nosso pátio.">
