@@ -2955,7 +2955,7 @@ const SITE_MODELOS = [
   ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', true],
   ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', true],
   ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', true],
-  ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', false]
+  ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', true]
 ];
 const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
 function desenharSiteModelo() {
