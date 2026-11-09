@@ -2610,9 +2610,7 @@ function desenharRelatorioRastreio() {
   if (d.erro) { el.innerHTML = `<h3>Resultados</h3>${periodo}<p class="alerta">${esc(d.erro)}</p>`; ligarPeriodoRastreio(); return; }
   const st = { enviado: ['on', 'A Meta recebeu'], erro: ['perdida', 'Não enviado'], pendente: ['rascunho', 'Enviando'] };
   const hora = x => new Date(x).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div>
-    ${rast?.podeEditar ? '<button type="button" class="sm" id="rsImportar" title="Lê as conversas da LeadVox dos últimos 30 dias e traz quem veio de anúncio">Importar últimos 30 dias</button>' : ''}</div>
-    <div id="rsImport" hidden></div><p class="muted" id="rsImportInfo" style="font-size:13px" hidden></p>${periodo}
+  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div></div>${periodo}
     <div class="rs-totais"><div><b>${t.leads || 0}</b><span>leads de anúncio</span></div><div><b>${t.qualificados || 0}</b><span>qualificados</span></div>
       <div><b>${t.vendas || 0}</b><span>vendas</span></div><div><b>${rsReais(t.valor)}</b><span>em vendas</span></div></div>
     ${(d.anuncios || []).length ? `<div class="rolo"><table class="tabela-d"><thead><tr><th>Anúncio</th><th>Leads</th><th>Qualificados</th><th>Vendas</th><th>Valor</th></tr></thead><tbody>
@@ -2626,48 +2624,6 @@ function desenharRelatorioRastreio() {
 }
 function ligarPeriodoRastreio() {
   document.querySelectorAll('[data-rs-periodo]').forEach(b => b.onclick = () => { rastPeriodo = Number(b.dataset.rsPeriodo); carregarRelatorioRastreio(); });
-  if ($('rsImportar')) $('rsImportar').onclick = () => abrirImportacaoRastreio();
-}
-// A LeadVox só mostra os atendimentos para um usuário logado: o dono entra uma vez (a senha não é guardada).
-function abrirImportacaoRastreio() {
-  const box = $('rsImport'); box.hidden = false;
-  box.innerHTML = `<form class="card" id="rsImportForm" style="margin:10px 0"><h3>Importar os últimos 30 dias da LeadVox</h3>
-    <p class="muted" style="margin-top:4px">A LeadVox só mostra os atendimentos para um usuário logado. Use um usuário que veja todas as filas (de preferência admin). A senha vai só para a LeadVox, não é guardada e não aparece de novo.</p>
-    <div class="duas"><div><label for="rsImpEmail">E-mail do usuário da LeadVox</label><input id="rsImpEmail" type="email" autocomplete="off" maxlength="200"></div>
-      <div><label for="rsImpSenha">Senha</label><input id="rsImpSenha" type="password" autocomplete="new-password" maxlength="200"></div></div>
-    <div class="form-bts"><button type="submit" class="principal" data-previa="0">Importar</button><button type="submit" data-previa="1">Só contar antes</button><button type="button" class="leve" id="rsImpFechar">Fechar</button></div></form>`;
-  $('rsImpFechar').onclick = () => { box.hidden = true; box.innerHTML = ''; };
-  let previa = false;
-  box.querySelectorAll('[data-previa]').forEach(x => x.onclick = () => { previa = x.dataset.previa === '1'; });
-  $('rsImportForm').onsubmit = async ev => {
-    ev.preventDefault();
-    const email = $('rsImpEmail').value.trim(), senha = $('rsImpSenha').value;
-    if (!email || !senha) return toast('Informe o e-mail e a senha do usuário da LeadVox.', true);
-    box.querySelectorAll('button').forEach(x => x.disabled = true);
-    let s;
-    try { s = await api('rastreio-importar-entrar', { organization: empresa.id, email, senha }); }
-    catch (err) { box.querySelectorAll('button').forEach(x => x.disabled = false); return toast(err.message, true); }
-    finally { const c = $('rsImpSenha'); if (c) c.value = ''; }
-    box.hidden = true; box.innerHTML = '';
-    importarHistoricoRastreio(previa, s.sessao);
-  };
-}
-// Lê os atendimentos da LeadVox página por página (abertos, pendentes e fechados) e grava quem veio de anúncio nos últimos 30 dias.
-async function importarHistoricoRastreio(previa, sessao) {
-  const b = $('rsImportar'), info = $('rsImportInfo'); if (b) b.disabled = true; info.hidden = false;
-  let prox = { status: 'open', pagina: 1 }, lidos = 0, achados = 0, gravados = 0, voltas = 0;
-  const nome = { open: 'abertos', pending: 'pendentes', closed: 'fechados' };
-  try {
-    while (prox && voltas++ < 400) {
-      info.textContent = `Lendo os atendimentos ${nome[prox.status]} (página ${prox.pagina})… ${lidos} lidos, ${achados} vieram de anúncio.`;
-      const d = await api('rastreio-importar', { organization: empresa.id, sessao, ...prox, previa: !!previa });
-      lidos += d.lidos; achados += d.achados; gravados += d.gravados; prox = d.proxima;
-    }
-    info.textContent = previa ? `Prévia: ${lidos} atendimentos lidos, ${achados} vieram de anúncio nos últimos 30 dias.`
-      : `Pronto: ${lidos} atendimentos lidos, ${achados} vieram de anúncio e ${gravados} entraram agora (os outros já estavam aqui).`;
-    if (!previa) carregarRelatorioRastreio().then(() => { const i = $('rsImportInfo'); if (i) { i.hidden = false; i.textContent = info.textContent; } });
-  } catch (err) { info.textContent = 'Parou: ' + err.message; toast(err.message, true); }
-  finally { if ($('rsImportar')) $('rsImportar').disabled = false; }
 }
 // Super Admin: liberar ou tirar o módulo da empresa (fica no histórico).
 async function carregarRastreioAdmin(e) {

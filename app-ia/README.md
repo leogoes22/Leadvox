@@ -21,6 +21,7 @@ Liga o lead que chegou por anúncio de clique para WhatsApp à venda e avisa a M
 - **Peças:** `database/rastreio.sql` (rodar parte por parte), função `supabase/functions/rastreio` (publicar com verify_jwt desligado, `rastreio.mjs` + `index.ts`), rotas `rastreio`, `rastreio-relatorio`, `rastreio-teste` e `admin-rastreio` em `account-api.mjs`.
 - **Como avisa a Meta:** modo padrão pelo pixel (action_source `chat`, telefone em SHA-256). O modo "WhatsApp oficial" (business_messaging com o código do clique) só funciona com um app da Meta com `whatsapp_business_manage_events` aprovado.
 - O telefone do cliente não é guardado: só o SHA-256 e os 4 últimos dígitos. Um envio por card e por tipo.
+- **Sem histórico:** o rastreamento conta a partir do dia em que é ligado. A LeadVox não guarda nas mensagens de qual anúncio o cliente veio, e ler `/messages/{ticketId}` marca a conversa como lida (e pode mandar o "visto" ao cliente). Não ler conversas da LeadVox em massa.
 
 ## Executar
 Node.js 24, sem dependências: `npm start` e `npm test`. Padrão http://127.0.0.1:4173. O login só funciona por HTTPS.
