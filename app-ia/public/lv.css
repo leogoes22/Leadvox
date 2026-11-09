@@ -486,3 +486,18 @@ textarea { min-height: 90px; resize: vertical; }
 .guia-balao .form-bts { justify-content: flex-end; }
 @media (max-width: 760px) { .guia-balao { left: 16px !important; right: 16px; width: auto; } }
 @media (prefers-reduced-motion: reduce) { .guia-foco { transition: none; } }
+
+/* ═══════════ RASTREAMENTO DE ANÚNCIOS ═══════════ */
+.rs-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.rs-grade .card { margin: 0; }
+.rs-lista { margin: 12px 0 0; padding-left: 20px; }
+.rs-lista li { margin: 6px 0; }
+.rs-etapas { display: grid; gap: 2px; margin: 6px 0 4px; max-height: 260px; overflow: auto; }
+.rs-etapas .aceite { margin: 0; }
+.rs-avancado { margin-top: 14px; border-top: 1px solid var(--linha); padding-top: 10px; }
+.rs-avancado summary { cursor: pointer; color: var(--suave); font-size: 13.5px; }
+.rs-totais { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 12px 0 6px; }
+.rs-totais div { background: var(--painel2); border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; }
+.rs-totais b { display: block; font-size: 22px; color: var(--verde); line-height: 1.2; overflow-wrap: anywhere; }
+.rs-totais span { color: var(--suave); font-size: 12.5px; }
+@media (max-width: 760px) { .rs-totais { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rs-grade { grid-template-columns: 1fr; } }

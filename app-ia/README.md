@@ -14,6 +14,14 @@ Mesma de leadvox.com.br/agente-ia.html e /sdr/: fundo #070d1c, cartões #0e1730,
 
 `conta.html` e `cobrancas.html` só redirecionam para o painel.
 
+## Rastreamento de anúncios (módulo extra)
+Liga o lead que chegou por anúncio de clique para WhatsApp à venda e avisa a Meta (lead qualificado e compra com o valor no Ganho).
+- **Liberar para um cliente:** Painel LeadVox → Gerenciar a empresa → chave "Rastreamento de anúncios". Sem a chave, o cliente vê o convite para contratar.
+- **O cliente configura sozinho** (menu Rastreamento de anúncios): cria na LeadVox uma API só para o rastreamento com o webhook mostrado na tela (eventos de mensagens e de oportunidades), cola o ID do pixel e o token da API de Conversões (Gerenciador de Eventos), escolhe as etapas de "lead qualificado" e liga.
+- **Peças:** `database/rastreio.sql` (rodar parte por parte), função `supabase/functions/rastreio` (publicar com verify_jwt desligado, `rastreio.mjs` + `index.ts`), rotas `rastreio`, `rastreio-relatorio`, `rastreio-teste` e `admin-rastreio` em `account-api.mjs`.
+- **Como avisa a Meta:** modo padrão pelo pixel (action_source `chat`, telefone em SHA-256). O modo "WhatsApp oficial" (business_messaging com o código do clique) só funciona com um app da Meta com `whatsapp_business_manage_events` aprovado.
+- O telefone do cliente não é guardado: só o SHA-256 e os 4 últimos dígitos. Um envio por card e por tipo.
+
 ## Executar
 Node.js 24, sem dependências: `npm start` e `npm test`. Padrão http://127.0.0.1:4173. O login só funciona por HTTPS.
 

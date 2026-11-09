@@ -231,7 +231,8 @@ const IC = {
   engrenagem: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
   escudo: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
   caixa: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
-  lista: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'
+  lista: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  alvo: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/>'
 };
 // O catálogo muda com o segmento da empresa: veículos (automotivo), serviços (saúde, advocacia, educação, viagens) ou produtos (o resto).
 const CATALOGO = {
@@ -247,6 +248,7 @@ const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['dashboard', 'Dashboard', 'grafico', 'O que a IA fez no período.'],
   ['oportunidades', 'Oportunidades', 'funil', 'O funil da sua LeadVox: cada cliente na etapa em que está.'],
+  ['rastreio', 'Rastreamento de anúncios', 'alvo', 'Qual anúncio trouxe cada lead e cada venda, e o aviso para a Meta.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
   ['status', 'Etapas do funil', 'kanban', 'As etapas do funil da sua LeadVox.'],
@@ -261,7 +263,7 @@ const MENU = [
   ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
   ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
 ];
-const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
@@ -455,6 +457,7 @@ function abrir(pg) {
   if (pg === 'estoque') abrirEstoque();
   if (pg === 'dashboard') carregarDashboard();
   if (pg === 'oportunidades') carregarOportunidades();
+  if (pg === 'rastreio') carregarRastreio();
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -2196,7 +2199,7 @@ function abrirEmpresa(id) {
   $('emPlano').value = c.plano || 'ia'; $('emObs').value = e.obs || ''; $('emCortesia').value = '';
   $('emAvisos').innerHTML = (e.avisos || []).length ? `<h3 style="margin-top:16px">Avisos enviados</h3><div class="rolo"><table class="lv-tabela"><tbody>${e.avisos.map(v =>
     `<tr><td>${esc(AVISO_NOME[v.tipo] || v.tipo)}</td><td>${esc({ enviado: 'Enviado', pendente: 'Na fila', enviando: 'Enviando', falhou: 'Falhou', sem_contato: 'Sem WhatsApp' }[v.status] || v.status)}</td><td>${new Date(v.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('')}</tbody></table></div>` : '';
-  carregarRobos(e);
+  carregarRobos(e); carregarRastreioAdmin(e);
   if (!$('dlgEmpresa').open) $('dlgEmpresa').showModal();
 }
 
@@ -2492,6 +2495,153 @@ $('opStatus').onchange = carregarOportunidades;
 $('opFunilSel').onchange = carregarOportunidades;
 $('opAtualizar').onclick = carregarOportunidades;
 $('opBusca').oninput = desenharOportunidades;
+
+/* ═══════════ RASTREAMENTO DE ANÚNCIOS (módulo extra) ═══════════
+   Webhook próprio na LeadVox → função "rastreio" do Supabase: grava de qual anúncio veio o lead e avisa a Meta
+   quando o card fica qualificado ou ganho. Aqui o dono configura e acompanha; o Super Admin libera o módulo. */
+let rast = null, rastPeriodo = 30, rastRel = null;
+const rsReais = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const EVENTO_QUALIF = { QualifiedLead: 'Lead qualificado (QualifiedLead)', Lead: 'Lead (Lead)', LeadSubmitted: 'Lead na conversa (LeadSubmitted)', Contact: 'Contato (Contact)',
+  Schedule: 'Agendamento (Schedule)', SubmitApplication: 'Ficha enviada (SubmitApplication)', CompleteRegistration: 'Cadastro completo (CompleteRegistration)' };
+async function carregarRastreio() {
+  const el = $('rsConteudo'); el.innerHTML = '<div class="card"><p class="muted">Carregando…</p></div>'; rastRel = null;
+  try { rast = await api('rastreio?organization=' + encodeURIComponent(empresa.id)); }
+  catch (err) { el.innerHTML = `<div class="card"><p class="alerta">${esc(err.message)}</p></div>`; return; }
+  desenharRastreio();
+  if (rast.liberado) { carregarRelatorioRastreio(); if (rast.podeEditar) carregarEtapasRastreio(); }
+}
+function desenharRastreio() {
+  const el = $('rsConteudo'), r = rast || {};
+  if (r.setupPending) { el.innerHTML = '<div class="card"><p class="alerta">O módulo ainda não foi instalado no banco (rastreio.sql).</p></div>'; return; }
+  if (!r.liberado) {
+    el.innerHTML = `<div class="card estreito"><h3>Saiba qual anúncio vende de verdade</h3>
+      <p class="muted" style="margin-top:6px">A Meta conta conversas iniciadas. O rastreamento da LeadVox segue cada cliente que chegou por um anúncio de clique para WhatsApp até a venda.</p>
+      <ul class="rs-lista"><li><b>Leads por anúncio:</b> quem mandou mensagem por cada anúncio, sem planilha.</li>
+        <li><b>Vendas e valor por anúncio:</b> quando o card vai para Ganho, a venda fica ligada ao anúncio que trouxe o cliente.</li>
+        <li><b>A Meta aprende com quem compra:</b> o lead qualificado e a compra voltam para o seu pixel, para as campanhas buscarem mais compradores.</li></ul>
+      <p class="dica">É um módulo extra. Fale com a LeadVox para liberar na sua empresa.</p>
+      <div class="form-bts"><button type="button" class="principal" id="rsQuero">Quero o rastreamento</button></div></div>`;
+    $('rsQuero').onclick = () => (typeof abrirSuporte === 'function' ? abrirSuporte() : toast('Fale com a LeadVox pelo WhatsApp de suporte.'));
+    return;
+  }
+  const ed = r.podeEditar, dis = ed ? '' : ' disabled', quando = r.ultimoEvento ? new Date(r.ultimoEvento).toLocaleString('pt-BR') : '';
+  const recente = r.ultimoEvento && Date.now() - Date.parse(r.ultimoEvento) < 36 * 3600e3;
+  el.innerHTML = `
+    <div class="card"><div class="lista-topo"><div><h3>Rastreamento de anúncios</h3>
+      <p class="muted" style="margin-top:4px">${r.ativo ? '<span class="st on">Ligado</span> registrando leads de anúncio e avisando a Meta' : '<span class="st rascunho">Desligado</span> ligue depois de seguir os 3 passos abaixo'}</p></div>
+      ${ed ? `<span class="liga"><button type="button" class="switch grande" role="switch" aria-checked="${!!r.ativo}" id="rsAtivo" aria-label="Rastreamento ligado"><span></span></button></span>` : ''}</div></div>
+    <div class="rs-grade">
+    <div class="card"><h3>1. Receber os eventos da LeadVox</h3>
+      <p class="muted" style="margin-top:4px">Crie na LeadVox uma API só para o rastreamento. Assim o rastreamento não mexe na API que a sua IA usa.</p>
+      ${r.url ? `<div class="ev-url"><input id="rsUrl" readonly aria-label="Endereço do webhook do rastreamento" value="${esc(r.url)}"><button type="button" class="principal sm" id="rsCopiar">Copiar</button></div>` : '<p class="muted">Só o dono ou um admin vê o endereço.</p>'}
+      <p style="margin-top:10px;font-size:14px">${recente ? `<span class="st on">✓ Recebendo eventos</span> <small class="muted">último em ${esc(quando)}</small>`
+        : `<span class="st rascunho">Nenhum evento recente</span> <small class="muted">${quando ? 'último em ' + esc(quando) : 'ainda não chegou nada por este endereço'}</small>`}</p>
+      <ol class="passos-ev"><li>Na LeadVox, abra <b>Configurações → API</b> e crie uma <b>API nova</b> com o nome <b>Rastreamento LeadVox IA</b>, no mesmo canal de WhatsApp dos anúncios.</li>
+        <li>No campo <b>Webhook</b>, cole o endereço acima.</li>
+        <li>Marque os eventos de <b>mensagens</b> e de <b>oportunidades</b> e salve.</li>
+        <li>Mande um "oi" para o WhatsApp da empresa: aqui aparece <b>✓ Recebendo eventos</b>.</li></ol>
+      <p class="muted" style="font-size:12.5px;margin-top:6px">O endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p></div>
+    <form class="card" id="rsMeta"><h3>2. Conectar o pixel da Meta</h3>
+      <p class="muted" style="margin-top:4px">No Gerenciador de Eventos: escolha o pixel → <b>Configurações</b> → <b>API de Conversões</b> → <b>Gerar token de acesso</b>. O ID do pixel aparece no topo da mesma tela.</p>
+      <label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}>
+      <label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}>
+      <label for="rsTeste">Código de teste <small>(opcional: aba Eventos de teste, ex.: TEST12345)</small></label><input id="rsTeste" maxlength="40" value="${esc(r.testeCodigo || '')}"${dis}>
+      <details class="rs-avancado"${r.modo === 'whatsapp' ? ' open' : ''}><summary>Modo WhatsApp oficial (precisa do app da LeadVox aprovado pela Meta)</summary>
+        <label for="rsModo">Como avisar a Meta</label><select id="rsModo"${dis}><option value="pixel">Pelo pixel, com o telefone do cliente (padrão)</option><option value="whatsapp"${r.modo === 'whatsapp' ? ' selected' : ''}>WhatsApp oficial, com o código do clique no anúncio</option></select>
+        <div class="duas"><div><label for="rsWaba">ID da conta do WhatsApp Business</label><input id="rsWaba" inputmode="numeric" maxlength="20" value="${esc(r.wabaId || '')}"${dis}></div>
+          <div><label for="rsPage">ID da página do Facebook</label><input id="rsPage" inputmode="numeric" maxlength="20" value="${esc(r.pageId || '')}"${dis}></div></div></details>
+      ${ed ? '<div class="form-bts"><button class="principal" type="submit">Salvar</button><button type="button" id="rsEnviarTeste">Enviar teste</button></div>' : ''}
+      <p class="dica">O token fica criptografado e não aparece de novo. O teste manda uma compra de R$ 1,00 marcada como teste: ela só aparece em Eventos de teste e não conta nas campanhas.</p></form>
+    <div class="card"><h3>3. Quando avisar a Meta</h3>
+      <label class="aceite"><input type="checkbox" id="rsCompra"${r.enviarCompra !== false ? ' checked' : ''}${dis}><span><b>Venda:</b> quando o card vai para <b>Ganho</b>, envia uma compra (Purchase) com o valor do card.</span></label>
+      <p style="margin-top:12px"><b>Lead qualificado:</b> quando o card entra em uma destas etapas</p><div id="rsEtapas"><p class="muted">Carregando as etapas da LeadVox…</p></div>
+      <label for="rsEvento">Evento enviado para o lead qualificado</label><select id="rsEvento"${dis}>${Object.entries(EVENTO_QUALIF).map(([k, n]) => `<option value="${k}"${k === (r.eventoQualificado || 'QualifiedLead') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      <p class="dica">Só vão para a Meta os clientes que chegaram por anúncio, uma vez por card. Ajuste aqui e clique em Salvar no passo 2.</p></div>
+    </div>
+    <div class="card" id="rsRel"><p class="muted">Carregando os resultados…</p></div>`;
+  if (r.url) $('rsCopiar').onclick = async () => {
+    try { await navigator.clipboard.writeText(r.url); } catch { $('rsUrl').select(); document.execCommand('copy'); }
+    toast('Endereço copiado. Cole na API nova da LeadVox, no campo Webhook.');
+  };
+  if (!ed) { desenharEtapasRastreio(); return; }
+  $('rsMeta').onsubmit = ev => { ev.preventDefault(); salvarRastreio(); };
+  $('rsAtivo').onclick = () => salvarRastreio(!r.ativo);
+  $('rsEnviarTeste').onclick = async () => {
+    const b = $('rsEnviarTeste'); b.disabled = true;
+    try { const d = await api('rastreio-teste', { organization: empresa.id }); toast(d.detalhe + ' Confira em Eventos de teste no Gerenciador de Eventos.'); }
+    catch (err) { toast(err.message, true); } finally { b.disabled = false; }
+  };
+}
+let rastEtapas = null;
+async function carregarEtapasRastreio() {
+  try { rastEtapas = listas.status || (listas.status = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=status')).items); }
+  catch (err) { rastEtapas = { erro: err.message }; }
+  desenharEtapasRastreio();
+}
+function desenharEtapasRastreio() {
+  const el = $('rsEtapas'); if (!el) return;
+  const marcadas = new Set((rast?.etapasQualificado || []).map(String)), dis = rast?.podeEditar ? '' : ' disabled';
+  if (!rastEtapas) { el.innerHTML = marcadas.size ? `<p class="muted">${marcadas.size} etapa(s) escolhida(s).</p>` : '<p class="muted">Nenhuma etapa escolhida.</p>'; return; }
+  if (rastEtapas.erro) { el.innerHTML = `<p class="alerta">${esc(rastEtapas.erro)}</p>`; return; }
+  el.innerHTML = rastEtapas.length ? `<div class="rs-etapas">${rastEtapas.map(s => `<label class="aceite"><input type="checkbox" data-rs-etapa="${esc(s.id)}"${marcadas.has(String(s.id)) ? ' checked' : ''}${dis}><span>${esc(s.name)}</span></label>`).join('')}</div>`
+    : '<p class="muted">A LeadVox não devolveu etapas de funil.</p>';
+}
+async function salvarRastreio(ativo) {
+  const etapas = $('rsEtapas').querySelector('[data-rs-etapa]') ? [...document.querySelectorAll('[data-rs-etapa]:checked')].map(x => Number(x.dataset.rsEtapa)) : (rast.etapasQualificado || []);
+  const corpo = { organization: empresa.id, ativo: ativo === undefined ? !!rast.ativo : ativo, modo: $('rsModo').value, pixelId: $('rsPixel').value.trim(), tokenMeta: $('rsToken').value.trim(),
+    testeCodigo: $('rsTeste').value.trim(), wabaId: $('rsWaba').value.trim(), pageId: $('rsPage').value.trim(), enviarCompra: $('rsCompra').checked,
+    etapasQualificado: etapas, eventoQualificado: $('rsEvento').value };
+  try {
+    const d = await api('rastreio', corpo); rast = { ...rast, ...d };
+    toast(d.aviso || (ativo === true ? 'Rastreamento ligado.' : ativo === false ? 'Rastreamento desligado.' : 'Rastreamento salvo.'), !!d.aviso);
+    const rel = $('rsRel').innerHTML; desenharRastreio(); $('rsRel').innerHTML = rel; ligarPeriodoRastreio(); desenharEtapasRastreio();
+  } catch (err) { toast(err.message, true); }
+}
+async function carregarRelatorioRastreio() {
+  const fim = new Date(), ini = new Date(Date.now() - (rastPeriodo - 1) * 864e5), dia = d => d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  try { rastRel = await api('rastreio-relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + dia(ini) + '&fim=' + dia(fim)); }
+  catch (err) { rastRel = { erro: err.message }; }
+  desenharRelatorioRastreio();
+}
+function desenharRelatorioRastreio() {
+  const el = $('rsRel'); if (!el) return;
+  const d = rastRel || {}, t = d.totais || {};
+  const periodo = `<div class="form-bts">${[7, 30, 90].map(n => `<button type="button" class="sm${n === rastPeriodo ? ' principal' : ''}" data-rs-periodo="${n}">${n} dias</button>`).join('')}</div>`;
+  if (d.erro) { el.innerHTML = `<h3>Resultados</h3>${periodo}<p class="alerta">${esc(d.erro)}</p>`; ligarPeriodoRastreio(); return; }
+  const st = { enviado: ['on', 'A Meta recebeu'], erro: ['perdida', 'Não enviado'], pendente: ['rascunho', 'Enviando'] };
+  const hora = x => new Date(x).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div></div>${periodo}
+    <div class="rs-totais"><div><b>${t.leads || 0}</b><span>leads de anúncio</span></div><div><b>${t.qualificados || 0}</b><span>qualificados</span></div>
+      <div><b>${t.vendas || 0}</b><span>vendas</span></div><div><b>${rsReais(t.valor)}</b><span>em vendas</span></div></div>
+    ${(d.anuncios || []).length ? `<div class="rolo"><table class="tabela-d"><thead><tr><th>Anúncio</th><th>Leads</th><th>Qualificados</th><th>Vendas</th><th>Valor</th></tr></thead><tbody>
+      ${d.anuncios.map(a => `<tr><td>${esc(a.titulo || 'Anúncio sem título')}<br><small class="muted">${esc(a.anuncio || 'sem id')}</small></td><td>${a.leads}</td><td>${a.qualificados}</td><td>${a.vendas}</td><td>${rsReais(a.valor)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="muted" style="margin-top:10px">Nenhum lead de anúncio no período. Os leads aparecem aqui quando o cliente manda mensagem por um anúncio de clique para WhatsApp.</p>'}
+    ${(d.envios || []).length ? `<h3 style="margin-top:18px">Últimos avisos para a Meta</h3>${d.envios.map(x => `<div class="item"><div><b>${esc(x.tipo === 'compra' ? 'Venda' : 'Lead qualificado')}${x.valor != null ? ' · ' + rsReais(x.valor) : ''} · ${esc(x.nome || 'Cliente')}${x.final ? ' (…' + esc(x.final) + ')' : ''}</b>
+      <small>${esc(x.titulo || '')}${x.etapa ? ' · ' + esc(x.etapa) : ''} · ${hora(x.em)}</small>${x.status === 'erro' && x.detalhe ? `<small style="color:var(--erro)">${esc(x.detalhe)}</small>` : ''}</div>
+      <span class="st ${(st[x.status] || st.pendente)[0]}">${(st[x.status] || st.pendente)[1]}</span></div>`).join('')}` : ''}
+    ${(d.leads || []).length ? `<h3 style="margin-top:18px">Últimos leads de anúncio</h3>${d.leads.map(x => `<div class="item"><div><b>${esc(x.nome || 'Cliente')}${x.final ? ' (…' + esc(x.final) + ')' : ''}</b><small>${esc(x.titulo || 'Anúncio sem título')}</small></div><small class="muted">${hora(x.em)}</small></div>`).join('')}` : ''}`;
+  ligarPeriodoRastreio();
+}
+function ligarPeriodoRastreio() {
+  document.querySelectorAll('[data-rs-periodo]').forEach(b => b.onclick = () => { rastPeriodo = Number(b.dataset.rsPeriodo); carregarRelatorioRastreio(); });
+}
+// Super Admin: liberar ou tirar o módulo da empresa (fica no histórico).
+async function carregarRastreioAdmin(e) {
+  const box = $('emRastreio'); box.innerHTML = '<h3>Rastreamento de anúncios</h3><p class="muted">Carregando…</p>';
+  let d; try { d = await api('admin-rastreio?organization=' + encodeURIComponent(e.id)); }
+  catch (err) { box.innerHTML = `<h3>Rastreamento de anúncios</h3><p class="muted">${esc(err.message)}</p>`; return; }
+  if (emAtual?.id !== e.id) return;
+  const sit = !d.liberado ? 'Não contratado' : d.ativo ? 'Ligado pelo cliente' : 'Liberado; o cliente ainda não ligou';
+  const extra = d.liberado ? ` · ${d.pixel ? 'pixel conectado' : 'sem pixel'} · ${d.leads30} lead(s) e ${d.vendas30} venda(s) em 30 dias${d.ultimoEvento ? ' · último evento há ' + quando(d.ultimoEvento) : ''}` : '';
+  box.innerHTML = `<div class="lista-topo"><div><h3>Rastreamento de anúncios <small class="muted">módulo extra</small></h3><p class="muted" style="margin-top:4px">${esc(sit + extra)}</p></div>
+    <span class="liga"><button type="button" class="switch" role="switch" aria-checked="${!!d.liberado}" id="emRsLiga" aria-label="Módulo de rastreamento liberado"><span></span></button><b class="${d.liberado ? 'on' : ''}">${d.liberado ? 'Liberado' : 'Bloqueado'}</b></span></div>`;
+  $('emRsLiga').onclick = async () => {
+    $('emRsLiga').disabled = true;
+    try { await api('admin-rastreio', { organization: e.id, liberar: !d.liberado }); toast(d.liberado ? 'Módulo retirado da empresa.' : 'Módulo liberado para a empresa.'); }
+    catch (err) { toast(err.message, true); }
+    carregarRastreioAdmin(e);
+  };
+}
 
 /* ═══════════ INÍCIO ═══════════ */
 const local = ['localhost', '127.0.0.1'].includes(location.hostname);

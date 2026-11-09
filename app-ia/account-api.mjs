@@ -5,6 +5,7 @@ import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,Conn
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
+import {configRastreio,conferirMeta,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel: conta nova já nasce no n8n novo (VPS); as contas abaixo seguem no antigo até a virada de cada uma.
@@ -268,6 +269,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      await asaas('POST',ja?'/webhooks/'+encodeURIComponent(ja.id):'/webhooks',retorno);
      await rpc('lv_admin_asaas_gravar',{ambiente,chave,token_retorno:token});
      send(res,200,await rpc('lv_admin_asaas_status'));
+    }else if(action==='admin-rastreio'){
+     // Módulo extra "Rastreamento de anúncios": o Super Admin libera ou tira por empresa (registrado no histórico).
+     const org=req.method==='GET'?q.get('organization'):body.organization;
+     if(!uuidOk(org))throw {status:400,message:'Empresa inválida.'};
+     if(req.method==='POST'&&typeof body.liberar!=='boolean')throw {status:400,message:'Ação inválida.'};
+     try{send(res,200,await rpc('lv_admin_rastreio',{org,liberar:req.method==='POST'?body.liberar:null}));}
+     catch{throw {status:409,message:'O módulo de rastreamento ainda não foi instalado no banco (rastreio.sql).'};}
     }else throw {status:404,message:'Não encontrado.'};
    }else if(action==='motor'){
     const q=new URL(req.url,'https://localhost').searchParams;
@@ -586,6 +594,59 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'}
       :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      send(res,200,{items:normalizeItems(list)});
+    }else throw {status:405,message:'Método não permitido.'};
+   }else if(action==='rastreio'||action==='rastreio-relatorio'||action==='rastreio-teste'){
+    // Rastreamento de anúncios (módulo extra). O webhook e o envio à Meta ficam na função "rastreio" do Supabase;
+    // aqui o dono configura, confere o token na Meta antes de salvar e manda um evento de teste.
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const org=req.method==='GET'?q.get('organization'):body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=(fn,args)=>upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:args});
+    const comEndereco=r=>{const {token,...resto}=r||{};return /^[0-9a-f]{32}$/.test(token||'')?{...resto,url:URL_BASE+'/functions/v1/rastreio?t='+token}:resto;};
+    const atual=async()=>{try{return await rpc('lv_rastreio',{org});}catch{return null;}};
+    if(action==='rastreio'&&req.method==='GET'){
+     const r=await atual();send(res,200,r?comEndereco(r):{setupPending:true});
+    }else if(action==='rastreio'&&req.method==='POST'){
+     let conf;try{conf=configRastreio(body);}catch(e){throw {status:400,message:e.message};}
+     const agora=await atual();
+     if(!agora?.liberado)throw {status:403,message:'O Rastreamento de anúncios é um módulo extra. Fale com a LeadVox para liberar.'};
+     if(!agora.podeEditar)throw {status:403,message:'Só o dono ou um admin da empresa pode mexer no rastreamento.'};
+     const tokenMeta=typeof body.tokenMeta==='string'?body.tokenMeta.trim():'';
+     let aviso='';
+     if(tokenMeta){
+      if(!/^[A-Za-z0-9_|.-]{20,1000}$/.test(tokenMeta))throw {status:400,message:'Esse token não parece da Meta. Copie de novo o token gerado no Gerenciador de Eventos.'};
+      if(!conf.pixelId)throw {status:400,message:'Informe o ID do pixel antes do token.'};
+      // Token inválido não é guardado. Se a Meta só não deixar ler o pixel, guarda e avisa: o envio de eventos pode funcionar mesmo assim.
+      try{await conferirMeta({id:conf.pixelId,token:tokenMeta,fetchImpl});}
+      catch(e){if(e.codigo===190||!e.codigo)throw {status:400,message:e.message};aviso='O token foi salvo, mas a Meta não deixou ler o pixel com ele. Use "Enviar teste" para confirmar.';}
+      try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov:'meta',conf:{pixelId:conf.pixelId,testedAt:new Date().toISOString()},sec:tokenMeta},prefer:'return=minimal'});}
+      catch{throw {status:400,message:'Não deu para guardar o token. Só o dono ou um admin da empresa pode conectar.'};}
+     }
+     if(conf.ativo){
+      if(!conf.pixelId)throw {status:400,message:'Para ligar, informe o ID do pixel.'};
+      if(!tokenMeta&&!agora.temToken)throw {status:400,message:'Para ligar, cole o token da Meta e salve.'};
+      if(conf.modo==='whatsapp'&&(!conf.wabaId||!conf.pageId))throw {status:400,message:'No modo WhatsApp oficial, informe a conta do WhatsApp Business e a página.'};
+     }
+     let r;try{r=await rpc('lv_rastreio_salvar',{org,conf});}catch{throw {status:400,message:'Não deu para salvar o rastreamento. Tente de novo.'};}
+     send(res,200,{...comEndereco(r),...(aviso?{aviso}:{})});
+    }else if(action==='rastreio-relatorio'&&req.method==='GET'){
+     const ini=q.get('ini'),fim=q.get('fim');
+     if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
+     let r;try{r=await rpc('lv_rastreio_relatorio',{org,ini,fim});}catch{throw {status:400,message:'Não deu para montar o relatório agora.'};}
+     send(res,200,r);
+    }else if(action==='rastreio-teste'&&req.method==='POST'){
+     // Evento de teste: aparece só na aba "Eventos de teste" do Gerenciador de Eventos (com o código de teste), não conta como venda.
+     const a=await atual();
+     if(!a?.liberado||!a.podeEditar)throw {status:403,message:'Só o dono ou um admin da empresa pode testar.'};
+     if(!a.pixelId)throw {status:400,message:'Informe e salve o ID do pixel.'};
+     if(!a.testeCodigo)throw {status:400,message:'Cole o código de teste (Gerenciador de Eventos → Eventos de teste) e salve antes de testar.'};
+     let s;try{s=(await rpc('lv_integration_secret',{org,prov:'meta'}))?.[0];}catch{s=null;}
+     if(!s?.secret)throw {status:409,message:'Cole o token da Meta e salve antes de testar.'};
+     const ev=await montarEvento({modo:a.modo,pixel:a.pixelId,waba:a.wabaId,page:a.pageId,teste:a.testeCodigo},
+      {id:'teste-'+Date.now(),tipo:'compra',evento:'Purchase',valor:1,hash:await sha256('5500000000000'),clid:null,contato:0});
+     const r=await enviarMeta({...ev,token:s.secret,fetchImpl});
+     if(!r.ok)throw {status:400,message:'A Meta recusou o teste: '+r.detalhe};
+     send(res,200,{ok:true,detalhe:r.detalhe});
     }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='organization'&&req.method==='POST'){
     if(typeof body.name!=='string'||body.name.trim().length<2||body.name.trim().length>100)throw {status:400,message:'Informe o nome da empresa.'};

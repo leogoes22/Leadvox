@@ -40,7 +40,8 @@ begin
   ('admin_robos.sql',    to_regproc('public.lv_admin_robos') is not null),
   ('excluir_empresa.sql', to_regproc('public.lv_admin_excluir_empresa') is not null),
   ('materiais.sql', to_regproc('public.lv_motor_material_salvar') is not null),
-  ('limpeza_arquivos.sql', to_regproc('public.iag_arquivos_antigos') is not null)
+  ('limpeza_arquivos.sql', to_regproc('public.iag_arquivos_antigos') is not null),
+  ('rastreio.sql', to_regclass('leadvox_private.rastreio_config') is not null)
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;
