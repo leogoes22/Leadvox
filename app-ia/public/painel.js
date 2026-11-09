@@ -1645,7 +1645,7 @@ function desenharPronto() {
 // Botão no topo: os passos para pôr a IA no ar (marcam sozinhos), como a plataforma funciona, um tour
 // que aponta cada coisa na tela e as dúvidas comuns. Abre sozinho na primeira vez em cada empresa.
 // Suporte pelo webchat da LeadVox (o mesmo do site leadvox.com.br): balão flutuante em todas as telas depois do login;
-// o chat já abre sabendo de qual empresa e e-mail a pessoa é.
+// a pessoa se identifica no formulário do próprio chat (nome e e-mail).
 const WEBCHAT = { sdk: 'https://chat.leadvox.com.br/webchat/sdk.js', token: '78ed9e3c-95ca-4b18-80e5-daa62c3ceb02', base: 'https://chatapi.leadvox.com.br' };
 let webchat = null;
 function carregarWebchat() {
@@ -1657,9 +1657,9 @@ function carregarWebchat() {
   });
   return webchat;
 }
-function identificarSuporte() {
-  try { window.$envioMensagemChat.setUser(conta.user.email, { name: (cfg.displayName || empresa.name) + ' · ' + conta.user.email, email: conta.user.email }); } catch {}
-}
+// O webchat da LeadVox recusa sessão com identificador (setUser) enquanto a "identidade" não estiver ligada no canal
+// (ERR_WEBCHAT_IDENTITY_DISABLED). Sem identificador, a conversa começa pelo formulário do chat.
+function identificarSuporte() {}
 function ligarSuporte() {
   carregarWebchat().then(() => { identificarSuporte(); try { window.$envioMensagemChat.toggleBubbleVisibility('show'); } catch {} }).catch(() => { webchat = null; });
 }
