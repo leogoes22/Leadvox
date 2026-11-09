@@ -610,7 +610,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const cliente=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});
     let p;try{p=await lerPaginaHistorico({cliente,status,pagina,desde:Date.now()-30*864e5});}
     catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou ler os atendimentos com o token salvo. Conecte de novo em Credenciais de API.'}
-     :{status:502,message:'A LeadVox não devolveu os atendimentos agora. Tente de novo em instantes.'};}
+     :{status:502,message:'A LeadVox não devolveu os atendimentos agora'+(e.http?' (código '+e.http+')':e.code?' ('+e.code+')':'')+'. Tente de novo em instantes.'};}
     let gravados=0;
     if(body.previa!==true&&p.leads.length){
      const leads=await Promise.all(p.leads.map(async l=>({contato:l.contato,hash:l.telefone?await sha256(l.telefone):null,final:l.telefone.slice(-4),nome:l.nome,
