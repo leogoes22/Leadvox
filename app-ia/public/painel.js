@@ -2573,7 +2573,7 @@ function desenharRastreio() {
         <li>Mande um "oi" para o WhatsApp da empresa: esta linha fica verde, com <b>✓ Recebendo</b>.</li></ol>
       <p class="muted" style="font-size:12.5px;margin-top:6px">O endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p>`)}
     ${passo(2, 'Pixel da Meta', `<form id="rsMeta"><p class="muted">No Gerenciador de Eventos: escolha o pixel → <b>Configurações</b> → <b>API de Conversões</b> → <b>Gerar token de acesso</b>. O ID do pixel aparece no topo da mesma tela.</p>
-      <div class="duas"><div><label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}></div>
+      <div class="duas"><div><label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="123456789012345" value="${esc(r.pixelId || '')}"${dis}></div>
         <div><label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}></div></div>
       <label for="rsTeste">Código de teste <small>(opcional: aba Eventos de teste, ex.: TEST12345)</small></label><input id="rsTeste" maxlength="40" value="${esc(r.testeCodigo || '')}"${dis}>
       <details class="rs-avancado"${r.temTokenAnuncios ? '' : ' open'}><summary>Conta de anúncio e campanha de cada lead ${r.temTokenAnuncios ? '<span class="st on">conectado</span>' : '<small>(recomendado)</small>'}</summary>
