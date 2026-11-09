@@ -130,6 +130,43 @@ export async function conferirMeta({ id, token, fetchImpl = fetch }) {
   return { id: String(j.id), nome: texto(j.name, 120) };
 }
 
+// Token de leitura de anúncios: a Meta precisa aceitar o token (GET /me). Código 190 = token inválido ou vencido.
+export async function conferirLeitura({ token, fetchImpl = fetch }) {
+  let r;
+  try { r = await fetchImpl(GRAPH + '/me?fields=id,name', { headers: { Authorization: 'Bearer ' + token }, redirect: 'error', signal: AbortSignal.timeout(12000) }); }
+  catch { throw Error('Não deu para falar com a Meta agora. Tente de novo em instantes.'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.id) { const e = Error('A Meta não aceitou esse token de leitura de anúncios: ' + texto(j.error?.message || 'acesso negado', 160)); e.codigo = Number(j.error?.code) || r.status; throw e; }
+  return { id: String(j.id), nome: texto(j.name, 120) };
+}
+// Conta de anúncio, campanha e conjunto de cada anúncio (o WhatsApp só traz o id e o título do anúncio).
+// Pede um token com leitura de anúncios (ads_read) das contas. Um anúncio por chamada, 5 de cada vez; depois o nome das contas.
+export async function buscarAnuncios({ ids, token, fetchImpl = fetch, concorrencia = 5 }) {
+  const ler = async caminho => {
+    let r;
+    try { r = await fetchImpl(GRAPH + '/' + caminho, { headers: { Authorization: 'Bearer ' + token }, redirect: 'error', signal: AbortSignal.timeout(12000) }); }
+    catch { return { erro: 'A Meta não respondeu.', codigo: 0 }; }
+    const j = await r.json().catch(() => ({}));
+    return r.ok && !j.error ? j : { erro: texto(j.error?.message || ('Status ' + r.status), 250), codigo: Number(j.error?.code) || r.status };
+  };
+  const lista = [...new Set((ids || []).map(x => digitos(x, 30)).filter(Boolean))].slice(0, 50), saida = [], fila = [...lista];
+  let tokenRuim = '';
+  async function trabalhador() {
+    while (fila.length && !tokenRuim) {
+      const id = fila.shift();
+      const j = await ler(encodeURIComponent(id) + '?fields=' + encodeURIComponent('name,account_id,campaign{id,name},adset{name}'));
+      if (j.codigo === 190) { tokenRuim = j.erro; break; }
+      saida.push(j.erro ? { anuncio: id, status: 'erro', detalhe: j.erro }
+        : { anuncio: id, status: 'ok', nome: texto(j.name, 200), contaId: digitos(j.account_id, 30), campanhaId: digitos(j.campaign?.id, 30), campanha: texto(j.campaign?.name, 200), conjunto: texto(j.adset?.name, 200) });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concorrencia, lista.length)) }, trabalhador));
+  if (tokenRuim) { const e = Error('A Meta não aceitou o token de leitura de anúncios: ' + tokenRuim); e.codigo = 190; throw e; }
+  const contas = [...new Set(saida.map(x => x.contaId).filter(Boolean))], nomes = {};
+  for (const c of contas) { const j = await ler('act_' + c + '?fields=name'); if (!j.erro) nomes[c] = texto(j.name, 200); }
+  return saida.map(x => x.contaId ? { ...x, contaNome: nomes[x.contaId] || '' } : x);
+}
+
 const resposta = (status, dados) => new Response(JSON.stringify(dados), { status, headers: { 'Content-Type': 'application/json' } });
 
 // rpc(nome, args) chama as funções iag_rastreio_* do banco com a chave de serviço; depois(p) deixa o envio à Meta
@@ -171,7 +208,7 @@ export function createRastreio({ rpc, fetchImpl = fetch, agora = () => new Date(
         const r = await rpc('iag_rastreio_visto', { p_token: token });
         return resposta(r?.ok ? 200 : 404, { ok: !!r?.ok });
       }
-      const r = await rpc('iag_rastreio_lead', { p_token: token, p: { contato: m.contato, hash: m.telefone ? await sha256(m.telefone) : null, final: m.telefone.slice(-4),
+      const r = await rpc('iag_rastreio_lead', { p_token: token, p: { contato: m.contato, hash: m.telefone ? await sha256(m.telefone) : null, final: m.telefone.slice(-4), telefone: m.telefone || null,
         nome: m.nome, ...a } });
       return resposta(r?.ok ? 200 : 404, { ok: !!r?.ok, novo: !!r?.novo });
     } catch {

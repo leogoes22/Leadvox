@@ -5,7 +5,7 @@ import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,Conn
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
-import {configRastreio,conferirMeta,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
+import {configRastreio,conferirMeta,conferirLeitura,buscarAnuncios,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel: conta nova já nasce no n8n novo (VPS); as contas abaixo seguem no antigo até a virada de cada uma.
@@ -276,6 +276,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(req.method==='POST'&&typeof body.liberar!=='boolean')throw {status:400,message:'Ação inválida.'};
      try{send(res,200,await rpc('lv_admin_rastreio',{org,liberar:req.method==='POST'?body.liberar:null}));}
      catch{throw {status:409,message:'O módulo de rastreamento ainda não foi instalado no banco (rastreio.sql).'};}
+    }else if(action==='admin-rastreio-lista'&&req.method==='GET'){
+     try{send(res,200,{empresas:await rpc('lv_admin_rastreio_lista')});}
+     catch{throw {status:409,message:'Rode rastreio_contas.sql para ver a lista do rastreamento.'};}
     }else throw {status:404,message:'Não encontrado.'};
    }else if(action==='motor'){
     const q=new URL(req.url,'https://localhost').searchParams;
@@ -622,6 +625,15 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
       try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov:'meta',conf:{pixelId:conf.pixelId,testedAt:new Date().toISOString()},sec:tokenMeta},prefer:'return=minimal'});}
       catch{throw {status:400,message:'Não deu para guardar o token. Só o dono ou um admin da empresa pode conectar.'};}
      }
+     const tokenAnuncios=typeof body.tokenAnuncios==='string'?body.tokenAnuncios.trim():'';
+     if(tokenAnuncios){
+      // Token de leitura de anúncios (ads_read): mostra a conta, a campanha e o conjunto de cada lead. Token inválido não é guardado.
+      if(!/^[A-Za-z0-9_|.-]{20,1000}$/.test(tokenAnuncios))throw {status:400,message:'Esse token de leitura de anúncios não parece da Meta. Copie de novo.'};
+      try{await conferirLeitura({token:tokenAnuncios,fetchImpl});}catch(e){throw {status:400,message:e.message};}
+      try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov:'meta_ads',conf:{testedAt:new Date().toISOString()},sec:tokenAnuncios},prefer:'return=minimal'});}
+      catch{throw {status:400,message:'Não deu para guardar o token de leitura de anúncios. Tente de novo.'};}
+      await rpc('lv_rastreio_anuncios_reset',{org}).catch(()=>null);
+     }
      if(conf.ativo){
       if(!conf.pixelId)throw {status:400,message:'Para ligar, informe o ID do pixel.'};
       if(!tokenMeta&&!agora.temToken)throw {status:400,message:'Para ligar, cole o token da Meta e salve.'};
@@ -632,7 +644,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     }else if(action==='rastreio-relatorio'&&req.method==='GET'){
      const ini=q.get('ini'),fim=q.get('fim');
      if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
-     let r;try{r=await rpc('lv_rastreio_relatorio',{org,ini,fim});}catch{throw {status:400,message:'Não deu para montar o relatório agora.'};}
+     const conta=q.get('conta')||null;
+     if(conta&&!/^([0-9]{1,30}|sem)$/.test(conta))throw {status:400,message:'Conta de anúncio inválida.'};
+     // Anúncios novos: busca na Meta a conta, a campanha e o conjunto. Só dono ou admin lê o token; falha aqui não impede o relatório.
+     try{
+      const ids=await rpc('lv_rastreio_anuncios_pendentes',{org});
+      if(Array.isArray(ids)&&ids.length){
+       const segredo=async prov=>{try{return (await rpc('lv_integration_secret',{org,prov}))?.[0]?.secret||'';}catch{return '';}};
+       const s=await segredo('meta_ads')||await segredo('meta');
+       if(s){const itens=await buscarAnuncios({ids,token:s,fetchImpl});if(itens.length)await rpc('lv_rastreio_anuncios_salvar',{org,itens});}
+      }
+     }catch{}
+     let r;try{r=await rpc('lv_rastreio_relatorio',conta?{org,ini,fim,conta}:{org,ini,fim});}catch{throw {status:400,message:'Não deu para montar o relatório agora.'};}
      send(res,200,r);
     }else if(action==='rastreio-teste'&&req.method==='POST'){
      // Evento de teste: aparece só na aba "Eventos de teste" do Gerenciador de Eventos (com o código de teste), não conta como venda.

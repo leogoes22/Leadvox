@@ -78,8 +78,9 @@ test('webhook: mensagem de anúncio grava a origem com telefone em hash; mensage
  const {h,rpcs}=cenario({iag_rastreio_lead:{ok:true,novo:true},iag_rastreio_visto:{ok:true}});
  const r=await h(pedido(msgAnuncio));assert.equal(r.status,200);assert.deepEqual(await r.json(),{ok:true,novo:true});
  const [nome,args]=rpcs[0];assert.equal(nome,'iag_rastreio_lead');assert.equal(args.p_token,TOKEN);
- assert.deepEqual(args.p,{contato:5501,hash:await sha256('5521999990001'),final:'0001',nome:'Cliente Teste',anuncio:'120261108542910537',titulo:'CHUVA DE 160',link:'https://fb.me/abc',clid:'ARAkLkA8rmlFeiCktEJQ',midia:'video'});
- assert.doesNotMatch(JSON.stringify(args),/5521999990001/);
+ assert.deepEqual(args.p,{contato:5501,hash:await sha256('5521999990001'),final:'0001',telefone:'5521999990001',nome:'Cliente Teste',anuncio:'120261108542910537',titulo:'CHUVA DE 160',link:'https://fb.me/abc',clid:'ARAkLkA8rmlFeiCktEJQ',midia:'video'});
+ // O número completo fica só no banco da empresa (o cliente já tem na LeadVox); para a Meta vai só o hash (teste do evento acima).
+ assert.equal(args.p.telefone,'5521999990001');
  await h(pedido(msgComum));assert.equal(rpcs[1][0],'iag_rastreio_visto');
  // mensagem da equipe e de grupo não chegam ao banco
  await h(pedido({message:{...msgAnuncio.message,fromMe:true}}));await h(pedido({message:{...msgComum.message,ticket:{contact:{id:1,isGroup:true}}}}));

@@ -20,7 +20,9 @@ Liga o lead que chegou por anúncio de clique para WhatsApp à venda e avisa a M
 - **O cliente configura sozinho** (menu Rastreamento de anúncios): cria na LeadVox uma API só para o rastreamento com o webhook mostrado na tela (eventos de mensagens e de oportunidades), cola o ID do pixel e o token da API de Conversões (Gerenciador de Eventos), escolhe as etapas de "lead qualificado" e liga.
 - **Peças:** `database/rastreio.sql` (rodar parte por parte), função `supabase/functions/rastreio` (publicar com verify_jwt desligado, `rastreio.mjs` + `index.ts`), rotas `rastreio`, `rastreio-relatorio`, `rastreio-teste` e `admin-rastreio` em `account-api.mjs`.
 - **Como avisa a Meta:** modo padrão pelo pixel (action_source `chat`, telefone em SHA-256). O modo "WhatsApp oficial" (business_messaging com o código do clique) só funciona com um app da Meta com `whatsapp_business_manage_events` aprovado.
-- O telefone do cliente não é guardado: só o SHA-256 e os 4 últimos dígitos. Um envio por card e por tipo.
+- O telefone do cliente fica só no banco da empresa (ele já tem o número na LeadVox); para a Meta vai só o SHA-256. Um envio por card e por tipo.
+- **Conta de anúncio e campanha:** o WhatsApp só traz o id e o título do anúncio. Ao abrir os Resultados, o painel busca na Meta a conta, a campanha e o conjunto de cada anúncio novo (token de leitura `ads_read` de um usuário do sistema, provedor `meta_ads`; sem ele tenta o token da API de Conversões) e guarda em `rastreio_anuncios`. Os Resultados filtram por conta (ex.: Carros e Motos). Rodar `database/rastreio_contas.sql`.
+- **Super Admin:** Painel LeadVox → card "Rastreamento de anúncios" com cada cliente do módulo, contas, leads, vendas e a mensalidade pela tabela (R$ 99 + R$ 39 por conta a mais).
 - **Sem histórico:** o rastreamento conta a partir do dia em que é ligado. A LeadVox não guarda nas mensagens de qual anúncio o cliente veio, e ler `/messages/{ticketId}` marca a conversa como lida (e pode mandar o "visto" ao cliente). Não ler conversas da LeadVox em massa.
 
 ## Executar

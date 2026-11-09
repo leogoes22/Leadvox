@@ -2099,6 +2099,25 @@ async function carregarLv() {
   lv = d.empresas || []; lvAsaas = d.asaas || {};
   desenharLv(); desenharAsaas();
   carregarConsumo().catch(err => { $('lvConsumo').innerHTML = `<p class="muted">${esc(err.message)}</p>`; });
+  carregarRastreioLista();
+}
+// Módulo "Rastreamento de anúncios": quem tem, quantas contas de anúncio, leads e vendas em 30 dias e a mensalidade
+// (R$ 99 com 1 conta + R$ 39 por conta a mais). Some sem erro se o banco ainda não tiver rastreio_contas.sql.
+const RASTREIO_PRECO = 99, RASTREIO_CONTA = 39;
+async function carregarRastreioLista() {
+  const box = $('lvRastreio'); if (!box) return;
+  let d; try { d = await api('admin-rastreio-lista'); } catch { box.hidden = true; return; }
+  const lista = d.empresas || [];
+  box.hidden = !lista.length;
+  const preco = e => RASTREIO_PRECO + RASTREIO_CONTA * Math.max(0, (Number(e.contas) || 1) - 1);
+  const total = lista.reduce((t, e) => t + preco(e), 0);
+  $('lvRastreioResumo').textContent = `${lista.length} cliente(s) com o módulo · ${dinheiro(total * 100)} por mês pela tabela (R$ ${RASTREIO_PRECO} + R$ ${RASTREIO_CONTA} por conta de anúncio a mais).`;
+  $('lvRastreioLista').innerHTML = `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Empresa</th><th>Situação</th><th class="num">Contas</th><th class="num">Leads 30d</th><th class="num">Vendas 30d</th><th class="num">Valor vendido</th><th class="num">Mensalidade</th><th>Último evento</th><th></th></tr></thead><tbody>
+    ${lista.map(e => {
+      const s = !e.ativo ? ['rascunho', 'Liberado, falta ligar'] : e.erros7 ? ['perdida', e.erros7 + ' envio(s) com erro'] : ['on', 'Ligado'];
+      return `<tr><td><b>${esc(e.nome)}</b></td><td><span class="st ${s[0]}">${esc(s[1])}</span></td><td class="num">${e.contas || '—'}</td><td class="num">${e.leads30 || 0}</td>
+        <td class="num">${e.vendas30 || 0}</td><td class="num">${rsReais(e.valor30)}</td><td class="num">${dinheiro(preco(e) * 100)}</td><td>${quando(e.ultimoEvento)}</td>
+        <td><button class="sm" type="button" data-em-abrir="${esc(e.id)}">Gerenciar</button></td></tr>`; }).join('')}</tbody></table></div>`;
 }
 function alertasDe(e) {
   const a = [], c = e.cobranca || {}, agora = Date.now(), u = e.uso7 || {};
@@ -2499,7 +2518,7 @@ $('opBusca').oninput = desenharOportunidades;
 /* ═══════════ RASTREAMENTO DE ANÚNCIOS (módulo extra) ═══════════
    Webhook próprio na LeadVox → função "rastreio" do Supabase: grava de qual anúncio veio o lead e avisa a Meta
    quando o card fica qualificado ou ganho. Aqui o dono configura e acompanha; o Super Admin libera o módulo. */
-let rast = null, rastPeriodo = 30, rastRel = null;
+let rast = null, rastPeriodo = 30, rastRel = null, rastConta = null;
 const rsReais = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const EVENTO_QUALIF = { QualifiedLead: 'Lead qualificado (QualifiedLead)', Lead: 'Lead (Lead)', LeadSubmitted: 'Lead na conversa (LeadSubmitted)', Contact: 'Contato (Contact)',
   Schedule: 'Agendamento (Schedule)', SubmitApplication: 'Ficha enviada (SubmitApplication)', CompleteRegistration: 'Cadastro completo (CompleteRegistration)' };
@@ -2546,6 +2565,12 @@ function desenharRastreio() {
       <label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}>
       <label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}>
       <label for="rsTeste">Código de teste <small>(opcional: aba Eventos de teste, ex.: TEST12345)</small></label><input id="rsTeste" maxlength="40" value="${esc(r.testeCodigo || '')}"${dis}>
+      <details class="rs-avancado"${r.temTokenAnuncios ? '' : ' open'}><summary>Conta de anúncio e campanha de cada lead ${r.temTokenAnuncios ? '<span class="st on">conectado</span>' : '<small>(recomendado)</small>'}</summary>
+        <p class="muted" style="margin-top:6px">O WhatsApp só informa o anúncio. Com este token o painel mostra a conta de anúncio, a campanha e o conjunto, e separa os resultados por conta.</p>
+        <ol class="passos-ev"><li>Configurações do negócio → <b>Usuários do sistema</b> → escolha ou crie um usuário (função Administrador).</li>
+          <li><b>Atribuir ativos</b> → marque as contas de anúncio (ver desempenho).</li>
+          <li><b>Gerar token</b> → permissão <b>ads_read</b> → validade <b>Nunca</b> → copie e cole aqui.</li></ol>
+        <label for="rsTokenAds">Token de leitura de anúncios</label><input id="rsTokenAds" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temTokenAnuncios ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}></details>
       <details class="rs-avancado"${r.modo === 'whatsapp' ? ' open' : ''}><summary>Modo WhatsApp oficial (precisa do app da LeadVox aprovado pela Meta)</summary>
         <label for="rsModo">Como avisar a Meta</label><select id="rsModo"${dis}><option value="pixel">Pelo pixel, com o telefone do cliente (padrão)</option><option value="whatsapp"${r.modo === 'whatsapp' ? ' selected' : ''}>WhatsApp oficial, com o código do clique no anúncio</option></select>
         <div class="duas"><div><label for="rsWaba">ID da conta do WhatsApp Business</label><input id="rsWaba" inputmode="numeric" maxlength="20" value="${esc(r.wabaId || '')}"${dis}></div>
@@ -2588,7 +2613,7 @@ function desenharEtapasRastreio() {
 }
 async function salvarRastreio(ativo) {
   const etapas = $('rsEtapas').querySelector('[data-rs-etapa]') ? [...document.querySelectorAll('[data-rs-etapa]:checked')].map(x => Number(x.dataset.rsEtapa)) : (rast.etapasQualificado || []);
-  const corpo = { organization: empresa.id, ativo: ativo === undefined ? !!rast.ativo : ativo, modo: $('rsModo').value, pixelId: $('rsPixel').value.trim(), tokenMeta: $('rsToken').value.trim(),
+  const corpo = { organization: empresa.id, ativo: ativo === undefined ? !!rast.ativo : ativo, modo: $('rsModo').value, pixelId: $('rsPixel').value.trim(), tokenMeta: $('rsToken').value.trim(), tokenAnuncios: $('rsTokenAds').value.trim(),
     testeCodigo: $('rsTeste').value.trim(), wabaId: $('rsWaba').value.trim(), pageId: $('rsPage').value.trim(), enviarCompra: $('rsCompra').checked,
     etapasQualificado: etapas, eventoQualificado: $('rsEvento').value };
   try {
@@ -2599,31 +2624,48 @@ async function salvarRastreio(ativo) {
 }
 async function carregarRelatorioRastreio() {
   const fim = new Date(), ini = new Date(Date.now() - (rastPeriodo - 1) * 864e5), dia = d => d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  try { rastRel = await api('rastreio-relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + dia(ini) + '&fim=' + dia(fim)); }
+  try { rastRel = await api('rastreio-relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + dia(ini) + '&fim=' + dia(fim) + (rastConta ? '&conta=' + encodeURIComponent(rastConta) : '')); }
   catch (err) { rastRel = { erro: err.message }; }
   desenharRelatorioRastreio();
 }
+// Telefone para mostrar: 5521998761234 → (21) 99876-1234. Sem o número completo (leads antigos), só o final.
+function rsFone(x) {
+  const d = String(x?.telefone || '').replace(/\D/g, ''), n = d.startsWith('55') && d.length >= 12 ? d.slice(2) : d;
+  if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+  if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+  return d ? '+' + d : x?.final ? '…' + x.final : '';
+}
+const rsConta = x => x?.conta ? `<span class="rs-conta">${esc(x.conta)}</span>` : '';
 function desenharRelatorioRastreio() {
   const el = $('rsRel'); if (!el) return;
-  const d = rastRel || {}, t = d.totais || {};
+  const d = rastRel || {}, t = d.totais || {}, contas = d.contas || [];
   const periodo = `<div class="form-bts">${[7, 30, 90].map(n => `<button type="button" class="sm${n === rastPeriodo ? ' principal' : ''}" data-rs-periodo="${n}">${n} dias</button>`).join('')}</div>`;
   if (d.erro) { el.innerHTML = `<h3>Resultados</h3>${periodo}<p class="alerta">${esc(d.erro)}</p>`; ligarPeriodoRastreio(); return; }
+  // Filtro por conta de anúncio: aparece quando há mais de uma conta (ou um filtro já escolhido).
+  const filtro = contas.length > 1 || rastConta ? `<div class="form-bts rs-filtro"><button type="button" class="sm${!rastConta ? ' principal' : ''}" data-rs-conta="">Todas as contas</button>${contas.map(c =>
+    `<button type="button" class="sm${rastConta === c.id ? ' principal' : ''}" data-rs-conta="${esc(c.id)}">${esc(c.id === 'sem' ? 'Conta não identificada' : c.nome || 'Conta ' + c.id)} <small>${c.leads}</small></button>`).join('')}</div>` : '';
+  const aviso = d.semConta && !rast?.temTokenAnuncios ? `<p class="dica">${d.semConta} lead(s) ainda sem conta de anúncio. Para ver a conta e a campanha, cole o token de leitura de anúncios no passo 2.</p>` : '';
   const st = { enviado: ['on', 'A Meta recebeu'], erro: ['perdida', 'Não enviado'], pendente: ['rascunho', 'Enviando'] };
+  const sit = { venda: ['on', 'Venda'], qualificado: ['rascunho', 'Qualificado'], lead: ['', 'Lead'] };
   const hora = x => new Date(x).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div></div>${periodo}
+  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div></div>${periodo}${filtro}${aviso}
     <div class="rs-totais"><div><b>${t.leads || 0}</b><span>leads de anúncio</span></div><div><b>${t.qualificados || 0}</b><span>qualificados</span></div>
       <div><b>${t.vendas || 0}</b><span>vendas</span></div><div><b>${rsReais(t.valor)}</b><span>em vendas</span></div></div>
-    ${(d.anuncios || []).length ? `<div class="rolo"><table class="tabela-d"><thead><tr><th>Anúncio</th><th>Leads</th><th>Qualificados</th><th>Vendas</th><th>Valor</th></tr></thead><tbody>
-      ${d.anuncios.map(a => `<tr><td>${esc(a.titulo || 'Anúncio sem título')}<br><small class="muted">${esc(a.anuncio || 'sem id')}</small></td><td>${a.leads}</td><td>${a.qualificados}</td><td>${a.vendas}</td><td>${rsReais(a.valor)}</td></tr>`).join('')}</tbody></table></div>`
+    ${(d.anuncios || []).length ? `<div class="rolo"><table class="tabela-d"><thead><tr><th>Campanha / anúncio</th><th>Conta</th><th>Leads</th><th>Qualificados</th><th>Vendas</th><th>Valor</th></tr></thead><tbody>
+      ${d.anuncios.map(a => `<tr><td>${a.campanha ? esc(a.campanha) + '<br>' : ''}<small class="${a.campanha ? 'muted' : ''}">${esc(a.titulo || 'Anúncio sem título')}${a.conjunto ? ' · ' + esc(a.conjunto) : ''}</small></td>
+        <td>${rsConta(a) || '<small class="muted">—</small>'}</td><td>${a.leads}</td><td>${a.qualificados}</td><td>${a.vendas}</td><td>${rsReais(a.valor)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="muted" style="margin-top:10px">Nenhum lead de anúncio no período. Os leads aparecem aqui quando o cliente manda mensagem por um anúncio de clique para WhatsApp.</p>'}
-    ${(d.envios || []).length ? `<h3 style="margin-top:18px">Últimos avisos para a Meta</h3>${d.envios.map(x => `<div class="item"><div><b>${esc(x.tipo === 'compra' ? 'Venda' : 'Lead qualificado')}${x.valor != null ? ' · ' + rsReais(x.valor) : ''} · ${esc(x.nome || 'Cliente')}${x.final ? ' (…' + esc(x.final) + ')' : ''}</b>
-      <small>${esc(x.titulo || '')}${x.etapa ? ' · ' + esc(x.etapa) : ''} · ${hora(x.em)}</small>${x.status === 'erro' && x.detalhe ? `<small style="color:var(--erro)">${esc(x.detalhe)}</small>` : ''}</div>
-      <span class="st ${(st[x.status] || st.pendente)[0]}">${(st[x.status] || st.pendente)[1]}</span></div>`).join('')}` : ''}
-    ${(d.leads || []).length ? `<h3 style="margin-top:18px">Últimos leads de anúncio</h3>${d.leads.map(x => `<div class="item"><div><b>${esc(x.nome || 'Cliente')}${x.final ? ' (…' + esc(x.final) + ')' : ''}</b><small>${esc(x.titulo || 'Anúncio sem título')}</small></div><small class="muted">${hora(x.em)}</small></div>`).join('')}` : ''}`;
+    ${(d.leads || []).length ? `<h3 style="margin-top:18px">Últimos leads de anúncio</h3>${d.leads.map(x => `<div class="item"><div><b>${esc(x.nome || 'Cliente')}</b> <small class="muted">${esc(rsFone(x))}</small>
+      <small>${esc(x.campanha ? x.campanha + ' · ' : '')}${esc(x.titulo || 'Anúncio sem título')} ${rsConta(x)}</small></div>
+      <div style="text-align:right"><span class="st ${sit[x.situacao]?.[0] || ''}">${sit[x.situacao]?.[1] || 'Lead'}${x.situacao === 'venda' && Number(x.valor) ? ' · ' + rsReais(x.valor) : ''}</span><br><small class="muted">${hora(x.em)}</small></div></div>`).join('')}` : ''}
+    ${(d.envios || []).length ? `<h3 style="margin-top:18px">Últimos avisos para a Meta</h3>${d.envios.map(x => `<div class="item"><div><b>${esc(x.tipo === 'compra' ? 'Venda' : 'Lead qualificado')}${x.valor != null ? ' · ' + rsReais(x.valor) : ''} · ${esc(x.nome || 'Cliente')}</b> <small class="muted">${esc(rsFone(x))}</small>
+      <small>${esc(x.titulo || '')}${x.etapa ? ' · ' + esc(x.etapa) : ''} · ${hora(x.em)} ${rsConta(x)}</small>${x.status === 'erro' && x.detalhe ? `<small style="color:var(--erro)">${esc(x.detalhe)}</small>` : ''}</div>
+      <span class="st ${(st[x.status] || st.pendente)[0]}">${(st[x.status] || st.pendente)[1]}</span></div>`).join('')}` : ''}`;
   ligarPeriodoRastreio();
 }
 function ligarPeriodoRastreio() {
   document.querySelectorAll('[data-rs-periodo]').forEach(b => b.onclick = () => { rastPeriodo = Number(b.dataset.rsPeriodo); carregarRelatorioRastreio(); });
+  document.querySelectorAll('[data-rs-conta]').forEach(b => b.onclick = () => { rastConta = b.dataset.rsConta || null; carregarRelatorioRastreio(); });
 }
 // Super Admin: liberar ou tirar o módulo da empresa (fica no histórico).
 async function carregarRastreioAdmin(e) {
