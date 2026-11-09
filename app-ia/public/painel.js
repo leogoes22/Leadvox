@@ -235,6 +235,7 @@ const IC = {
   escudo: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
   caixa: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
   lista: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  globo: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
   alvo: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/>'
 };
 // O catálogo muda com o segmento da empresa: veículos (automotivo), serviços (saúde, advocacia, educação, viagens) ou produtos (o resto).
@@ -251,6 +252,7 @@ const MENU = [
   ['agentes', 'Agentes LeadVox IA', 'robo', 'Sua IA: identidade, o que ela entende e como age.'],
   ['painel', 'Painel', 'grafico', 'Visão geral, oportunidades e anúncios.'],
   ['estoque', 'Estoque', 'carro', 'Os veículos que a IA oferece, com foto e preço.'],
+  ['site', 'Site da loja', 'globo', 'Temas de datas comemorativas e campanha em pop-up no seu site.'],
   ['etiquetas', 'Etiquetas', 'tag', 'As etiquetas da sua LeadVox.'],
   ['status', 'Etapas do funil', 'kanban', 'As etapas do funil da sua LeadVox.'],
   ['origens', 'Origens do lead', 'origem', 'De onde vêm os seus clientes, na sua LeadVox.'],
@@ -271,7 +273,7 @@ const PAINEL_ABAS = [
   ['rastreio', 'Anúncios', 'alvo', 'Qual anúncio trouxe cada lead e cada venda, e o aviso para a Meta.']
 ];
 let painelAba = 'dashboard';
-const SECAO = { agentes: 'vAgentes', painel: 'vDashboard', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
+const SECAO = { agentes: 'vAgentes', painel: 'vDashboard', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', site: 'vSite', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
   departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
@@ -281,7 +283,7 @@ const LISTA = {
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
   motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…']
 };
-const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
+const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'site' ? (cfg.niche === 'automotivo' || !!conta.platformAdmin) : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
 
 function desenharMenu() {
@@ -471,6 +473,7 @@ function abrir(pg) {
   if (pg === 'dashboard') carregarDashboard();
   if (pg === 'oportunidades') carregarOportunidades();
   if (pg === 'rastreio') carregarRastreio();
+  if (pg === 'site') carregarSite();
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
@@ -2823,3 +2826,123 @@ const local = ['localhost', '127.0.0.1'].includes(location.hostname);
 setModo('login');
 if (location.protocol !== 'https:' && !local) { $('pHttp').hidden = false; $('formPorta').hidden = true; $('pLinks').hidden = true; }
 else carregar().catch(() => porta(false));
+
+// ═══ Site da loja: temas de datas comemorativas e campanha em pop-up (public/site/tema.js) ═══
+const SITE_TEMAS = [['natal', '🎄 Natal'], ['ano-novo', '✨ Ano Novo'], ['carnaval', '🎉 Carnaval'], ['dia-das-maes', '💐 Dia das Mães'],
+  ['dia-dos-pais', '👔 Dia dos Pais'], ['dia-do-cliente', '🤝 Dia do Cliente'], ['black-friday', '🏷️ Black Friday']];
+// INÍCIO datasDoAno: as próximas datas de cada tema a partir de hoje (o teste roda este trecho sozinho)
+function datasDoAno(hoje) {
+  const d = (a, m, dia) => new Date(Date.UTC(a, m - 1, dia));
+  const iso = x => x.toISOString().slice(0, 10), mais = (x, n) => new Date(x.getTime() + n * 864e5);
+  const pascoa = a => {
+    const b = a % 19, c = Math.floor(a / 100), e = a % 100, f = Math.floor(c / 4), g = c % 4, h = Math.floor((c + 8) / 25), i = Math.floor((c - h + 1) / 3);
+    const j = (19 * b + c - f - i + 15) % 30, k = Math.floor(e / 4), l = e % 4, m = (32 + 2 * g + 2 * k - j - l) % 7, n = Math.floor((b + 11 * j + 22 * m) / 451);
+    return d(a, Math.floor((j + m - 7 * n + 114) / 31), ((j + m - 7 * n + 114) % 31) + 1);
+  };
+  const domingo = (a, m, qual) => { let x = d(a, m, 1); while (x.getUTCDay() !== 0) x = mais(x, 1); return mais(x, 7 * (qual - 1)); };
+  const blackFriday = a => { let x = d(a, 11, 1); while (x.getUTCDay() !== 4) x = mais(x, 1); return mais(x, 22); }; // a sexta depois da 4ª quinta
+  const faixas = a => ({
+    'carnaval': [mais(pascoa(a), -54), mais(pascoa(a), -46)],
+    'dia-das-maes': [mais(domingo(a, 5, 2), -7), domingo(a, 5, 2)],
+    'dia-dos-pais': [mais(domingo(a, 8, 2), -7), domingo(a, 8, 2)],
+    'dia-do-cliente': [d(a, 9, 10), d(a, 9, 15)],
+    'black-friday': [mais(blackFriday(a), -7), mais(blackFriday(a), 3)],
+    'natal': [d(a, 12, 1), d(a, 12, 26)],
+    'ano-novo': [d(a, 12, 27), d(a + 1, 1, 2)]
+  });
+  const h = iso(hoje), ano = Number(h.slice(0, 4));
+  return SITE_TEMAS.map(([tema]) => {
+    let [ini, fim] = faixas(ano)[tema];
+    if (iso(fim) < h) [ini, fim] = faixas(ano + 1)[tema];
+    return { tema, inicio: iso(ini), fim: iso(fim) };
+  }).sort((x, y) => x.inicio.localeCompare(y.inicio));
+}
+// FIM datasDoAno
+let siteCfg = null;
+async function carregarSite() {
+  const el = $('stConteudo'); el.innerHTML = '<div class="card"><p class="muted">Carregando…</p></div>';
+  try { siteCfg = await api('site-temas?organization=' + encodeURIComponent(empresa.id)); }
+  catch (err) { el.innerHTML = `<div class="card"><p class="alerta">${esc(err.message)}</p></div>`; return; }
+  desenharSite();
+}
+function desenharSite() {
+  const s = siteCfg || {}, c = s.campanha || {}, el = $('stConteudo');
+  const opcoes = sel => SITE_TEMAS.map(([v, n]) => `<option value="${v}"${v === sel ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  const linha = (a, i) => `<div class="duas st-linha" data-i="${i}"><div><label>Tema</label><select class="stAgTema">${opcoes(a.tema)}</select></div>
+    <div class="st-datas"><div><label>De</label><input type="date" class="stAgIni" value="${esc(a.inicio || '')}"></div><div><label>Até</label><input type="date" class="stAgFim" value="${esc(a.fim || '')}"></div>
+    <button type="button" class="sm" data-st-tira="${i}" aria-label="Tirar esta data">Tirar</button></div></div>`;
+  const codigo = s.conta ? `<script src="${location.origin}/site/tema.js" data-loja="${s.conta}" defer></script>` : '';
+  const siteLoja = (cfg.loja && cfg.loja.site) || '';
+  el.innerHTML = `
+    <div class="card estreito"><h3>1 · Ligar no seu site</h3>
+      ${s.conta ? `<p class="muted" style="margin-top:6px">Cole este código uma vez no seu site, antes de &lt;/body&gt;. Nos sites feitos pela LeadVox, a gente já cola para você.</p>
+        <div class="form-bts" style="flex-wrap:nowrap"><input id="stCodigo" readonly value="${esc(codigo)}"><button type="button" class="sm" id="stCopiar">Copiar</button></div>`
+        : '<p class="alerta" style="margin-top:6px">Ligue a sua IA primeiro (menu Agentes): o código do site usa a conta da IA.</p>'}
+    </div>
+    <form class="card estreito" id="stForm">
+      <h3>2 · Tema agora</h3>
+      <p class="muted" style="margin-top:6px">Liga na hora e fica até você desligar. Para deixar no automático, use a agenda abaixo.</p>
+      <div class="duas"><div><label for="stTema">Tema</label><select id="stTema"><option value="">Nenhum (usar a agenda)</option>${opcoes(s.tema || '')}</select></div>
+        <div><label class="st-check"><input type="checkbox" id="stMusica"${s.musica ? ' checked' : ''}> Botão de música no Natal e no Ano Novo (só toca se o cliente clicar)</label></div></div>
+      <h3 class="st-tit">3 · Agenda do ano</h3>
+      <p class="muted" style="margin-top:6px">Cada tema liga e desliga sozinho nas datas. Até 12 datas.</p>
+      <div id="stAgenda">${(s.agenda || []).map(linha).join('') || '<p class="muted">Nenhuma data na agenda.</p>'}</div>
+      <div class="form-bts"><button type="button" class="sm" id="stSugerir">Sugerir as datas do ano</button><button type="button" class="sm" id="stMais">Adicionar data</button></div>
+      <h3 class="st-tit">4 · Campanha em pop-up</h3>
+      <p class="muted" style="margin-top:6px">Aparece uma vez por visita, alguns segundos depois de abrir o site. O botão leva ao WhatsApp do site com a oferta na mensagem.</p>
+      <label class="st-check"><input type="checkbox" id="stCampAtiva"${c.ativa ? ' checked' : ''}> Campanha ligada</label>
+      <div class="duas"><div><label for="stCampTitulo">Título</label><input id="stCampTitulo" maxlength="60" value="${esc(c.titulo || '')}" placeholder="Feirão de Natal"></div>
+        <div><label for="stCampCond">Condição em destaque</label><input id="stCampCond" maxlength="80" value="${esc(c.condicao || '')}" placeholder="Entrada a partir de R$ 0"></div></div>
+      <label for="stCampTexto">Texto</label><textarea id="stCampTexto" maxlength="240" rows="2" placeholder="Seminovos revisados com garantia e primeira parcela para março.">${esc(c.texto || '')}</textarea>
+      <div class="duas"><div><label for="stCampVal">Válida até</label><input type="date" id="stCampVal" value="${esc(c.validade || '')}"></div>
+        <div><label for="stCampBotao">Texto do botão</label><input id="stCampBotao" maxlength="24" value="${esc(c.botao || '')}" placeholder="Quero a oferta"></div></div>
+      <label for="stArteArq">Arte (opcional, JPG ou PNG até 5 MB)</label>
+      <div class="form-bts"><input type="file" id="stArteArq" accept="image/jpeg,image/png"><button type="button" class="sm" id="stArteTira"${c.arte ? '' : ' hidden'}>Tirar a arte</button></div>
+      <img id="stArtePrev" class="st-arte" alt="Arte da campanha" src="${esc(c.arte || '')}"${c.arte ? '' : ' hidden'}>
+      <h3 class="st-tit">Prévia</h3>
+      <div class="duas"><div><label for="stSiteUrl">Endereço do seu site</label><input id="stSiteUrl" placeholder="https://" value="${esc(siteLoja)}"></div>
+        <div class="form-bts st-previa"><button type="button" class="sm" id="stPrevia">Ver no meu site</button></div></div>
+      <p class="muted">A prévia mostra o tema escolhido e a campanha só para você, sem ligar nada.</p>
+      <div class="form-bts"><button class="principal" id="stSalvar">Salvar</button></div>
+      <p class="alerta" id="stErro" hidden></p>
+    </form>`;
+  let arte = c.arte || '';
+  const agenda = () => [...document.querySelectorAll('#stAgenda .st-linha')].map(l => ({ tema: l.querySelector('.stAgTema').value, inicio: l.querySelector('.stAgIni').value, fim: l.querySelector('.stAgFim').value }));
+  const ligarTira = () => document.querySelectorAll('[data-st-tira]').forEach(b => b.onclick = () => { const l = agenda(); l.splice(Number(b.dataset.stTira), 1); redesenharAgenda(l); });
+  const redesenharAgenda = lista => { $('stAgenda').innerHTML = lista.map(linha).join('') || '<p class="muted">Nenhuma data na agenda.</p>'; ligarTira(); };
+  ligarTira();
+  if ($('stCopiar')) $('stCopiar').onclick = async () => { try { await navigator.clipboard.writeText($('stCodigo').value); toast('Código copiado.'); } catch { $('stCodigo').select(); } };
+  $('stSugerir').onclick = () => {
+    const atuais = agenda(), novas = datasDoAno(new Date()).filter(n => !atuais.some(a => a.tema === n.tema));
+    redesenharAgenda([...atuais, ...novas].slice(0, 12)); toast('Datas sugeridas. Ajuste se quiser e clique em Salvar.');
+  };
+  $('stMais').onclick = () => { const l = agenda(); if (l.length >= 12) return toast('A agenda tem até 12 datas.', true); l.push({ tema: 'natal', inicio: '', fim: '' }); redesenharAgenda(l); };
+  $('stArteArq').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    if (f.size > 5242880) { ev.target.value = ''; return toast('A arte pode ter até 5 MB.', true); }
+    try {
+      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: f });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.tipo !== 'imagem') throw Error(d.error || 'Envie uma imagem JPG ou PNG.');
+      arte = d.url; $('stArtePrev').src = arte; $('stArtePrev').hidden = false; $('stArteTira').hidden = false; toast('Arte enviada. Clique em Salvar.');
+    } catch (err) { ev.target.value = ''; toast(err.message, true); }
+  };
+  $('stArteTira').onclick = () => { arte = ''; $('stArtePrev').hidden = true; $('stArteTira').hidden = true; $('stArteArq').value = ''; };
+  $('stPrevia').onclick = () => {
+    let u; try { u = new URL($('stSiteUrl').value.trim()); if (!/^https?:$/.test(u.protocol)) throw Error(); } catch { return toast('Coloque o endereço do seu site, começando com https://', true); }
+    u.searchParams.set('lv_tema', $('stTema').value || agenda()[0]?.tema || 'natal');
+    if ($('stCampTitulo').value.trim()) u.searchParams.set('lv_campanha', '1');
+    window.open(u.href, '_blank', 'noopener');
+  };
+  $('stForm').onsubmit = async ev => {
+    ev.preventDefault(); const bt = $('stSalvar'); $('stErro').hidden = true;
+    const titulo = $('stCampTitulo').value.trim();
+    const config = { tema: $('stTema').value || null, musica: $('stMusica').checked, agenda: agenda().filter(a => a.inicio || a.fim),
+      campanha: titulo || $('stCampAtiva').checked ? { titulo, texto: $('stCampTexto').value.trim(), condicao: $('stCampCond').value.trim(), validade: $('stCampVal').value || null,
+        botao: $('stCampBotao').value.trim(), arte: arte || null, ativa: $('stCampAtiva').checked } : null };
+    bt.disabled = true; bt.textContent = 'Salvando…';
+    try { await api('site-temas', { organization: empresa.id, conta: siteCfg?.conta || '', config }); toast('Site atualizado. Aparece no site em até 1 minuto.'); await carregarSite(); }
+    catch (err) { mostra($('stErro'), err.message); }
+    finally { bt.disabled = false; bt.textContent = 'Salvar'; }
+  };
+}

@@ -25,6 +25,13 @@ Liga o lead que chegou por anúncio de clique para WhatsApp à venda e avisa a M
 - **Super Admin:** Painel LeadVox → card "Rastreamento de anúncios" com cada cliente do módulo, contas, leads, vendas e a mensalidade pela tabela (R$ 99 + R$ 39 por conta a mais).
 - **Sem histórico:** o rastreamento conta a partir do dia em que é ligado. A LeadVox não guarda nas mensagens de qual anúncio o cliente veio, e ler `/messages/{ticketId}` marca a conversa como lida (e pode mandar o "visto" ao cliente). Não ler conversas da LeadVox em massa.
 
+## Site da loja: temas e campanha (lojas de veículos)
+
+- **O que faz:** um código colado uma vez no site da loja (`<script src="https://ia.leadvox.com.br/site/tema.js" data-loja="CONTA" defer></script>`) liga temas de datas (Natal, Ano Novo, Carnaval, Dia das Mães, Dia dos Pais, Dia do Cliente, Black Friday) e uma campanha em pop-up. Tudo fica numa shadow root: não muda o estilo do site.
+- **O lojista configura** no menu Site da loja (só nicho automotivo e Super Admin): tema agora, agenda do ano (botão "Sugerir as datas do ano"), música (só toca com clique; melodias de domínio público geradas no navegador) e campanha com arte (JPG/PNG em lv-materiais, pasta da conta).
+- **Prévia sem ligar nada:** abrir o site com `?lv_tema=natal` (ou outro tema, ou `nenhum`) e `?lv_campanha=1`.
+- **Peças:** `database/site_temas.sql`, rotas `/api/site/tema` (pública, CORS aberto, 60 s de memória) e `/api/account/site-temas`, `public/site/tema.js`, `tests/site-temas.test.mjs`.
+
 ## Executar
 Node.js 24, sem dependências: `npm start` e `npm test`. Padrão http://127.0.0.1:4173. O login só funciona por HTTPS.
 

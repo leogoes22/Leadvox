@@ -34,6 +34,9 @@ function envioDe(r){
 // Usuários do painel de cada empresa (database/usuarios.sql e a função "usuarios"): recusas em palavras do cliente.
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const PAPEIS_PAINEL=['owner','admin','member'];
+export const SITE_ERROS={dados:'Dados inválidos.',tema:'Escolha um tema da lista.',agenda:'Confira as datas da agenda: o fim vem depois do início e cada tema dura até 2 meses.',
+ campanha:'Confira os dados da campanha.',campanha_titulo:'Dê um título para a campanha.',campanha_validade:'Confira a data de validade da campanha.',
+ campanha_arte:'Envie a arte de novo (JPG ou PNG de até 5 MB).'};
 export const USUARIOS_ERROS={email:'Confira o e-mail.',papel:'Escolha a função: dono, admin ou membro.',
  so_dono:'Só o dono mexe em quem é dono ou dá a função de dono.',limite:'Hoje já entraram 30 pessoas novas nesta empresa. Tente amanhã ou fale com a LeadVox.',
  ja_membro:'Essa pessoa já entra no painel desta empresa.',principal:'O dono principal da conta não pode ser removido nem mudar de função.',
@@ -115,7 +118,23 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  }
  // False until database/platform_admin.sql has been applied.
  async function isPlatformAdmin(token){try{return (await upstream('/rest/v1/rpc/lv_is_platform_admin',{method:'POST',token,body:{}}))===true;}catch{return false;}}
+ // Tema do site da loja: público (o site chama de outro domínio), só leitura, guardado 60 s por loja.
+ const temasCache=new Map();
+ async function siteTema(req,res){
+  const resp=(status,data,cache)=>{res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':cache||'no-store'});res.end(req.method==='HEAD'?undefined:JSON.stringify(data));};
+  if(!['GET','HEAD'].includes(req.method))return resp(405,{tema:null});
+  const loja=new URL(req.url,'https://localhost').searchParams.get('loja')||'';
+  if(!/^[a-z0-9-]{3,60}$/.test(loja))return resp(400,{tema:null});
+  const agora=Date.now(),guardado=temasCache.get(loja);
+  if(guardado&&guardado.ate>agora)return resp(200,guardado.dados,'public, max-age=60');
+  let dados;try{dados=await upstream('/rest/v1/rpc/lv_site_publico',{method:'POST',body:{p_conta:loja}});}catch{return resp(200,{tema:null},'no-store');}
+  dados=dados&&typeof dados==='object'?dados:{tema:null};
+  if(temasCache.size>2000)temasCache.clear();
+  temasCache.set(loja,{ate:agora+60000,dados});
+  resp(200,dados,'public, max-age=60');
+ }
  return async(req,res,pathname)=>{
+  if(pathname==='/api/site/tema'){await siteTema(req,res);return true;}
   if(!pathname.startsWith('/api/account/'))return false;
   const host=req.headers.host||'';
   const local=allowLocal&&/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host);
@@ -227,6 +246,20 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const j=await r.json().catch(()=>null);
     if(!r.ok||!j?.ok)throw {status:r.status===401?401:400,message:j?.erro||'Não deu para abrir a assinatura agora.'};
     send(res,200,{ok:true,link:j.link,vencimento:j.vencimento});
+   }else if(action==='site-temas'){
+    // Temas do site (Natal, Black Friday…) e a campanha em pop-up. Dono, admin e Super Admin; o banco confere tudo.
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const org=req.method==='GET'?q.get('organization'):body.organization;
+    if(!UUID_RE.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args)=>{try{return await upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});}
+     catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe no site.'};}};
+    if(req.method==='GET')send(res,200,await rpc('lv_site_config',{}));
+    else{
+     const r=await rpc('lv_site_salvar',{cfg:body.config&&typeof body.config==='object'?body.config:{}});
+     if(!r||r.ok!==true)throw {status:400,message:SITE_ERROS[r?.erro]||'Não deu para salvar. Confira os campos.'};
+     if(typeof body.conta==='string')temasCache.delete(body.conta);
+     send(res,200,{ok:true});
+    }
    }else if(action==='usuarios-painel'){
     // Quem entra no painel da empresa: ver, cadastrar, trocar a função, remover e mandar a redefinição de senha.
     // Dono, admin e Super Admin; o banco confere quem pode o quê. Criar login e trocar e-mail passam pela função "usuarios",

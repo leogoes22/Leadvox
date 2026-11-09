@@ -522,3 +522,14 @@ textarea { min-height: 90px; resize: vertical; }
 .usu-nota { margin: 0 0 10px; }
 @media (max-width: 640px) { .usu-tabela thead { display: none; } .usu-tabela tr { display: block; border-top: 1px solid var(--linha); padding: 6px 0; }
   .usu-tabela td { display: block; border: 0; padding: 3px 0; } .usu-tabela .bts { justify-content: flex-start; } }
+/* Site da loja: temas e campanha */
+.st-tit{margin-top:18px}
+.st-check{display:flex;gap:8px;align-items:flex-start;margin-top:26px;font-weight:500}
+.st-check input{width:auto;margin-top:3px}
+.st-linha{align-items:end;margin-bottom:6px}
+.st-datas{display:flex;gap:8px;align-items:flex-end}
+.st-datas>div{flex:1}
+.st-arte{display:block;max-width:220px;border-radius:10px;margin-top:8px}
+.st-previa{margin-top:22px}
+@media(max-width:640px){.st-datas{flex-wrap:wrap}.st-check{margin-top:8px}.st-previa{margin-top:0}}
+.st-arte[hidden]{display:none}
