@@ -508,7 +508,7 @@ function gerarPDFAntigo() {
   var gera = Promise.all([FONTES, LOGO_PDF]).then(function (r) {
     return new Promise(function (ok) {
       try {
-        S.docDef = montarDiagnostico(S.result, S.lead, { id: S.id, logo: r[1], contato: { whats: '(21) 98108-1044', email: 'contato@leadvox.com.br', site: 'leadvox.com.br' } });
+        S.docDef = montarDiagnostico(S.result, S.lead, { id: S.id, logo: r[1], contato: { whats: '(21) 98769-6628', email: 'contato@leadvox.com.br', site: 'leadvox.com.br' } });
         pdfMake.createPdf(S.docDef).getBase64(function (b64) { ok(b64 || ''); });
       } catch (e) { console.error('PDF', e); ok(''); }
     });
@@ -519,7 +519,7 @@ function gerarPDFAntigo() {
 /* ====== CONFIGURAÇÃO ====== */
 const CFG = {
   WEBHOOK: 'https://webhook.lv-mktdeconversa.com/webhook/diagnostico-leadvox',
-  WHATS_LEADVOX: '5521981081044',
+  WHATS_LEADVOX: '5521987696628',
   TIMEOUT_MS: 12000
 };
 

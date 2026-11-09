@@ -39,6 +39,7 @@
       { k:"social",  nome:"Social media",             desc:"Criação de conteúdo com visitas mensais" },
       { k:"api",     nome:"API Oficial do WhatsApp",  desc:"Configuração e verificação" },
       { k:"bm",      nome:"Business Manager",         desc:"Criação e configuração da conta de anúncios" },
+      { k:"rastreio", nome:"Rastreamento de anúncios", desc:"Mostra qual anúncio e campanha trouxe cada conversa do WhatsApp e devolve as vendas à Meta" },
       { k:"outras",  nome:"Outras integrações",       desc:"Outro canal ou sistema que você precise conectar" }
     ]
   };
@@ -79,7 +80,7 @@
     if(!document.getElementById("lvp-css")){
       var st = document.createElement("style"); st.id = "lvp-css"; st.textContent = CSS; document.head.appendChild(st);
     }
-    var whats = el.getAttribute("data-whats") || "5521981081044";
+    var whats = el.getAttribute("data-whats") || "5521987696628";
     var msg = el.getAttribute("data-msg") || "Olá! Vi os valores no site da LeadVox e quero conversar.";
     var chips = P.adicionais.map(function(a){ return "<span>" + a.nome + "</span>"; }).join("");
     el.innerHTML = ''

@@ -1649,7 +1649,7 @@ function desenharPronto() {
 // Botão no topo: os passos para pôr a IA no ar (marcam sozinhos), como a plataforma funciona, um tour
 // que aponta cada coisa na tela e as dúvidas comuns. Abre sozinho na primeira vez em cada empresa.
 // Suporte pelo webchat da LeadVox (o mesmo do site leadvox.com.br): balão flutuante em todas as telas depois do login;
-// o chat já abre sabendo de qual empresa e e-mail a pessoa é.
+// a pessoa se identifica no formulário do próprio chat (nome e e-mail).
 const WEBCHAT = { sdk: 'https://chat.leadvox.com.br/webchat/sdk.js', token: '78ed9e3c-95ca-4b18-80e5-daa62c3ceb02', base: 'https://chatapi.leadvox.com.br' };
 let webchat = null;
 function carregarWebchat() {
@@ -1661,9 +1661,9 @@ function carregarWebchat() {
   });
   return webchat;
 }
-function identificarSuporte() {
-  try { window.$envioMensagemChat.setUser(conta.user.email, { name: (cfg.displayName || empresa.name) + ' · ' + conta.user.email, email: conta.user.email }); } catch {}
-}
+// O webchat da LeadVox recusa sessão com identificador (setUser) enquanto a "identidade" não estiver ligada no canal
+// (ERR_WEBCHAT_IDENTITY_DISABLED). Sem identificador, a conversa começa pelo formulário do chat.
+function identificarSuporte() {}
 function ligarSuporte() {
   carregarWebchat().then(() => { identificarSuporte(); try { window.$envioMensagemChat.toggleBubbleVisibility('show'); } catch {} }).catch(() => { webchat = null; });
 }
@@ -2674,7 +2674,7 @@ function desenharRastreio() {
         <li>Mande um "oi" para o WhatsApp da empresa: esta linha fica verde, com <b>✓ Recebendo</b>.</li></ol>
       <p class="muted" style="font-size:12.5px;margin-top:6px">O endereço é só da sua empresa. Não compartilhe fora da LeadVox.</p>`)}
     ${passo(2, 'Pixel da Meta', `<form id="rsMeta"><p class="muted">No Gerenciador de Eventos: escolha o pixel → <b>Configurações</b> → <b>API de Conversões</b> → <b>Gerar token de acesso</b>. O ID do pixel aparece no topo da mesma tela.</p>
-      <div class="duas"><div><label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="932919801382762" value="${esc(r.pixelId || '')}"${dis}></div>
+      <div class="duas"><div><label for="rsPixel">ID do pixel (conjunto de dados)</label><input id="rsPixel" inputmode="numeric" maxlength="20" placeholder="123456789012345" value="${esc(r.pixelId || '')}"${dis}></div>
         <div><label for="rsToken">Token da API de Conversões</label><input id="rsToken" type="password" autocomplete="off" spellcheck="false" maxlength="1000" placeholder="${r.temToken ? 'Salvo. Deixe em branco para manter.' : 'EAAG…'}"${dis}></div></div>
       <label for="rsTeste">Código de teste <small>(opcional: aba Eventos de teste, ex.: TEST12345)</small></label><input id="rsTeste" maxlength="40" value="${esc(r.testeCodigo || '')}"${dis}>
       <details class="rs-avancado"${r.temTokenAnuncios ? '' : ' open'}><summary>Conta de anúncio e campanha de cada lead ${r.temTokenAnuncios ? '<span class="st on">conectado</span>' : '<small>(recomendado)</small>'}</summary>
