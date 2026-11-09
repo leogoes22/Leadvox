@@ -49,7 +49,7 @@ async function fixture(t,{rastreio={liberado:true,podeEditar:true},segredo=true,
  const calls=[];
  const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
   if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
-  if(u.startsWith('https://chatapi.leadvox.com.br/')){calls.push({lv:u.replace(/token=[^&]+/,'token=***')});return lv(u);}
+  if(u.startsWith('https://chatapi.leadvox.com.br/')){calls.push({lv:u,auth:init?.headers?.Authorization,corpo:init?.body||null});return lv(u,init);}
   const fn=(u.match(/rpc\/([a-z_]+)/)||[])[1];const body=init?.body?JSON.parse(init.body):null;calls.push({fn,body});
   if(fn==='lv_rastreio')return ok(rastreio);
   if(fn==='lv_chat_secret')return ok(segredo?[{api_root:'https://chatapi.leadvox.com.br/v1',api_id:'acc1',token:'tok-lv'}]:[]);
@@ -57,34 +57,51 @@ async function fixture(t,{rastreio={liberado:true,podeEditar:true},segredo=true,
   return ok(null);
  }});
  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
- const base='http://127.0.0.1:'+s.address().port;
- return {calls,post:b=>fetch(base+'/api/account/rastreio-importar',{method:'POST',headers:{Origin:base,Cookie:'__Host-lv_session=x'},body:JSON.stringify(b)})};
+ const base='http://127.0.0.1:'+s.address().port,h={Origin:base,Cookie:'__Host-lv_session=x'};
+ return {calls,
+  entrar:b=>fetch(base+'/api/account/rastreio-importar-entrar',{method:'POST',headers:h,body:JSON.stringify(b)}),
+  post:b=>fetch(base+'/api/account/rastreio-importar',{method:'POST',headers:h,body:JSON.stringify(b)})};
 }
 const recente=new Date(Date.now()-2*864e5).toISOString();
-const lvRespostas=u=>{
+const lvRespostas=(u,init)=>{
+ if(u.endsWith('/auth/login'))return JSON.parse(init.body).password==='senha-certa'?ok({token:'jwt-usuario',username:'Leo',profile:'admin'}):ok({error:'ERR_INVALID_CREDENTIALS'},401);
  if(u.includes('/tickets?status=open'))return ok({tickets:[{id:9,contactId:5501,createdAt:recente,updatedAt:recente,contact:{id:5501,name:'Cliente',number:'5521999990001'}}],hasMore:false});
  if(u.includes('/messages/9?'))return ok({messages:[{fromMe:false,createdAt:recente,raw:{referral:{source_id:'120',headline:'FZ15',ctwa_clid:'c1'}}}],hasMore:false});
  return ok({});
 };
 
-test('rota: prévia conta sem gravar; importar grava com telefone em hash e indica a próxima lista', async t => {
+test('rota: entra com o usuário da LeadVox; a senha não volta e o login vira sessão curta', async t => {
  const f=await fixture(t,{lv:lvRespostas});
- const p=await (await f.post({organization:org,status:'open',pagina:1,previa:true})).json();
+ const r=await f.entrar({organization:org,email:'leo@loja.com.br',senha:'senha-certa'});assert.equal(r.status,200);
+ const j=await r.json();assert.match(j.sessao,/^[0-9a-f]{32}$/);assert.equal(j.perfil,'admin');assert.doesNotMatch(JSON.stringify(j),/senha-certa|jwt-usuario/);
+ const login=f.calls.find(c=>c.lv&&c.lv.endsWith('/auth/login'));assert.equal(login.lv,'https://chatapi.leadvox.com.br/auth/login');
+ const errada=await f.entrar({organization:org,email:'leo@loja.com.br',senha:'errada'});assert.equal(errada.status,400);assert.match((await errada.json()).error,/não aceitou esse e-mail e senha/);
+ assert.equal((await f.post({organization:org,sessao:'0'.repeat(32)})).status,401);
+ assert.equal(f.calls.some(c=>c.fn==='lv_set_integration'),false);
+});
+
+test('rota: prévia conta sem gravar; importar grava com telefone em hash, com o login do usuário', async t => {
+ const f=await fixture(t,{lv:lvRespostas});
+ const {sessao}=await (await f.entrar({organization:org,email:'leo@loja.com.br',senha:'senha-certa'})).json();
+ const p=await (await f.post({organization:org,sessao,status:'open',pagina:1,previa:true})).json();
  assert.equal(p.achados,1);assert.equal(p.gravados,0);assert.deepEqual(p.proxima,{status:'pending',pagina:1});
  assert.equal(f.calls.some(c=>c.fn==='lv_rastreio_importar'),false);
- assert.ok(f.calls.some(c=>c.lv&&c.lv.startsWith('https://chatapi.leadvox.com.br/tickets?status=open&showAll=true&pageNumber=1')));
- const r=await (await f.post({organization:org,status:'open',pagina:1})).json();assert.equal(r.gravados,1);
+ const lista=f.calls.find(c=>c.lv&&c.lv.includes('/tickets?'));
+ assert.equal(lista.lv,'https://chatapi.leadvox.com.br/tickets?status=open&showAll=true&pageNumber=1');assert.equal(lista.auth,'Bearer jwt-usuario');
+ const r=await (await f.post({organization:org,sessao,status:'open',pagina:1})).json();assert.equal(r.gravados,1);
  const g=f.calls.find(c=>c.fn==='lv_rastreio_importar').body.leads[0];
  assert.equal(g.hash,await sha256('5521999990001'));assert.equal(g.final,'0001');assert.equal(g.anuncio,'120');assert.equal(g.telefone,undefined);
  assert.doesNotMatch(JSON.stringify(g),/5521999990001/);
- const fim=await (await f.post({organization:org,status:'closed',pagina:1,previa:true})).json();assert.equal(fim.proxima,null);
+ const fim=await (await f.post({organization:org,sessao,status:'closed',pagina:1,previa:true})).json();assert.equal(fim.proxima,null);
 });
 
-test('rota: só com o módulo liberado e a LeadVox conectada; token recusado vira mensagem clara', async t => {
- const fechado=await fixture(t,{rastreio:{liberado:false},lv:lvRespostas});assert.equal((await fechado.post({organization:org})).status,403);
- const sem=await fixture(t,{segredo:false,lv:lvRespostas});assert.equal((await sem.post({organization:org})).status,409);
- const recusa=await fixture(t,{lv:()=>ok({error:'x'},403)});
- const r=await recusa.post({organization:org});assert.equal(r.status,400);assert.match((await r.json()).error,/não deixou ler os atendimentos/);
+test('rota: só com o módulo liberado e a LeadVox conectada; login recusado no meio pede para entrar de novo', async t => {
+ const fechado=await fixture(t,{rastreio:{liberado:false},lv:lvRespostas});assert.equal((await fechado.entrar({organization:org,email:'a@b.co',senha:'x'})).status,403);
+ const sem=await fixture(t,{segredo:false,lv:lvRespostas});assert.equal((await sem.entrar({organization:org,email:'a@b.co',senha:'x'})).status,409);
+ const expira=await fixture(t,{lv:(u,init)=>u.endsWith('/auth/login')?ok({token:'jwt'}):ok({error:'x'},401)});
+ const {sessao}=await (await expira.entrar({organization:org,email:'a@b.co',senha:'x'})).json();
+ const r=await expira.post({organization:org,sessao});assert.equal(r.status,401);assert.match((await r.json()).error,/Entre de novo/);
+ assert.equal((await expira.post({organization:org,sessao})).status,401);
 });
 
 test('banco: importação só para dono ou admin, com o módulo liberado e sem sobrescrever lead', () => {

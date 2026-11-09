@@ -24,6 +24,38 @@ export function parseChatUrl(value,separateToken=''){
  if(token.length<10||token.length>4000||/[\r\n]/.test(token))throw new Error('URL inválida');
  return {root:m[1],apiId:m[2],token};
 }
+// Login de um usuário da LeadVox (o mesmo da tela), para as rotas que o token da API não abre (atendimentos e mensagens).
+// Usado só na importação do histórico do rastreamento; a senha não é guardada e o token do usuário fica só na memória do servidor.
+export async function entrarUsuarioChat({root=HOST+'/v1',email,senha,fetchImpl=fetch}){
+ if(!ROOT.test(root))throw new Error('Endereço inválido');
+ const host=root.replace(/\/v\d{1,2}$/,'');
+ let r;
+ try{r=await fetchImpl(host+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+  body:JSON.stringify({email:String(email||'').trim().slice(0,200),password:String(senha||'').slice(0,200)}),redirect:'error',signal:AbortSignal.timeout(15000)});}
+ catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+ const b=await r.json().catch(()=>null);
+ const jwt=typeof b?.token==='string'?b.token:typeof b?.accessToken==='string'?b.accessToken:'';
+ if(!r.ok||!jwt||jwt.length>8000||/[\r\n]/.test(jwt))throw new ChatApiError(r.ok||r.status===400||r.status===401||r.status===403?'CHAT_LOGIN_RECUSADO':'CHAT_REQUEST_FAILED',400,r.status);
+ return {jwt,perfil:String(b.profile||'').slice(0,20),usuario:String(b.username||b.name||'').slice(0,80)};
+}
+// Cliente com o login do usuário: só leitura de atendimentos e mensagens (rotas da tela).
+export function createUserChatClient({root=HOST+'/v1',jwt,fetchImpl=fetch}){
+ if(!ROOT.test(root))throw new Error('Endereço inválido');
+ if(typeof jwt!=='string'||!jwt||/[\r\n]/.test(jwt))throw new Error('Credencial inválida');
+ const host=root.replace(/\/v\d{1,2}$/,'');
+ async function get(path){
+  let response;
+  try{response=await fetchImpl(host+path,{method:'GET',headers:{Authorization:'Bearer '+jwt,Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(15000)});}
+  catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+  if(!response.ok)throw new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502,response.status);
+  try{return await response.json();}catch{throw new ChatApiError('CHAT_INVALID_RESPONSE');}
+ }
+ const n=p=>Math.max(1,Math.floor(Number(p)||1));
+ return Object.freeze({
+  tickets:(status,page)=>get('/tickets?status='+id(status)+'&showAll=true&pageNumber='+n(page)),
+  messages:(ticketId,page)=>get('/messages/'+id(ticketId)+'?pageNumber='+n(page))
+ });
+}
 export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) {
  if(!ROOT.test(root))throw new Error('Endereço inválido');
  const api=id(apiId);
