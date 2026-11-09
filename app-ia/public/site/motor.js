@@ -202,7 +202,7 @@
 
   // Loja de exemplo para a prévia do painel: veículos com desenho no lugar da foto.
   function lojaDemo(m) {
-    var cores = { garagem: ['#d6921e', '#121110'], premium: ['#c9a227', '#050506'], neon: ['#7b2ff7', '#070409'], claro: ['#d71920', '#f3f3f4'], editorial: ['#1f7a4d', '#0a0a0c'] };
+    var cores = { garagem: ['#d6921e', '#121110'], premium: ['#dbc300', '#0a0a0c'], neon: ['#7b2ff7', '#070409'], claro: ['#d71920', '#f3f3f4'], editorial: ['#1f7a4d', '#0a0a0c'] };
     var c = cores[m] || cores.garagem;
     var desenho = function (cor, moto) {
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><rect width="400" height="260" fill="#1d1d22"/><rect y="190" width="400" height="70" fill="#141418"/>' +

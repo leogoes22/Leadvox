@@ -6,6 +6,7 @@ const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
 const org='22222222-2222-4222-8222-222222222222';
 const js=readFileSync(new URL('../public/painel.js',import.meta.url),'utf8');
 const motor=readFileSync(new URL('../public/site/motor.js',import.meta.url),'utf8');
+const require_css=m=>{try{return readFileSync(new URL('../public/site/modelos/'+m+'.css',import.meta.url),'utf8').includes('--c1');}catch{return false;}};
 const sql=readFileSync(new URL('../database/site_modelos.sql',import.meta.url),'utf8');
 
 async function servidor(t,rpc={},falhar=false){
@@ -73,10 +74,13 @@ test('motor do site: texto do banco nunca vira HTML; só imagens https (os desen
  assert.match(motor,/if \(!demo\) \{ var s = document\.createElement\('script'\); s\.src = '\/site\/tema\.js'/);
 });
 
-test('painel: os 5 modelos aparecem; só o Garagem já pode ser escolhido; logo, cores, fonte e publicar', () => {
+test('painel: os 5 modelos aparecem; Garagem e Premium já podem ser escolhidos; logo, cores, fonte e publicar', () => {
  for(const m of ['garagem','premium','neon','claro','editorial'])assert.match(js,new RegExp("\\['"+m+"', '"));
  assert.match(js,/\['garagem', 'Garagem', '[^']+', true\]/);
- assert.equal((js.match(/', false\]/g)||[]).length>=4,true);
+ assert.match(js,/\['premium', 'Premium', '[^']+', true\]/);
+ for(const m of ['garagem','premium'])assert.ok(require_css(m),m+'.css existe e usa as cores do painel');
+ const bloco=js.slice(js.indexOf('const SITE_MODELOS = ['),js.indexOf('];',js.indexOf('const SITE_MODELOS = [')));
+ assert.equal((bloco.match(/', false\]/g)||[]).length,3,'Neon, Claro e Editorial ainda em preparação');
  assert.match(js,/id="smLogoArq"/);assert.match(js,/id="smCor1"/);assert.match(js,/id="smCor2"/);assert.match(js,/id="smFonte"/);assert.match(js,/id="smPub"/);
  assert.match(js,/api\('site-modelo'/);assert.match(js,/function desenharSiteModelo\(\)/);
 });

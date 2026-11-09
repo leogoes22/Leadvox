@@ -1,0 +1,106 @@
+/* Modelo 2 · Premium (inspirado no site da Elite Auto Broker): preto profundo, capa com a foto ocupando a tela,
+   títulos altos em caixa-alta, cantos bem arredondados e listras diagonais na cor principal.
+   Cores e fontes vêm do painel: --c1 (principal), --c2 (fundo), --f-titulo, --f-texto. */
+:root{--fundo:var(--c2);--fundo-2:color-mix(in srgb,var(--c2) 92%,#fff 3%);--painel:color-mix(in srgb,var(--c2) 86%,#fff 6%);--linha:rgba(255,255,255,.08);--linha-2:rgba(255,255,255,.14);
+ --texto:#eceae4;--muted:#a5a39d;--fraco:#74726c;--suave:color-mix(in srgb,var(--c1) 12%,transparent);--listras:repeating-linear-gradient(-60deg,var(--c1) 0 4px,transparent 4px 10px)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body.lv{margin:0;background:var(--fundo);color:var(--texto);font-family:var(--f-texto);line-height:1.55}
+body.travado{overflow:hidden}
+a{color:inherit}
+h1,h2,h3{font-family:var(--f-titulo);text-transform:uppercase;line-height:1.02;margin:0;font-weight:600;letter-spacing:.005em}
+.bt{display:inline-flex;align-items:center;justify-content:center;padding:14px 26px;border-radius:999px;font-weight:700;font-size:.92rem;text-decoration:none;border:0;cursor:pointer;font-family:var(--f-texto);letter-spacing:.02em;transition:transform .2s,background .2s}
+.bt:hover{transform:translateY(-1px)}
+.bt-1{background:var(--c1);color:var(--c1-texto)}
+.bt-2{background:rgba(255,255,255,.06);color:var(--texto);border:1px solid var(--linha-2)}
+.bt-2:hover{border-color:var(--c1)}
+.bt-zap{background:#25d366;color:#03210f;box-shadow:0 12px 30px -16px rgba(37,211,102,.85)}
+/* topo flutuante sobre a capa */
+.topo{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;width:min(1240px,calc(100% - 28px));display:flex;align-items:center;gap:22px;padding:10px 12px 10px 20px;
+ background:rgba(5,5,6,.72);backdrop-filter:blur(14px);border:1px solid var(--linha-2);border-radius:999px}
+.logo{display:flex;align-items:center;text-decoration:none}
+.logo-img{height:38px;max-width:160px;object-fit:contain}
+.logo-txt{font-family:var(--f-titulo);font-size:22px;text-transform:uppercase;font-weight:700;letter-spacing:.04em}
+.menu{display:flex;gap:6px;margin-left:auto}
+.menu a{text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem;padding:8px 14px;border-radius:999px}
+.menu a:hover{color:var(--texto);background:rgba(255,255,255,.06)}
+.topo .bt-zap{padding:10px 18px;font-size:.86rem}
+/* capa: a foto ocupa a tela, o texto fica por cima */
+.capa{position:relative;min-height:86vh;display:flex;align-items:flex-end;padding:140px clamp(18px,5vw,64px) clamp(48px,7vw,90px);overflow:hidden;isolation:isolate}
+.capa-foto{position:absolute;inset:0;z-index:-1;padding:0;border:0;background:#000;cursor:pointer}
+.capa-foto img{width:100%;height:100%;object-fit:cover;display:block;opacity:.78}
+.capa-foto::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--c2) 0%,color-mix(in srgb,var(--c2) 70%,transparent) 42%,transparent 75%),linear-gradient(0deg,var(--c2) 0%,transparent 40%)}
+.capa-legenda{position:absolute;right:clamp(18px,5vw,64px);bottom:clamp(48px,7vw,90px);z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:14px 18px;border-radius:18px;background:rgba(5,5,6,.66);border:1px solid var(--linha-2);font-size:.9rem}
+.capa-legenda b{font-family:var(--f-titulo);text-transform:uppercase;font-size:1.1rem;font-weight:600}
+.capa-legenda span{color:var(--c1);font-weight:800;font-size:1.05rem}
+.capa-txt{max-width:56ch;position:relative}
+.selo{display:inline-flex;align-items:center;gap:10px;margin:0 0 18px;padding:7px 14px;border-radius:999px;background:var(--suave);border:1px solid color-mix(in srgb,var(--c1) 30%,transparent);color:var(--c1);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.12em}
+.selo::before{content:"";width:18px;height:8px;background:var(--listras);border-radius:2px}
+.capa h1{font-size:clamp(46px,7.4vw,104px)}
+.sub{color:#d6d3cc;font-size:1.08rem;max-width:52ch;margin:20px 0 0}
+.capa-bts{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+/* seções */
+section.estoque,section.financiamento,section.loja{padding:clamp(48px,7vw,96px) clamp(18px,5vw,64px);max-width:1360px;margin:0 auto}
+.tit{margin-bottom:28px}
+.tit h2{font-size:clamp(36px,4.8vw,64px)}
+.tit h2::before{content:"";display:block;width:56px;height:10px;background:var(--listras);margin-bottom:16px;border-radius:2px}
+.tit p{color:var(--muted);margin:12px 0 0;max-width:60ch}
+.filtros{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px;padding:10px;border:1px solid var(--linha);border-radius:22px;background:var(--fundo-2)}
+.filtros input,.filtros select,.fin-form input{background:var(--painel);color:var(--texto);border:1px solid var(--linha);border-radius:14px;padding:13px 16px;font-size:.95rem;font-family:var(--f-texto)}
+.filtros input{flex:1;min-width:220px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:clamp(14px,1.6vw,20px)}
+.card{display:flex;flex-direction:column;background:var(--fundo-2);border:1px solid var(--linha);border-radius:22px;overflow:hidden;transition:border-color .25s,transform .25s}
+.card:hover{border-color:color-mix(in srgb,var(--c1) 45%,transparent);transform:translateY(-4px)}
+.card-foto{padding:0;border:0;background:#000;cursor:pointer;aspect-ratio:16/11;display:block;width:100%;overflow:hidden}
+.card-foto img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s}
+.card:hover .card-foto img{transform:scale(1.05)}
+.sem-foto{display:flex;align-items:center;justify-content:center;height:100%;color:var(--fraco)}
+.card-txt{padding:16px 18px 4px;flex:1}
+.card h3{font-size:1.32rem}
+.versao{color:var(--fraco);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 0}
+.ficha{color:var(--muted);font-size:.88rem;margin:10px 0 0;padding-top:10px;border-top:1px solid var(--linha)}
+.preco{font-family:var(--f-titulo);font-size:1.7rem;font-weight:600;color:var(--c1);margin:10px 0 0}
+.card-bts{display:flex;gap:8px;padding:14px 18px 18px;flex-wrap:wrap}
+.card-bts .bt{flex:1;padding:11px 14px;font-size:.84rem}
+.vazio{color:var(--muted)}
+section.financiamento{position:relative}
+section.financiamento .tit,section.financiamento .fin-form{position:relative}
+.fin-form{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:10px;padding:16px;border:1px solid color-mix(in srgb,var(--c1) 30%,transparent);border-radius:30px;background:var(--suave)}
+.contatos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.contatos li{background:var(--fundo-2);border:1px solid var(--linha);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.contatos b{color:var(--fraco);font-size:.75rem;text-transform:uppercase;letter-spacing:.12em}
+.contatos span{font-size:1.02rem}
+.contatos a{color:var(--c1);font-weight:700}
+.rodape{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:26px clamp(18px,5vw,64px) 96px;border-top:1px solid var(--linha);color:var(--fraco);font-size:.86rem}
+.rodape a{color:var(--fraco)}
+.zap-flutua{position:fixed;right:20px;bottom:20px;z-index:30;background:#25d366;color:#03210f;font-weight:800;text-decoration:none;padding:15px 20px;border-radius:999px;box-shadow:0 16px 34px -14px rgba(37,211,102,.9)}
+/* detalhe do veículo */
+.det-fundo{position:fixed;inset:0;z-index:40;background:rgba(5,5,6,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
+.det{position:relative;display:grid;grid-template-columns:1.25fr 1fr;width:min(1120px,100%);max-height:92vh;overflow:auto;background:var(--fundo-2);border:1px solid var(--linha-2);border-radius:30px}
+.det-x{position:absolute;top:14px;right:14px;z-index:2;width:40px;height:40px;border-radius:999px;border:1px solid var(--linha-2);background:rgba(5,5,6,.7);color:#fff;font-size:22px;cursor:pointer}
+.det-galeria{position:relative;background:#000;min-height:300px}
+.det-galeria img{width:100%;height:100%;object-fit:cover;display:block;max-height:92vh}
+.seta{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:999px;border:1px solid var(--linha-2);background:rgba(5,5,6,.6);color:#fff;font-size:28px;cursor:pointer}
+.seta.esq{left:14px}.seta.dir{right:14px}
+.cont{position:absolute;left:14px;bottom:14px;background:rgba(5,5,6,.7);color:#fff;padding:5px 12px;border-radius:999px;font-size:.8rem}
+.det-txt{padding:30px}
+.det-txt h3{font-size:2.2rem}
+.ficha-tab{width:100%;border-collapse:collapse;margin:18px 0;font-size:.9rem}
+.ficha-tab th{text-align:left;color:var(--fraco);font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;padding:9px 0;border-bottom:1px solid var(--linha);width:40%}
+.ficha-tab td{padding:9px 0;border-bottom:1px solid var(--linha)}
+.desc{color:var(--muted);font-size:.9rem}
+.det .card-bts{padding:10px 0 0}
+@media (max-width:900px){
+ .menu{display:none}
+ .capa{min-height:78vh}
+ .capa-legenda{display:none}
+ .capa-foto::after{background:linear-gradient(0deg,var(--c2) 8%,color-mix(in srgb,var(--c2) 55%,transparent) 60%,transparent)}
+ .fin-form{grid-template-columns:1fr;border-radius:22px}
+ .det{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+ .topo{top:10px;padding:8px 8px 8px 16px}
+ .topo .bt-zap{padding:9px 14px}
+ .grade{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card,.card-foto img,.bt{transition:none}}
