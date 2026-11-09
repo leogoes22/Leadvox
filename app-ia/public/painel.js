@@ -67,6 +67,7 @@ function setModo(m) {
   $('pSenha').autocomplete = m === 'login' ? 'current-password' : 'new-password';
   $('pSenha').value = ''; $('pCodigo').value = ''; ocultarSenha($('pSenha'));
   $('pLinks').hidden = m !== 'login'; $('btVoltarPorta').hidden = m === 'login' || m === 'password';
+  $('btJaTenhoCodigo').hidden = m !== 'recover';
   mostra($('pErro')); mostra($('pOk'));
 }
 
@@ -77,6 +78,8 @@ function porta(montar) {
 
 document.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { tipoCodigo = 'signup'; setModo(b.dataset.modo); });
 $('btVoltarPorta').onclick = () => setModo('login');
+// quem foi convidado (ou pediu a redefinição a alguém) já tem o código no e-mail: vai direto para digitar o código e criar a senha
+$('btJaTenhoCodigo').onclick = () => { tipoCodigo = 'recovery'; setModo('verify'); };
 
 $('formPorta').onsubmit = async e => {
   e.preventDefault(); const bt = $('btPorta'); bt.disabled = true; mostra($('pErro')); mostra($('pOk'));
@@ -341,7 +344,7 @@ function marcarSuporte(id, aberto) {
 function desenharEmpresas() {
   const orgs = conta.organizations || [], sel = $('cabEmpresa');
   sel.hidden = orgs.length < 2;
-  sel.innerHTML = orgs.map(o => `<option value="${esc(o.id)}"${o.id === empresa.id ? ' selected' : ''}>${esc(o.name)}${o.role === 'owner' ? '' : ' · suporte'}</option>`).join('');
+  sel.innerHTML = orgs.map(o => `<option value="${esc(o.id)}"${o.id === empresa.id ? ' selected' : ''}>${esc(o.name)}${o.role === 'owner' || !conta.platformAdmin ? '' : ' · suporte'}</option>`).join('');
   sel.onchange = () => { try { localStorage.setItem('lv_empresa', sel.value); } catch {} carregar().catch(err => toast(err.message, true)); };
   // aviso só nas empresas em que o admin entrou pelo Gerenciar → Entrar como suporte (anotado neste aparelho)
   const suporte = conta.platformAdmin && empresa.role !== 'owner' && suporteAberto().includes(empresa.id);
@@ -471,6 +474,7 @@ function abrir(pg) {
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
+  if (pg === 'conta') carregarUsuariosConta();
   $('lateral').classList.remove('aberta');
   if (location.hash.slice(1) !== pg) history.replaceState(null, '', '#' + pg);
   scrollTo(0, 0);
@@ -2091,6 +2095,103 @@ $('formSenha').onsubmit = async e => {
   catch (err) { toast(err.message, true); }
 };
 
+/* ═══════════ USUÁRIOS DO PAINEL ═══════════ */
+// Quem entra no painel de cada empresa. A mesma lista serve a Minha conta (dono e admin) e o Gerenciar do Super Admin;
+// o banco decide quem pode o quê. Senha nenhuma passa pela tela: a pessoa cria a dela pelo código de "Esqueci minha senha".
+const PAPEL_NOME = { owner: 'Dono', admin: 'Admin', member: 'Membro' };
+const COMO_ENTRA = 'Ela entra em ia.leadvox.com.br, clica em Esqueci minha senha → Já recebi o código, digita o e-mail e o código e cria a senha. Se o código vencer, é só pedir outro ali.';
+async function carregarUsuarios(box, org, superAdmin) {
+  box.innerHTML = '<p class="muted">Carregando os usuários…</p>'; box.dataset.org = org;
+  let d; try { d = await api('usuarios-painel?organization=' + encodeURIComponent(org)); }
+  catch (err) { if (box.dataset.org === org) box.innerHTML = `<p class="muted">${esc(err.message)}</p>`; return; }
+  if (box.dataset.org === org) desenharUsuarios(box, org, d, superAdmin); // trocou de empresa no meio: não mistura as listas
+}
+function desenharUsuarios(box, org, d, superAdmin) {
+  const g = d.gestor, lista = d.usuarios || [], pre = superAdmin ? 'usuA' : 'usuC';
+  const mexeDono = g === 'plataforma' || g === 'owner';
+  const opcoes = sel => Object.entries(PAPEL_NOME).filter(([p]) => mexeDono || p !== 'owner' || p === sel)
+    .map(([p, n]) => `<option value="${p}"${p === sel ? ' selected' : ''}>${n}</option>`).join('');
+  // o dono principal não muda; ninguém mexe no próprio acesso (só o Super Admin); o admin não mexe em dono
+  const editavel = u => !u.principal && (g === 'plataforma' || u.id !== d.eu) && (mexeDono || u.papel !== 'owner');
+  box.innerHTML = `${lista.length ? `<div class="rolo"><table class="lv-tabela usu-tabela"><thead><tr><th>E-mail de login</th><th>Função</th><th>Último acesso</th><th></th></tr></thead><tbody>
+    ${lista.map(u => `<tr data-usu="${esc(u.id)}"><td><b>${esc(u.email)}</b>${u.principal ? ' <span class="st on">dono principal</span>' : ''}${u.suporte ? ' <span class="st">suporte LeadVox</span>' : ''}${u.id === d.eu ? ' <span class="st">você</span>' : ''}</td>
+      <td>${editavel(u) ? `<select class="sm-sel" data-usu-papel aria-label="Função de ${esc(u.email)}">${opcoes(u.papel)}</select>` : esc(PAPEL_NOME[u.papel] || u.papel)}</td>
+      <td>${u.ultimoAcesso ? 'há ' + quando(u.ultimoAcesso) : '<span class="muted">ainda não entrou</span>'}</td>
+      <td><div class="bts">${superAdmin && !u.suporte ? '<button class="sm" type="button" data-usu-acao="email">Trocar e-mail</button>' : ''}
+        ${superAdmin || !u.suporte ? '<button class="sm" type="button" data-usu-acao="senha">Redefinir senha</button>' : ''}
+        ${editavel(u) ? '<button class="sm perigo" type="button" data-usu-acao="remover">Remover</button>' : ''}</div></td></tr>`).join('')}
+    </tbody></table></div>` : '<p class="muted">Ninguém entra no painel desta empresa ainda.</p>'}
+    <form class="usu-email" data-usu-email-form hidden>
+      <p><b>Trocar o e-mail de login</b> de <span data-usu-email-de></span></p>
+      <div class="duas" style="align-items:end"><div><label for="${pre}NovoEmail">E-mail novo</label><input id="${pre}NovoEmail" type="email" maxlength="254" required autocomplete="off"></div>
+        <label class="check-lin"><input type="checkbox" id="${pre}Avisar" checked> Mandar o código para criar a senha no e-mail novo</label></div>
+      <div class="form-bts"><button class="principal sm" type="submit">Trocar e-mail</button><button class="sm" type="button" data-usu-email-cancelar>Cancelar</button></div>
+    </form>
+    <form class="usu-novo" data-usu-novo>
+      <h3>${superAdmin ? 'Cadastrar usuário nesta empresa' : 'Convidar alguém'}</h3>
+      <div class="duas" style="align-items:end">
+        <div><label for="${pre}Email">E-mail da pessoa</label><input id="${pre}Email" type="email" maxlength="254" required autocomplete="off" placeholder="nome@sualoja.com.br"></div>
+        <div><label for="${pre}Papel">Função</label><select id="${pre}Papel">${opcoes('member')}</select></div>
+      </div>
+      <div class="form-bts"><button class="principal sm" type="submit">${superAdmin ? 'Cadastrar' : 'Convidar'}</button></div>
+      <p class="muted usu-dica"><b>Admin</b> muda tudo no painel, inclusive os usuários. <b>Membro</b> vê o painel, sem mudar as configurações.${mexeDono ? ' <b>Dono</b> é como o admin e também mexe em outros donos.' : ''}
+        Quem ainda não tem login recebe por e-mail um código para criar a senha.</p>
+    </form>`;
+  const recarregar = () => carregarUsuarios(box, org, superAdmin);
+  // o resultado fica escrito em cima da lista (tem o passo a passo para passar à pessoa), não só no aviso que some
+  const fazer = async (corpo, ok, bt) => {
+    if (bt) bt.disabled = true;
+    let msg = '', erro = false;
+    try { const r = await api('usuarios-painel', { organization: org, ...corpo }); msg = typeof ok === 'function' ? ok(r) : ok; toast('Pronto.'); }
+    catch (err) { msg = err.message; erro = true; toast(err.message, true); }
+    await recarregar();
+    box.insertAdjacentHTML('afterbegin', `<p class="${erro ? 'erro' : 'ok-msg'} usu-nota" role="status">${esc(msg)}</p>`);
+  };
+  const linha = el => { const id = el.closest('[data-usu]')?.dataset.usu; return { id, u: lista.find(x => x.id === id) }; };
+  box.querySelectorAll('[data-usu-papel]').forEach(s => s.onchange = () => {
+    const { id, u } = linha(s);
+    fazer({ acao: 'papel', alvo: id, papel: s.value }, `${u.email} agora é ${PAPEL_NOME[s.value]}.`, s);
+  });
+  const fEmail = box.querySelector('[data-usu-email-form]');
+  box.querySelectorAll('[data-usu-acao]').forEach(b => b.onclick = () => {
+    const { id, u } = linha(b), acao = b.dataset.usuAcao;
+    if (acao === 'remover') {
+      if (!confirm(`Tirar ${u.email} do painel de ${superAdmin ? (emAtual?.nome || 'esta empresa') : 'sua empresa'}? O login continua existindo, mas não entra mais nesta empresa.`)) return;
+      return fazer({ acao, alvo: id }, `${u.email} não entra mais nesta empresa.`, b);
+    }
+    if (acao === 'senha') {
+      if (!confirm(`Mandar para ${u.email} o código para criar uma senha nova? A senha atual continua valendo até a pessoa trocar.`)) return;
+      return fazer({ acao, alvo: id }, `Código enviado para ${u.email}. ${COMO_ENTRA}`, b);
+    }
+    fEmail.dataset.alvo = id; fEmail.querySelector('[data-usu-email-de]').textContent = u.email;
+    fEmail.hidden = false; $(pre + 'NovoEmail').value = ''; $(pre + 'NovoEmail').focus();
+  });
+  if (fEmail) {
+    fEmail.querySelector('[data-usu-email-cancelar]').onclick = () => { fEmail.hidden = true; };
+    fEmail.onsubmit = e => {
+      e.preventDefault();
+      const novo = $(pre + 'NovoEmail').value.trim(), avisar = $(pre + 'Avisar').checked;
+      fazer({ acao: 'email', alvo: fEmail.dataset.alvo, email: novo, avisar },
+        r => `Login trocado para ${r.email}.` + (avisar ? (r.emailEnviado ? ' O código para criar a senha foi para o e-mail novo.' : ' Não deu para mandar o código agora: use Redefinir senha.') : ' A senha continua a mesma.'),
+        e.submitter);
+    };
+  }
+  box.querySelector('[data-usu-novo]').onsubmit = e => {
+    e.preventDefault();
+    const email = $(pre + 'Email').value.trim(), papel = $(pre + 'Papel').value;
+    fazer({ acao: 'convidar', email, papel },
+      r => r.novo ? `Login criado para ${r.email} (${PAPEL_NOME[papel]}).` + (r.emailEnviado ? ' ' + COMO_ENTRA : ' O e-mail com o código não saiu agora: use Redefinir senha daqui a pouco.')
+        : `${r.email} já tinha login e agora entra nesta empresa como ${PAPEL_NOME[papel]}, com a mesma senha de sempre.`,
+      e.submitter);
+  };
+}
+// Minha conta: só o dono e o admin veem (o Super Admin em suporte também).
+function carregarUsuariosConta() {
+  const pode = ['owner', 'admin'].includes(empresa?.role) || !!conta?.platformAdmin;
+  $('usuCard').hidden = !pode;
+  if (pode) carregarUsuarios($('usuConta'), empresa.id, false);
+}
+
 /* ═══════════ SUPER ADMIN (dono da plataforma) ═══════════ */
 // Assinaturas, quem precisa de atenção, consumo de IA, ações de cobrança e acesso de suporte.
 let lv = [], lvAsaas = {};
@@ -2227,7 +2328,7 @@ function abrirEmpresa(id) {
   $('emPlano').value = c.plano || 'ia'; $('emObs').value = e.obs || ''; $('emCortesia').value = '';
   $('emAvisos').innerHTML = (e.avisos || []).length ? `<h3 style="margin-top:16px">Avisos enviados</h3><div class="rolo"><table class="lv-tabela"><tbody>${e.avisos.map(v =>
     `<tr><td>${esc(AVISO_NOME[v.tipo] || v.tipo)}</td><td>${esc({ enviado: 'Enviado', pendente: 'Na fila', enviando: 'Enviando', falhou: 'Falhou', sem_contato: 'Sem WhatsApp' }[v.status] || v.status)}</td><td>${new Date(v.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('')}</tbody></table></div>` : '';
-  carregarRobos(e); carregarRastreioAdmin(e);
+  carregarRobos(e); carregarRastreioAdmin(e); carregarUsuarios($('emUsuariosLista'), e.id, true);
   if (!$('dlgEmpresa').open) $('dlgEmpresa').showModal();
 }
 

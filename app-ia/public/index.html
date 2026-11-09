@@ -43,6 +43,7 @@
       <button class="leve" type="button" data-modo="recover">Esqueci minha senha</button>
       <button class="leve" type="button" data-modo="verify">Confirmar cadastro</button>
     </div>
+    <button class="leve" type="button" id="btJaTenhoCodigo" style="margin-top:8px" hidden>Já recebi o código</button>
     <button class="leve" type="button" id="btVoltarPorta" style="margin-top:8px" hidden>← Voltar para o login</button>
     <p class="legal-links"><a href="/termos.html" target="_blank" rel="noopener">Termos de Uso</a> · <a href="/privacidade.html" target="_blank" rel="noopener">Privacidade</a></p>
   </div>
@@ -623,6 +624,11 @@
         <label class="check-lin"><input type="checkbox" id="cfCobr"> Usar Cobranças para cobrar meus clientes</label>
         <button class="principal" type="submit" style="margin-top:14px">Salvar</button>
       </form>
+      <div class="card" id="usuCard" hidden>
+        <h2>Usuários</h2>
+        <p class="muted" style="font-size:14px">Quem entra no painel da sua empresa. Convide quantas pessoas quiser, cada uma com o próprio e-mail e a própria senha.</p>
+        <div id="usuConta"></div>
+      </div>
       <form class="card" id="formLoja">
         <h2>Identidade da loja</h2>
         <p class="muted" style="font-size:14px">Vai no convite em PDF que o vendedor manda pelo plugin: a sua logo, o nome e os contatos da loja, não os da LeadVox.</p>
@@ -738,6 +744,11 @@
 <dialog id="dlgEmpresa" class="janela larga" aria-labelledby="emTitulo">
   <div class="janela-topo"><h2 id="emTitulo">Empresa</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
   <div id="emResumo"></div>
+  <section id="emUsuarios" class="em-robos" aria-labelledby="emUsuariosTitulo">
+    <h3 id="emUsuariosTitulo">Usuários</h3>
+    <p class="muted" style="font-size:13px;margin-top:4px">Quem entra no painel desta empresa. O cliente esqueceu com qual e-mail entra? Está aqui; dá para trocar o e-mail ou mandar o código para criar uma senha nova.</p>
+    <div id="emUsuariosLista"></div>
+  </section>
   <section id="emRobos" class="em-robos" aria-labelledby="emRobosTitulo"></section>
   <section id="emRastreio" class="em-robos" aria-label="Módulo Rastreamento de anúncios"></section>
   <div class="em-acoes">

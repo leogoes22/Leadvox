@@ -31,6 +31,17 @@ function envioDe(r){
  const e=r?.ultimoEnvio;if(!e||typeof e!=='object'||!Number(e.ts))return null;
  return {ok:e.ok===true,ts:Number(e.ts),status:Number(e.status)||0,erro:String(e.erro||'').slice(0,200)};
 }
+// Usuários do painel de cada empresa (database/usuarios.sql e a função "usuarios"): recusas em palavras do cliente.
+const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const PAPEIS_PAINEL=['owner','admin','member'];
+export const USUARIOS_ERROS={email:'Confira o e-mail.',papel:'Escolha a função: dono, admin ou membro.',
+ so_dono:'Só o dono mexe em quem é dono ou dá a função de dono.',limite:'Hoje já entraram 30 pessoas novas nesta empresa. Tente amanhã ou fale com a LeadVox.',
+ ja_membro:'Essa pessoa já entra no painel desta empresa.',principal:'O dono principal da conta não pode ser removido nem mudar de função.',
+ proprio:'Você não pode mudar nem remover o seu próprio acesso.',nao_encontrado:'Essa pessoa não está mais nesta empresa. Atualize a lista.',
+ email_em_uso:'Esse e-mail já é o login de outra pessoa na LeadVox IA.',mesmo_email:'Esse já é o e-mail de login dessa pessoa.',
+ plataforma:'O login da equipe LeadVox não se troca por aqui.',nao_trocou:'O e-mail não foi trocado. Tente de novo.',
+ login:'Não deu para criar ou trocar o login agora. Tente de novo em instantes.',proibido:'Só o dono ou um admin da empresa mexe nos usuários.',
+ empresa:'Empresa inválida.',banco:'O banco não respondeu. Tente de novo em instantes.'};
 export function jwtPayload(token){
  try{const part=String(token).split('.')[1];return JSON.parse(Buffer.from(part.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));}catch{return null;}
 }
@@ -216,6 +227,44 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
     const j=await r.json().catch(()=>null);
     if(!r.ok||!j?.ok)throw {status:r.status===401?401:400,message:j?.erro||'Não deu para abrir a assinatura agora.'};
     send(res,200,{ok:true,link:j.link,vencimento:j.vencimento});
+   }else if(action==='usuarios-painel'){
+    // Quem entra no painel da empresa: ver, cadastrar, trocar a função, remover e mandar a redefinição de senha.
+    // Dono, admin e Super Admin; o banco confere quem pode o quê. Criar login e trocar e-mail passam pela função "usuarios",
+    // a única com a chave de serviço. Nenhuma senha passa por aqui: a pessoa cria a dela pelo código de "Esqueci minha senha".
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const org=req.method==='GET'?q.get('organization'):body.organization;
+    if(!UUID_RE.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args)=>{try{return await upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});}
+     catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe nos usuários.'};}};
+    const falha=r=>{if(!r||r.ok!==true)throw {status:400,message:USUARIOS_ERROS[r?.erro]||'Não deu para concluir. Atualize a lista e tente de novo.'};return r;};
+    if(req.method==='GET')send(res,200,await rpc('lv_usuarios',{}));
+    else{
+     const acao=body.acao,alvo=String(body.alvo||'');
+     if(acao==='convidar'||acao==='email'){
+      if(acao==='convidar'&&!PAPEIS_PAINEL.includes(body.papel))throw {status:400,message:USUARIOS_ERROS.papel};
+      if(acao==='email'&&(!UUID_RE.test(alvo)||!await isPlatformAdmin(authToken)))throw {status:403,message:'Só a LeadVox troca o e-mail de login.'};
+      const email=String(body.email||'').trim().toLowerCase().slice(0,254);
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw {status:400,message:USUARIOS_ERROS.email};
+      const corpo=acao==='convidar'?{organization:org,email,papel:body.papel}:{organization:org,alvo,email,avisar:body.avisar===true};
+      let r;try{r=await fetchImpl(URL_BASE+'/functions/v1/usuarios/'+acao,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+authToken,'Content-Type':'application/json'},
+       body:JSON.stringify(corpo),signal:AbortSignal.timeout(30000),redirect:'error'});}catch{throw {status:502,message:'O cadastro de usuários não respondeu. Tente de novo em instantes.'};}
+      const j=await r.json().catch(()=>null);
+      if(!j||typeof j.ok!=='boolean')throw {status:502,message:'O cadastro de usuários ainda não está ligado (função "usuarios"). Fale com a LeadVox.'};
+      if(!j.ok)throw {status:r.status===401?401:r.status===403?403:400,message:USUARIOS_ERROS[j.erro]||'Não deu para concluir. Tente de novo em instantes.'};
+      send(res,200,{ok:true,novo:j.novo===true,email:String(j.email||email),emailEnviado:j.emailEnviado===true});
+     }else if(acao==='papel'||acao==='remover'||acao==='senha'){
+      if(!UUID_RE.test(alvo))throw {status:400,message:USUARIOS_ERROS.nao_encontrado};
+      if(acao==='papel'){
+       if(!PAPEIS_PAINEL.includes(body.papel))throw {status:400,message:USUARIOS_ERROS.papel};
+       send(res,200,falha(await rpc('lv_usuarios_papel',{alvo,papel:body.papel})));
+      }else if(acao==='remover')send(res,200,falha(await rpc('lv_usuarios_remover',{alvo})));
+      else{
+       const r=falha(await rpc('lv_usuarios_senha',{alvo}));
+       await upstream('/auth/v1/recover',{method:'POST',body:{email:r.email}});
+       send(res,200,{ok:true,email:r.email});
+      }
+     }else throw {status:400,message:'Ação inválida.'};
+    }
    }else if(action.startsWith('admin-')){
     // Super Admin: só o dono da plataforma (as funções do banco conferem de novo).
     if(!await isPlatformAdmin(authToken))throw {status:403,message:'Área exclusiva da LeadVox.'};
