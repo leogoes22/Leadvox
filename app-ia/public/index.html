@@ -215,6 +215,11 @@
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpGer" aria-label="Avisar o gerente"><span></span></button></div>
               <div class="duas"><div><input id="cpGerZap" inputmode="numeric" maxlength="13" placeholder="WhatsApp: 5521999999999"></div>
                 <div><select id="cpGerQuando" aria-label="Quando avisar"><option value="equipe">Só quando passa para a equipe</option><option value="todas">Toda passagem (inclusive para outra IA)</option></select></div></div>
+              <div class="lin-sw" style="margin-top:8px"><span>Avisar o vendedor no WhatsApp<small>No rodízio, o vendedor que recebe o cliente ganha no WhatsApp dele: nome e telefone do cliente, o resumo e a orientação do que fazer. O número de cada vendedor fica em Ações e regras → Departamentos. Peça para cada vendedor mandar um "bom dia" para o número da IA todo dia (assim a mensagem chega sem modelo pago).</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpVend" aria-label="Avisar o vendedor"><span></span></button></div>
+              <label for="cpVendModo">Depois de passar o cliente para o vendedor</label>
+              <select id="cpVendModo"><option value="pausa">A IA para e o vendedor atende pela LeadVox</option><option value="continua">A IA continua atendendo (o vendedor fala pelo WhatsApp dele)</option></select>
+              <p class="muted" style="font-size:13px;margin-top:4px">Com a IA continuando, ela sabe quem é o vendedor, não pergunta tudo de novo e pede ao cliente um retorno de como está o atendimento. O vendedor pode pausar a IA pelo botão do plugin quando quiser falar por ali.</p>
               <div class="lin-sw" style="margin-top:8px"><span>Avisar no grupo do WhatsApp<small>Toda vez que a IA passa um cliente, o grupo recebe: quem é, o motivo, para onde e para quem foi, e o resumo.</small></span>
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpGrupo" aria-label="Avisar no grupo"><span></span></button></div>
               <div class="duas"><div><input id="cpGrupoId" inputmode="numeric" maxlength="40" placeholder="Número do grupo: 120363000000000000"></div>

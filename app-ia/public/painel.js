@@ -521,7 +521,7 @@ function configPadrao(tipo, nome) {
     setores: [], transferencia: { mensagem: '' },
     followup: { ativo: false, toques: [{ minutos: 60, texto: '' }, { minutos: 1440, texto: '' }], janelaIni: '09:00', janelaFim: '20:00' },
     crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true },
-    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
+    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, vendedor: { ativo: false, iaContinua: false }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
   };
 }
 function mesclar(pad, c) {
@@ -1030,6 +1030,7 @@ function desenharComportamento() {
   $('cpJIni').value = fu.janelaIni || '09:00'; $('cpJFim').value = fu.janelaFim || '20:00';
   sw('cpRet', av.retomada?.ativo); $('cpRetTxt').value = av.retomada?.texto || '';
   sw('cpGer', av.gerente?.ativo); $('cpGerZap').value = av.gerente?.whatsapp || ''; $('cpGerQuando').value = av.gerente?.quando || 'equipe';
+  sw('cpVend', av.vendedor?.ativo); $('cpVendModo').value = av.vendedor?.iaContinua ? 'continua' : 'pausa';
   sw('cpGrupo', av.grupo?.ativo); $('cpGrupoId').value = av.grupo?.id || (c.regras || {}).grupo || ''; $('cpGrupoQuando').value = av.grupo?.quando || 'equipe';
   sw('cpRes', av.resumo?.ativo); $('cpResZap').value = av.resumo?.whatsapp || ''; $('cpResHora').value = String(av.resumo?.hora || 19);
   $('cpLimH').value = lim.hora || 25; $('cpLimD').value = lim.dia || 50;
@@ -1060,6 +1061,7 @@ $('agComportamento').onsubmit = async e => {
       followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00' },
       avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
         gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
+        vendedor: { ativo: ligado('cpVend'), iaContinua: $('cpVendModo').value === 'continua' },
         resumo: { ativo: ligado('cpRes'), whatsapp: zap('cpResZap'), hora: Number($('cpResHora').value) },
         grupo: { ativo: ligado('cpGrupo'), id: grupoId, quando: $('cpGrupoQuando').value } },
       // o mesmo grupo vale para a ação "Avisar no grupo" das regras, se lá ainda estiver vazio
@@ -1094,6 +1096,8 @@ async function carregarListasIA() {
     try { listas[k] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k)).items; } catch { listas[k] = null; }
   }));
 }
+// número com ou sem 55: DDD + número vira 55 + DDD + número; vazio continua vazio
+const zap55 = v => { const d = String(v || '').replace(/\D/g, ''); return d.length === 10 || d.length === 11 ? '55' + d : d; };
 // editor dos departamentos: nome, fila, quando e como o cliente chega aos vendedores (fila pendente ou rodízio)
 let setoresEd = [];
 const setoresAtuais = () => setoresEd.filter(x => limpaNome(x.nome));
@@ -1106,7 +1110,7 @@ function desenharSetores() {
     <label for="sD${i}">Como o cliente chega aos vendedores</label>
     <select id="sD${i}" data-c="distribuicao"><option value="fila">Fila do departamento: fica pendente e quem aceitar primeiro pega</option>
       <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada vendedor, na ordem</option></select>
-    ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => `<label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${s.vendedores.some(v => String(v.id) === String(u.id)) ? 'checked' : ''}> ${esc(u.name)}</label>`).join('')
+    ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => { const v = s.vendedores.find(x => String(x.id) === String(u.id)); return `<div class="vend-lin"><label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${v ? 'checked' : ''}> ${esc(u.name)}</label>${v ? `<input data-vzap="${esc(u.id)}" inputmode="numeric" maxlength="15" placeholder="WhatsApp do vendedor: 5521999999999" value="${esc(v.whatsapp || '')}" aria-label="WhatsApp de ${esc(u.name)}">` : ''}</div>`; }).join('')
       : '<p class="muted" style="font-size:13px">Conecte a LeadVox em Credenciais de API para escolher os vendedores.</p>'}
       <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o vendedor. Cliente que volta fica com o mesmo vendedor.' : 'Marque os vendedores deste departamento, na ordem em que devem receber.'}</p>
       <label for="sT${i}">Se o vendedor não responder o cliente</label>
@@ -1117,8 +1121,8 @@ function desenharSetores() {
   desenharPadrao();
 }
 $('rgSetores').addEventListener('input', e => {
-  const row = e.target.closest('[data-i]'), k = e.target.dataset.c; if (!row || !k || k === 'distribuicao') return;
-  const s = setoresEd[+row.dataset.i]; s[k] = e.target.value;
+  const row = e.target.closest('[data-i]'), k = e.target.dataset.c; if (!row || (!k && !e.target.dataset.vzap) || k === 'distribuicao') return;
+  const s = setoresEd[+row.dataset.i]; if (e.target.dataset.vzap) { const v = s.vendedores.find(x => String(x.id) === e.target.dataset.vzap); if (v) v.whatsapp = e.target.value; marcarRg(); return; } s[k] = e.target.value;
   if (k === 'nome') { const d = (listas.departamentos || []).find(x => semAc(x.name) === semAc(e.target.value)); if (d) { s.filaId = String(d.id); row.querySelector('[data-c="filaId"]').value = d.id; } desenharPadrao(); }
 });
 $('rgSetores').addEventListener('change', e => {
@@ -1127,7 +1131,7 @@ $('rgSetores').addEventListener('change', e => {
   if (e.target.dataset.c === 'distribuicao') { s.distribuicao = e.target.value; desenharSetores(); }
   else if (e.target.dataset.vend) {
     const id = e.target.dataset.vend, u = (listas.usuarios || []).find(x => String(x.id) === id);
-    s.vendedores = e.target.checked ? [...s.vendedores.filter(v => String(v.id) !== id), { id: Number(id) || id, nome: u ? limpaNome(u.name) : id }] : s.vendedores.filter(v => String(v.id) !== id);
+    s.vendedores = e.target.checked ? [...s.vendedores.filter(v => String(v.id) !== id), { id: Number(id) || id, nome: u ? limpaNome(u.name) : id, whatsapp: '' }] : s.vendedores.filter(v => String(v.id) !== id);
     desenharSetores();
   }
 });
@@ -1325,8 +1329,10 @@ $('agAcoes').onsubmit = async e => {
     if (ruins.length) throw Error('Corrija as ações em vermelho antes de salvar.');
     const padrao = $('rgPadrao').value;
     const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao),
-      distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome })).filter(v => v.id) : [],
+      distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome, whatsapp: zap55(v.whatsapp) })).filter(v => v.id) : [],
       trocaMin: s.distribuicao === 'rodizio' && [15, 20, 30, 40, 50, 60].includes(Number(s.trocaMin)) ? Number(s.trocaMin) : 0 }));
+    const zapRuim = setores.flatMap(s => s.vendedores).find(v => v.whatsapp && !/^55\d{10,11}$/.test(v.whatsapp));
+    if (zapRuim) throw Error('WhatsApp de ' + zapRuim.nome + ': use 55 + DDD + número.');
     const semVend = setores.find(s => s.distribuicao === 'rodizio' && !s.vendedores.length);
     if (semVend) throw Error('Marque os vendedores do rodízio de ' + semVend.nome + '.');
     if (setores.some(s => !s.filaId)) throw Error('Informe o número da fila de cada departamento.');
