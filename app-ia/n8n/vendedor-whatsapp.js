@@ -13,7 +13,8 @@ const TROCAS = {
    "if (d.origem !== 'passagem') {\n" +
    "  const __u8 = (v) => String(v || '').replace(/\\D/g, '').slice(-8);\n" +
    "  const __vds = (Array.isArray(cfg.setores) ? cfg.setores : []).flatMap(x => x && Array.isArray(x.vendedores) ? x.vendedores.map(v => v && v.whatsapp) : []).map(__u8).filter(x => x.length === 8);\n" +
-   "  const __teste = Array.isArray(__mt.numeros) && __mt.numeros.map(__u8).includes(__u8(d.tel));\n" +
+   // cfg.modoTeste direto: o simulador não tem a variável __mt do fluxo de produção (quebrou o "Testar a IA" em 10/11)
+   "  const __mtq = cfg.modoTeste || {}; const __teste = Array.isArray(__mtq.numeros) && __mtq.numeros.map(__u8).includes(__u8(d.tel));\n" +
    "  if (__vds.includes(__u8(d.tel)) && !__teste) return [];\n" +
    "}\n" +
    "const equipe = (Array.isArray(rota.equipe)"]
