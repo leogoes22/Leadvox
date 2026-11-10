@@ -2951,12 +2951,12 @@ function desenharSite() {
 
 // ═══ Site da loja: modelo, identidade, textos e publicar (public/site/motor.js + /site/modelos/<id>.css) ═══
 const SITE_MODELOS = [
-  ['garagem', 'Garagem', 'Escuro ripado, títulos fortes e a sua cor em destaque. Ótimo para motos e seminovos.', true],
+  ['garagem', 'Garagem', 'Para lojas de MOTOS. O site completo da MG: 4 páginas, vitrine animada, estilos (trail, scooter…), avaliações e Instagram.', true],
   ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', true],
   ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', true],
   ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', true],
   ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', true],
-  ['vitrine', 'Vitrine', 'Estoque em lista, linha a linha, com menu flutuante e degradê. Para lojas com muito estoque.', true]
+  ['vitrine', 'Vitrine', 'Estoque em lista, linha a linha, com menu flutuante e degradê. Para lojas com muito estoque.', false]
 ];
 const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
 function desenharSiteModelo() {
@@ -2990,7 +2990,12 @@ function desenharSiteModelo() {
     <div class="duas"><div><label for="smZap">WhatsApp (para onde vão os clientes)</label><input id="smZap" inputmode="tel" maxlength="20" value="${esc(i.whatsapp || cfg.whatsapp || '')}" placeholder="(21) 99999-9999"></div>
       <div><label for="smTel">Telefone fixo (opcional)</label><input id="smTel" maxlength="20" value="${esc(i.telefone || '')}"></div></div>
     <div class="duas"><div><label for="smEnd">Endereço</label><input id="smEnd" maxlength="160" value="${esc(i.endereco || '')}"></div>
-      <div><label for="smHora">Horário</label><input id="smHora" maxlength="120" value="${esc(i.horario || '')}" placeholder="Seg a sex 9h às 18h · Sáb 9h às 14h"></div></div>
+      <div><label for="smCidade">Cidade (aparece nos textos do site)</label><input id="smCidade" maxlength="60" value="${esc(i.cidade || '')}" placeholder="Nova Iguaçu"></div></div>
+    <div class="duas"><div><label for="smHora">Horário (separe os dias com ·)</label><input id="smHora" maxlength="120" value="${esc(i.horario || '')}" placeholder="Seg a sex 9h às 18h · Sáb 9h às 14h"></div><div></div></div>
+    <h3 class="st-tit">Avaliações do Google</h3>
+    <p class="muted" style="margin-top:6px">Copie até 3 avaliações reais da loja no Google. Sem nenhuma, a seção de avaliações não aparece no site.</p>
+    ${[0, 1, 2].map(k => { const a = (i.avaliacoes || [])[k] || {}; return `<div class="duas sm-av"><div><label for="smAvN${k}">Nome do cliente</label><input id="smAvN${k}" maxlength="60" value="${esc(a.nome || '')}"></div>
+      <div><label for="smAvT${k}">O que ele escreveu</label><textarea id="smAvT${k}" maxlength="400" rows="2">${esc(a.texto || '')}</textarea></div></div>`; }).join('')}
     <div class="duas"><div><label for="smInsta">Instagram</label><input id="smInsta" maxlength="31" value="${esc(i.instagram ? '@' + i.instagram : '')}" placeholder="@sualoja"></div>
       <div><label for="smMapa">Link do Google Maps (opcional)</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div></div>
     <h3 class="st-tit">Estoque</h3>
@@ -3047,7 +3052,11 @@ function desenharSiteModelo() {
     const modeloSel = (document.querySelector('input[name="smModelo"]:checked') || {}).value || 'garagem';
     const identidade = { nome: $('smNome').value.trim(), logo: logo || null, cor1: $('smCor1').value, cor2: $('smCor2').value, fonte: $('smFonte').value,
       frase: $('smFrase').value.trim(), subtitulo: $('smSub').value.trim(), sobre: $('smSobre').value.trim(), whatsapp: $('smZap').value, telefone: $('smTel').value.trim(),
-      endereco: $('smEnd').value.trim(), horario: $('smHora').value.trim(), instagram: $('smInsta').value.trim().replace(/^@/, ''), mapa: $('smMapa').value.trim() };
+      endereco: $('smEnd').value.trim(), horario: $('smHora').value.trim(), instagram: $('smInsta').value.trim().replace(/^@/, ''), mapa: $('smMapa').value.trim(),
+      cidade: $('smCidade').value.trim(),
+      avaliacoes: [0, 1, 2].map(k => ({ nome: $('smAvN' + k).value.trim(), texto: $('smAvT' + k).value.trim() })).filter(a => a.nome && a.texto) };
+    // os modelos fiéis usam a cidade nos textos ("motos 0 km e seminovas em …"): sem ela, não publica
+    if ($('smPub').checked && !identidade.cidade) return mostra($('smErro'), 'Para publicar, coloque a cidade da loja: ela aparece nos textos do site.');
     bt.disabled = true; bt.textContent = 'Salvando…';
     try { await api('site-modelo', { organization: empresa.id, conta: s.conta, modelo: modeloSel, identidade, publicado: $('smPub').checked }); toast('Site salvo. Aparece em até 1 minuto.'); await carregarSite(); }
     catch (err) { mostra($('smErro'), err.message); }

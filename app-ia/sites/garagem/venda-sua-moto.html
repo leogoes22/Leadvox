@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-pagina="venda">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Venda ou troque sua moto · {{h:nome}} {{h:cidade}}</title>
+<meta name="description" content="Quer vender ou trocar sua moto em {{h:cidade}}? Mande os dados, a {{h:nome}} avalia na loja e o valor entra na compra da próxima ou vira dinheiro.">
+<meta name="theme-color" content="#121110">
+<meta property="og:title" content="Venda ou troque sua moto · {{h:nome}} {{h:cidade}}">
+<meta property="og:description" content="Quer vender ou trocar sua moto em {{h:cidade}}? Mande os dados, a {{h:nome}} avalia na loja e o valor entra na compra da próxima ou vira dinheiro.">
+<meta property="og:image" content="{{a:ogimg}}">
+<meta property="og:type" content="website">
+<link rel="icon" href="{{a:logo}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Albert+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://www.autocerto.com">
+<!-- Cole aqui o Pixel da Meta / Google Tag (os formulários já disparam "Lead" / "generate_lead") -->
+<style>@view-transition{navigation:auto}
+::view-transition-old(root){animation:vtSai .28s ease both}
+::view-transition-new(root){animation:vtEntra .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes vtSai{to{opacity:0;transform:translateY(-8px)}}
+@keyframes vtEntra{from{opacity:0;transform:translateY(12px)}}
+:root{
+  --ripado:#121110;--carvao:#1B1916;--grafite:#26231F;--ambar:#D6921E;--luz:#F2C46B;--farol:#F4EFE6;--cromo:#A39C90;
+  --linha:rgba(244,239,230,.1);--linha-forte:rgba(244,239,230,.18);
+  --r-pill:999px;--r-card:22px;--r-campo:14px;
+  --display:'Saira Condensed','Arial Narrow',Impact,sans-serif;
+  --texto:'Albert Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --max:1240px;--ease:cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:90px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ripado);color:var(--farol);font-family:var(--texto);font-size:1.02rem;line-height:1.6;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--luz);outline-offset:3px;border-radius:8px}
+.wrap{width:min(var(--max),100% - 40px);margin-inline:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+::selection{background:var(--ambar);color:#17120A}
+
+/* ---------- barra de progresso ---------- */
+.progresso{position:fixed;left:0;top:0;height:3px;width:100%;z-index:90;background:linear-gradient(90deg,var(--ambar),var(--luz));transform-origin:0 50%;transform:scaleX(0);box-shadow:0 0 12px color-mix(in srgb,var(--luz) 70%,transparent);pointer-events:none}
+
+/* ---------- botões (pílula) ---------- */
+.btn{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 26px;border-radius:var(--r-pill);border:1px solid transparent;font-weight:700;font-size:.98rem;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .25s,border-color .25s,color .25s,transform .25s var(--ease),box-shadow .25s}
+.btn::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s var(--ease)}
+.btn:hover::after{transform:translateX(120%)}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn svg{width:19px;height:19px;flex:none;transition:transform .3s var(--ease)}
+.btn:hover svg{transform:scale(1.12)}
+.btn-ouro{background:var(--ambar);color:#17120A;box-shadow:0 8px 24px -8px color-mix(in srgb,var(--ambar) 60%,transparent)}
+.btn-ouro:hover{background:var(--luz);box-shadow:0 14px 34px -10px color-mix(in srgb,var(--luz) 75%,transparent)}
+.btn-linha{border-color:var(--linha-forte);background:rgba(244,239,230,.04);backdrop-filter:blur(6px)}
+.btn-linha:hover{border-color:var(--ambar);color:var(--luz)}
+.btn-zap{background:#1FAF55;color:#fff;box-shadow:0 8px 24px -10px rgba(31,175,85,.7)}
+.btn-zap:hover{background:#25C862}
+.btn-insta{background:linear-gradient(90deg,#962FBF,#D62976 45%,#FA7E1E);color:#fff}
+.btn-sm{padding:11px 18px;font-size:.9rem}
+.btn-bloco{width:100%}
+
+/* ---------- navegação ---------- */
+.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--ripado) 55%,transparent);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid transparent;transition:background .35s,border-color .35s;padding-top:env(safe-area-inset-top,0px)}
+.nav.rolou{background:color-mix(in srgb,var(--ripado) 90%,transparent);border-color:var(--linha)}
+.nav-in{display:flex;align-items:center;gap:26px;height:78px;transition:height .35s var(--ease)}
+.nav.rolou .nav-in{height:64px}
+.nav-logo img{height:56px;width:auto;transition:height .35s var(--ease),transform .4s var(--ease)}
+.nav.rolou .nav-logo img{height:46px}
+.nav-logo:hover img{transform:rotate(-4deg) scale(1.05)}
+.nav-links{display:flex;gap:6px;margin-left:auto}
+.nav-links a{position:relative;text-decoration:none;font-weight:500;font-size:.94rem;color:var(--cromo);padding:9px 14px;border-radius:var(--r-pill);transition:color .25s,background .25s}
+.nav-links a:hover{color:var(--farol);background:rgba(244,239,230,.06)}
+.nav-links a[aria-current="page"]{color:#17120A;background:var(--ambar)}
+.nav-burger{display:none;margin-left:auto;background:none;border:1px solid var(--linha-forte);border-radius:50%;width:48px;height:48px;cursor:pointer}
+.nav-burger span{display:block;width:20px;height:2px;background:var(--farol);margin:4px auto;transition:transform .3s,opacity .3s}
+.nav.aberto .nav-burger span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.nav.aberto .nav-burger span:nth-child(2){opacity:0}
+.nav.aberto .nav-burger span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+/* ---------- revelação ao rolar ---------- */
+.js [data-rv]{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease),transform .9s var(--ease),clip-path 1s var(--ease),filter .9s var(--ease);transition-delay:calc(var(--d,0)*1ms)}
+.js [data-rv="esq"]{transform:translateX(-40px)}
+.js [data-rv="dir"]{transform:translateX(40px)}
+.js [data-rv="zoom"]{transform:scale(.94);filter:blur(6px)}
+.js [data-rv="corte"]{transform:none;clip-path:inset(0 0 100% 0)}
+.js [data-rv].visto{opacity:1;transform:none;filter:none;clip-path:inset(0 0 0 0)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--linha)}
+.hero::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#161411 0 15px,#0D0C0A 15px 17px);opacity:.9}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 400px at var(--hx,70%) var(--hy,40%),color-mix(in srgb,var(--ambar) 12%,transparent),transparent 70%);pointer-events:none;transition:background .2s}
+.hero-in{position:relative;z-index:1;display:grid;grid-template-columns:1.02fr 1fr;gap:40px;align-items:center;min-height:min(780px,calc(100svh - 78px));padding:56px 0 70px}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(2.8rem,6.2vw,5.4rem);line-height:.9;letter-spacing:-.01em;margin:0 0 26px}
+.hero h1 .l{display:block;overflow:hidden;padding-bottom:.04em}
+.hero h1 .w{display:inline-block;animation:sobe 1s var(--ease) both;animation-delay:calc(var(--i)*80ms + 150ms)}
+.hero h1 .l+.l{color:var(--luz);text-shadow:0 0 38px color-mix(in srgb,var(--luz) 28%,transparent)}
+@keyframes sobe{from{transform:translateY(105%) rotate(4deg);opacity:0}}
+.hero-lead{font-size:clamp(1.05rem,1.5vw,1.2rem);color:#D9D2C5;max-width:32em;margin:0 0 32px;animation:aparece .9s var(--ease) .7s both}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px;animation:aparece .9s var(--ease) .85s both}
+@keyframes aparece{from{opacity:0;transform:translateY(18px)}}
+.hero-prova{display:flex;gap:14px;align-items:center;margin-top:40px;padding:14px 20px 14px 14px;border:1px solid var(--linha);border-radius:var(--r-pill);background:rgba(27,25,22,.6);backdrop-filter:blur(8px);max-width:31em;animation:aparece .9s var(--ease) 1s both}
+.hero-prova .g{flex:none;width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.hero-prova .g svg{width:22px;height:22px}
+.hero-prova p{margin:0;font-size:.92rem;color:#D9D2C5;line-height:1.45}
+.hero-prova b{color:var(--farol);font-weight:600}
+.estrelas{color:var(--luz);letter-spacing:2px;font-size:.9rem}
+
+.palco{position:relative;aspect-ratio:1/1.1;width:100%;max-width:600px;justify-self:center;--px:0;--py:0}
+.palco-estrela{position:absolute;left:11%;top:1%;width:78%;height:auto;overflow:visible;transform:translate(calc(var(--px)*-18px),calc(var(--py)*-14px));transition:transform .5s var(--ease)}
+.palco-estrela path{fill:none;stroke:var(--luz);stroke-width:3.2;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--luz) 85%,transparent)) drop-shadow(0 0 22px color-mix(in srgb,var(--ambar) 55%,transparent));stroke-dasharray:1700;stroke-dashoffset:1700;animation:desenha 2.1s cubic-bezier(.65,0,.35,1) .25s forwards,pulsa 4s ease-in-out 3s infinite}
+.palco-estrela path+path{animation-delay:.85s,3.5s}
+@keyframes desenha{to{stroke-dashoffset:0}}
+@keyframes pulsa{50%{opacity:.72}}
+.palco-halo{position:absolute;left:8%;right:8%;top:0;height:62%;background:radial-gradient(closest-side,color-mix(in srgb,var(--ambar) 24%,transparent),transparent);opacity:0;animation:acende 1.4s ease 2.2s forwards}
+.palco-chao{position:absolute;left:0;right:0;bottom:6%;height:2px;background:linear-gradient(90deg,transparent,var(--luz) 20%,var(--luz) 80%,transparent);box-shadow:0 0 18px 3px color-mix(in srgb,var(--luz) 55%,transparent),0 -30px 60px color-mix(in srgb,var(--luz) 12%,transparent);opacity:0;animation:acende 1s ease 2.6s forwards}
+@keyframes acende{to{opacity:1}}
+.vitrine{position:absolute;left:13%;right:13%;bottom:9%;aspect-ratio:4/3;transform:translate(calc(var(--px)*12px),calc(var(--py)*10px)) rotateX(calc(var(--py)*-4deg)) rotateY(calc(var(--px)*5deg));transition:transform .5s var(--ease);perspective:900px}
+.vitrine-item{position:absolute;inset:0;display:block;color:inherit;text-decoration:none;border-radius:var(--r-card);overflow:hidden;background:var(--carvao);border:1px solid var(--linha-forte);box-shadow:0 30px 60px rgba(0,0,0,.55);opacity:0;transform:scale(1.04);clip-path:inset(0 0 0 100% round 22px);transition:opacity .9s var(--ease),transform 1.2s var(--ease),clip-path 1s var(--ease)}
+.vitrine-item.on{opacity:1;transform:none;clip-path:inset(0 0 0 0 round 22px)}
+.vitrine-item:not(.on){pointer-events:none}
+.vitrine-item img{width:100%;height:100%;object-fit:cover;transition:transform 6s linear}
+.vitrine-item.on img{transform:scale(1.08)}
+.vitrine-item figcaption{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:12px 18px;border-radius:16px;background:color-mix(in srgb,var(--ripado) 80%,transparent);backdrop-filter:blur(10px)}
+.vm{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.05}
+.vm small{display:block;font-family:var(--texto);font-weight:500;font-size:.78rem;color:var(--cromo)}
+.vp{font-weight:700;color:var(--luz);white-space:nowrap}
+.vitrine-dots{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:8px}
+.vitrine-dots button{width:26px;height:5px;border-radius:5px;border:0;background:var(--linha-forte);cursor:pointer;padding:0;overflow:hidden;position:relative}
+.vitrine-dots button.on::after{content:"";position:absolute;inset:0;background:var(--ambar);transform-origin:0 50%;animation:enche 5s linear forwards}
+@keyframes enche{from{transform:scaleX(0)}}
+
+/* hero compacto das LPs */
+.hero-lp .hero-in{min-height:0;padding:56px 0 64px;align-items:start}
+.hero-lp h1{font-size:clamp(2.6rem,5.4vw,4.6rem)}
+.hero-estoque .hero-in{grid-template-columns:1fr auto;align-items:end}
+.hero-estoque .selos{margin:0;flex-direction:column;align-items:flex-start}
+.migalha{display:flex;gap:8px;font-size:.86rem;color:var(--cromo);margin-bottom:18px;animation:aparece .7s var(--ease) both}
+.migalha a{text-decoration:none}.migalha a:hover{color:var(--luz)}
+.selos{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 30px;padding:0;list-style:none;animation:aparece .9s var(--ease) .8s both}
+.selos li{display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:var(--r-pill);border:1px solid var(--linha);background:rgba(27,25,22,.7);font-size:.9rem;color:#E0D9CD}
+.selos svg{width:17px;height:17px;color:var(--luz)}
+
+/* ---------- letreiro de marcas ---------- */
+.letreiro{overflow:hidden;border-bottom:1px solid var(--linha);padding:22px 0;background:#0F0E0C;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.letreiro-trilho{display:flex;gap:48px;width:max-content;animation:rola 38s linear infinite}
+.letreiro:hover .letreiro-trilho{animation-play-state:paused}
+.letreiro span{display:flex;align-items:center;gap:48px;font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,3.4vw,2.8rem);line-height:1;color:transparent;-webkit-text-stroke:1.2px rgba(244,239,230,.4);white-space:nowrap;transition:color .3s}
+.letreiro span:hover{color:var(--luz);-webkit-text-stroke-color:var(--luz)}
+.letreiro span::after{content:"";width:22px;height:22px;background:var(--ambar);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l9 9-9 9-9-9z' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l9 9-9 9-9-9z' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center/contain no-repeat}
+@keyframes rola{to{transform:translateX(-50%)}}
+
+/* ---------- seções ---------- */
+.sec{padding:110px 0}
+.sec-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:42px}
+.sec h2,.titulo{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,5vw,4rem);line-height:.95;margin:0;letter-spacing:-.005em;text-wrap:balance}
+.sec-sub{color:var(--cromo);margin:12px 0 0;max-width:36em}
+
+/* ---------- categorias (destaques do Instagram) ---------- */
+.destaques{display:flex;gap:22px;overflow-x:auto;padding:6px 4px 18px;margin-bottom:22px;scrollbar-width:none}
+.destaques::-webkit-scrollbar{display:none}
+.destaque{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;cursor:pointer;padding:0;width:86px;text-decoration:none;color:inherit}
+.destaque .anel{width:80px;height:80px;border-radius:50%;padding:3px;background:var(--linha-forte);transition:background .3s,transform .4s var(--ease)}
+.destaque:hover .anel{transform:scale(1.08) rotate(-4deg)}
+.destaque .anel span{display:block;width:100%;height:100%;border-radius:50%;border:3px solid var(--ripado);overflow:hidden;background:var(--carvao)}
+.destaque .anel img{width:100%;height:100%;object-fit:cover}
+.destaque .todas{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.35rem;color:var(--luz)}
+.destaque em{font-style:normal;font-size:.82rem;font-weight:600;color:var(--cromo);white-space:nowrap}
+.destaque[aria-pressed="true"] .anel,.destaque:hover .anel{background:conic-gradient(from 210deg,var(--luz),var(--ambar),#8A5A10,var(--luz))}
+.destaque[aria-pressed="true"] .anel{animation:gira 6s linear infinite}
+@keyframes gira{to{filter:hue-rotate(0)}}
+.destaque[aria-pressed="true"] em{color:var(--farol)}
+
+/* ---------- barra de filtros ---------- */
+.barra{position:sticky;top:72px;z-index:20;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr auto;gap:10px;align-items:center;margin-bottom:28px;padding:10px;border-radius:calc(var(--r-card) + 4px);background:rgba(27,25,22,.82);backdrop-filter:blur(14px);border:1px solid var(--linha)}
+.campo{position:relative;display:block}
+.campo input,.campo select,.form input,.form select,.form textarea{width:100%;height:52px;border-radius:var(--r-campo);border:1px solid var(--linha-forte);background:var(--ripado);padding:0 18px;font-size:.96rem;transition:border-color .25s,box-shadow .25s;appearance:none;-webkit-appearance:none}
+.campo select,.form select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A39C90' stroke-width='1.8' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 18px center;padding-right:42px}
+.campo input:focus,.campo select:focus,.form input:focus,.form select:focus,.form textarea:focus{outline:none;border-color:var(--ambar);box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 16%,transparent)}
+.campo-busca input{padding-left:46px;border-radius:var(--r-pill)}
+.campo-busca svg{position:absolute;left:17px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--cromo)}
+.contagem{color:var(--cromo);font-size:.92rem;white-space:nowrap;padding:0 10px;margin:0}
+.contagem b{color:var(--farol)}
+
+/* ---------- cards de moto ---------- */
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.moto{position:relative;display:flex;flex-direction:column;background:var(--carvao);border:1px solid var(--linha);border-radius:var(--r-card);overflow:hidden;cursor:pointer;text-decoration:none;color:inherit;transition:transform .45s var(--ease),border-color .3s,box-shadow .45s var(--ease);--mx:50%;--my:50%}
+.moto::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:radial-gradient(360px circle at var(--mx) var(--my),color-mix(in srgb,var(--luz) 14%,transparent),transparent 45%);opacity:0;transition:opacity .3s}
+.moto:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--ambar) 55%,transparent);box-shadow:0 26px 50px -20px rgba(0,0,0,.8),0 0 0 1px color-mix(in srgb,var(--ambar) 20%,transparent)}
+.moto:hover::before{opacity:1}
+.moto-foto{position:relative;aspect-ratio:4/3;background:var(--grafite);overflow:hidden}
+.moto-foto img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease),opacity .5s}
+.moto-foto .img2{position:absolute;inset:0;opacity:0}
+.moto:hover .moto-foto img{transform:scale(1.07)}
+.moto:hover .moto-foto .img2{opacity:1}
+.selo{position:absolute;top:12px;left:12px;z-index:1;padding:6px 13px;border-radius:var(--r-pill);background:var(--ambar);color:#17120A;font-weight:700;font-size:.78rem}
+.selo.garantia{left:auto;right:12px;background:color-mix(in srgb,var(--ripado) 82%,transparent);color:var(--luz);border:1px solid color-mix(in srgb,var(--ambar) 45%,transparent)}
+.moto-fotos{position:absolute;right:12px;bottom:12px;z-index:1;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--ripado) 78%,transparent);font-size:.78rem;font-weight:600;backdrop-filter:blur(6px)}
+.moto-fotos svg{width:14px;height:14px}
+.moto-info{padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.moto-marca{display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;color:var(--cromo)}
+.moto-modelo{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1.05;margin:0}
+.moto-meta{display:flex;gap:16px;font-size:.88rem;color:var(--cromo)}
+.moto-meta span{display:inline-flex;align-items:center;gap:6px}
+.moto-meta svg{width:15px;height:15px}
+.moto-preco{margin-top:auto;padding-top:12px;border-top:1px solid var(--linha);display:flex;justify-content:space-between;align-items:center}
+.moto-preco b{font-size:1.3rem;font-weight:700}
+.moto-preco span{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--luz);padding:7px 13px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--ambar) 35%,transparent);transition:background .3s,color .3s}
+.moto:hover .moto-preco span{background:var(--ambar);color:#17120A}
+.vazio{grid-column:1/-1;padding:52px 24px;text-align:center;border:1px dashed var(--linha-forte);border-radius:var(--r-card);color:var(--cromo)}
+.vazio .btn{margin:16px 6px 0}
+.mais{display:flex;justify-content:center;margin-top:40px}
+.grade .moto.entra{animation:cardEntra .6s var(--ease) both;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes cardEntra{from{opacity:0;transform:translateY(24px) scale(.98)}}
+
+/* ---------- portas (LPs) ---------- */
+.portas{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:18px}
+.porta{position:relative;min-height:340px;border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:30px;text-decoration:none;color:inherit;border:1px solid var(--linha);isolation:isolate}
+.porta img{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease),filter .6s}
+.porta::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,color-mix(in srgb,var(--ripado) 10%,transparent),color-mix(in srgb,var(--ripado) 92%,transparent) 72%)}
+.porta:hover img{transform:scale(1.08);filter:saturate(1.2)}
+.porta h3{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:.95;margin:0 0 8px}
+.porta p{margin:0 0 18px;color:#D9D2C5;max-width:26em}
+.porta .ir{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;padding:11px 18px;border-radius:var(--r-pill);background:rgba(244,239,230,.1);backdrop-filter:blur(8px);font-weight:600;font-size:.92rem;transition:background .3s,color .3s,gap .3s var(--ease)}
+.porta:hover .ir{background:var(--ambar);color:#17120A;gap:16px}
+.porta .ir svg{width:16px;height:16px}
+
+/* ---------- avaliações ---------- */
+.avaliacoes{background:linear-gradient(180deg,var(--ripado),#17140F 40%,var(--ripado))}
+.av-topo{display:grid;grid-template-columns:1fr auto;gap:30px;align-items:end;margin-bottom:44px}
+.selo-google{display:flex;align-items:center;gap:16px;padding:14px 24px 14px 14px;border-radius:var(--r-pill);background:var(--carvao);border:1px solid var(--linha)}
+.selo-google .g{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none}
+.selo-google .g svg{width:26px;height:26px}
+.selo-google strong{display:block;font-size:1rem}
+.av-grade{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+.av{position:relative;background:var(--carvao);border:1px solid var(--linha);border-radius:var(--r-card);padding:28px;display:flex;flex-direction:column;gap:18px;transition:transform .5s var(--ease),border-color .3s}
+.av:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--ambar) 35%,transparent)}
+.av-grande{grid-row:span 2;padding:0;overflow:hidden}
+.av-foto{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--grafite);display:grid;place-items:center}
+.av-foto::before{content:"";position:absolute;inset:-30px;background:var(--foto) center/cover;filter:blur(22px) brightness(.55) saturate(1.2)}
+.av-foto img{position:relative;height:72%;width:auto;aspect-ratio:1;object-fit:cover;border-radius:14px;border:5px solid var(--farol);box-shadow:0 18px 40px rgba(0,0,0,.55);transform:rotate(-2.5deg);transition:transform .6s var(--ease)}
+.av-grande:hover .av-foto img{transform:rotate(1deg) scale(1.05)}
+.av-corpo{padding:30px 32px 32px;display:flex;flex-direction:column;gap:20px}
+.av blockquote{margin:0;font-size:1.04rem;line-height:1.6;color:#E6E0D5}
+.av-grande blockquote{font-family:var(--display);font-weight:700;font-size:clamp(1.55rem,2.5vw,2.1rem);line-height:1.12;color:var(--farol)}
+.av blockquote::before{content:"\201C";display:block;font-family:Georgia,serif;font-size:3.4rem;line-height:.6;height:.35em;color:var(--ambar)}
+.autor{display:flex;align-items:center;gap:12px;margin-top:auto}
+.autor .ava{width:46px;height:46px;border-radius:50%;overflow:hidden;flex:none;display:grid;place-items:center;background:var(--grafite);font-weight:700;color:var(--luz);border:1px solid var(--linha-forte)}
+.autor .ava img{width:100%;height:100%;object-fit:cover}
+.autor b{display:block;font-weight:600;line-height:1.2}
+.autor small{color:var(--cromo);font-size:.84rem}
+.autor .estrelas{margin-left:auto;font-size:.82rem}
+.av-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.av-faixa{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+
+/* ---------- instagram ---------- */
+.insta-in{display:grid;grid-template-columns:.95fr 1.05fr;gap:56px;align-items:center}
+.insta-perfil{display:flex;gap:22px;align-items:center;margin-bottom:26px}
+.insta-ava{flex:none;width:112px;height:112px;border-radius:50%;padding:4px;background:conic-gradient(from 200deg,#FEDA75,#FA7E1E,#D62976,#962FBF,#4F5BD5,#FEDA75);animation:giraAnel 8s linear infinite}
+@keyframes giraAnel{to{transform:rotate(360deg)}}
+.insta-ava span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#000;border:4px solid var(--ripado);overflow:hidden;animation:giraAnel 8s linear infinite reverse}
+.insta-ava img{width:78%;height:auto}
+.insta-handle{font-family:var(--display);font-weight:800;font-size:clamp(2.3rem,4.6vw,3.6rem);line-height:.95;margin:0;word-break:break-word}
+.insta-nums{display:flex;gap:22px;margin-top:10px;color:var(--cromo);font-size:.95rem}
+.insta-nums b{color:var(--farol)}
+.insta-bio{margin:0 0 28px;padding:20px 24px;border-left:3px solid var(--ambar);background:var(--carvao);border-radius:0 var(--r-card) var(--r-card) 0;color:#E0D9CD;line-height:1.75}
+.insta-feed{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.insta-feed a{position:relative;aspect-ratio:1;overflow:hidden;background:var(--grafite);border-radius:16px}
+.insta-feed img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+.insta-feed a::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--ripado) 55%,transparent);opacity:0;transition:opacity .3s}
+.insta-feed a:hover img{transform:scale(1.1)}
+.insta-feed a:hover::after{opacity:1}
+.insta-feed svg{position:absolute;z-index:1;top:50%;left:50%;width:30px;height:30px;transform:translate(-50%,-50%) scale(.6);opacity:0;transition:opacity .3s,transform .4s var(--ease);color:#fff}
+.insta-feed a:hover svg{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* ---------- loja ---------- */
+.loja-in{display:grid;grid-template-columns:1fr 1.25fr;border:1px solid var(--linha);border-radius:var(--r-card);overflow:hidden;background:var(--carvao)}
+.loja-info{padding:40px 38px;display:flex;flex-direction:column;gap:24px}
+.loja-item{display:flex;gap:14px}
+.loja-item svg{width:22px;height:22px;color:var(--luz);flex:none;margin-top:3px}
+.loja-item b{display:block;margin-bottom:2px}
+.loja-item p{margin:0;color:#D0C9BC}
+.loja-item a{color:#D0C9BC}
+.loja-mapa{min-height:420px;position:relative;background:var(--grafite)}
+.loja-mapa iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:grayscale(.35) contrast(1.05)}
+
+/* ---------- FAQ ---------- */
+.duvidas-in{display:grid;grid-template-columns:.8fr 1.2fr;gap:56px}
+.faq details{border-bottom:1px solid var(--linha)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 0;font-weight:600;font-size:1.06rem;transition:color .25s}
+.faq summary:hover{color:var(--luz)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--linha-forte);color:var(--luz);font-size:1.3rem;font-weight:400;transition:transform .35s var(--ease),background .3s}
+.faq details[open] summary::after{transform:rotate(45deg);background:color-mix(in srgb,var(--ambar) 15%,transparent)}
+.faq details p{margin:0 0 22px;color:#D0C9BC;max-width:40em;animation:aparece .45s var(--ease)}
+
+/* ---------- passos ---------- */
+.passos{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:passo}
+.passos.tres{grid-template-columns:repeat(3,1fr)}
+.passo{position:relative;padding:28px 26px;border-radius:var(--r-card);background:var(--carvao);border:1px solid var(--linha);counter-increment:passo;transition:transform .5s var(--ease),border-color .3s}
+.passo:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
+.passo::before{content:counter(passo);display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--ambar);color:#17120A;font-family:var(--display);font-weight:800;font-size:1.4rem;margin-bottom:18px}
+.passo h3{font-family:var(--display);font-weight:700;font-size:1.5rem;line-height:1.05;margin:0 0 8px}
+.passo p{margin:0;color:#D0C9BC;font-size:.96rem}
+
+/* ---------- formulários ---------- */
+.form{position:relative;background:var(--carvao);border:1px solid var(--linha-forte);border-radius:calc(var(--r-card) + 6px);padding:34px;box-shadow:0 40px 80px -40px rgba(0,0,0,.9);animation:aparece 1s var(--ease) .5s both}
+.form::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(160deg,color-mix(in srgb,var(--luz) 55%,transparent),transparent 35%,transparent 70%,color-mix(in srgb,var(--ambar) 35%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.form h2{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1;margin:0 0 6px}
+.form>p{margin:0 0 22px;color:var(--cromo);font-size:.94rem}
+.form-grade{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form label{display:flex;flex-direction:column;gap:7px;font-size:.86rem;font-weight:600;color:#D0C9BC}
+.form .cheio{grid-column:1/-1}
+.form .btn{width:100%;margin-top:22px;padding:17px 26px;font-size:1.02rem}
+.form-nota{margin:12px 0 0;font-size:.82rem;color:var(--cromo);text-align:center}
+.form-ok{display:none;margin-top:16px;padding:14px 18px;border-radius:var(--r-campo);background:rgba(31,175,85,.12);border:1px solid rgba(31,175,85,.4);font-size:.92rem;animation:aparece .5s var(--ease)}
+.form-ok.on{display:block}
+.segmento{display:grid;grid-template-columns:1fr 1fr;padding:5px;border-radius:var(--r-pill);background:var(--ripado);border:1px solid var(--linha-forte)}
+.segmento input{position:absolute;opacity:0;pointer-events:none}
+.segmento label{display:block;text-align:center;padding:11px 10px;border-radius:var(--r-pill);cursor:pointer;color:var(--cromo);font-weight:600;transition:background .3s,color .3s}
+.segmento input:checked+label{background:var(--ambar);color:#17120A}
+.segmento input:focus-visible+label{outline:2px solid var(--luz)}
+.escolhida{display:flex;gap:14px;align-items:center;padding:10px;border-radius:18px;background:var(--ripado);border:1px solid var(--linha);margin-top:4px;animation:aparece .5s var(--ease)}
+.escolhida img{width:92px;height:70px;object-fit:cover;border-radius:12px;flex:none}
+.escolhida b{display:block;font-family:var(--display);font-size:1.2rem;line-height:1.05}
+.escolhida small{color:var(--cromo)}
+.escolhida .vp{margin-left:auto;padding-right:8px}
+.faixa-entrada{grid-column:1/-1;padding:16px 18px;border-radius:18px;background:var(--ripado);border:1px solid var(--linha)}
+.faixa-entrada .topo{display:flex;justify-content:space-between;font-size:.86rem;color:#D0C9BC;font-weight:600}
+.faixa-entrada .topo b{color:var(--luz);font-size:1rem}
+.faixa-entrada input[type=range]{width:100%;height:auto;padding:0;border:0;background:none;margin:14px 0 8px;accent-color:var(--ambar);cursor:pointer}
+.faixa-entrada .fin{display:flex;justify-content:space-between;align-items:baseline;font-size:.86rem;color:var(--cromo)}
+.faixa-entrada .fin b{font-family:var(--display);font-size:1.6rem;color:var(--farol)}
+.faixa-entrada small{display:block;color:var(--cromo);font-size:.78rem;margin-top:6px}
+
+/* ---------- chamada final ---------- */
+.final{position:relative;overflow:hidden;text-align:center;padding:120px 0}
+.final::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#161411 0 15px,#0D0C0A 15px 17px)}
+.final::after{content:"";position:absolute;left:10%;right:10%;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--luz),transparent);box-shadow:0 0 22px 3px color-mix(in srgb,var(--luz) 50%,transparent)}
+.final .wrap{position:relative}
+.final h2{font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,6vw,5rem);line-height:.92;margin:0 0 18px}
+.final p{color:#D0C9BC;margin:0 auto 32px;max-width:32em}
+.final .hero-ctas{justify-content:center;animation:none}
+.faixa-cta{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:34px 38px;border-radius:calc(var(--r-card) + 6px);background:linear-gradient(120deg,#231C10,var(--carvao) 60%);border:1px solid color-mix(in srgb,var(--ambar) 30%,transparent)}
+.faixa-cta h3{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1;margin:0 0 6px}
+.faixa-cta p{margin:0;color:#D0C9BC}
+.faixa-cta div:last-child{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- rodapé ---------- */
+.rodape{border-top:1px solid var(--linha);padding:56px 0 calc(34px + env(safe-area-inset-bottom,0px));color:var(--cromo);font-size:.92rem}
+.rodape-in{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:36px}
+.rodape img{height:74px;width:auto;margin-bottom:14px}
+.rodape h4{color:var(--farol);font-size:.98rem;margin:6px 0 14px}
+.rodape ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.rodape a{text-decoration:none;transition:color .2s}
+.rodape a:hover{color:var(--luz)}
+.rodape-base{margin-top:44px;padding-top:22px;border-top:1px solid var(--linha);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:.84rem}
+
+/* ---------- ficha (modal) ---------- */
+.ficha{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;overflow-y:auto;background:rgba(8,7,6,.0);backdrop-filter:blur(0);visibility:hidden;transition:background .4s,backdrop-filter .4s,visibility 0s .4s}
+.ficha.on{visibility:visible;background:rgba(8,7,6,.86);backdrop-filter:blur(8px);transition:background .4s,backdrop-filter .4s}
+.ficha-caixa{position:relative;width:min(1240px,100%);display:grid;grid-template-columns:1.5fr 1fr;background:var(--carvao);border:1px solid var(--linha-forte);border-radius:28px;overflow:hidden;opacity:0;transform:translateY(40px) scale(.96);transition:opacity .45s var(--ease),transform .55s var(--ease)}
+.ficha.on .ficha-caixa{opacity:1;transform:none}
+.ficha-fechar{position:absolute;top:14px;right:14px;z-index:5;width:46px;height:46px;border-radius:50%;border:1px solid var(--linha-forte);background:color-mix(in srgb,var(--ripado) 82%,transparent);cursor:pointer;display:grid;place-items:center;transition:transform .35s var(--ease),background .25s}
+.ficha-fechar:hover{transform:rotate(90deg);background:var(--ambar);color:#17120A}
+.ficha-fechar svg{width:20px;height:20px}
+.galeria{background:#0B0A09;display:flex;flex-direction:column;min-width:0}
+.gal-palco{position:relative;overflow:hidden;flex:1;min-height:440px;touch-action:pan-y;cursor:grab;user-select:none}
+.gal-trilho{position:absolute;inset:0}
+.gal-palco.arrastando{cursor:grabbing}
+.gal-trilho{display:flex;transition:transform .6s var(--ease);will-change:transform}
+.gal-palco.arrastando .gal-trilho{transition:none}
+.gal-slide{flex:0 0 100%;height:100%;display:grid;place-items:center;background:#0B0A09}
+.gal-slide img{width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.gal-seta{position:absolute;top:50%;z-index:2;width:50px;height:50px;border-radius:50%;border:1px solid var(--linha-forte);background:color-mix(in srgb,var(--ripado) 72%,transparent);backdrop-filter:blur(8px);cursor:pointer;display:grid;place-items:center;transform:translateY(-50%);transition:background .25s,transform .35s var(--ease),opacity .3s}
+.gal-seta:hover{background:var(--ambar);color:#17120A;transform:translateY(-50%) scale(1.1)}
+.gal-seta svg{width:20px;height:20px}
+.gal-seta.ant{left:16px}.gal-seta.prox{right:16px}
+.gal-cont{position:absolute;left:16px;bottom:16px;z-index:2;padding:6px 14px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--ripado) 80%,transparent);font-size:.84rem;font-weight:600;backdrop-filter:blur(6px)}
+.gal-barra{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(244,239,230,.08);z-index:2}
+.gal-barra i{display:block;height:100%;background:var(--ambar);transition:width .5s var(--ease)}
+.gal-mini{display:flex;gap:8px;padding:12px;overflow-x:auto;scrollbar-width:thin;scroll-behavior:smooth}
+.gal-mini button{flex:none;width:86px;height:64px;border-radius:12px;overflow:hidden;border:2px solid transparent;padding:0;cursor:pointer;background:var(--grafite);opacity:.5;transition:opacity .3s,border-color .3s,transform .3s var(--ease)}
+.gal-mini button:hover{opacity:.85;transform:translateY(-2px)}
+.gal-mini button.on{border-color:var(--ambar);opacity:1}
+.gal-mini img{width:100%;height:100%;object-fit:cover}
+.ficha-dados{padding:34px 32px 30px;display:flex;flex-direction:column;gap:18px;min-width:0;max-height:min(88vh,860px);overflow-y:auto}
+.ficha-dados>*{animation:aparece .6s var(--ease) both}
+.ficha-dados>*:nth-child(2){animation-delay:.05s}.ficha-dados>*:nth-child(3){animation-delay:.1s}.ficha-dados>*:nth-child(4){animation-delay:.15s}.ficha-dados>*:nth-child(5){animation-delay:.2s}.ficha-dados>*:nth-child(6){animation-delay:.25s}.ficha-dados>*:nth-child(7){animation-delay:.3s}
+.ficha-dados h2{font-family:var(--display);font-weight:800;font-size:clamp(2rem,3.4vw,2.8rem);line-height:.95;margin:0;padding-right:40px}
+.ficha-versao{margin:-8px 0 0;color:var(--cromo);font-size:.92rem}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.specs div{background:var(--ripado);border:1px solid var(--linha);border-radius:16px;padding:12px 15px}
+.specs small{display:block;color:var(--cromo);font-size:.76rem}
+.specs b{font-weight:600}
+.caracs{display:flex;flex-wrap:wrap;gap:8px}
+.caracs span{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-pill);background:var(--grafite);font-size:.82rem;color:#E0D9CD}
+.caracs svg{width:14px;height:14px;color:var(--luz)}
+.ficha-preco small{display:block;color:var(--cromo);font-size:.84rem}
+.ficha-preco b{font-size:2.2rem;font-weight:700;line-height:1.1}
+.ficha-acoes{display:grid;gap:10px}
+.ficha-acoes .linha2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ficha-acoes .btn{padding:14px 18px}
+.parecidas h3{font-size:.9rem;font-weight:600;color:var(--cromo);margin:6px 0 10px}
+.parecidas div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.parecidas a{display:block;text-decoration:none;color:inherit;border-radius:14px;overflow:hidden;background:var(--ripado);border:1px solid var(--linha);transition:transform .35s var(--ease),border-color .3s}
+.parecidas a:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--ambar) 45%,transparent)}
+.parecidas img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.parecidas span{display:block;padding:7px 9px;font-size:.76rem;line-height:1.25}
+.parecidas b{display:block;color:var(--luz)}
+
+/* ---------- flutuantes ---------- */
+.zap-flutua{position:fixed;right:22px;bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:60;width:60px;height:60px;border-radius:50%;background:#1FAF55;display:grid;place-items:center;box-shadow:0 10px 26px rgba(0,0,0,.45);transition:transform .35s var(--ease)}
+.zap-flutua::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #1FAF55;animation:onda 2.4s ease-out infinite}
+@keyframes onda{to{transform:scale(1.6);opacity:0}}
+.zap-flutua:hover{transform:scale(1.1)}
+.zap-flutua svg{width:30px;height:30px;color:#fff}
+body.com-webchat .zap-flutua{bottom:calc(104px + env(safe-area-inset-bottom,0px));width:54px;height:54px}
+.aviso{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:120;transform:translate(-50%,20px);opacity:0;pointer-events:none;padding:12px 20px;border-radius:var(--r-pill);background:var(--farol);color:var(--ripado);font-weight:600;font-size:.92rem;transition:opacity .3s,transform .4s var(--ease)}
+.aviso.on{opacity:1;transform:translate(-50%,0)}
+.cookies{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;width:min(780px,calc(100% - 180px));padding:12px 12px 12px 24px;border-radius:var(--r-pill);background:rgba(27,25,22,.94);backdrop-filter:blur(12px);border:1px solid var(--linha-forte);box-shadow:0 18px 40px rgba(0,0,0,.5);font-size:.86rem;color:#D0C9BC;display:flex;align-items:center;gap:18px;transform:translate(-50%,140%);transition:transform .6s var(--ease)}
+.cookies.on{transform:translate(-50%,0)}
+.cookies p{margin:0;flex:1}
+.cookies a{color:var(--luz)}
+.cookies div{display:flex;gap:8px;flex:none}
+
+/* ---------- responsivo ---------- */
+@media (max-width:1020px){
+  .hero-in,.hero-estoque .hero-in{grid-template-columns:1fr;min-height:0;padding:44px 0 56px;gap:28px}
+  .hero-estoque .selos{flex-direction:row}
+  .palco{max-width:520px}
+  .barra{grid-template-columns:1fr 1fr;top:62px}
+  .campo-busca,.contagem{grid-column:1/-1}
+  .av-topo,.av-grade,.negocio-in,.insta-in,.duvidas-in,.loja-in,.ficha-caixa{grid-template-columns:1fr}
+  .av-grande{grid-row:auto}
+  .av-faixa{grid-template-columns:1fr}
+  .loja-mapa{min-height:340px}
+  .rodape-in{grid-template-columns:1fr 1fr}
+  .portas{grid-template-columns:1fr 1fr}
+  .portas .porta:first-child{grid-column:1/-1}
+  .passos{grid-template-columns:1fr 1fr}
+  .passos.tres{grid-template-columns:1fr}
+  .ficha-dados{max-height:none}
+  .gal-palco{flex:none;min-height:0;aspect-ratio:4/3}
+}
+@media (max-width:860px){
+  .nav-links{position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:4px;background:color-mix(in srgb,var(--ripado) 97%,transparent);border-bottom:1px solid var(--linha);padding:10px 16px 20px;clip-path:inset(0 0 100% 0);transition:clip-path .5s var(--ease);pointer-events:none}
+  .nav.aberto .nav-links{clip-path:inset(0 0 0 0);pointer-events:auto}
+  .nav-links a{padding:14px 18px;font-size:1.04rem;color:var(--farol)}
+  .nav-burger{display:block}
+  .nav-cta{display:none}
+}
+@media (max-width:560px){
+  .wrap{width:calc(100% - 32px)}
+  .sec{padding:76px 0}
+  .nav-logo img{height:46px}
+  .hero-ctas .btn{flex:1 1 100%}
+  .hero-prova{border-radius:22px}
+  .grade{grid-template-columns:1fr}
+  .form{padding:26px 20px}
+  .form-grade{grid-template-columns:1fr}
+  .portas{grid-template-columns:1fr}
+  .porta{min-height:280px}
+  .passos{grid-template-columns:1fr}
+  .insta-perfil{flex-direction:column;align-items:flex-start}
+  .insta-ava{width:92px;height:92px}
+  .loja-info{padding:30px 22px}
+  .rodape-in{grid-template-columns:1fr}
+  .ficha{padding:0;place-items:start}
+  .ficha-caixa{border-radius:0;border:0;min-height:100%}
+  .ficha-dados{padding:26px 20px calc(28px + env(safe-area-inset-bottom,0px))}
+  .ficha-fechar{top:calc(10px + env(safe-area-inset-top,0px))}
+  .gal-seta{width:42px;height:42px}
+  .av,.av-corpo{padding:24px 22px}
+  .av-grande{padding:0}
+  .cookies{width:auto;left:12px;right:84px;transform:translateY(140%);border-radius:22px;flex-direction:column;align-items:stretch;gap:12px;padding:16px}
+  .cookies.on{transform:none}
+  .faixa-cta{padding:26px 22px}
+  .barra{position:static}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .palco-estrela path{stroke-dashoffset:0}
+  .js [data-rv]{opacity:1;transform:none;filter:none;clip-path:none}
+  .letreiro-trilho{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-zap" viewBox="0 0 24 24"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.79 14.06c-.24.68-1.41 1.3-1.95 1.36-.5.06-1.13.08-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.8-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36h.56c.18.01.42-.07.66.5.24.58.82 2.01.89 2.16.07.14.12.31.02.5-.1.19-.14.31-.29.48-.14.17-.3.37-.43.5-.14.14-.29.3-.13.59.17.29.74 1.22 1.58 1.97 1.09.97 2 1.27 2.29 1.41.29.14.46.12.63-.07.17-.19.73-.85.92-1.14.19-.29.39-.24.65-.14.27.1 1.69.8 1.98.94.29.14.48.22.55.34.07.12.07.7-.17 1.38z"/></symbol>
+<symbol id="i-seta-e" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-seta-d" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-km" viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M12 16l4-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16" r="1.6" fill="currentColor"/></symbol>
+<symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+<symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.9" fill="none"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.6" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="18" cy="18.5" r="2.6" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" stroke="currentColor" stroke-width="1.8"/></symbol>
+<symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8.5 7.5h7M8.5 12h1M12 12h1M15.5 12h0M8.5 16h1M12 16h1M15.5 16h0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+<symbol id="i-troca" viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="9.6" r="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+<symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="i-tel" viewBox="0 0 24 24"><path d="M6.6 3.5l2.6.4 1.3 3.9-1.8 1.4a12 12 0 0 0 6.1 6.1l1.4-1.8 3.9 1.3.4 2.6c-.2 1.6-1.6 2.9-3.2 2.8A16.4 16.4 0 0 1 3.8 6.7C3.7 5.1 5 3.7 6.6 3.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+<symbol id="i-insta" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.9" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.9" fill="none"/><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor"/></symbol>
+<symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-google" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></symbol>
+</svg>
+<div class="progresso" id="progresso"></div><header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="nav-logo" href="index.html" aria-label="{{h:nome}}, página inicial"><img src="{{a:logo}}" alt="{{h:nome}}" width="130" height="144"></a>
+    <nav class="nav-links" id="navLinks" aria-label="Principal"><a href="index.html">Início</a><a href="estoque.html">Estoque</a><a href="financiamento.html">Financiamento</a><a href="venda-sua-moto.html" aria-current="page">Venda sua moto</a><a href="index.html#avaliacoes">Avaliações</a><a href="index.html#loja">A loja</a></nav>
+    <a class="btn btn-zap btn-sm nav-cta" data-zap="Olá! Vim pelo site da {{h:nome}} e quero atendimento." href="#"><svg><use href="#i-zap"/></svg>Chamar no WhatsApp</a>
+    <button class="nav-burger" id="burger" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<main>
+<section class="hero hero-lp">
+  <div class="wrap hero-in">
+    <div>
+      <p class="migalha"><a href="index.html">Início</a><span>/</span><span>Venda sua moto</span></p>
+      <h1><span class="l"><span class="w" style="--i:0">Sua</span> <span class="w" style="--i:1">moto</span> <span class="w" style="--i:2">vale</span></span><span class="l"><span class="w" style="--i:3">a</span> <span class="w" style="--i:4">próxima.</span></span></h1>
+      <p class="hero-lead">Mande os dados da sua moto, a gente avalia na loja e o valor entra como parte do pagamento de outra, ou você vende direto para a {{h:nome}}.</p>
+      <ul class="selos"><li><svg><use href="#i-ok"/></svg>Avaliação na loja</li><li><svg><use href="#i-ok"/></svg>Aceitamos moto com parcelas</li><li><svg><use href="#i-ok"/></svg>Transferência feita pela loja</li></ul>
+      {{bloco:prova}}
+    </div>
+    <form class="form" id="formVen" novalidate>
+      <h2>Avaliar minha moto</h2>
+      <p>Conte o básico agora. As fotos você manda pelo WhatsApp depois.</p>
+      <div class="form-grade">
+        <div class="cheio"><span style="display:block;font-size:.86rem;font-weight:600;color:#D0C9BC;margin-bottom:7px">Eu quero</span>
+          <div class="segmento"><input type="radio" name="objetivo" id="obT" value="Trocar por outra moto da loja" checked><label for="obT">Trocar</label><input type="radio" name="objetivo" id="obV" value="Vender minha moto"><label for="obV">Vender</label></div></div>
+        <label class="cheio">Marca e modelo<input name="modelo" required placeholder="Ex.: Honda CG 160 Fan"></label>
+        <label>Ano<input name="ano" inputmode="numeric" maxlength="9" placeholder="Ex.: 2021"></label>
+        <label>Quilometragem<input name="km" inputmode="numeric" placeholder="Ex.: 25.000"></label>
+        <label>Está quitada?<select name="quitada"><option>Sim</option><option>Não, ainda tem parcelas</option></select></label>
+        <label>Estado geral<select name="estado"><option>Muito bom, sem detalhes</option><option>Bom, com detalhes pequenos</option><option>Precisa de reparos</option></select></label>
+        <label class="cheio" id="venInteresse">Moto da loja que me interessa<select name="interesse" id="venMoto"><option value="">Ainda estou escolhendo</option></select></label>
+        <label>Nome completo<input name="nome" required autocomplete="name"></label>
+        <label>WhatsApp<input name="whatsapp" required inputmode="tel" autocomplete="tel" placeholder="(21) 9 0000-0000"></label>
+      </div>
+      <button class="btn btn-ouro" type="submit"><svg><use href="#i-zap"/></svg>Enviar para avaliação</button>
+      <p class="form-nota">Ao enviar, abrimos o WhatsApp com os dados da sua moto preenchidos.</p>
+      <div class="form-ok" role="status">Recebemos os dados da sua moto. Se o WhatsApp não abriu, <a href="#" data-zap="Olá! Enviei os dados da minha moto pelo site da {{h:nome}} para avaliação.">toque aqui</a>.</div>
+    </form>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-cab"><div data-rv><h2>Do formulário à troca</h2><p class="sec-sub">Um caminho curto, com tudo combinado antes de você sair de casa.</p></div></div>
+    <div class="passos">
+      <div class="passo" data-rv><h3>Mande os dados</h3><p>Modelo, ano, km e se está quitada. Leva menos de um minuto.</p></div>
+      <div class="passo" data-rv style="--d:120"><h3>Envie as fotos</h3><p>Pelo WhatsApp mesmo: laterais, painel com a km e algum detalhe que a moto tenha.</p></div>
+      <div class="passo" data-rv style="--d:240"><h3>Avaliação na loja</h3><p>Traga a moto e o documento. A equipe confere e fecha o valor com você.</p></div>
+      <div class="passo" data-rv style="--d:360"><h3>Troca ou venda</h3><p>O valor entra na compra da próxima moto ou você vende direto para a {{h:nome}}.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-cab"><div data-rv><h2>Troque por uma dessas</h2><p class="sec-sub">Algumas das motos que estão na vitrine agora.</p></div><a class="btn btn-linha" href="estoque.html" data-rv="dir">Ver o estoque<svg><use href="#i-seta"/></svg></a></div>
+    <div class="grade" id="grade"></div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap duvidas-in">
+    <div data-rv><h2>Dúvidas sobre troca e venda</h2><p class="sec-sub">Não achou a sua? Pergunte no WhatsApp ou no chat aqui do site.</p></div>
+    <div class="faq" data-rv><details><summary>Vocês aceitam moto que ainda tem parcelas?</summary><p>Aceitamos. A gente analisa o saldo da quitação junto com a compra da próxima moto.</p></details><details><summary>O valor da avaliação é passado pelo WhatsApp?</summary><p>Pelas fotos a equipe já consegue adiantar uma ideia. O valor final é fechado na loja, depois de ver a moto pessoalmente.</p></details><details><summary>O que preciso levar na avaliação?</summary><p>A moto e o documento dela. Se tiver manual e chave reserva, leve também.</p></details><details><summary>Posso só vender, sem comprar outra?</summary><p>Pode. Marque a opção Vender no formulário e a equipe faz a proposta de compra.</p></details></div>
+  </div>
+</section>
+<section class="final"><div class="wrap" data-rv>
+  <h2>Quer ver o que dá para levar?</h2><p>Olhe o estoque com a sua moto como parte do pagamento.</p>
+  <div class="hero-ctas"><a class="btn btn-ouro" href="estoque.html">Ver o estoque</a><a class="btn btn-zap" data-zap="Olá! Quero avaliar minha moto na {{h:nome}}." href="#"><svg><use href="#i-zap"/></svg>Falar com um consultor</a></div></div></section>
+</main><footer class="rodape">
+  <div class="wrap">
+    <div class="rodape-in">
+      <div><img src="{{a:logo}}" alt="{{h:nome}}"><p>Motos 0 km e seminovas em {{h:cidade}}. Compra, venda e troca.</p></div>
+      <div><h4>Navegação</h4><ul><li><a href="estoque.html">Estoque</a></li><li><a href="financiamento.html">Financiamento</a></li><li><a href="venda-sua-moto.html">Venda sua moto</a></li><li><a href="index.html#avaliacoes">Avaliações</a></li></ul></div>
+      <div><h4>Atendimento</h4><ul><li><a data-tel href="#"></a></li><li><a data-zap="Olá! Vim pelo site da {{h:nome}}." href="#">WhatsApp</a></li><li><a data-insta href="#">Instagram</a></li></ul></div>
+      <div><h4>Loja</h4><ul><li data-cfg="endereco"></li>{{bloco:horarioLi}}</ul></div>
+    </div>
+    <div class="rodape-base"><span>© <span id="ano"></span> {{h:nome}}. Todos os direitos reservados.</span><span>Fotos do estoque real. Preços e disponibilidade sujeitos a alteração.</span></div>
+  </div>
+</footer>
+<a class="zap-flutua" data-zap="Olá! Vim pelo site da {{h:nome}} e quero atendimento." href="#" aria-label="Falar no WhatsApp"><svg><use href="#i-zap"/></svg></a>
+<div class="aviso" id="aviso" role="status"></div>
+<div class="cookies" id="cookies" role="region" aria-label="Aviso de cookies">
+  <p>Usamos cookies para o site funcionar e para melhorar sua experiência. Saiba mais na <a href="#" data-priv>política de privacidade</a>.</p>
+  <div><button class="btn btn-ouro btn-sm" id="ckOk">Aceitar</button><button class="btn btn-linha btn-sm" id="ckNao">Só os essenciais</button></div>
+</div>
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO DA LOJA — ajuste aqui (vale para as 4 páginas)
+   ===================================================================== */
+var MG = {{json:cfg}};
+
+/* Estoque atual do site (45 motos) — [id, marca, modelo, fabricação, modelo, km, preço, versão] */
+var ESTOQUE_ATUAL = [];
+/* Galerias completas de cada moto: id -> [fotos, câmbio, combustível, características] */
+var GALERIAS = {};
+var CARAC = {G:'Garantia de fábrica', R:'Revisada em concessionária', I:'IPVA pago', U:'Único dono', M:'Manual do proprietário', C:'Chave reserva', L:'Licenciada'};
+
+/* =====================================================================
+   Utilitários
+   ===================================================================== */
+var $ = function(s, c){ return (c || document).querySelector(s); };
+var $$ = function(s, c){ return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+var PAGINA = document.documentElement.getAttribute('data-pagina') || 'inicio';
+var SEM_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function brl(v){ return v == null ? 'Consulte' : v.toLocaleString('pt-BR', {style:'currency', currency:'BRL', minimumFractionDigits:0, maximumFractionDigits:0}); }
+function kmTxt(v){ return v == null ? 'Km não informado' : (v === 0 ? '0 km' : v.toLocaleString('pt-BR') + ' km'); }
+function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function num(v){ if (v == null || v === '') return null; if (typeof v === 'number') return v; var n = String(v).replace(/[^\d,.-]/g,''); if (/,\d{1,2}$/.test(n)) n = n.replace(/\./g,'').replace(',', '.'); else n = n.replace(/[.,]/g,''); var r = parseFloat(n); return isNaN(r) ? null : r; }
+function zapLink(msg){ return 'https://wa.me/' + MG.whatsapp + '?text=' + encodeURIComponent(msg); }
+function titulo(t){ return String(t || '').toLowerCase().replace(/(^|\s|-)([a-zà-ú])/g, function(m, a, b){ return a + b.toUpperCase(); }); }
+function url(p){ return (MG.siteBase || '') + p; }
+function linkMoto(m){ var base = MG.siteBase || location.href.replace(/[^\/]*([?#].*)?$/, ''); return base + 'estoque.html#moto-' + m.id; }
+function anoTxt(m){ return m.fab && m.fab !== m.ano ? m.fab + '/' + m.ano : (m.ano || ''); }
+function aviso(t){ var a = $('#aviso'); if (!a) return; a.textContent = t; a.classList.add('on'); clearTimeout(aviso._t); aviso._t = setTimeout(function(){ a.classList.remove('on'); }, 2600); }
+var FALLBACK = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#26231F"/><path d="M200 80l52 90H148z M200 220l52-90H148z" fill="none" stroke="#D6921E" stroke-width="3"/><text x="200" y="262" fill="#A39C90" font-family="sans-serif" font-size="15" text-anchor="middle">Foto em breve</text></svg>');
+function imgErro(img){ img.onerror = null; img.src = FALLBACK; }
+function params(){ var o = {}; location.search.replace(/^\?/, '').split('&').forEach(function(p){ if (!p) return; var kv = p.split('='); o[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' ')); }); return o; }
+
+/* Categoria no mesmo padrão dos destaques do Instagram da loja */
+function categoria(m){
+  var t = ((m.marca || '') + ' ' + (m.modelo || '') + ' ' + (m.versao || '')).toUpperCase();
+  if (/ELETR|ELÉTR|\d{3,4}W\b|ECO MOTORS|VOLTZ|WATTS/.test(t)) return 'eletrica';
+  if (/\b[RF]\s?\d{3,4}\s?GS\b|G\s?310\s?GS|TRACER|AFRICA TWIN|TIGER|V-?STROM|VERSYS|NC\s?7[05]0|TENERE 700|XT\s?660|MULTISTRADA|TRANSALP/.test(t)) return 'bigtrail';
+  if (/\bXRE\b|BROS|CROSSER|LANDER|TENERE|\bXR\b|\bDR\s?\d|\bNXR\b|\bXTZ\b|SAHARA|TORNADO/.test(t)) return 'trail';
+  if (/\bADV\b|NMAX|XMAX|\bPCX\b|ELITE|\bLEAD\b|FLUO|\bRAY\b|\bNEO\b|BURGMAN|\bSH\s?\d|\bBIZ\b|\bPOP\b|FORZA|CITYCOM|SCOOTER/.test(t)) return 'scooter';
+  return 'street';
+}
+var CATEGORIAS = [
+  {k:'', n:'Todas'},
+  {k:'trail', n:'Trail', img:5482360},
+  {k:'scooter', n:'Scooter', img:5482426},
+  {k:'street', n:'Street', img:5535627},
+  {k:'bigtrail', n:'Big Trail', img:5482301},
+  {k:'eletrica', n:'Elétrica', img:3930970},
+  {k:'0km', n:'0 km', img:5497017}
+];
+var NOME_CAT = {trail:'Trail', scooter:'Scooter', street:'Street', bigtrail:'Big Trail', eletrica:'Scooter elétrica'};
+
+/* =====================================================================
+   Normalização (estoque embutido ou vindo do N8N)
+   ===================================================================== */
+function deArray(a){
+  var g = GALERIAS[a[0]], fotos, caracs = [];
+  if (g){
+    fotos = g[0].split(' ').map(function(s){ return 'https://www.autocerto.com/fotos/' + MG.autocertoUnidade + '/' + a[0] + '/' + s + '.jpg'; });
+    (g[3] || '').split(',').forEach(function(p, i){
+      if (i === 0) p.split('').forEach(function(c){ if (CARAC[c]) caracs.push(CARAC[c]); });
+      else if (p) caracs.push(p);
+    });
+  } else fotos = [FALLBACK];
+  var m = {id:String(a[0]), marca:a[1], modelo:a[2], versao:a[7] || '', fab:a[3], ano:a[4], km:a[5], preco:a[6], fotos:fotos, caracs:caracs, cambio:g ? g[1] : '', comb:g ? g[2] : ''};
+  m.cat = categoria(m); return m;
+}
+function deApi(v){
+  var fotos = v.fotos || v.Fotos || v.imagens || v.images || [];
+  if (typeof fotos === 'string') fotos = fotos.split(/[,;\s]+/);
+  fotos = fotos.map(function(f){ return typeof f === 'string' ? f : (f.url || f.Url || f.URL || f.src || ''); }).filter(Boolean);
+  var caracs = v.caracteristicas || v.opcionais || v.Opcionais || v.Caracteristicas || [];
+  if (typeof caracs === 'string') caracs = caracs.split(/[,;|]/);
+  caracs = caracs.map(function(c){ return typeof c === 'string' ? c.trim() : (c.nome || c.Nome || c.descricao || c.Descricao || ''); }).filter(Boolean);
+  var m = {
+    id: String(v.id || v.Id || v.codigo || v.Codigo || v.CodigoVeiculo || v.idVeiculo || ''),
+    marca: titulo(v.marca || v.Marca || v.fabricante || ''),
+    modelo: v.modelo || v.Modelo || '', versao: v.versao || v.Versao || '',
+    fab: num(v.anoFabricacao || v.AnoFabricacao || v.ano_fabricacao),
+    ano: num(v.anoModelo || v.AnoModelo || v.ano_modelo || v.ano || v.Ano),
+    km: num(v.km != null ? v.km : (v.Km != null ? v.Km : (v.quilometragem != null ? v.quilometragem : v.Quilometragem))),
+    preco: num(v.preco != null ? v.preco : (v.Preco != null ? v.Preco : (v.valor != null ? v.valor : (v.PrecoVenda != null ? v.PrecoVenda : v.valorVenda)))),
+    fotos: fotos.length ? fotos : [FALLBACK], caracs: caracs,
+    cambio: v.cambio || v.Cambio || '', comb: v.combustivel || v.Combustivel || ''
+  };
+  if (m.modelo === m.modelo.toUpperCase()) m.modelo = titulo(m.modelo).replace(/\b(Abs|Cbs|Esdi|Gt|Hp|Rr|Sed|Ed|Dx|Adv|Nk|Nxr|Xre|Xtz|Ybr|Fz\d*|Cb|Cg|Cbr|Gsx-s|Mt-\d+|Xmax|Nmax)\b/g, function(s){ return s.toUpperCase(); });
+  if (!m.fab) m.fab = m.ano;
+  m.cat = v.categoria ? String(v.categoria).toLowerCase().replace(/\s|-/g,'') : categoria(m);
+  return m;
+}
+
+var MOTOS = [];
+function porId(id){ id = String(id); for (var i = 0; i < MOTOS.length; i++) if (MOTOS[i].id === id) return MOTOS[i]; return null; }
+function carregarEstoque(pronto){
+  MOTOS = ESTOQUE_ATUAL.map(deArray); pronto(false);
+  if (!MG.estoqueApi) return;
+  fetch(MG.estoqueApi, {cache:'no-store'}).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(j){
+      var lista = Array.isArray(j) ? j : (j.veiculos || j.estoque || j.data || j.items || j.Veiculos || []);
+      var novas = lista.map(deApi).filter(function(m){ return m.id && m.modelo; });
+      if (novas.length){ MOTOS = novas; pronto(true); }
+    }).catch(function(e){ console.warn('Estoque ao vivo indisponível, usando o estoque embutido.', e); });
+}
+
+/* =====================================================================
+   Card de moto
+   ===================================================================== */
+function cardHTML(m, i){
+  var g = m.caracs.indexOf('Garantia de fábrica') > -1;
+  return '<a class="moto entra" style="--i:' + (i || 0) + '" href="' + url('estoque.html') + '#moto-' + esc(m.id) + '" data-id="' + esc(m.id) + '" aria-label="Abrir ficha da ' + esc(m.marca + ' ' + m.modelo + ' ' + m.ano) + '">' +
+    '<div class="moto-foto"><img src="' + esc(m.fotos[0]) + '" alt="' + esc(m.marca + ' ' + m.modelo) + '" loading="lazy" onerror="imgErro(this)">' +
+      (m.fotos[1] ? '<img class="img2" src="' + esc(m.fotos[1]) + '" alt="" loading="lazy" onerror="this.remove()">' : '') +
+      (m.km === 0 ? '<span class="selo">0 km</span>' : '') + (g ? '<span class="selo garantia">Garantia de fábrica</span>' : '') +
+      (m.fotos.length > 1 ? '<span class="moto-fotos"><svg><use href="#i-cam"/></svg>' + m.fotos.length + ' fotos</span>' : '') +
+    '</div><div class="moto-info">' +
+      '<span class="moto-marca">' + esc(m.marca) + ' · ' + esc(NOME_CAT[m.cat] || '') + '</span>' +
+      '<h3 class="moto-modelo">' + esc(m.modelo) + '</h3>' +
+      '<div class="moto-meta"><span><svg><use href="#i-cal"/></svg>' + anoTxt(m) + '</span><span><svg><use href="#i-km"/></svg>' + kmTxt(m.km) + '</span></div>' +
+      '<div class="moto-preco"><b>' + brl(m.preco) + '</b><span>Ver fotos</span></div>' +
+    '</div></a>';
+}
+function ligarSpotlight(raiz){
+  (raiz || document).addEventListener('pointermove', function(e){
+    var c = e.target.closest && e.target.closest('.moto'); if (!c) return;
+    var r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+}
+
+/* =====================================================================
+   Ficha da moto — carrossel com arrasto, setas, miniaturas e teclado
+   ===================================================================== */
+var FICHA = null, GAL = 0, ultimoFoco = null;
+function montarFicha(){
+  if ($('#ficha')) return;
+  var d = document.createElement('div');
+  d.innerHTML = '<div class="ficha" id="ficha" role="dialog" aria-modal="true" aria-labelledby="fichaTitulo" aria-hidden="true"><div class="ficha-caixa">' +
+    '<button class="ficha-fechar" id="fichaFechar" aria-label="Fechar ficha"><svg><use href="#i-x"/></svg></button>' +
+    '<div class="galeria"><div class="gal-palco" id="galPalco"><div class="gal-trilho" id="galTrilho"></div>' +
+      '<button class="gal-seta ant" id="galAnt" aria-label="Foto anterior"><svg><use href="#i-seta-e"/></svg></button>' +
+      '<button class="gal-seta prox" id="galProx" aria-label="Próxima foto"><svg><use href="#i-seta-d"/></svg></button>' +
+      '<span class="gal-cont" id="galCont"></span><span class="gal-barra"><i id="galBarra"></i></span></div>' +
+      '<div class="gal-mini" id="galMini"></div></div>' +
+    '<div class="ficha-dados" id="fichaDados"></div></div></div>';
+  document.body.appendChild(d.firstChild);
+  $('#fichaFechar').onclick = fecharFicha;
+  $('#ficha').addEventListener('click', function(e){ if (e.target.id === 'ficha') fecharFicha(); });
+  $('#galAnt').onclick = function(){ fotoGal(GAL - 1); };
+  $('#galProx').onclick = function(){ fotoGal(GAL + 1); };
+  document.addEventListener('keydown', function(e){
+    if (!FICHA) return;
+    if (e.key === 'Escape') fecharFicha();
+    if (e.key === 'ArrowLeft') fotoGal(GAL - 1);
+    if (e.key === 'ArrowRight') fotoGal(GAL + 1);
+    if (e.key === 'Tab'){ var f = $$('#ficha button, #ficha a[href]').filter(function(x){ return x.offsetParent; }); if (!f.length) return; var p = f[0], u = f[f.length - 1]; if (e.shiftKey && document.activeElement === p){ e.preventDefault(); u.focus(); } else if (!e.shiftKey && document.activeElement === u){ e.preventDefault(); p.focus(); } }
+  });
+  // arrasto (mouse e toque)
+  var palco = $('#galPalco'), x0 = null, dx = 0, larg = 1;
+  palco.addEventListener('pointerdown', function(e){ if (e.target.closest('button') || !FICHA || FICHA.fotos.length < 2) return; x0 = e.clientX; dx = 0; larg = palco.clientWidth; palco.classList.add('arrastando'); palco.setPointerCapture(e.pointerId); });
+  palco.addEventListener('pointermove', function(e){ if (x0 == null) return; dx = e.clientX - x0; $('#galTrilho').style.transform = 'translateX(' + (-GAL * larg + dx) + 'px)'; });
+  function solta(){ if (x0 == null) return; palco.classList.remove('arrastando'); var mudar = Math.abs(dx) > larg * 0.15 ? (dx < 0 ? 1 : -1) : 0; x0 = null; fotoGal(GAL + mudar); }
+  palco.addEventListener('pointerup', solta); palco.addEventListener('pointercancel', solta);
+}
+function abrirFicha(id, semHash){
+  var m = porId(id); if (!m) return;
+  montarFicha();
+  var trocando = !!FICHA;
+  FICHA = m; GAL = 0; if (!trocando) ultimoFoco = document.activeElement;
+  var nome = m.marca + ' ' + m.modelo + ' ' + m.ano;
+  var ehScooter = m.cat === 'scooter' || m.cat === 'eletrica';
+  var specs = [['Ano', anoTxt(m)], ['Quilometragem', kmTxt(m.km)], ['Estilo', NOME_CAT[m.cat]], ['Condição', m.km === 0 ? '0 km' : 'Seminova']];
+  if (m.comb) specs.push(['Combustível', m.comb]);
+  if (m.cambio && !ehScooter) specs.push(['Câmbio', m.cambio]);
+  var parecidas = MOTOS.filter(function(x){ return x.cat === m.cat && x.id !== m.id; })
+    .sort(function(a, b){ return Math.abs((a.preco || 0) - (m.preco || 0)) - Math.abs((b.preco || 0) - (m.preco || 0)); }).slice(0, 3);
+  $('#fichaDados').innerHTML =
+    '<div class="moto-marca">' + esc(m.marca) + ' · ' + esc(NOME_CAT[m.cat] || '') + (m.km === 0 ? ' · 0 km' : '') + '</div>' +
+    '<h2 id="fichaTitulo">' + esc(m.modelo) + '</h2>' +
+    (m.versao ? '<p class="ficha-versao">' + esc(m.versao) + '</p>' : '') +
+    '<div class="specs">' + specs.map(function(s){ return '<div><small>' + s[0] + '</small><b>' + esc(s[1]) + '</b></div>'; }).join('') + '</div>' +
+    (m.caracs.length ? '<div class="caracs">' + m.caracs.map(function(c){ return '<span><svg><use href="#i-ok"/></svg>' + esc(c) + '</span>'; }).join('') + '</div>' : '') +
+    '<div class="ficha-preco"><small>Valor à vista</small><b>' + brl(m.preco) + '</b></div>' +
+    '<div class="ficha-acoes">' +
+      '<a class="btn btn-zap" target="_blank" rel="noopener" href="' + zapLink('Olá! Vi no site a ' + nome + ' (' + brl(m.preco) + ') e quero saber mais. ' + linkMoto(m)) + '"><svg><use href="#i-zap"/></svg>Quero essa moto</a>' +
+      '<div class="linha2"><a class="btn btn-ouro" href="' + url('financiamento.html') + '?moto=' + esc(m.id) + '"><svg><use href="#i-calc"/></svg>Financiar</a>' +
+      '<a class="btn btn-linha" href="' + url('venda-sua-moto.html') + '?moto=' + esc(m.id) + '"><svg><use href="#i-troca"/></svg>Dar minha moto</a></div>' +
+      '<button class="btn btn-linha btn-sm" id="fichaShare"><svg><use href="#i-share"/></svg>Compartilhar esta moto</button>' +
+    '</div>' +
+    (parecidas.length ? '<div class="parecidas"><h3>Parecidas com essa</h3><div>' + parecidas.map(function(p){ return '<a href="#moto-' + esc(p.id) + '" data-troca="' + esc(p.id) + '"><img src="' + esc(p.fotos[0]) + '" alt="" loading="lazy" onerror="imgErro(this)"><span>' + esc(p.modelo) + ' ' + p.ano + '<b>' + brl(p.preco) + '</b></span></a>'; }).join('') + '</div></div>' : '');
+  $('#fichaShare').onclick = compartilhar;
+  $$('#fichaDados [data-troca]').forEach(function(a){ a.onclick = function(e){ e.preventDefault(); abrirFicha(a.getAttribute('data-troca')); $('#fichaDados').scrollTop = 0; }; });
+  // carrossel
+  $('#galTrilho').innerHTML = m.fotos.map(function(f, i){ return '<div class="gal-slide"><img data-src="' + esc(f) + '" alt="' + esc(nome + ', foto ' + (i + 1) + ' de ' + m.fotos.length) + '" draggable="false"></div>'; }).join('');
+  $('#galMini').innerHTML = m.fotos.length > 1 ? m.fotos.map(function(f, i){ return '<button data-i="' + i + '" aria-label="Ver foto ' + (i + 1) + '"><img src="' + esc(f) + '" alt="" loading="lazy" onerror="imgErro(this)"></button>'; }).join('') : '';
+  $$('#galMini button').forEach(function(b){ b.onclick = function(){ fotoGal(+b.getAttribute('data-i')); }; });
+  var um = m.fotos.length < 2; $('#galAnt').hidden = um; $('#galProx').hidden = um; $('#galMini').hidden = um; $('#galCont').hidden = um;
+  $('#galTrilho').style.transition = 'none'; fotoGal(0); $('#galTrilho').offsetWidth; $('#galTrilho').style.transition = '';
+  var f = $('#ficha'); f.classList.add('on'); f.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+  if (!semHash) history.replaceState(null, '', '#moto-' + m.id);
+  if (!trocando) setTimeout(function(){ $('#fichaFechar').focus(); }, 60);
+}
+function fecharFicha(){
+  var f = $('#ficha'); if (!f) return;
+  f.classList.remove('on'); f.setAttribute('aria-hidden', 'true'); document.body.style.overflow = '';
+  if (/^#moto-/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+  if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus({preventScroll:true});
+  FICHA = null;
+}
+function carregarSlide(i){ var s = $$('#galTrilho img')[i]; if (s && s.getAttribute('data-src')){ s.onerror = function(){ imgErro(s); }; s.src = s.getAttribute('data-src'); s.removeAttribute('data-src'); } }
+function fotoGal(i){
+  if (!FICHA) return;
+  var n = FICHA.fotos.length; GAL = (i + n) % n;
+  [GAL, GAL + 1, GAL - 1, GAL + 2].forEach(function(k){ carregarSlide((k + n) % n); });
+  $('#galTrilho').style.transform = 'translateX(' + (-GAL * 100) + '%)';
+  $('#galCont').textContent = (GAL + 1) + ' / ' + n;
+  $('#galBarra').style.width = ((GAL + 1) / n * 100) + '%';
+  $$('#galMini button').forEach(function(b, j){ b.classList.toggle('on', j === GAL); if (j === GAL){ var mini = $('#galMini'); mini.scrollLeft = b.offsetLeft - mini.clientWidth / 2 + b.clientWidth / 2; } });
+}
+function compartilhar(){
+  if (!FICHA) return;
+  var u = linkMoto(FICHA), txt = FICHA.marca + ' ' + FICHA.modelo + ' ' + FICHA.ano + ' por ' + brl(FICHA.preco) + ' na {{j:nome}}';
+  if (navigator.share){ navigator.share({title:'{{j:nome}}', text:txt, url:u}).catch(function(){}); return; }
+  if (navigator.clipboard){ navigator.clipboard.writeText(txt + ' ' + u).then(function(){ aviso('Link da moto copiado'); }, function(){ window.prompt('Copie o link:', u); }); }
+  else window.prompt('Copie o link:', u);
+}
+function ligarCliquesFicha(){
+  document.addEventListener('click', function(e){
+    var c = e.target.closest('.moto, .vitrine-item'); if (!c || !c.getAttribute('data-id')) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault(); abrirFicha(c.getAttribute('data-id'));
+  });
+  window.addEventListener('hashchange', function(){ var h = location.hash.match(/^#moto-(\w+)/); if (h) abrirFicha(h[1], true); });
+}
+function abrirPeloHash(){ var h = location.hash.match(/^#moto-(\w+)/); if (h) abrirFicha(h[1], true); }
+
+/* =====================================================================
+   Efeitos
+   ===================================================================== */
+function ligarRevelacao(){
+  var alvos = $$('[data-rv]');
+  if (!('IntersectionObserver' in window) || navigator.webdriver || SEM_MOVIMENTO){ alvos.forEach(function(a){ a.classList.add('visto'); }); return; }
+  var io = new IntersectionObserver(function(ent){ ent.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('visto'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
+  alvos.forEach(function(a){ io.observe(a); });
+  window.addEventListener('beforeprint', function(){ alvos.forEach(function(a){ a.classList.add('visto'); }); });
+}
+function ligarRolagem(){
+  var nav = $('#nav'), bar = $('#progresso'), ticking = false;
+  function f(){ var y = window.scrollY, h = document.documentElement.scrollHeight - innerHeight; nav.classList.toggle('rolou', y > 20); if (bar) bar.style.transform = 'scaleX(' + (h > 0 ? y / h : 0) + ')'; ticking = false; }
+  window.addEventListener('scroll', function(){ if (!ticking){ requestAnimationFrame(f); ticking = true; } }, {passive:true}); f();
+}
+function ligarParallax(){
+  var hero = $('.hero'), palco = $('.palco'); if (!hero || SEM_MOVIMENTO || !matchMedia('(pointer:fine)').matches) return;
+  hero.addEventListener('pointermove', function(e){
+    var r = hero.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    hero.style.setProperty('--hx', (x * 100) + '%'); hero.style.setProperty('--hy', (y * 100) + '%');
+    if (palco){ palco.style.setProperty('--px', (x - .5) * 2); palco.style.setProperty('--py', (y - .5) * 2); }
+  });
+  hero.addEventListener('pointerleave', function(){ if (palco){ palco.style.setProperty('--px', 0); palco.style.setProperty('--py', 0); } });
+}
+function contar(el, alvo){
+  if (SEM_MOVIMENTO || navigator.webdriver){ el.textContent = alvo; return; }
+  var t0 = null; function p(t){ if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 1200); el.textContent = Math.round(alvo * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(p); }
+  requestAnimationFrame(p);
+}
+function ligarMenu(){
+  var nav = $('#nav'), burger = $('#burger');
+  burger.onclick = function(){ var ab = nav.classList.toggle('aberto'); burger.setAttribute('aria-expanded', ab); burger.setAttribute('aria-label', ab ? 'Fechar menu' : 'Abrir menu'); };
+  $$('#navLinks a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('aberto'); burger.setAttribute('aria-expanded', 'false'); }); });
+}
+
+/* Vitrine do hero */
+var vitrineIdx = 0, vitrineT = null;
+function renderVitrine(ids){
+  var el = $('#vitrine'); if (!el) return;
+  var ms = ids.map(porId).filter(Boolean);
+  if (ms.length < 3) ms = MOTOS.slice().sort(function(a, b){ return (b.preco || 0) - (a.preco || 0); }).slice(0, 3);
+  el.innerHTML = ms.map(function(m, i){
+    return '<a class="vitrine-item' + (i === 0 ? ' on' : '') + '" href="' + url('estoque.html') + '#moto-' + esc(m.id) + '" data-id="' + esc(m.id) + '" aria-label="Ver ficha da ' + esc(m.marca + ' ' + m.modelo) + '"><figure style="margin:0;height:100%">' +
+      '<img src="' + esc(m.fotos[0]) + '" alt="' + esc(m.marca + ' ' + m.modelo) + '" onerror="imgErro(this)">' +
+      '<figcaption><span class="vm"><small>' + esc(m.marca) + ' ' + m.ano + '</small>' + esc(m.modelo) + '</span><span class="vp">' + brl(m.preco) + '</span></figcaption></figure></a>';
+  }).join('');
+  $('#vitrineDots').innerHTML = ms.map(function(m, i){ return '<button aria-label="Destaque ' + (i + 1) + '" class="' + (i === 0 ? 'on' : '') + '" data-i="' + i + '"></button>'; }).join('');
+  $$('#vitrineDots button').forEach(function(b){ b.onclick = function(){ irVitrine(+b.getAttribute('data-i')); reiniciarVitrine(); }; });
+  reiniciarVitrine();
+}
+function irVitrine(i){
+  var itens = $$('.vitrine-item'), dots = $$('#vitrineDots button'); if (!itens.length) return;
+  vitrineIdx = (i + itens.length) % itens.length;
+  itens.forEach(function(el, j){ el.classList.toggle('on', j === vitrineIdx); });
+  dots.forEach(function(el, j){ el.classList.remove('on'); if (j === vitrineIdx){ void el.offsetWidth; el.classList.add('on'); } });
+}
+function reiniciarVitrine(){ clearInterval(vitrineT); if (SEM_MOVIMENTO) return; vitrineT = setInterval(function(){ irVitrine(vitrineIdx + 1); }, 5000); }
+
+/* Categorias em círculo (destaques do Instagram) */
+function htmlCategorias(ativa, comoLink){
+  return CATEGORIAS.map(function(c){
+    var lista = MOTOS.filter(function(m){ return c.k === '' ? true : (c.k === '0km' ? m.km === 0 : m.cat === c.k); });
+    if (c.k && !lista.length) return '';
+    var m = (c.img && porId(c.img)) || lista[0];
+    var dentro = c.k === '' ? '<span class="todas">' + MOTOS.length + '</span>' : '<img src="' + esc(m.fotos[0]) + '" alt="" loading="lazy" onerror="imgErro(this)">';
+    var attrs = comoLink ? 'href="' + url('estoque.html') + (c.k ? '?cat=' + c.k : '') + '"' : 'data-cat="' + c.k + '" aria-pressed="' + (c.k === ativa) + '"';
+    return '<' + (comoLink ? 'a' : 'button') + ' class="destaque" ' + attrs + '><span class="anel"><span>' + dentro + '</span></span><em>' + c.n + '</em></' + (comoLink ? 'a' : 'button') + '>';
+  }).join('');
+}
+function renderFeed(ids){
+  var el = $('#instaFeed'); if (!el) return;
+  var ms = ids.map(porId).filter(Boolean);
+  if (ms.length < 6) ms = ms.concat(MOTOS.filter(function(m){ return ms.indexOf(m) < 0; }).slice(0, 6 - ms.length));
+  el.innerHTML = ms.slice(0, 6).map(function(m, i){
+    return '<a data-rv="zoom" style="--d:' + (i * 70) + '" href="https://www.instagram.com/' + MG.instagram + '/" target="_blank" rel="noopener" aria-label="Ver no Instagram"><img src="' + esc(m.fotos[0]) + '" alt="' + esc(m.marca + ' ' + m.modelo) + '" loading="lazy" onerror="imgErro(this)"><svg><use href="#i-insta"/></svg></a>';
+  }).join('');
+}
+function selectMotos(el, selecionada){
+  var ops = MOTOS.slice().sort(function(a, b){ return (a.marca + a.modelo + a.ano).localeCompare(b.marca + b.modelo + b.ano); })
+    .map(function(m){ return '<option value="' + esc(m.id) + '"' + (m.id === selecionada ? ' selected' : '') + '>' + esc(m.marca + ' ' + m.modelo + ' ' + m.ano + ' · ' + brl(m.preco)) + '</option>'; }).join('');
+  el.innerHTML = '<option value="">Ainda estou escolhendo</option>' + ops;
+}
+
+/* =====================================================================
+   Formulários
+   ===================================================================== */
+function mascaraTel(el){
+  el.addEventListener('input', function(){
+    var d = el.value.replace(/\D/g, '').slice(0, 11);
+    el.value = d.length > 10 ? '(' + d.slice(0,2) + ') ' + d.slice(2,3) + ' ' + d.slice(3,7) + '-' + d.slice(7) : d.length > 6 ? '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6) : d.length > 2 ? '(' + d.slice(0,2) + ') ' + d.slice(2) : d;
+  });
+}
+function mascaraReais(el){ el.addEventListener('input', function(){ var d = el.value.replace(/\D/g, ''); el.value = d ? 'R$ ' + (+d).toLocaleString('pt-BR') : ''; }); }
+function mascaraMil(el){ el.addEventListener('input', function(){ var d = el.value.replace(/\D/g, ''); el.value = d ? (+d).toLocaleString('pt-BR') : ''; }); }
+function enviarLead(tipo, dados){
+  if (!MG.leadWebhook) return;
+  try { fetch(MG.leadWebhook, {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body: JSON.stringify({origem:'site-{{j:conta}}', tipo:tipo, pagina:location.href, utm:params(), dados:dados, enviadoEm:new Date().toISOString()})}).catch(function(){}); } catch(e){}
+}
+function validar(form){
+  var ok = true;
+  $$('[required]', form).forEach(function(i){
+    var vazio = !i.value.trim() || (i.name === 'whatsapp' && i.value.replace(/\D/g,'').length < 10);
+    i.style.borderColor = vazio ? '#E5484D' : ''; if (vazio && ok){ i.focus(); ok = false; }
+  });
+  if (!ok) aviso('Preencha nome e WhatsApp para continuar');
+  return ok;
+}
+function concluir(form, tipo, dados, msg){
+  enviarLead(tipo, dados);
+  window.open(zapLink(msg), '_blank', 'noopener');
+  $('.form-ok', form).classList.add('on');
+  if (window.fbq) try { fbq('track', 'Lead', {content_name: tipo}); } catch(e){}
+  if (window.gtag) try { gtag('event', 'generate_lead', {form: tipo}); } catch(e){}
+}
+
+/* =====================================================================
+   Comum: WhatsApp, links, webchat, cookies
+   ===================================================================== */
+function carregarWebchat(){
+  if (!MG.webchatToken){ console.info('Webchat LeadVox: cole o token em MG.webchatToken para ativar.'); return; }
+  var g = document.createElement('script'); g.src = MG.webchatSdk; g.defer = true; g.async = true;
+  g.onload = function(){ try { window.envioMensagemSDK.run({widgetToken:MG.webchatToken, baseUrl:MG.webchatBase}); document.body.classList.add('com-webchat'); } catch(e){ console.warn('Webchat LeadVox:', e); } };
+  document.body.appendChild(g);
+}
+function cookies(){
+  var chave = 'mg_cookies', v = null, el = $('#cookies'); if (!el) return;
+  try { v = localStorage.getItem(chave); } catch(e){}
+  if (!v) setTimeout(function(){ el.classList.add('on'); }, 3500);
+  function salvar(r){ try { localStorage.setItem(chave, r); } catch(e){} el.classList.remove('on'); }
+  $('#ckOk').onclick = function(){ salvar('todos'); };
+  $('#ckNao').onclick = function(){ salvar('essenciais'); };
+}
+function preencherComum(){
+  document.documentElement.classList.add('js');
+  $$('[data-zap]').forEach(function(a){ a.href = zapLink(a.getAttribute('data-zap')); a.target = '_blank'; a.rel = 'noopener'; });
+  $$('[data-insta]').forEach(function(a){ a.href = 'https://www.instagram.com/' + MG.instagram + '/'; a.target = '_blank'; a.rel = 'noopener'; });
+  $$('[data-cfg]').forEach(function(el){ var k = el.getAttribute('data-cfg'); if (MG[k] != null) el.textContent = MG[k]; });
+  $$('[data-tel]').forEach(function(a){ a.href = 'tel:+' + MG.whatsapp; a.textContent = MG.telefone; });
+  $$('[data-google]').forEach(function(a){ a.href = MG[a.getAttribute('data-google')]; });
+  $$('[data-priv]').forEach(function(a){ a.href = MG.politicaPrivacidade; });
+  $$('[data-rota]').forEach(function(a){ a.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(MG.mapsBusca); });
+  var mapa = $('#lojaMapa'); if (mapa) mapa.src = 'https://www.google.com/maps?q=' + encodeURIComponent(MG.mapsBusca) + '&output=embed';
+  var ano = $('#ano'); if (ano) ano.textContent = new Date().getFullYear();
+  ligarMenu(); ligarRolagem(); ligarParallax(); cookies(); carregarWebchat();
+}
+
+
+document.addEventListener('DOMContentLoaded', function(){
+  preencherComum(); ligarCliquesFicha(); ligarSpotlight();
+  var p = params();
+  carregarEstoque(function(){
+    selectMotos($('#venMoto'), p.moto || $('#venMoto').value || '');
+    var ms = MOTOS.slice().sort(function(a, b){ return (b.ano - a.ano) || (b.preco - a.preco); }).slice(0, 4);
+    $('#grade').innerHTML = ms.map(cardHTML).join('');
+    abrirPeloHash();
+  });
+  $$('input[name="objetivo"]').forEach(function(r){ r.onchange = function(){ $('#venInteresse').hidden = $('#obV').checked; }; });
+  $$('input[name="whatsapp"]').forEach(mascaraTel); mascaraMil($('#formVen [name="km"]'));
+  $('#formVen').addEventListener('submit', function(e){
+    e.preventDefault(); var f = e.target; if (!validar(f)) return;
+    var interesse = porId(f.interesse.value);
+    var d = {objetivo:f.objetivo.value, modelo:f.modelo.value.trim(), ano:f.ano.value, km:f.km.value, quitada:f.quitada.value, estado:f.estado.value, interesse:interesse && !$('#obV').checked ? interesse.marca + ' ' + interesse.modelo + ' ' + interesse.ano : '', nome:f.nome.value.trim(), whatsapp:f.whatsapp.value};
+    concluir(f, 'avaliacao-usado', d, 'Olá! Quero avaliar minha moto na {{j:nome}}.\n\nObjetivo: ' + d.objetivo + '\nMinha moto: ' + d.modelo + (d.ano ? ' ' + d.ano : '') + '\nKm: ' + (d.km || 'não informado') + '\nQuitada: ' + d.quitada + '\nEstado: ' + d.estado + (d.interesse ? '\nInteresse na loja: ' + d.interesse : '') + '\nNome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\n\nJá vou mandar as fotos por aqui.');
+  });
+  ligarRevelacao();
+});
+</script>
+</body>
+</html>

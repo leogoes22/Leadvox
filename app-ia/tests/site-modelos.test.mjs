@@ -81,11 +81,13 @@ test('painel: os 5 modelos aparecem; Garagem e Premium já podem ser escolhidos;
  assert.match(js,/\['claro', 'Claro', '[^']+', true\]/);
  assert.match(js,/\['neon', 'Neon', '[^']+', true\]/);
  assert.match(js,/\['editorial', 'Editorial', '[^']+', true\]/);
- assert.match(js,/\['vitrine', 'Vitrine', '[^']+', true\]/);
+ // a Vitrine simplificada fica em preparação até a versão fiel ao site da Ultra
+ assert.match(js,/\['vitrine', 'Vitrine', '[^']+', false\]/);
  for(const m of ['garagem','premium','claro','neon','editorial','vitrine'])assert.ok(require_css(m),m+'.css existe e usa as cores do painel');
  const bloco=js.slice(js.indexOf('const SITE_MODELOS = ['),js.indexOf('];',js.indexOf('const SITE_MODELOS = [')));
- assert.equal((bloco.match(/', false\]/g)||[]).length,0,'os 6 modelos estão prontos');
- assert.equal((bloco.match(/', true\]/g)||[]).length,6);
+ assert.equal((bloco.match(/', false\]/g)||[]).length,1);
+ assert.equal((bloco.match(/', true\]/g)||[]).length,5);
+ assert.match(js,/Para publicar, coloque a cidade da loja/);
  // o banco aceita os mesmos 6 modelos que o painel e o motor oferecem
  const novo=readFileSync(new URL('../database/site_modelo_vitrine.sql',import.meta.url),'utf8');
  assert.match(novo,/array\['garagem','premium','neon','claro','editorial','vitrine'\]/);

@@ -1,4 +1,5 @@
 import {randomBytes,createHash} from 'node:crypto';
+import {estoqueParaSite,lojaDemoFiel} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
@@ -34,7 +35,7 @@ function envioDe(r){
 // Usuários do painel de cada empresa (database/usuarios.sql e a função "usuarios"): recusas em palavras do cliente.
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const PAPEIS_PAINEL=['owner','admin','member'];
-export const SITE_ERROS={dados:'Dados inválidos.',tema:'Escolha um tema da lista.',agenda:'Confira as datas da agenda: o fim vem depois do início e cada tema dura até 2 meses.',
+export const SITE_ERROS={avaliacoes:'São até 3 avaliações.',dados:'Dados inválidos.',tema:'Escolha um tema da lista.',agenda:'Confira as datas da agenda: o fim vem depois do início e cada tema dura até 2 meses.',
  campanha:'Confira os dados da campanha.',campanha_titulo:'Dê um título para a campanha.',campanha_validade:'Confira a data de validade da campanha.',
  campanha_arte:'Envie a arte de novo (JPG ou PNG de até 5 MB).',sem_conta:'Ligue a sua IA primeiro (menu Agentes): o site usa a conta da IA.',
  modelo:'Escolha um dos modelos.',logo:'Envie a logo de novo (JPG ou PNG de até 5 MB).',cor:'Escolha as cores do site.',fonte:'Escolha uma fonte da lista.',
@@ -138,22 +139,31 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  }
  // Dados do site da loja (modelo, identidade e estoque): públicos, guardados 60 s por loja.
  const dadosCache=new Map();
- async function siteDados(req,res){
+ // dados do site de uma loja, guardados 60 s; null quando o banco não responde
+ async function obterDados(loja){
+  const agora=Date.now(),guardado=dadosCache.get(loja);
+  if(guardado&&guardado.ate>agora)return guardado.dados;
+  let dados;try{dados=await upstream('/rest/v1/rpc/lv_site_dados',{method:'POST',body:{p_conta:loja}});}catch{return null;}
+  dados=dados&&typeof dados==='object'?dados:{ativo:false};
+  if(dadosCache.size>500)dadosCache.clear();
+  dadosCache.set(loja,{ate:agora+60000,dados});
+  return dados;
+ }
+ async function siteDados(req,res,soEstoque){
   const resp=(status,data,cache)=>{res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':cache||'no-store'});res.end(req.method==='HEAD'?undefined:JSON.stringify(data));};
   if(!['GET','HEAD'].includes(req.method))return resp(405,{ativo:false});
   const loja=new URL(req.url,'https://localhost').searchParams.get('loja')||'';
   if(!/^[a-z0-9-]{3,60}$/.test(loja))return resp(400,{ativo:false});
-  const agora=Date.now(),guardado=dadosCache.get(loja);
-  if(guardado&&guardado.ate>agora)return resp(200,guardado.dados,'public, max-age=60');
-  let dados;try{dados=await upstream('/rest/v1/rpc/lv_site_dados',{method:'POST',body:{p_conta:loja}});}catch{return resp(503,{ativo:false,erro:'indisponivel'});}
-  dados=dados&&typeof dados==='object'?dados:{ativo:false};
-  if(dadosCache.size>500)dadosCache.clear();
-  dadosCache.set(loja,{ate:agora+60000,dados});
+  const dados=loja==='demo'&&soEstoque?{ativo:true,itens:lojaDemoFiel().itens}:await obterDados(loja);
+  if(!dados)return resp(503,{ativo:false,erro:'indisponivel'});
+  // estoque no formato que os sites originais leem (modelos fiéis)
+  if(soEstoque)return resp(200,dados.ativo?estoqueParaSite(dados.itens):[],'public, max-age=60');
   resp(200,dados,'public, max-age=60');
  }
- return async(req,res,pathname)=>{
+ const api=async(req,res,pathname)=>{
   if(pathname==='/api/site/tema'){await siteTema(req,res);return true;}
-  if(pathname==='/api/site/dados'){await siteDados(req,res);return true;}
+  if(pathname==='/api/site/dados'){await siteDados(req,res,false);return true;}
+  if(pathname==='/api/site/estoque'){await siteDados(req,res,true);return true;}
   if(!pathname.startsWith('/api/account/'))return false;
   const host=req.headers.host||'';
   const local=allowLocal&&/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host);
@@ -812,5 +822,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   }catch(e){send(res,e.status||500,{error:e.message||'Não foi possível concluir a solicitação.'});}
   return true;
  };
+ api.dadosDoSite=obterDados;
+ return api;
 }
 

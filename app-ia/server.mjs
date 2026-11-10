@@ -1,4 +1,5 @@
 import {createAccountApi,n8nDaConta} from './account-api.mjs';
+import {renderFiel,lojaDemoFiel,MODELOS_FIEIS} from './site-fiel.mjs';
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -61,8 +62,22 @@ export function createApp(options={}) {
   if(pathname.split('/').some(p=>p.startsWith('.'))||pathname.includes('\\')||pathname.includes('\0')){res.writeHead(404);return res.end('Não encontrado');}
   if(pathname==='/vendedor')pathname='/vendedor.html';
   // site da loja: /s/<conta>/ abre o modelo escolhido no painel (public/site/loja.html lê os dados de /api/site/dados)
-  if(/^\/s\/[a-z0-9-]{3,60}\/?$/.test(pathname)){
-   if(!pathname.endsWith('/')){res.writeHead(301,{Location:pathname+'/'});return res.end();}
+  const rotaSite=pathname.match(/^\/s\/([a-z0-9-]{3,60})(?:\/([a-z0-9-]{1,40}\.html)?)?$/);
+  if(rotaSite){
+   const [,conta,pg]=rotaSite;
+   if(!pg&&!pathname.endsWith('/')){res.writeHead(301,{Location:pathname+'/'});return res.end();}
+   const pagina=pg||'index.html',pedido=new URL(req.url,'http://localhost').searchParams.get('modelo');
+   // modelos fiéis: o HTML original do site preenchido com os dados da loja (site-fiel.mjs)
+   let dados=conta==='demo'?lojaDemoFiel():await accountApi.dadosDoSite(conta);
+   const nomeModelo=pedido&&MODELOS_FIEIS[pedido]?pedido:dados?.modelo;
+   if(dados?.ativo&&MODELOS_FIEIS[nomeModelo]){
+    const html=renderFiel({nomeModelo,pagina,dados,conta});
+    if(!html){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});return res.end('Não encontrado');}
+    // os sites originais usam programação dentro da página: só nesta rota o navegador libera isso (os dados da loja entram escapados)
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline' https://chat.leadvox.com.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://chatapi.leadvox.com.br wss://chatapi.leadvox.com.br; frame-src https://www.google.com https://maps.google.com https://chat.leadvox.com.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(req.method==='HEAD'?undefined:html);
+   }
+   if(pagina!=='index.html'){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});return res.end('Não encontrado');}
    pathname='/site/loja.html';
   }
   let file=path.resolve(root,'.'+pathname);
