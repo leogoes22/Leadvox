@@ -88,6 +88,11 @@ for(const pagina of PAGINAS){
  h=h.split('M12 2l8.66 15H3.34zM12 22L3.34 7h17.32z').join('M12 3l9 9-9 9-9-9z');
  h=h.replace(/(\.letreiro span::after\{[^}]*?)background:url\("(data:image\/svg\+xml,[^"]*?)stroke='%23D6921E'([^"]*)"\) center\/contain no-repeat\}/,
   (m,ini,a,b)=>ini+'background:var(--ambar);-webkit-mask:url("'+a+"stroke='black'"+b+'") center/contain no-repeat;mask:url("'+a+"stroke='black'"+b+'") center/contain no-repeat}');
+ // ficha do veículo: descrição do cadastro (o original não tinha) e km escondido pelo lojista vira "Consulte"
+ h=trocar(h,"comb: v.combustivel || v.Combustivel || ''","comb: v.combustivel || v.Combustivel || '', desc: v.descricao || ''",1,'descrição (leitura)');
+ h=trocar(h,`'<div class="ficha-preco"><small>Valor à vista</small>`,`(m.desc ? '<p class="ficha-desc">' + esc(m.desc) + '</p>' : '') +\n    '<div class="ficha-preco"><small>Valor à vista</small>`,1,'descrição (ficha)');
+ h=trocar(h,/(\.caracs svg\{[^}]*\})/,'$1\n.ficha-desc{margin:18px 0 0;color:#CFC8BC;font-size:.95rem;line-height:1.6;white-space:pre-line}',1,'descrição (estilo)');
+ h=trocar(h,"v == null ? 'Km não informado'","v == null ? (MG.semKm ? 'Consulte' : 'Km não informado')",1,'km escondido');
  // estado fixo da MG no título: sai (a cidade do painel já diz onde fica)
  h=h.split('Nova Iguaçu — RJ').join('Nova Iguaçu');
  // nome e cidade: no HTML e nas strings de programação, cada um com o seu escape

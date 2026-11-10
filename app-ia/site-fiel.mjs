@@ -75,13 +75,22 @@ export function lojaDemoFiel(){
    fotos:[desenho(['#d6921e','#c8131e','#1f6feb','#2fa36b'][k%4],k),desenho('#8a8378',k)]}))};
 }
 
-// Estoque no formato que os sites originais leem (campos tolerantes do deApi da MG). km fica vazio: o painel não guarda.
-export function estoqueParaSite(itens){
+// O que o lojista escolheu mostrar no site (painel → Site da loja → Estoque). Sem escolha, mostra tudo.
+export function mostrarDo(id){
+ const m=(id&&typeof id.mostrar==='object'&&id.mostrar)||{};
+ return {km:m.km!==false,preco:m.preco!==false,opcionais:m.opcionais!==false,descricao:m.descricao!==false};
+}
+// Estoque no formato que os sites originais leem (campos tolerantes do deApi da MG). O que o lojista escondeu vai vazio
+// (o site mostra "Consulte"); km 0 é veículo 0 km.
+export function estoqueParaSite(itens,mostrar=mostrarDo()){
  return (itens||[]).map(it=>{
   const a=it.atributos||{},anos=String(a.ano||'').match(/(\d{4})\D*(\d{4})?/)||[];
+  const km=a.km===0||a.km==='0'?0:Number(String(a.km??'').replace(/\D/g,''))||null;
   return {id:String(it.id),marca:titulo(a.marca||''),modelo:a.modelo||it.nome,versao:a.versao||'',anoFabricacao:anos[1]?Number(anos[1]):null,
-   anoModelo:anos[2]?Number(anos[2]):(anos[1]?Number(anos[1]):null),km:null,preco:it.preco??null,fotos:(it.fotos||[]).filter(x=>typeof x==='string'),
-   cambio:a.cambio||'',combustivel:a.combustivel||'',cor:a.cor||''};
+   anoModelo:anos[2]?Number(anos[2]):(anos[1]?Number(anos[1]):null),km:mostrar.km?km:null,preco:mostrar.preco?(it.preco??null):null,
+   fotos:(it.fotos||[]).filter(x=>typeof x==='string'),cambio:a.cambio||'',combustivel:a.combustivel||'',cor:a.cor||'',
+   opcionais:mostrar.opcionais&&Array.isArray(a.opcionais)?a.opcionais.filter(x=>typeof x==='string').slice(0,40):[],
+   descricao:mostrar.descricao?String(a.obs||'').slice(0,1500):'',categoria:it.categoria||'',tipo:a.tipo||''};
  });
 }
 
@@ -97,7 +106,7 @@ export function renderFiel({nomeModelo,pagina,dados,conta}){
  const cfg={whatsapp:zap55,telefone:tel,endereco:id.endereco||'',mapsBusca:[nome,id.endereco||cidade].filter(Boolean).join(', '),instagram:id.instagram||'',
   instaPosts:'',instaSeguidores:'',googleAvaliacoes:google,googleAvaliar:google,politicaPrivacidade:'#',siteBase:'',
   estoqueApi:'/api/site/estoque?loja='+conta,autocertoUnidade:0,leadWebhook:'',webchatToken:'',
-  webchatBase:'https://chatapi.leadvox.com.br',webchatSdk:'https://chat.leadvox.com.br/webchat/sdk.js'};
+  webchatBase:'https://chatapi.leadvox.com.br',webchatSdk:'https://chat.leadvox.com.br/webchat/sdk.js',semKm:!mostrarDo(id).km};
  const logo=/^https:\/\//.test(id.logo||'')?id.logo:logoTexto(nome,c1);
  const marcas=[...new Set(itens.map(it=>titulo((it.atributos||{}).marca)).filter(Boolean))].slice(0,12);
  const marcasHtml=marcas.length?[...marcas,...marcas].map(x=>'<span>'+esc(x)+'</span>').join(''):'';

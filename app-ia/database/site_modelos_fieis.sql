@@ -1,4 +1,5 @@
--- Site da loja: modelos fiéis (o HTML original de cada site). A identidade ganha a cidade e até 3 avaliações do Google.
+-- Site da loja: modelos fiéis (o HTML original de cada site). A identidade ganha a cidade, até 3 avaliações do Google
+-- e o que o lojista quer mostrar de cada veículo (km, preço, opcionais e descrição; sem escolha, mostra tudo).
 -- Rodar depois de site_modelos.sql.
 create or replace function public.lv_site_modelo_salvar(org uuid,p_modelo text,ident jsonb,p_publicado boolean) returns jsonb language plpgsql security definer set search_path='' as $$
 declare g text:=leadvox_private.usuarios_gestor(org); v_conta text; i jsonb:=coalesce(ident,'{}'::jsonb); o jsonb; logo text; zap text; insta text; mapa text; pasta text; avs jsonb:='[]'::jsonb; av jsonb;
@@ -33,7 +34,9 @@ begin
   'cor1',lower(coalesce(nullif(i->>'cor1',''),'#d6921e')),'cor2',lower(coalesce(nullif(i->>'cor2',''),'#121110')),'fonte',coalesce(nullif(i->>'fonte',''),'saira'),
   'frase',leadvox_private.site_txt(i->'frase',90),'subtitulo',leadvox_private.site_txt(i->'subtitulo',200),'sobre',leadvox_private.site_txt(i->'sobre',600),
   'whatsapp',nullif(zap,''),'telefone',leadvox_private.site_txt(i->'telefone',20),'endereco',leadvox_private.site_txt(i->'endereco',160),
-  'horario',leadvox_private.site_txt(i->'horario',120),'instagram',nullif(insta,''),'mapa',nullif(mapa,''),'cidade',leadvox_private.site_txt(i->'cidade',60),'avaliacoes',avs);
+  'horario',leadvox_private.site_txt(i->'horario',120),'instagram',nullif(insta,''),'mapa',nullif(mapa,''),'cidade',leadvox_private.site_txt(i->'cidade',60),'avaliacoes',avs,
+  'mostrar',jsonb_build_object('km',coalesce(i#>>'{mostrar,km}','')<>'false','preco',coalesce(i#>>'{mostrar,preco}','')<>'false',
+   'opcionais',coalesce(i#>>'{mostrar,opcionais}','')<>'false','descricao',coalesce(i#>>'{mostrar,descricao}','')<>'false'));
  insert into leadvox_private.site_config(organization_id,modelo,identidade,publicado,atualizado_em,autor)
  values(org,p_modelo,o,coalesce(p_publicado,false),now(),auth.uid())
  on conflict(organization_id) do update set modelo=excluded.modelo,identidade=excluded.identidade,publicado=excluded.publicado,atualizado_em=now(),autor=auth.uid();

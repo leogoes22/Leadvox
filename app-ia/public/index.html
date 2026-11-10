@@ -454,7 +454,7 @@
         </div>
         <div class="duas">
           <div><label for="esPreco">Preço <small>(vazio = sob consulta)</small></label><input id="esPreco" maxlength="14" inputmode="decimal" placeholder="62.900"></div>
-          <div></div>
+          <div><label for="esOpc">Opcionais <small>(separe por vírgula)</small></label><input id="esOpc" maxlength="800" placeholder="Ar-condicionado, direção elétrica, ABS"></div>
         </div>
         </div>
         <label for="esStatus">Situação</label><select id="esStatus"><option value="disponivel">Disponível</option><option value="reservado">Reservado</option><option value="indisponivel">Vendido / fora do estoque</option></select>
@@ -465,7 +465,7 @@
         <span class="muted" id="esEnviando" style="font-size:13px;margin-left:8px"></span>
         <details style="margin-top:10px"><summary class="muted" style="font-size:13px;cursor:pointer">Colar endereço de foto (https)</summary>
           <textarea id="esFotos" style="min-height:60px;margin-top:6px" placeholder="https://... (um por linha)"></textarea></details>
-        <div id="esObsBox"><label for="esObs">Observações <small>(opcionais, a IA usa: único dono, revisado, IPVA pago…)</small></label>
+        <div id="esObsBox"><label for="esObs">Descrição <small>(aparece no site e a IA usa: único dono, revisado, IPVA pago…)</small></label>
         <textarea id="esObs" maxlength="1500" style="min-height:60px"></textarea></div>
         <div class="form-bts"><button class="principal" type="submit" id="esSalvar">Salvar veículo</button><button type="button" id="esCancelar">Cancelar</button></div>
       </form>

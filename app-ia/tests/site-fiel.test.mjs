@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {createApp} from '../server.mjs';
-import {renderFiel,estoqueParaSite,lojaDemoFiel,MODELOS_FIEIS} from '../site-fiel.mjs';
+import {renderFiel,estoqueParaSite,lojaDemoFiel,MODELOS_FIEIS,mostrarDo} from '../site-fiel.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
 const pasta=new URL('../sites/garagem/',import.meta.url);
 
@@ -46,8 +46,15 @@ test('seções sem dados somem: sem avaliações e sem Instagram; com avaliaçõ
  assert.match(nao,/name="robots" content="noindex"/);
 });
 
-test('estoque no formato do site original: anos separados e km vazio (o painel não guarda km)', () => {
- assert.deepEqual(estoqueParaSite(base.itens)[0],{id:'1',marca:'Honda',modelo:'CG 160',versao:'',anoFabricacao:2023,anoModelo:2024,km:null,preco:15000,fotos:['https://ex.com/a.jpg'],cambio:'',combustivel:'',cor:''});
+test('estoque no formato do site original: anos separados, km, opcionais e descrição; o que o lojista escondeu vai vazio', () => {
+ assert.deepEqual(estoqueParaSite(base.itens)[0],{id:'1',marca:'Honda',modelo:'CG 160',versao:'',anoFabricacao:2023,anoModelo:2024,km:null,preco:15000,fotos:['https://ex.com/a.jpg'],cambio:'',combustivel:'',cor:'',
+  opcionais:[],descricao:'',categoria:'',tipo:''});
+ const it=[{id:2,nome:'X',preco:50000,atributos:{marca:'FIAT',modelo:'Argo',ano:'2022',km:31000,obs:'Único dono.',opcionais:['Ar','ABS']}}];
+ let v=estoqueParaSite(it)[0];assert.equal(v.km,31000);assert.deepEqual(v.opcionais,['Ar','ABS']);assert.equal(v.descricao,'Único dono.');assert.equal(v.preco,50000);
+ v=estoqueParaSite(it,mostrarDo({mostrar:{km:false,preco:false,opcionais:false,descricao:false}}))[0];
+ assert.equal(v.km,null);assert.equal(v.preco,null);assert.deepEqual(v.opcionais,[]);assert.equal(v.descricao,'');
+ assert.equal(estoqueParaSite([{id:3,atributos:{km:0}}])[0].km,0,'0 km continua 0 km');
+ assert.equal(JSON.parse(renderFiel({nomeModelo:'garagem',pagina:'index.html',dados:{...base,identidade:{...base.identidade,mostrar:{km:false}}},conta:'x-loja'}).match(/var MG = (\{.*?\});/)[1]).semKm,true);
  assert.ok(lojaDemoFiel().itens.length>=8);
 });
 
@@ -64,4 +71,17 @@ test('rota: o site fiel abre em /s/<conta>/ e nas páginas; só ali a programaç
  r=await fetch(b+'/api/site/estoque?loja=loja-teste-ab12cd34');assert.equal((await r.json())[0].anoModelo,2024);
  r=await fetch(b+'/');assert.doesNotMatch(r.headers.get('content-security-policy')||'',/unsafe-inline'[^;]*;?\s*style/,'o painel continua sem programação solta');
  assert.doesNotMatch((await fetch(b+'/')).headers.get('content-security-policy'),/script-src[^;]*unsafe-inline/);
+});
+
+test('estoque do painel: opcionais (lista ou texto) e descrição ficam no veículo; a IA também lê os opcionais', async () => {
+ const {itemManual,deAutoCerto,opcionaisDe}=await import('../integrations/estoque.mjs');
+ assert.deepEqual(opcionaisDe('Ar-condicionado, ABS; ABS | Direção elétrica'),['Ar-condicionado','ABS','Direção elétrica']);
+ assert.deepEqual(opcionaisDe([{Descricao:'Teto solar'},'Couro']),['Teto solar','Couro']);
+ const m=itemManual({marca:'Fiat',modelo:'Argo',ano:'2022',km:'31.000',obs:'Único dono',opcionais:'Ar, ABS'});
+ assert.deepEqual(m.atributos.opcionais,['Ar','ABS']);assert.equal(m.atributos.obs,'Único dono');assert.equal(m.atributos.km,31000);assert.match(m.descricao,/Opcionais: Ar, ABS/);
+ assert.equal(itemManual({modelo:'Argo'}).atributos.opcionais,undefined);
+ assert.deepEqual(deAutoCerto({Codigo:1,Marca:'FIAT',Modelo:'ARGO',Opcionais:[{Descricao:'Airbag'}]}).atributos.opcionais,['Airbag']);
+ const js=readFileSync(new URL('../public/painel.js',import.meta.url),'utf8');
+ assert.match(js,/data-mostrar="\$\{k\}"/);assert.match(js,/opcionais: \$\('esOpc'\)\.value/);
+ assert.match(readFileSync(new URL('../database/site_modelos_fieis.sql',import.meta.url),'utf8'),/'mostrar',jsonb_build_object\('km'/);
 });

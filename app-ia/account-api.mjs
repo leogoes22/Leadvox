@@ -1,5 +1,5 @@
 import {randomBytes,createHash} from 'node:crypto';
-import {estoqueParaSite,lojaDemoFiel} from './site-fiel.mjs';
+import {estoqueParaSite,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
@@ -157,7 +157,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   const dados=loja==='demo'&&soEstoque?{ativo:true,itens:lojaDemoFiel().itens}:await obterDados(loja);
   if(!dados)return resp(503,{ativo:false,erro:'indisponivel'});
   // estoque no formato que os sites originais leem (modelos fiéis)
-  if(soEstoque)return resp(200,dados.ativo?estoqueParaSite(dados.itens):[],'public, max-age=60');
+  if(soEstoque)return resp(200,dados.ativo?estoqueParaSite(dados.itens,mostrarDo(dados.identidade)):[],'public, max-age=60');
   resp(200,dados,'public, max-age=60');
  }
  const api=async(req,res,pathname)=>{

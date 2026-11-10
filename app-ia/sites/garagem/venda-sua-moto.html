@@ -398,6 +398,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .caracs{display:flex;flex-wrap:wrap;gap:8px}
 .caracs span{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-pill);background:var(--grafite);font-size:.82rem;color:#E0D9CD}
 .caracs svg{width:14px;height:14px;color:var(--luz)}
+.ficha-desc{margin:18px 0 0;color:#CFC8BC;font-size:.95rem;line-height:1.6;white-space:pre-line}
 .ficha-preco small{display:block;color:var(--cromo);font-size:.84rem}
 .ficha-preco b{font-size:2.2rem;font-weight:700;line-height:1.1}
 .ficha-acoes{display:grid;gap:10px}
@@ -615,7 +616,7 @@ var $$ = function(s, c){ return Array.prototype.slice.call((c || document).query
 var PAGINA = document.documentElement.getAttribute('data-pagina') || 'inicio';
 var SEM_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function brl(v){ return v == null ? 'Consulte' : v.toLocaleString('pt-BR', {style:'currency', currency:'BRL', minimumFractionDigits:0, maximumFractionDigits:0}); }
-function kmTxt(v){ return v == null ? 'Km não informado' : (v === 0 ? '0 km' : v.toLocaleString('pt-BR') + ' km'); }
+function kmTxt(v){ return v == null ? (MG.semKm ? 'Consulte' : 'Km não informado') : (v === 0 ? '0 km' : v.toLocaleString('pt-BR') + ' km'); }
 function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function num(v){ if (v == null || v === '') return null; if (typeof v === 'number') return v; var n = String(v).replace(/[^\d,.-]/g,''); if (/,\d{1,2}$/.test(n)) n = n.replace(/\./g,'').replace(',', '.'); else n = n.replace(/[.,]/g,''); var r = parseFloat(n); return isNaN(r) ? null : r; }
 function zapLink(msg){ return 'https://wa.me/' + MG.whatsapp + '?text=' + encodeURIComponent(msg); }
@@ -679,7 +680,7 @@ function deApi(v){
     km: num(v.km != null ? v.km : (v.Km != null ? v.Km : (v.quilometragem != null ? v.quilometragem : v.Quilometragem))),
     preco: num(v.preco != null ? v.preco : (v.Preco != null ? v.Preco : (v.valor != null ? v.valor : (v.PrecoVenda != null ? v.PrecoVenda : v.valorVenda)))),
     fotos: fotos.length ? fotos : [FALLBACK], caracs: caracs,
-    cambio: v.cambio || v.Cambio || '', comb: v.combustivel || v.Combustivel || ''
+    cambio: v.cambio || v.Cambio || '', comb: v.combustivel || v.Combustivel || '', desc: v.descricao || ''
   };
   if (m.modelo === m.modelo.toUpperCase()) m.modelo = titulo(m.modelo).replace(/\b(Abs|Cbs|Esdi|Gt|Hp|Rr|Sed|Ed|Dx|Adv|Nk|Nxr|Xre|Xtz|Ybr|Fz\d*|Cb|Cg|Cbr|Gsx-s|Mt-\d+|Xmax|Nmax)\b/g, function(s){ return s.toUpperCase(); });
   if (!m.fab) m.fab = m.ano;
@@ -777,6 +778,7 @@ function abrirFicha(id, semHash){
     (m.versao ? '<p class="ficha-versao">' + esc(m.versao) + '</p>' : '') +
     '<div class="specs">' + specs.map(function(s){ return '<div><small>' + s[0] + '</small><b>' + esc(s[1]) + '</b></div>'; }).join('') + '</div>' +
     (m.caracs.length ? '<div class="caracs">' + m.caracs.map(function(c){ return '<span><svg><use href="#i-ok"/></svg>' + esc(c) + '</span>'; }).join('') + '</div>' : '') +
+    (m.desc ? '<p class="ficha-desc">' + esc(m.desc) + '</p>' : '') +
     '<div class="ficha-preco"><small>Valor à vista</small><b>' + brl(m.preco) + '</b></div>' +
     '<div class="ficha-acoes">' +
       '<a class="btn btn-zap" target="_blank" rel="noopener" href="' + zapLink('Olá! Vi no site a ' + nome + ' (' + brl(m.preco) + ') e quero saber mais. ' + linkMoto(m)) + '"><svg><use href="#i-zap"/></svg>Quero essa moto</a>' +

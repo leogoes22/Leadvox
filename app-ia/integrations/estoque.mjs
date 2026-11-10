@@ -5,6 +5,11 @@ const timeout=()=>AbortSignal.timeout(20000);
 const txt=(v,max=120)=>String(v??'').replace(/\s+/g,' ').trim().slice(0,max);
 const num=v=>{if(typeof v==='number')return Number.isFinite(v)?v:0;const n=Number(String(v??'').replace(/[^\d.,-]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
 const sem=s=>txt(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+// opcionais: lista ou texto ("Ar, Direção, ABS"); cada um curto, sem repetir
+export function opcionaisDe(v){
+ const l=Array.isArray(v)?v:typeof v==='string'?v.split(/[,;|\n]/):[];
+ return [...new Set(l.map(c=>txt(typeof c==='string'?c:(c?.nome||c?.Nome||c?.descricao||c?.Descricao||c?.name||c?.Name||''),60)).filter(Boolean))].slice(0,40);
+}
 const urlFoto=u=>{const s=String(u??'').trim();return /^https:\/\/[^\s"<>]{3,1500}$/.test(s)?s:null;};
 
 // Um veículo no formato comum → item do catálogo (nome que a IA fala, descrição curta e atributos para a busca).
@@ -14,10 +19,11 @@ export function itemDeVeiculo(v){
  const nomeModelo=!versao||vN===mN||mN.includes(vN)?modelo:vN.includes(mN)?versao:(modelo+' '+versao).trim();
  const anoFab=txt(v.anoFab,4),anoMod=txt(v.anoMod,4),ano=anoFab&&anoMod&&anoFab!==anoMod?anoFab+'/'+anoMod:(anoMod||anoFab);
  const km=Math.round(num(v.km)),preco=num(v.preco);
- const atributos={marca,modelo,versao,ano,km:km>0?km:null,cor:txt(v.cor,30),cambio:txt(v.cambio,30),combustivel:txt(v.combustivel,30),tipo:v.tipo==='moto'?'moto':'carro'};
+ const atributos={marca,modelo,versao,ano,km:km>0?km:null,cor:txt(v.cor,30),cambio:txt(v.cambio,30),combustivel:txt(v.combustivel,30),tipo:v.tipo==='moto'?'moto':'carro',obs:txt(v.obs,1500),opcionais:opcionaisDe(v.opcionais)};
+ if(!atributos.opcionais.length)delete atributos.opcionais;
  Object.keys(atributos).forEach(k=>{if(atributos[k]===''||atributos[k]===null)delete atributos[k];});
  const descricao=[atributos.cor&&'Cor '+atributos.cor.toLowerCase(),km>0&&km.toLocaleString('pt-BR')+' km',atributos.cambio&&'câmbio '+atributos.cambio.toLowerCase(),
-  atributos.combustivel&&atributos.combustivel.toLowerCase(),txt(v.obs,1500)].filter(Boolean).join(' · ');
+  atributos.combustivel&&atributos.combustivel.toLowerCase(),atributos.opcionais&&'Opcionais: '+atributos.opcionais.join(', '),txt(v.obs,1500)].filter(Boolean).join(' · ');
  return {codigo:txt(v.codigo,36),nome:[marca,nomeModelo,ano].filter(Boolean).join(' ').slice(0,160),categoria:txt(v.categoria,80)||(v.tipo==='moto'?'Moto':''),
   descricao:descricao.slice(0,4000),preco:preco>0?preco:null,atributos,fotos:(Array.isArray(v.fotos)?v.fotos:[]).map(urlFoto).filter(Boolean).slice(0,10)};
 }
@@ -27,13 +33,15 @@ export function deAutoCerto(r){
  const fotos=(r.Fotos||r.fotos||r.Imagens||[]).slice().sort((a,b)=>(a?.Posicao||0)-(b?.Posicao||0)).map(f=>f?.URL||f?.Url||f?.url);
  const tipo=sem(r.TipoVeiculo||r.Tipo);
  return itemDeVeiculo({codigo:r.Codigo,marca:r.Marca,modelo:r.Modelo,versao:r.Versao,cor:r.Cor,anoFab:r.AnoFabricacao,anoMod:r.AnoModelo,km:r.Km??r.Quilometragem,
-  preco:r.Preco||r.PrecoClassificados,cambio:r.Cambio,combustivel:r.Combustivel,categoria:r.Categoria,tipo:tipo.includes('MOTO')?'moto':'carro',obs:r.Observacao,fotos});
+  preco:r.Preco||r.PrecoClassificados,cambio:r.Cambio,combustivel:r.Combustivel,categoria:r.Categoria,tipo:tipo.includes('MOTO')?'moto':'carro',obs:r.Observacao,
+  opcionais:r.Opcionais||r.opcionais||r.Caracteristicas||r.Acessorios||r.Itens,fotos});
 }
 // Revenda Mais: feed JSON do "app da loja".
 export function deRevendaMais(v){
  const preco=num(v.price),promo=num(v.promotion_price),cat=sem(v.category);
  return itemDeVeiculo({codigo:v.vehicle_id??v.id,marca:v.make,modelo:v.model||v.base_model||v.title,versao:v.version,cor:v.color,anoFab:v.fabric_year,anoMod:v.year,km:v.mileage,
-  preco:promo>0&&(!preco||promo<preco)?promo:preco,cambio:v.transmission,combustivel:v.fuel,categoria:v.body_type,tipo:/MOTO|CICLOMOTOR/.test(cat)?'moto':'carro',
+  preco:promo>0&&(!preco||promo<preco)?promo:preco,cambio:v.transmission,combustivel:v.fuel,categoria:v.body_type,tipo:/MOTO|CICLOMOTOR/.test(cat)?'moto':'carro',obs:v.description||v.observations,
+  opcionais:v.optionals||v.optional||v.features||v.accessories,
   fotos:Array.isArray(v.images)&&v.images.length?v.images:v.images_large});
 }
 const lista=d=>Array.isArray(d)?d:d&&typeof d==='object'?(d.vehicles||d.veiculos||d.Veiculos||d.data||Object.values(d).find(Array.isArray)||[]):[];
@@ -79,9 +87,9 @@ export function itemManual(b){
  if(!b||typeof b!=='object')throw new ConnectionError('Veículo inválido.');
  const [af,am]=String(b.ano??'').split('/').map(x=>x.replace(/\D/g,''));
  const item=itemDeVeiculo({marca:b.marca,modelo:b.modelo,versao:b.versao,anoFab:am?af:'',anoMod:am||af,km:b.km,cor:b.cor,cambio:b.cambio,combustivel:b.combustivel,
-  preco:b.preco,categoria:b.categoria,tipo:b.tipo,obs:b.obs,fotos:String(b.fotos??'').split(/[\s,]+/)});
+  preco:b.preco,categoria:b.categoria,tipo:b.tipo,obs:b.obs,opcionais:b.opcionais,fotos:String(b.fotos??'').split(/[\s,]+/)});
  if(!item.atributos.modelo)throw new ConnectionError('Informe pelo menos o modelo do veículo.');
  const id=Number(b.id);
  return {...item,codigo:'',id:Number.isInteger(id)&&id>0?id:undefined,status:['disponivel','reservado','indisponivel'].includes(b.status)?b.status:'disponivel',
-  atributos:{...item.atributos,obs:txt(b.obs,1500)||undefined}};
+  atributos:item.atributos};
 }

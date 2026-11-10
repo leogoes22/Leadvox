@@ -1469,7 +1469,7 @@ function editarVeiculo(i) {
   if (veic) {
     $('esMarca').value = a.marca || ''; $('esModelo').value = a.modelo || ''; $('esVersao').value = a.versao || '';
     $('esAno').value = a.ano || ''; $('esKm').value = a.km || ''; $('esCor').value = a.cor || ''; $('esCambio').value = a.cambio || ''; $('esComb').value = a.combustivel || '';
-    $('esCat').value = i?.categoria || ''; $('esPreco').value = precoTxt; $('esObs').value = a.obs || '';
+    $('esCat').value = i?.categoria || ''; $('esPreco').value = precoTxt; $('esObs').value = a.obs || ''; $('esOpc').value = (a.opcionais || []).join(', ');
   } else {
     const padrao = tipo === 'servicos' ? 'serviço' : 'un.';
     $('esUnidade').innerHTML = UNIDADES.map(u => `<option${u === (a.unidade || padrao) ? ' selected' : ''}>${esc(u)}</option>`).join('');
@@ -1520,7 +1520,7 @@ $('esForm').onsubmit = async e => {
   const item = tipo === 'veiculos'
     ? { id, marca: $('esMarca').value, modelo: $('esModelo').value, versao: $('esVersao').value, ano: $('esAno').value,
       km: $('esKm').value, cor: $('esCor').value, cambio: $('esCambio').value, combustivel: $('esComb').value, categoria: $('esCat').value,
-      preco: $('esPreco').value, status: $('esStatus').value, fotos: $('esFotos').value, obs: $('esObs').value, tipo: /moto/i.test($('esCat').value) ? 'moto' : 'carro' }
+      preco: $('esPreco').value, status: $('esStatus').value, fotos: $('esFotos').value, obs: $('esObs').value, opcionais: $('esOpc').value, tipo: /moto/i.test($('esCat').value) ? 'moto' : 'carro' }
     : { id, tipo: tipo === 'servicos' ? 'servico' : 'produto', nome: $('esNome').value, categoria: $('esGrupo').value, unidade: $('esUnidade').value,
       preco: $('esPrecoP').value, descricao: $('esDescricao').value, status: $('esStatus').value, fotos: $('esFotos').value };
   try { estoque = await api('estoque', { organization: empresa.id, acao: 'salvar', item }); $('esForm').hidden = true; toast(C.item.charAt(0).toUpperCase() + C.item.slice(1) + ' salvo. A IA já pode oferecer.'); desenharEstoque(); }
@@ -2999,7 +2999,10 @@ function desenharSiteModelo() {
     <div class="duas"><div><label for="smInsta">Instagram</label><input id="smInsta" maxlength="31" value="${esc(i.instagram ? '@' + i.instagram : '')}" placeholder="@sualoja"></div>
       <div><label for="smMapa">Link do Google Maps (opcional)</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div></div>
     <h3 class="st-tit">Estoque</h3>
-    <p class="muted" style="margin-top:6px">${Number(s.veiculos) || 0} veículo(s) disponível(is) no menu Estoque. O site mostra os mesmos, com fotos e preço, e atualiza sozinho.</p>
+    <p class="muted" style="margin-top:6px">${Number(s.veiculos) || 0} veículo(s) disponível(is) no menu Estoque. O site mostra os mesmos, com as fotos, e atualiza sozinho. Escolha o que aparece de cada veículo:</p>
+    <div class="sm-mostrar">${[['km', 'Quilometragem'], ['preco', 'Preço'], ['opcionais', 'Opcionais'], ['descricao', 'Descrição']].map(([k, t]) =>
+      `<label class="st-check"><input type="checkbox" data-mostrar="${k}"${(i.mostrar || {})[k] === false ? '' : ' checked'}> ${t}</label>`).join('')}</div>
+    <p class="muted" style="margin-top:4px">O que ficar desmarcado aparece como "Consulte" no site. Opcionais e descrição vêm do cadastro de cada veículo no menu Estoque.</p>
     <h3 class="st-tit">Publicar</h3>
     <label class="st-check"><input type="checkbox" id="smPub"${s.publicado ? ' checked' : ''}> Site publicado (aparece no Google)</label>
     <p class="muted">Endereço do site: <a href="${esc(endereco)}" target="_blank" rel="noopener">${esc(endereco)}</a>. Para usar o domínio da loja, fale com a LeadVox.</p>
@@ -3054,7 +3057,8 @@ function desenharSiteModelo() {
       frase: $('smFrase').value.trim(), subtitulo: $('smSub').value.trim(), sobre: $('smSobre').value.trim(), whatsapp: $('smZap').value, telefone: $('smTel').value.trim(),
       endereco: $('smEnd').value.trim(), horario: $('smHora').value.trim(), instagram: $('smInsta').value.trim().replace(/^@/, ''), mapa: $('smMapa').value.trim(),
       cidade: $('smCidade').value.trim(),
-      avaliacoes: [0, 1, 2].map(k => ({ nome: $('smAvN' + k).value.trim(), texto: $('smAvT' + k).value.trim() })).filter(a => a.nome && a.texto) };
+      avaliacoes: [0, 1, 2].map(k => ({ nome: $('smAvN' + k).value.trim(), texto: $('smAvT' + k).value.trim() })).filter(a => a.nome && a.texto),
+      mostrar: Object.fromEntries([...document.querySelectorAll('[data-mostrar]')].map(c => [c.dataset.mostrar, c.checked])) };
     // os modelos fiéis usam a cidade nos textos ("motos 0 km e seminovas em …"): sem ela, não publica
     if ($('smPub').checked && !identidade.cidade) return mostra($('smErro'), 'Para publicar, coloque a cidade da loja: ela aparece nos textos do site.');
     bt.disabled = true; bt.textContent = 'Salvando…';
