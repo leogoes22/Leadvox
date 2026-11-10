@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simular financiamento | {{h:nome}}</title>
+<meta name="description" content="Simule a parcela do seu seminovo na {{h:nome}} e envie a ficha pelo WhatsApp. Resposta no mesmo dia útil.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Simular financiamento | {{h:nome}}">
+<meta property="og:description" content="Simule a parcela do seu seminovo na {{h:nome}} e envie a ficha pelo WhatsApp. Resposta no mesmo dia útil.">
+<meta property="og:locale" content="pt_BR">
+<link rel="icon" href="{{a:logo}}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Saira:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --preto:#000000;
+  --grafite:#1A1B1F;
+  --bg:#F3F3F4;
+  --paper:#FFFFFF;
+  --ink:#16171A;
+  --muted:#5C5F67;
+  --line:#DDDEE2;
+  --red:#C8131E;
+  --red-d:#A20E17;
+  --red-l:#FBE9EA;
+  --ok:#1D8A4E;
+  --radius-s:6px;
+  --radius:10px;
+  --wrap:1180px;
+  --disp:'Saira',system-ui,sans-serif;
+  --text:'Barlow',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--text);-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:var(--red-d)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px;border-radius:4px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sr:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;clip:auto;z-index:99;background:#fff;color:var(--ink);padding:10px 14px;border-radius:6px}
+h1,h2,h3{font-family:var(--disp);font-weight:800;line-height:1.04;letter-spacing:-.015em;margin:0}
+h1{font-size:clamp(2.3rem,5.4vw,4rem)}
+h2{font-size:clamp(1.8rem,3.4vw,2.5rem)}
+h3{font-size:1.3rem;font-weight:700;line-height:1.15}
+p{margin:0}
+.lead{font-size:1.15rem;color:var(--muted);max-width:52ch}
+
+/* ---------- logo (uma cópia só, em CSS) ---------- */
+.logo{display:block;aspect-ratio:560/170;background:url("{{a:logo}}") center/contain no-repeat}
+
+/* ---------- a linha vermelha do logo: a assinatura do site ---------- */
+.risco{display:block;height:4px;width:min(340px,70%);border-radius:2px;background:linear-gradient(90deg,var(--red) 0,var(--red) 55%,color-mix(in srgb,var(--red) 0%,transparent) 100%)}
+
+/* ---------- botões ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:0 22px;border-radius:var(--radius-s);border:2px solid transparent;font:600 1rem/1 var(--disp);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.btn svg{width:20px;height:20px;flex:none}
+.btn-wa{background:var(--red);color:#fff}
+.btn-wa:hover{background:var(--red-d)}
+.btn-escuro{background:var(--ink);color:#fff}
+.btn-escuro:hover{background:#000}
+.btn-linha{background:transparent;border-color:currentColor;color:var(--ink)}
+.btn-linha:hover{background:rgba(0,0,0,.05)}
+.btn-bloco{width:100%}
+
+/* ---------- topo ---------- */
+.topo{position:sticky;top:0;z-index:40;background:var(--preto);color:#fff;border-bottom:1px solid #222}
+.topo .wrap{display:flex;align-items:center;gap:22px;height:72px}
+.topo .marca{flex:none;width:196px}
+.nav{display:flex;gap:2px;margin-left:auto}
+.nav a{padding:10px 14px;text-decoration:none;color:#D9DADD;font:600 .98rem/1 var(--disp);border-bottom:3px solid transparent}
+.nav a:hover{color:#fff}
+.nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--red)}
+.topo .btn{min-height:44px;padding:0 16px}
+.menu-mob{display:none;gap:6px;overflow-x:auto;padding:0 20px 10px;scrollbar-width:none}
+.menu-mob a{flex:none;padding:7px 14px;border:1px solid #333;border-radius:999px;text-decoration:none;color:#D9DADD;font:600 .9rem/1 var(--disp)}
+.menu-mob a[aria-current="page"]{background:var(--red);border-color:var(--red);color:#fff}
+@media (max-width:820px){
+  .nav{display:none}
+  .topo .wrap{height:62px;justify-content:space-between}
+  .topo .marca{width:150px}
+  .topo .btn-wa span{display:none}
+  .topo .btn{padding:0 12px}
+  .menu-mob{display:flex}
+}
+
+/* ---------- cartões de veículo ---------- */
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px}
+.card{display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;text-decoration:none;color:inherit;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:#A3A6AE}
+.card:hover .card-foto img{transform:scale(1.03)}
+.card-foto{position:relative;aspect-ratio:4/3;background:#E4E5E8;overflow:hidden}
+.card-foto img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+.card-foto .qtd{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.72);color:#fff;font:600 .78rem/1 var(--disp);padding:5px 8px;border-radius:4px}
+.card-foto .qtd svg{width:14px;height:14px}
+.card-foto .selo{position:absolute;left:10px;top:10px;background:var(--red);color:#fff;font:700 .78rem/1 var(--disp);padding:6px 9px;border-radius:4px}
+.card-corpo{display:flex;flex-direction:column;gap:12px;padding:16px 18px 18px;flex:1}
+.card-titulo h3{font-size:1.28rem}
+.card-titulo p{color:var(--muted);font-size:.95rem;margin-top:3px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.specs{display:flex;flex-wrap:wrap;gap:6px}
+.specs span{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:4px 8px;font-size:.88rem;color:#363940}
+.card-preco{margin-top:auto;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:12px;border-top:1px solid var(--line)}
+.preco{font:800 1.45rem/1 var(--disp);color:var(--ink)}
+.preco.consulta{font-size:1.05rem;font-weight:700}
+.card-preco small{color:var(--red-d);font-weight:600;font-size:.88rem;white-space:nowrap}
+.card.esqueleto{pointer-events:none}
+.esqueleto .card-foto,.esqueleto .barra{background:linear-gradient(90deg,#E4E5E8 0,#EFEFF1 40%,#E4E5E8 80%);background-size:300% 100%;animation:brilho 1.4s infinite linear}
+.esqueleto .barra{height:16px;border-radius:4px}
+@keyframes brilho{to{background-position:-100% 0}}
+
+/* ---------- avisos (vazio / erro) ---------- */
+.aviso{background:var(--paper);border:1px dashed #A9ACB4;border-radius:var(--radius);padding:38px 26px;text-align:center;display:grid;justify-items:center;gap:14px}
+.grade>.aviso{grid-column:1/-1}
+.aviso h3{font-size:1.5rem}
+.aviso p{color:var(--muted);max-width:46ch}
+.aviso .acoes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:4px}
+
+/* ---------- rodapé ---------- */
+.rodape{background:var(--preto);color:#B9BBC1;margin-top:0;border-top:1px solid #1C1D21;padding:56px 0 26px;font-size:.96rem}
+.rodape a{color:#fff;text-decoration:none}
+.rodape a:hover{text-decoration:underline}
+.rodape-grade{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.2fr;gap:36px}
+.rodape .logo{width:210px;margin-bottom:16px}
+.rodape-marca p{max-width:34ch}
+.redes{display:flex;gap:8px;margin-top:18px}
+.redes a{width:40px;height:40px;border:1px solid #2A2B30;border-radius:50%;display:grid;place-items:center;color:#fff}
+.redes a:hover{border-color:var(--red);text-decoration:none}
+.redes svg{width:18px;height:18px}
+.rodape h4{font:700 1rem/1 var(--disp);color:#fff;margin:0 0 14px}
+.rodape ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rodape .base{margin-top:42px;padding-top:20px;border-top:1px solid #26272B;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:.86rem;color:#85888F}
+.rodape .base a{color:#B9BBC1}
+@media (max-width:900px){.rodape-grade{grid-template-columns:1fr 1fr}.rodape-marca{grid-column:1/-1}}
+@media (max-width:520px){.rodape-grade{grid-template-columns:1fr}}
+
+/* ---------- botões flutuantes (computador) ---------- */
+.flutuante{position:fixed;right:20px;bottom:22px;z-index:44;display:grid;gap:10px}
+.flutuante a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#fff;color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.flutuante a.wa{background:var(--red);color:#fff}
+.flutuante svg{width:24px;height:24px}
+@media (max-width:820px){.flutuante{display:none}}
+
+/* ---------- blocos de página compartilhados ---------- */
+.cab{background:var(--preto);color:#fff;padding:44px 0 46px;position:relative}
+.cab::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--red) 0,var(--red) 40%,color-mix(in srgb,var(--red) 0%,transparent) 85%)}
+.trilha{font-size:.9rem;color:#9C9FA6;margin-bottom:14px}
+.trilha a{color:#D9DADD;text-decoration:none}
+.trilha a:hover{text-decoration:underline}
+.cab h1{font-size:clamp(2.2rem,5vw,3.5rem);max-width:18ch}
+.cab p.lead{color:#B9BBC1;margin-top:14px}
+.cab .acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.cab .btn-linha{color:#fff}
+.cab .btn-linha:hover{background:rgba(255,255,255,.08)}
+
+.secao{padding:76px 0 0}
+.secao-topo{display:flex;align-items:flex-end;justify-content:space-between;gap:20px 40px;margin-bottom:30px;flex-wrap:wrap}
+.secao-topo>div{max-width:640px}
+.secao-topo p{color:var(--muted);margin-top:10px}
+.secao-topo a.mais{font:600 1rem/1 var(--disp);color:var(--ink);text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:5px}
+
+/* faixa de vantagens: lista com divisórias, não cartões */
+.vantagens{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border:1px solid var(--line);border-radius:var(--radius)}
+.vantagem{padding:24px 22px 26px;display:grid;gap:8px;align-content:start}
+.vantagem+.vantagem{border-left:1px solid var(--line)}
+.vantagem svg{width:28px;height:28px;color:var(--red)}
+.vantagem h3{font-size:1.12rem}
+.vantagem p{color:var(--muted);font-size:.95rem}
+@media (max-width:900px){.vantagens{grid-template-columns:1fr 1fr}.vantagem:nth-child(3){border-left:0}.vantagem:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+@media (max-width:520px){.vantagens{grid-template-columns:1fr}.vantagem+.vantagem{border-left:0;border-top:1px solid var(--line)}.vantagem:nth-child(-n+2){border-bottom:0}}
+
+/* passos de um processo real (numerados porque são uma sequência) */
+.passos{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:var(--radius);background:#fff;overflow:hidden;counter-reset:passo;list-style:none;margin:0;padding:0}
+.passo{padding:26px 24px 28px;border-right:1px solid var(--line)}
+.passo:last-child{border-right:0}
+.passo::before{counter-increment:passo;content:counter(passo);display:block;font:800 2.6rem/1 var(--disp);color:var(--red);margin-bottom:14px}
+.passo h3{margin-bottom:8px}
+.passo p{color:var(--muted);font-size:.98rem}
+@media (max-width:900px){.passos{grid-template-columns:1fr 1fr}.passo:nth-child(2){border-right:0}.passo:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+@media (max-width:560px){.passos{grid-template-columns:1fr}.passo{border-right:0;border-bottom:1px solid var(--line)}.passo:last-child{border-bottom:0}}
+
+/* dúvidas frequentes */
+.faq{max-width:820px;border-top:2px solid var(--ink)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 2px;font:700 1.12rem/1.3 var(--disp)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"";flex:none;width:12px;height:12px;border-right:2.5px solid var(--red);border-bottom:2.5px solid var(--red);transform:rotate(45deg);margin-top:-6px;transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(-135deg);margin-top:6px}
+.faq details p{padding:0 2px 22px;color:var(--muted);max-width:68ch}
+
+/* chamada final */
+.chamada{margin-top:84px;background:var(--preto);color:#fff}
+.chamada .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px 40px;flex-wrap:wrap;padding-top:48px;padding-bottom:48px}
+.chamada h2{font-size:clamp(1.9rem,4vw,2.8rem)}
+.chamada p{color:#B9BBC1;margin-top:8px}
+.chamada .acoes{display:flex;gap:10px;flex-wrap:wrap}
+.chamada .btn-linha{color:#fff}
+.chamada .risco{margin-top:16px}
+
+/* formulários (financiamento e consignação) */
+.ficha-form{display:grid;gap:18px}
+.etapa{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 28px}
+.etapa-topo{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.etapa-topo b{flex:none;width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:800 1.1rem/1 var(--disp)}
+.etapa-topo h2{font-size:1.45rem}
+.etapa-topo p{color:var(--muted);font-size:.92rem}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:14px 14px}
+.campos .inteiro{grid-column:1/-1}
+@media (max-width:640px){.campos{grid-template-columns:1fr}}
+.campo{display:grid;gap:6px;align-content:start}
+.campo label,.campo .rot{font-weight:600;font-size:.95rem}
+.campo label small{color:var(--muted);font-weight:400}
+.campo .ajuda{color:var(--muted);font-size:.86rem}
+.campo input,.campo select,.campo textarea{min-height:48px;border:1px solid var(--line);border-radius:var(--radius-s);background:#fff;padding:0 12px;font-size:1.02rem;width:100%}
+.campo textarea{padding:12px;min-height:96px;resize:vertical}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--red-l)}
+.campo [aria-invalid="true"]{border-color:#B3261E;box-shadow:0 0 0 3px #FBE3E2}
+.dinheiro{position:relative}
+.dinheiro span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.dinheiro input{padding-left:38px}
+.sigilo{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:var(--radius-s);padding:12px 14px;font-size:.92rem;color:#363940}
+.sigilo svg{width:18px;height:18px;flex:none;margin-top:2px}
+.form-erro{background:#FBE9EA;color:#7E0F15;border-radius:var(--radius-s);padding:12px 14px;font-weight:600}
+.form-pe{display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap}
+.form-pe p{color:var(--muted);font-size:.9rem;max-width:46ch}
+
+/* ---------- barra fixa no celular ---------- */
+.fixo-mob{display:none}
+@media (max-width:820px){
+  .fixo-mob{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:45;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--line)}
+  .fixo-mob .btn{flex:1;min-height:46px;padding:0 10px}
+  body{padding-bottom:76px}
+}
+
+/* ---------- ficha do veículo (janela) ---------- */
+.ficha{position:fixed;inset:0;z-index:60;display:none;background:rgba(0,0,0,.7);overflow-y:auto;padding:28px 16px}
+.ficha.aberta{display:block}
+.ficha-caixa{position:relative;max-width:1080px;margin:0 auto;background:var(--paper);border-radius:12px;overflow:hidden;animation:abrir .22s ease-out}
+@keyframes abrir{from{opacity:0;transform:translateY(12px)}}
+.ficha-fechar{position:absolute;right:12px;top:12px;z-index:3;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.ficha-fechar svg{width:20px;height:20px}
+.ficha-grade{display:grid;grid-template-columns:1.35fr 1fr}
+.ficha-grade>*,.ficha-extra>*{min-width:0}
+.galeria{background:#0E0E10;position:relative}
+.galeria-principal{position:relative;aspect-ratio:4/3;background:#0E0E10}
+.galeria-principal img{width:100%;height:100%;object-fit:contain}
+.galeria-seta{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);display:grid;place-items:center;cursor:pointer}
+.galeria-seta svg{width:20px;height:20px}
+.galeria-seta.ant{left:10px}.galeria-seta.prox{right:10px}
+.galeria-cont{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.72);color:#fff;font:600 .8rem/1 var(--disp);padding:6px 9px;border-radius:4px}
+.miniaturas{display:flex;gap:6px;padding:8px;overflow-x:auto;scrollbar-width:thin}
+.miniaturas button{flex:none;width:76px;aspect-ratio:4/3;padding:0;border:2px solid transparent;border-radius:4px;overflow:hidden;cursor:pointer;background:#222;opacity:.55}
+.miniaturas button[aria-current="true"]{border-color:var(--red);opacity:1}
+.miniaturas img{width:100%;height:100%;object-fit:cover}
+.video{aspect-ratio:16/9;background:#000}
+.video iframe,.video video{width:100%;height:100%;border:0;display:block}
+.ficha-info{padding:28px 28px 30px;display:flex;flex-direction:column;gap:18px}
+.ficha-info h2{font-size:clamp(1.7rem,3vw,2.2rem);padding-right:40px}
+.ficha-info .versao{color:var(--muted);margin-top:8px}
+.ficha-info .risco{margin-top:14px;width:160px}
+.ficha-preco .preco{font-size:2.1rem}
+.tabela{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden;margin:0}
+.tabela div{padding:10px 12px;border-bottom:1px solid var(--line)}
+.tabela div:nth-child(odd){border-right:1px solid var(--line)}
+.tabela div:nth-last-child(-n+2){border-bottom:0}
+.tabela dt{font-size:.82rem;color:var(--muted)}
+.tabela dd{margin:2px 0 0;font-weight:600}
+.ficha-acoes{display:grid;gap:10px}
+.ficha-extra{padding:26px 28px 30px;display:grid;grid-template-columns:1.35fr 1fr;gap:34px;border-top:1px solid var(--line)}
+.ficha-extra h3{font-size:1.15rem;margin-bottom:10px}
+.ficha-extra .desc{white-space:pre-line;color:#2E3036}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:5px 9px;font-size:.9rem}
+.compartilhar{background:none;border:0;padding:0;color:var(--red-d);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;justify-self:start}
+@media (max-width:900px){
+  .ficha{padding:0}
+  .ficha-caixa{border-radius:0;min-height:100%}
+  .ficha-grade,.ficha-extra{grid-template-columns:1fr}
+  .ficha-info{padding:22px 20px}
+  .ficha-extra{padding:22px 20px 110px;gap:24px}
+}
+
+/* =====================================================================
+   MOVIMENTO
+   Uma curva só para o site inteiro, como a aceleração de um carro:
+   sai rápido e assenta devagar. Tudo desliga com "reduzir movimento".
+   ===================================================================== */
+:root{--sai:cubic-bezier(.16,.84,.3,1);--rapido:.22s;--medio:.6s}
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:.25s var(--sai) both vt-sai}
+::view-transition-new(root){animation:.45s var(--sai) both vt-entra}
+@keyframes vt-sai{to{opacity:0}}
+@keyframes vt-entra{from{opacity:0;transform:translateY(10px)}}
+.topo{view-transition-name:topo}
+:root{interpolate-size:allow-keywords}
+
+/* cabeçalho: encolhe e ganha vidro quando a página rola */
+.topo{transition:background var(--rapido),box-shadow var(--rapido)}
+.topo .wrap{transition:height .3s var(--sai)}
+.topo .marca{transition:width .3s var(--sai)}
+.topo.rolou{background:rgba(0,0,0,.86);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);box-shadow:0 10px 30px -12px rgba(0,0,0,.6)}
+@media (min-width:821px){.topo.rolou .wrap{height:60px}.topo.rolou .marca{width:170px}}
+.nav a{position:relative;border-bottom:0}
+.nav a::after{content:"";position:absolute;left:14px;right:14px;bottom:2px;height:3px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--sai)}
+.nav a:hover::after,.nav a[aria-current="page"]::after{transform:scaleX(1)}
+
+/* botões: brilho que atravessa como reflexo na lataria */
+.btn{position:relative;overflow:hidden;transition:background var(--rapido),border-color var(--rapido),color var(--rapido),transform var(--rapido) var(--sai),box-shadow var(--rapido)}
+.btn-wa::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s var(--sai);pointer-events:none}
+.btn-wa:hover::after{transform:translateX(120%)}
+.btn:hover{transform:translateY(-1px)}
+.btn-wa:hover{box-shadow:0 10px 24px -10px color-mix(in srgb,var(--red) 70%,transparent)}
+.btn:active{transform:translateY(1px)}
+
+/* cartões de veículo */
+.card{transition:border-color var(--rapido),transform .45s var(--sai),box-shadow .45s var(--sai)}
+.card:hover{transform:translateY(-6px);border-color:#C9CBD1;box-shadow:0 22px 40px -22px rgba(0,0,0,.35)}
+.card-foto img{transition:transform 1.1s var(--sai)}
+.card:hover .card-foto img{transform:scale(1.07)}
+.card-titulo h3{display:inline;background:linear-gradient(var(--red),var(--red)) left bottom/0 2px no-repeat;transition:background-size .45s var(--sai)}
+.card:hover .card-titulo h3{background-size:100% 2px}
+.card-preco small::after{content:" ›";display:inline-block;transition:transform .3s var(--sai)}
+.card:hover .card-preco small::after{transform:translateX(4px)}
+
+/* revelação ao rolar: a página abre como farol acendendo, da esquerda para a direita */
+.js-rv .rv{opacity:0;transform:translateY(22px);transition:opacity .7s var(--sai),transform .8s var(--sai);transition-delay:calc(var(--i,0) * 70ms)}
+.js-rv .rv.in{opacity:1;transform:none}
+/* no cartão, a foto acende da esquerda para a direita (o recorte fica na foto, não no cartão,
+   para o navegador continuar enxergando o cartão ao rolar) */
+.js-rv .card.rv{transition:opacity .6s var(--sai),transform .8s var(--sai),border-color var(--rapido),box-shadow .45s var(--sai);transition-delay:calc(var(--i,0) * 80ms)}
+.js-rv .card.rv .card-foto{clip-path:inset(0 100% 0 0);transition:clip-path 1s var(--sai);transition-delay:calc(var(--i,0) * 80ms + 120ms)}
+.js-rv .card.rv.in .card-foto{clip-path:inset(0 0 0 0)}
+.js-rv .card.rv.in:hover{transition-delay:0s}
+/* títulos de seção: a linha vermelha do logo se desenha embaixo */
+.secao-topo h2,.chamada h2{position:relative}
+.secao-topo h2::after{content:"";display:block;width:64px;height:4px;margin-top:14px;border-radius:2px;background:var(--red);transform-origin:left;transform:scaleX(1)}
+.js-rv .secao-topo.rv h2::after{transform:scaleX(0);transition:transform .9s var(--sai) .25s}
+.js-rv .secao-topo.rv.in h2::after{transform:scaleX(1)}
+.js-rv .chamada .risco{transform:scaleX(0);transform-origin:left;transition:transform 1.1s var(--sai) .2s}
+.js-rv .chamada.in .risco{transform:scaleX(1)}
+
+/* categorias, vantagens, passos */
+.cat{transition:background .35s var(--sai),color .35s var(--sai),border-color .35s,transform .35s var(--sai)}
+.cat svg{transition:transform .35s var(--sai),color .35s}
+.cat:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cat:hover span{color:#B9BBC1}
+.cat:hover svg{transform:translateX(6px);color:#fff}
+.vantagem svg,.itens svg{transition:transform .5s var(--sai)}
+.vantagem:hover svg{transform:translateY(-3px) scale(1.08)}
+.passo::before{transition:transform .5s var(--sai)}
+.passo:hover::before{transform:translateX(6px)}
+
+/* dúvidas: abre e fecha deslizando (navegadores novos) */
+.faq details::details-content{block-size:0;overflow:hidden;transition:block-size .4s var(--sai),content-visibility .4s allow-discrete}
+.faq details[open]::details-content{block-size:auto}
+.faq summary{transition:color var(--rapido)}
+.faq summary:hover{color:var(--red-d)}
+.faq summary::after{transition:transform .35s var(--sai),margin .35s var(--sai)}
+
+/* ficha do veículo */
+.ficha{transition:background .3s}
+.ficha.aberta{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ficha-caixa{animation:abrir .45s var(--sai)}
+@keyframes abrir{from{opacity:0;transform:translateY(24px) scale(.985)}}
+.galeria-principal img{transition:opacity .35s var(--sai),transform .6s var(--sai)}
+.galeria-principal img.trocando{opacity:0;transform:scale(1.02)}
+.miniaturas button{transition:opacity var(--rapido),border-color var(--rapido)}
+.miniaturas button:hover{opacity:.9}
+.galeria-seta{transition:transform var(--rapido) var(--sai),background var(--rapido)}
+.galeria-seta:hover{transform:translateY(-50%) scale(1.08)}
+
+/* botões flutuantes: o WhatsApp pulsa uma vez a cada tanto, sem incomodar */
+.flutuante a{transition:transform .3s var(--sai)}
+.flutuante a:hover{transform:scale(1.08)}
+.flutuante a.wa::before{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 55%,transparent);animation:pulso 4s var(--sai) 3s infinite}
+.flutuante a.wa{position:relative}
+@keyframes pulso{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 55%,transparent)}35%,100%{box-shadow:0 0 0 18px color-mix(in srgb,var(--red) 0%,transparent)}}
+
+/* cabeçalho das páginas internas: o título sobe e a linha corre */
+.cab .trilha,.cab h1,.cab .lead,.cab .acoes{animation:sobe .8s var(--sai) both}
+.cab h1{animation-delay:.08s}.cab .lead{animation-delay:.18s}.cab .acoes{animation-delay:.28s}
+.cab::after{transform-origin:left;animation:corre 1.2s var(--sai) .2s both}
+@keyframes sobe{from{opacity:0;transform:translateY(18px)}}
+@keyframes corre{from{transform:scaleX(0)}}
+
+
+.fin{display:grid;grid-template-columns:1.35fr 1fr;gap:28px;align-items:start}
+.pilulas{display:flex;flex-wrap:wrap;gap:6px}
+.pilulas button{min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font:600 .98rem/1 var(--disp)}
+.pilulas button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.resultado{position:sticky;top:96px;background:var(--preto);border-top:4px solid var(--red);color:#fff;border-radius:var(--radius);padding:28px 26px;overflow:hidden}
+.resultado .rot{color:#B9BBC1;font-size:.98rem}
+.parcela{font:800 clamp(2.6rem,5.4vw,3.6rem)/1 var(--disp);margin:6px 0 4px}
+.parcela small{font-size:.38em;font-weight:600;color:#B9BBC1}
+.resumo-fin{display:grid;margin:20px 0 22px;border-top:1px solid rgba(255,255,255,.14)}
+.resumo-fin div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.14)}
+.resumo-fin dt{color:#B9BBC1}.resumo-fin dd{margin:0;font-weight:600;text-align:right}
+.resultado .nota{color:#8E9198;font-size:.85rem;margin-top:14px}
+.resultado .form-erro{margin-bottom:12px}
+.barra-parcela{display:none}
+@media (max-width:960px){
+  .fin{grid-template-columns:1fr}.resultado{position:static}
+  .fixo-mob{display:none!important}
+  .barra-parcela{display:flex;align-items:center;justify-content:space-between;gap:12px;position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--preto);color:#fff;border-top:3px solid var(--red);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+  .barra-parcela small{display:block;color:#B9BBC1;font-size:.82rem}
+  .barra-parcela b{font:800 1.45rem/1.1 var(--disp)}
+  .barra-parcela .btn{min-height:44px;padding:0 16px}
+  body{padding-bottom:76px}
+}
+
+</style>
+
+</head>
+<body>
+<a class="sr" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="wrap">
+    <a class="marca" href="index.html" aria-label="{{h:nome}}, página inicial"><span class="logo" role="img" aria-label="{{h:nome}}"></span></a>
+    <nav class="nav" aria-label="Principal"><a href="index.html">Início</a><a href="estoque.html">Estoque</a><a href="financiamento.html" aria-current="page">Financiamento</a><a href="consignacao.html">Consignação</a></nav>
+    <a class="btn btn-wa" data-wa="Olá! Vim pelo site da {{h:nome}}." href="#"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg><span>Falar no WhatsApp</span></a>
+  </div>
+  <nav class="menu-mob" aria-label="Principal (celular)"><a href="index.html">Início</a><a href="estoque.html">Estoque</a><a href="financiamento.html" aria-current="page">Financiamento</a><a href="consignacao.html">Consignação</a></nav>
+</header>
+<main id="conteudo">
+
+<section class="cab">
+  <div class="wrap">
+    <p class="trilha"><a href="index.html">Início</a> › Financiamento</p>
+    <h1>Financiamento com resposta no mesmo dia</h1>
+    <p class="lead">Preencha a ficha e veja a parcela estimada na hora. A equipe envia sua proposta às financeiras e volta com a resposta no mesmo dia útil.</p>
+  </div>
+</section>
+
+<section class="secao vantagens-sec" style="padding-top:44px">
+  <div class="wrap">
+    <div class="vantagens">
+      <div class="vantagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 3.2"/></svg>
+        <h3>Resposta no mesmo dia</h3><p>A proposta vai para as financeiras e o retorno chega no mesmo dia útil.</p></div>
+      <div class="vantagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg>
+        <h3>Seu usado como entrada</h3><p>Avaliamos o seu carro e o valor abate direto na entrada.</p></div>
+      <div class="vantagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <h3>Parcela que cabe no bolso</h3><p>Testamos prazos e entradas diferentes até chegar num valor bom para você.</p></div>
+      <div class="vantagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg>
+        <h3>Tudo pelo WhatsApp</h3><p>Você acompanha cada etapa direto com a equipe, sem intermediário.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="secao" id="ficha-fin">
+  <div class="wrap">
+    <div class="secao-topo"><div><h2>Vamos simular o seu crédito</h2><p>Leva menos de 3 minutos. Ao enviar, o WhatsApp abre com a ficha pronta para a nossa equipe.</p></div></div>
+    <div class="fin">
+      <form class="ficha-form" id="form-fin" novalidate>
+        <p class="sigilo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          Seus dados servem só para a análise de crédito e vão direto para a equipe da {{h:nome}}. Campos com * são obrigatórios.</p>
+
+        <div class="etapa">
+          <div class="etapa-topo"><b>1</b><div><h2>Seus dados</h2><p>Quem vai financiar</p></div></div>
+          <div class="campos">
+            <div class="campo inteiro"><label for="nome">Nome completo *</label><input id="nome" autocomplete="name" placeholder="Seu nome"></div>
+            <div class="campo"><label for="cel">Celular / WhatsApp *</label><input id="cel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(21) 90000-0000"></div>
+            <div class="campo"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="voce@email.com"></div>
+            <div class="campo"><label for="cpf">CPF <small>(agiliza a análise)</small></label><input id="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+            <div class="campo"><label for="nasc">Data de nascimento</label><input id="nasc" type="date"></div>
+            <div class="campo inteiro"><label for="cidade">Cidade</label><input id="cidade" autocomplete="address-level2" placeholder="Sua cidade"></div>
+          </div>
+        </div>
+
+        <div class="etapa">
+          <div class="etapa-topo"><b>2</b><div><h2>Sua renda</h2><p>Para buscar a financeira certa para o seu perfil</p></div></div>
+          <div class="campos">
+            <div class="campo"><label for="renda-tipo">Tipo de renda</label>
+              <select id="renda-tipo"><option value="">Selecione</option><option>CLT</option><option>Autônomo</option><option>Empresário(a)</option><option>Servidor(a) público(a)</option><option>Aposentado(a) ou pensionista</option><option>Outros</option></select></div>
+            <div class="campo"><label for="renda">Renda mensal aproximada</label><div class="dinheiro"><span>R$</span><input id="renda" inputmode="numeric" placeholder="0"></div></div>
+            <div class="campo"><label for="cnh">Tem CNH?</label><select id="cnh"><option value="">Selecione</option><option>Sim</option><option>Não</option></select></div>
+          </div>
+        </div>
+
+        <div class="etapa">
+          <div class="etapa-topo"><b>3</b><div><h2>O veículo</h2><p>O que você quer levar</p></div></div>
+          <div class="campos">
+            <div class="campo inteiro"><label for="veiculo">Veículo de interesse</label>
+              <select id="veiculo"><option value="">Ainda não escolhi</option></select>
+              <span class="ajuda" id="ajuda-veiculo">Carregando o estoque…</span></div>
+            <div class="campo"><label for="valor">Valor do veículo *</label><div class="dinheiro"><span>R$</span><input id="valor" inputmode="numeric" placeholder="0"></div></div>
+            <div class="campo"><label for="entrada">Entrada</label><div class="dinheiro"><span>R$</span><input id="entrada" inputmode="numeric" placeholder="0"></div></div>
+            <div class="campo inteiro"><span class="rot" id="rot-pct">Entrada rápida</span>
+              <div class="pilulas" id="pct" role="group" aria-labelledby="rot-pct">
+                <button type="button" data-p="0" aria-pressed="false">Sem entrada</button>
+                <button type="button" data-p="20" aria-pressed="false">20%</button>
+                <button type="button" data-p="30" aria-pressed="false">30%</button>
+                <button type="button" data-p="50" aria-pressed="false">50%</button>
+              </div></div>
+            <div class="campo inteiro"><span class="rot" id="rot-prazo">Prazo</span>
+              <div class="pilulas" id="prazo" role="group" aria-labelledby="rot-prazo">
+                <button type="button" data-n="24" aria-pressed="false">24x</button>
+                <button type="button" data-n="36" aria-pressed="false">36x</button>
+                <button type="button" data-n="48" aria-pressed="true">48x</button>
+                <button type="button" data-n="60" aria-pressed="false">60x</button>
+              </div></div>
+            <div class="campo"><label for="troca">Tem carro para dar na troca?</label><select id="troca"><option value="">Não</option><option value="sim">Sim</option></select></div>
+            <div class="campo" id="campo-troca" hidden><label for="troca-qual">Qual carro? <small>(modelo, ano e km)</small></label><input id="troca-qual" placeholder="Ex.: Onix 2019, 60 mil km"></div>
+            <div class="campo inteiro"><label for="obs">Observação</label><textarea id="obs" placeholder="Algo que a equipe deve saber? (opcional)"></textarea></div>
+          </div>
+        </div>
+      </form>
+
+      <aside class="resultado" aria-live="polite">
+        <p class="rot">Parcela estimada</p>
+        <p class="parcela" id="parcela">R$ 0<small> /mês</small></p>
+        <dl class="resumo-fin">
+          <div><dt>Valor do veículo</dt><dd id="r-valor">–</dd></div>
+          <div><dt>Entrada</dt><dd id="r-entrada">–</dd></div>
+          <div><dt>Valor financiado</dt><dd id="r-fin">–</dd></div>
+          <div><dt>Prazo</dt><dd id="r-prazo">48 meses</dd></div>
+        </dl>
+        <div id="erro" class="form-erro" hidden></div>
+        <button class="btn btn-wa btn-bloco" type="submit" form="form-fin"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>Enviar ficha pelo WhatsApp</button>
+        <p class="nota" id="nota-taxa"></p>
+      </aside>
+      <div class="barra-parcela" aria-hidden="true">
+        <div><small>Parcela estimada em <span id="b-prazo">48x</span></small><b id="b-parcela">R$ 0</b></div>
+        <button class="btn btn-wa" type="submit" form="form-fin" tabindex="-1">Enviar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="secao" id="duvidas">
+  <div class="wrap">
+    <div class="secao-topo"><div><h2>Antes de enviar a ficha</h2><p>O que mais perguntam sobre o financiamento.</p></div></div>
+    <div class="faq">
+      <details><summary>Preciso ter nome limpo para financiar?</summary><p>A aprovação depende da análise de cada financeira. Envie a ficha que a equipe consulta as opções que existem para o seu perfil.</p></details>
+      <details><summary>Quanto tempo demora a resposta?</summary><p>A equipe envia sua proposta às financeiras e volta com a resposta no mesmo dia útil.</p></details>
+      <details><summary>Posso simular sem compromisso?</summary><p>Pode. A simulação não obriga você a fechar negócio. Você decide depois de ver as condições.</p></details>
+      <details><summary>Quais documentos vou precisar?</summary><p>Em geral, documento com foto, CPF, comprovante de residência e comprovante de renda. A equipe confirma a lista certa de acordo com a financeira.</p></details>
+      <details><summary>Posso usar meu carro como parte da entrada?</summary><p>Pode. Avaliamos o seu usado e o valor abate na entrada do financiamento.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="chamada">
+  <div class="wrap">
+    <div><h2>Prefere conversar antes?</h2><p>Tire suas dúvidas sobre o financiamento direto com a equipe.</p><span class="risco"></span></div>
+    <div class="acoes">
+      <a class="btn btn-wa" href="#" data-wa="Olá! Quero tirar dúvidas sobre o financiamento na {{h:nome}}."><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>Falar no WhatsApp</a>
+      <a class="btn btn-linha" href="tel:+{{n:fone}}">{{h:tel}}</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="rodape">
+  <div class="wrap">
+    <div class="rodape-grade">
+      <div class="rodape-marca">
+        <span class="logo" role="img" aria-label="{{h:nome}}"></span>
+        <p>Seminovos em {{h:cidade}}, com financiamento, troca do seu usado e consignação.</p>
+        <div class="redes">
+          <a href="#" data-rede="instagram" aria-label="Instagram da {{h:nome}}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg></a>
+          <a href="#" data-wa="Olá! Vim pelo site da {{h:nome}}." aria-label="WhatsApp da {{h:nome}}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></a>
+          <a href="{{h:mapa}}" aria-label="{{h:nome}} no Google Maps" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 21s7-5.4 7-10.5A7 7 0 1 0 5 10.5C5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <h4>Estoque</h4>
+        <ul id="rodape-estoque"><li><a href="estoque.html">Todos os veículos</a></li></ul>
+      </div>
+      <div>
+        <h4>Serviços</h4>
+        <ul>
+          <li><a href="financiamento.html">Financiamento</a></li>
+          <li><a href="consignacao.html">Consignação</a></li>
+          <li><a href="#" data-wa="Olá! Quero avaliar meu carro para dar na troca.">Avaliar meu usado</a></li>
+          <li><a href="index.html#como-comprar">Como comprar</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Loja</h4>
+        <ul class="horas">
+          <li>{{h:endereco}}</li>
+          <li>{{h:cidade}}</li>
+          <li><a href="#" data-wa="Olá! Vim pelo site da {{h:nome}}.">{{h:tel}}</a></li>
+          {{bloco:horarioLi}}
+        </ul>
+      </div>
+    </div>
+    <div class="base">
+      <span>© <span id="ano-atual">2026</span> {{h:nome}}, {{h:cidade}}</span>
+      <span>Estoque atualizado pelo <a href="https://leadvox.com.br" target="_blank" rel="noopener">Integrador LeadVox</a></span>
+    </div>
+  </div>
+</footer>
+<div class="flutuante" aria-label="Contato rápido">
+  <a href="#" data-rede="instagram" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg></a>
+  <a class="wa" href="#" data-wa="Olá! Vim pelo site da {{h:nome}}." aria-label="Falar no WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></a>
+</div>
+<div class="fixo-mob">
+  <a class="btn btn-linha" href="estoque.html">Ver estoque</a>
+  <a class="btn btn-wa" href="#" data-wa="Olá! Vim pelo site da {{h:nome}}."><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>WhatsApp</a>
+</div>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO DA LOJA — é só mexer aqui
+   ============================================================ */
+var CFG = {
+  loja: '{{j:nome}}',
+  // API do Integrador de Estoque LeadVox (só traz veículos disponíveis)
+  api: '/api/site/estoque?loja={{u:conta}}&modelo=claro',
+  whatsapp: '{{n:zap}}',          // 55 + DDD + número, só dígitos
+  instagram: '{{j:instaUrl}}',        // link completo, ou vazio para esconder
+  facebook: '',          // link completo, ou vazio para esconder
+  maps: '{{j:mapa}}',
+  taxaMes: 1.99                      // taxa de referência do simulador (% ao mês)
+};
+
+/* ============================================================ */
+var G = (function () {
+  var cacheKey = 'lv_estoque_{{u:conta}}';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function num(n) { return Number(n).toLocaleString('pt-BR'); }
+  function brl(n) {
+    return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  function km(v) {
+    if (v == null || v === '') return '';
+    return Number(v) === 0 ? '0 km' : num(v) + ' km';
+  }
+  function ano(v) {
+    if (v.ano_fabricacao && v.ano_modelo && v.ano_fabricacao !== v.ano_modelo) return v.ano_fabricacao + '/' + v.ano_modelo;
+    return String(v.ano_modelo || v.ano_fabricacao || '');
+  }
+  function titulo(v) { return [v.marca, v.modelo].filter(Boolean).join(' '); }
+  function opcionais(v) {
+    var o = v.opcionais;
+    if (Array.isArray(o)) return o.filter(Boolean);
+    return String(o || '').split(/[,;\n|]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function temPreco(v) { return v.preco != null && Number(v.preco) > 0; }
+
+  function wa(msg) {
+    var n = String(CFG.whatsapp || '').replace(/\D/g, '');
+    return 'https://api.whatsapp.com/send?phone=' + n + '&text=' + encodeURIComponent(msg || 'Olá! Vim pelo site da {{j:nome}}.');
+  }
+  function msgVeiculo(v) {
+    return 'Olá! Vi no site o ' + titulo(v) + (v.versao ? ' ' + v.versao : '') + ' ' + ano(v) + ' (código ' + v.id + ') e quero mais informações.';
+  }
+
+  // Normaliza o que vier da API (aceita também nomes curtos, por segurança)
+  function normalizar(v) {
+    var fotos = Array.isArray(v.fotos) ? v.fotos.map(function (f) { return typeof f === 'string' ? f : (f && (f.url || f.URL)) || ''; }).filter(Boolean) : [];
+    return {
+      id: v.id, tipo: v.tipo || 'carro', marca: v.marca || '', modelo: v.modelo || '', versao: v.versao || '',
+      ano_fabricacao: v.ano_fabricacao || v.ano_fab || null, ano_modelo: v.ano_modelo || v.ano_mod || null,
+      km: v.km, cor: v.cor || '', cambio: v.cambio || '', combustivel: v.combustivel || '', categoria: v.categoria || '',
+      preco: v.preco != null && v.preco !== '' ? Number(v.preco) : null, descricao: v.descricao || '',
+      opcionais: v.opcionais || '', placa_final: v.placa_final || '', destaque: v.destaque === true,
+      fotos: fotos, video: v.video || v.url_video || null, atualizado_em: v.atualizado_em || ''
+    };
+  }
+
+  // Busca o estoque. Usa cópia da sessão (2 min) para navegar entre páginas sem esperar.
+  function estoque(forcar) {
+    if (!forcar) {
+      try {
+        var c = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (c && Date.now() - c.t < 120000) return Promise.resolve(c.d);
+      } catch (e) {}
+    }
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 12000);
+    return fetch(CFG.api, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (j) {
+        clearTimeout(timer);
+        if (!j || j.ok === false || !Array.isArray(j.veiculos)) throw new Error('resposta inválida');
+        var lista = j.veiculos.map(normalizar).filter(function (v) { return v.id != null && (v.marca || v.modelo); });
+        // destaques primeiro, depois os atualizados mais recentemente
+        lista.sort(function (a, b) {
+          if (a.destaque !== b.destaque) return a.destaque ? -1 : 1;
+          return String(b.atualizado_em).localeCompare(String(a.atualizado_em));
+        });
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: lista })); } catch (e) {}
+        return lista;
+      })
+      .catch(function (e) { clearTimeout(timer); throw e; });
+  }
+
+  var IC = {
+    foto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>',
+    fechar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    esq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    dir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>'
+  };
+
+  // Imagem reserva quando o veículo não tem foto ou a foto falha
+  var SEM_FOTO = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#E3E7EE"/><g fill="none" stroke="#9AA6BA" stroke-width="6" stroke-linejoin="round"><path d="M70 190h260M90 190v-36l36-46h132l40 46h22a10 10 0 0 1 10 10v26"/><path d="M130 154h170"/></g><circle cx="140" cy="194" r="22" fill="#C9D1DE" stroke="#9AA6BA" stroke-width="6"/><circle cx="276" cy="194" r="22" fill="#C9D1DE" stroke="#9AA6BA" stroke-width="6"/><text x="200" y="262" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#7D8AA0">Fotos em breve</text></svg>');
+
+  function img(src, alt, extra) {
+    return '<img src="' + esc(src || SEM_FOTO) + '" alt="' + esc(alt) + '" loading="lazy" decoding="async" ' + (extra || '') +
+      ' onerror="this.onerror=null;this.src=G.SEM_FOTO">';
+  }
+
+  function card(v, href) {
+    var sp = [ano(v), km(v.km), v.cambio].filter(Boolean).map(function (s) { return '<span>' + esc(s) + '</span>'; }).join('');
+    var preco = temPreco(v) ? '<span class="preco">' + brl(v.preco) + '</span>' : '<span class="preco consulta">Preço sob consulta</span>';
+    return '<a class="card" href="' + esc(href) + '" data-id="' + esc(v.id) + '">' +
+      '<div class="card-foto">' + img(v.fotos[0], titulo(v) + ' ' + ano(v)) +
+      (v.destaque ? '<span class="selo">Destaque</span>' : '') +
+      (v.fotos.length > 1 ? '<span class="qtd">' + IC.foto + v.fotos.length + '</span>' : '') + '</div>' +
+      '<div class="card-corpo"><div class="card-titulo"><h3>' + esc(titulo(v)) + '</h3>' +
+      (v.versao ? '<p>' + esc(v.versao) + '</p>' : '') + '</div>' +
+      '<div class="specs">' + sp + '</div>' +
+      '<div class="card-preco">' + preco + '<small>Ver detalhes</small></div></div></a>';
+  }
+
+  function esqueletos(n) {
+    var h = '';
+    for (var i = 0; i < n; i++) {
+      h += '<div class="card esqueleto" aria-hidden="true"><div class="card-foto"></div><div class="card-corpo">' +
+        '<div class="barra" style="width:70%;height:22px"></div><div class="barra" style="width:45%"></div>' +
+        '<div class="barra" style="width:85%"></div></div></div>';
+    }
+    return h;
+  }
+
+  function avisoVazio() {
+    return '<div class="aviso"><h3>O estoque está sendo atualizado</h3>' +
+      '<p>Novos veículos estão chegando ao site. Fale com a nossa equipe para saber o que já está disponível no pátio.</p>' +
+      '<div class="acoes"><a class="btn btn-wa" href="' + wa('Olá! Vim pelo site e quero saber quais veículos vocês têm disponíveis.') + '" target="_blank" rel="noopener">' + IC.wa + 'Perguntar pelo WhatsApp</a></div></div>';
+  }
+  function avisoErro(fn) {
+    return '<div class="aviso"><h3>Não conseguimos carregar o estoque</h3>' +
+      '<p>A conexão falhou. Tente de novo ou fale com a equipe pelo WhatsApp.</p>' +
+      '<div class="acoes"><button class="btn btn-linha" type="button" onclick="' + fn + '">Tentar de novo</button>' +
+      '<a class="btn btn-wa" href="' + wa('Olá! Vim pelo site e quero ver o estoque de vocês.') + '" target="_blank" rel="noopener">' + IC.wa + 'Falar no WhatsApp</a></div></div>';
+  }
+
+  // Liga os links de WhatsApp e redes que estão no HTML
+  function ligarLinks() {
+    document.querySelectorAll('[data-wa]').forEach(function (a) {
+      a.href = wa(a.getAttribute('data-wa'));
+      a.target = '_blank'; a.rel = 'noopener';
+    });
+    ['instagram', 'facebook'].forEach(function (rede) {
+      document.querySelectorAll('[data-rede="' + rede + '"]').forEach(function (a) {
+        var url = CFG[rede];
+        if (url && url.indexOf('http') === 0) { a.href = url; } else { (a.closest('li') || a).remove(); }
+      });
+    });
+    var ano = document.getElementById('ano-atual');
+    if (ano) ano.textContent = new Date().getFullYear();
+    // rodapé: categorias que existem de verdade no estoque
+    var ul = document.getElementById('rodape-estoque');
+    if (ul) estoque(false).then(function (l) {
+      var c = categoriasVitrine(l).slice(0, 5);
+      if (l.some(function (v) { return v.tipo === 'moto'; }) && l.some(function (v) { return v.tipo !== 'moto'; })) {
+        ul.insertAdjacentHTML('beforeend', '<li><a href="estoque.html?tipo=carro">Carros</a></li><li><a href="estoque.html?tipo=moto">Motos</a></li>');
+      }
+      c.forEach(function (x) { ul.insertAdjacentHTML('beforeend', '<li><a href="estoque.html?cat=' + encodeURIComponent(x[0]) + '">' + esc(plural(x[0])) + '</a></li>'); });
+    }).catch(function () {});
+  }
+
+  // [categoria, quantidade] ordenado do maior para o menor
+  function categorias(l) {
+    var m = {};
+    l.forEach(function (v) { if (v.categoria) m[v.categoria] = (m[v.categoria] || 0) + 1; });
+    return Object.keys(m).map(function (k) { return [k, m[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+  }
+  // Para vitrine: com carros e motos juntos, as categorias de moto (Street, Trail…) entram como "Motos"
+  function categoriasVitrine(l) {
+    var mista = l.some(function (v) { return v.tipo === 'moto'; }) && l.some(function (v) { return v.tipo !== 'moto'; });
+    return categorias(mista ? l.filter(function (v) { return v.tipo !== 'moto'; }) : l);
+  }
+  function plural(c) {
+    var p = { 'SUV': 'SUVs', 'Hatch': 'Hatches', 'Sedã': 'Sedãs', 'Sedan': 'Sedãs', 'Picape': 'Picapes', 'Pickup': 'Picapes', 'Minivan': 'Minivans', 'Moto': 'Motos', 'Utilitário': 'Utilitários', 'Esportivo': 'Esportivos', 'Conversível': 'Conversíveis', 'Street': 'Street', 'Trail': 'Trail', 'Scooter': 'Scooters' };
+    return p[c] || c;
+  }
+
+  // máscaras de formulário
+  function lerDinheiro(el) { return Number(String(el.value).replace(/\D/g, '')) || 0; }
+  function mascaraDinheiro(el, depois) {
+    el.addEventListener('input', function () { var n = lerDinheiro(el); el.value = n ? num(n) : ''; if (depois) depois(); });
+  }
+  function mascaraFone(el) {
+    el.addEventListener('input', function () {
+      var d = el.value.replace(/\D/g, '').slice(0, 11);
+      el.value = d.length > 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7)
+        : d.length > 6 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6)
+        : d.length > 2 ? '(' + d.slice(0, 2) + ') ' + d.slice(2) : d;
+    });
+  }
+  function mascaraCpf(el) {
+    el.addEventListener('input', function () {
+      var d = el.value.replace(/\D/g, '').slice(0, 11);
+      el.value = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    });
+  }
+  // Valida campos obrigatórios, marca os inválidos e devolve a primeira mensagem
+  function validar(regras) {
+    var erro = '';
+    regras.forEach(function (r) {
+      var ok = r[1]();
+      r[0].setAttribute('aria-invalid', String(!ok));
+      if (!ok && !erro) { erro = r[2]; r[0].focus(); }
+    });
+    return erro;
+  }
+
+  return {
+    esc: esc, num: num, brl: brl, km: km, ano: ano, titulo: titulo, opcionais: opcionais, temPreco: temPreco,
+    wa: wa, msgVeiculo: msgVeiculo, estoque: estoque, card: card, esqueletos: esqueletos, img: img,
+    avisoVazio: avisoVazio, avisoErro: avisoErro, ligarLinks: ligarLinks, IC: IC, SEM_FOTO: SEM_FOTO,
+    categorias: categorias, categoriasVitrine: categoriasVitrine, plural: plural, lerDinheiro: lerDinheiro, mascaraDinheiro: mascaraDinheiro,
+    mascaraFone: mascaraFone, mascaraCpf: mascaraCpf, validar: validar
+  };
+})();
+document.addEventListener('DOMContentLoaded', G.ligarLinks);
+
+/* ============================================================
+   MOVIMENTO: cabeçalho que encolhe e revelação ao rolar.
+   Quem pede "reduzir movimento" no aparelho vê tudo parado.
+   ============================================================ */
+(function () {
+  var topo = document.querySelector('.topo');
+  function rolar() { if (topo) topo.classList.toggle('rolou', window.scrollY > 24); }
+  window.addEventListener('scroll', rolar, { passive: true }); rolar();
+
+  var reduz = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduz || !('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('js-rv');
+
+  var SEL = '.secao-topo, .vantagem, .passo, .grade > .card:not(.esqueleto), .cat, .itens li, .faq details, .etapa, .versus > div, .loja, .foto-sobre, .sigilo, .form-pe, .grade > .aviso, .barra';
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
+
+  function marcar(raiz) {
+    var achados = [];
+    if (raiz.matches && raiz.matches(SEL)) achados.push(raiz);
+    if (raiz.querySelectorAll) achados = achados.concat([].slice.call(raiz.querySelectorAll(SEL)));
+    var porPai = new Map();
+    achados.forEach(function (el) {
+      if (el.classList.contains('rv')) return;
+      var n = porPai.get(el.parentNode) || 0; porPai.set(el.parentNode, n + 1);
+      el.style.setProperty('--i', Math.min(n, 6));
+      el.classList.add('rv'); io.observe(el);
+    });
+  }
+  marcar(document.body);
+  document.querySelectorAll('.chamada').forEach(function (c) { io.observe(c); });
+  new MutationObserver(function (ms) {
+    ms.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) marcar(n); }); });
+  }).observe(document.querySelector('main') || document.body, { childList: true, subtree: true });
+})();
+
+</script>
+<script>
+
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var lista = [], prazo = 48;
+  var taxa = Number(CFG.taxaMes) / 100;
+  $('nota-taxa').textContent = 'Estimativa com taxa de referência de ' + String(CFG.taxaMes).replace('.', ',') +
+    '% ao mês. A parcela final depende da análise de crédito.';
+
+  function escrever(el, n) { el.value = n ? G.num(Math.round(n)) : ''; }
+  function limparPct() { $('pct').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); }); }
+  function parcela(pv, i, n) { if (pv <= 0) return 0; if (!i) return pv / n; return pv * i / (1 - Math.pow(1 + i, -n)); }
+
+  function calcular() {
+    var valor = G.lerDinheiro($('valor')), entrada = G.lerDinheiro($('entrada'));
+    var fin = Math.max(valor - entrada, 0);
+    var p = parcela(fin, taxa, prazo);
+    $('parcela').innerHTML = (p ? G.brl(p) : 'R$ 0') + '<small> /mês</small>';
+    $('r-valor').textContent = valor ? G.brl(valor) : '–';
+    $('r-entrada').textContent = valor ? G.brl(entrada) + ' (' + Math.round(entrada / valor * 100) + '%)' : '–';
+    $('r-fin').textContent = valor ? G.brl(fin) : '–';
+    $('r-prazo').textContent = prazo + ' meses';
+    $('b-parcela').textContent = p ? G.brl(p) : 'R$ 0'; $('b-prazo').textContent = prazo + 'x';
+    $('entrada').setAttribute('aria-invalid', String(valor > 0 && entrada > valor));
+    return { valor: valor, entrada: entrada, fin: fin, p: p };
+  }
+
+  G.mascaraDinheiro($('valor'), function () { calcular(); limparPct(); });
+  G.mascaraDinheiro($('entrada'), function () { calcular(); limparPct(); });
+  G.mascaraDinheiro($('renda'));
+  G.mascaraFone($('cel'));
+  G.mascaraCpf($('cpf'));
+  $('pct').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var valor = G.lerDinheiro($('valor'));
+    if (!valor) { $('valor').focus(); return; }
+    escrever($('entrada'), valor * Number(b.getAttribute('data-p')) / 100);
+    calcular(); limparPct(); b.setAttribute('aria-pressed', 'true');
+  });
+  $('prazo').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    prazo = Number(b.getAttribute('data-n'));
+    $('prazo').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    calcular();
+  });
+  $('troca').addEventListener('change', function () { $('campo-troca').hidden = this.value !== 'sim'; });
+  function escolhido() { return lista.filter(function (x) { return String(x.id) === $('veiculo').value; })[0]; }
+  $('veiculo').addEventListener('change', function () {
+    var v = escolhido();
+    if (v && G.temPreco(v)) { escrever($('valor'), v.preco); limparPct(); }
+    calcular();
+  });
+
+  $('form-fin').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var r = calcular(), erro = $('erro');
+    var falta = G.validar([
+      [$('nome'), function () { return $('nome').value.trim().length > 1; }, 'Informe seu nome.'],
+      [$('cel'), function () { var d = $('cel').value.replace(/\D/g, ''); return d.length >= 10 && d.length <= 11; }, 'Informe um celular com DDD.'],
+      [$('valor'), function () { return r.valor > 0; }, 'Informe o valor do veículo.'],
+      [$('entrada'), function () { return r.entrada <= r.valor; }, 'A entrada está maior que o valor do veículo.']
+    ]);
+    if (falta) { erro.textContent = falta; erro.hidden = false; return; }
+    erro.hidden = true;
+    var v = escolhido();
+    var val = function (id) { return $(id).value.trim(); };
+    var nasc = val('nasc') ? val('nasc').split('-').reverse().join('/') : '';
+    var l = ['Olá! Quero simular um financiamento na {{j:nome}}.', '', '*Meus dados*', 'Nome: ' + val('nome'), 'Celular: ' + val('cel')];
+    if (val('email')) l.push('E-mail: ' + val('email'));
+    if (val('cpf')) l.push('CPF: ' + val('cpf'));
+    if (nasc) l.push('Nascimento: ' + nasc);
+    if (val('cidade')) l.push('Cidade: ' + val('cidade'));
+    if (val('renda-tipo') || val('renda') || val('cnh')) {
+      l.push('', '*Renda*');
+      if (val('renda-tipo')) l.push('Tipo: ' + val('renda-tipo'));
+      if (val('renda')) l.push('Renda mensal: R$ ' + val('renda'));
+      if (val('cnh')) l.push('Tem CNH: ' + val('cnh'));
+    }
+    l.push('', '*Veículo*', 'Interesse: ' + (v ? G.titulo(v) + (v.versao ? ' ' + v.versao : '') + ' ' + G.ano(v) + ' (código ' + v.id + ')' : 'ainda não escolhi'),
+      'Valor: ' + G.brl(r.valor), 'Entrada: ' + G.brl(r.entrada), 'Prazo: ' + prazo + 'x', 'Parcela estimada: ' + G.brl(r.p),
+      'Carro na troca: ' + ($('troca').value === 'sim' ? (val('troca-qual') || 'sim') : 'não'));
+    if (val('obs')) l.push('', 'Observação: ' + val('obs'));
+    window.open(G.wa(l.join('\n')), '_blank', 'noopener');
+  });
+
+  G.estoque(false).then(function (l) {
+    lista = l;
+    l.forEach(function (v) {
+      $('veiculo').insertAdjacentHTML('beforeend', '<option value="' + G.esc(v.id) + '">' +
+        G.esc(G.titulo(v) + ' ' + G.ano(v) + (G.temPreco(v) ? ', ' + G.brl(v.preco) : '')) + '</option>');
+    });
+    $('ajuda-veiculo').textContent = l.length ? 'Quando o veículo tem preço no site, o valor é preenchido sozinho.' : 'Digite abaixo o valor do veículo que você quer financiar.';
+    var id = new URLSearchParams(location.search).get('v');
+    if (id) {
+      $('veiculo').value = id;
+      if ($('veiculo').value === id) $('veiculo').dispatchEvent(new Event('change'));
+    }
+  }).catch(function () {
+    $('ajuda-veiculo').textContent = 'Digite abaixo o valor do veículo que você quer financiar.';
+  });
+  calcular();
+})();
+
+</script>
+</body>
+</html>

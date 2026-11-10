@@ -68,8 +68,10 @@ export function createApp(options={}) {
    if(!pg&&!pathname.endsWith('/')){res.writeHead(301,{Location:pathname+'/'});return res.end();}
    const pagina=pg||'index.html',pedido=new URL(req.url,'http://localhost').searchParams.get('modelo');
    // modelos fiéis: o HTML original do site preenchido com os dados da loja (site-fiel.mjs)
-   let dados=conta==='demo'?lojaDemoFiel():await accountApi.dadosDoSite(conta);
-   const nomeModelo=pedido&&MODELOS_FIEIS[pedido]?pedido:dados?.modelo;
+   // prévia: /s/demo-<modelo>/ (as páginas internas continuam na prévia) ou /s/demo/?modelo=<modelo>
+   const demo=conta==='demo'?(pedido||'garagem'):(/^demo-/.test(conta)&&MODELOS_FIEIS[conta.slice(5)]?conta.slice(5):null);
+   let dados=demo?lojaDemoFiel(demo):await accountApi.dadosDoSite(conta);
+   const nomeModelo=demo||(pedido&&MODELOS_FIEIS[pedido]?pedido:dados?.modelo);
    if(dados?.ativo&&MODELOS_FIEIS[nomeModelo]){
     const html=renderFiel({nomeModelo,pagina,dados,conta});
     if(!html){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});return res.end('Não encontrado');}

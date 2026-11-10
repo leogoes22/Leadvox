@@ -74,19 +74,19 @@ test('motor do site: texto do banco nunca vira HTML; só imagens https (os desen
  assert.match(motor,/if \(!demo\) \{ var s = document\.createElement\('script'\); s\.src = '\/site\/tema\.js'/);
 });
 
-test('painel: os 5 modelos aparecem; Garagem e Premium já podem ser escolhidos; logo, cores, fonte e publicar', () => {
+test('painel: os 6 modelos aparecem e todos podem ser escolhidos; logo, cores, fonte e publicar', () => {
  for(const m of ['garagem','premium','neon','claro','editorial'])assert.match(js,new RegExp("\\['"+m+"', '"));
  assert.match(js,/\['garagem', 'Garagem', '[^']+', true\]/);
  assert.match(js,/\['premium', 'Premium', '[^']+', true\]/);
  assert.match(js,/\['claro', 'Claro', '[^']+', true\]/);
  assert.match(js,/\['neon', 'Neon', '[^']+', true\]/);
  assert.match(js,/\['editorial', 'Editorial', '[^']+', true\]/);
- // a Vitrine simplificada fica em preparação até a versão fiel ao site da Ultra
- assert.match(js,/\['vitrine', 'Vitrine', '[^']+', false\]/);
+ // a Vitrine (site da Ultra) também já pode ser escolhida
+ assert.match(js,/\['vitrine', 'Vitrine', '[^']+', true\]/);
  for(const m of ['garagem','premium','claro','neon','editorial','vitrine'])assert.ok(require_css(m),m+'.css existe e usa as cores do painel');
  const bloco=js.slice(js.indexOf('const SITE_MODELOS = ['),js.indexOf('];',js.indexOf('const SITE_MODELOS = [')));
- assert.equal((bloco.match(/', false\]/g)||[]).length,1);
- assert.equal((bloco.match(/', true\]/g)||[]).length,5);
+ assert.equal((bloco.match(/', false\]/g)||[]).length,0);
+ assert.equal((bloco.match(/', true\]/g)||[]).length,6);
  assert.match(js,/Para publicar, coloque a cidade da loja/);
  // o banco aceita os mesmos 6 modelos que o painel e o motor oferecem
  const novo=readFileSync(new URL('../database/site_modelo_vitrine.sql',import.meta.url),'utf8');

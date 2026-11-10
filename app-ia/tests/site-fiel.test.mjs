@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {createApp} from '../server.mjs';
-import {renderFiel,estoqueParaSite,lojaDemoFiel,MODELOS_FIEIS,mostrarDo} from '../site-fiel.mjs';
+import {renderFiel,estoqueParaSite,estoqueDoModelo,lojaDemoFiel,MODELOS_FIEIS,mostrarDo} from '../site-fiel.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
 const pasta=new URL('../sites/garagem/',import.meta.url);
 
@@ -84,4 +84,46 @@ test('estoque do painel: opcionais (lista ou texto) e descrição ficam no veíc
  const js=readFileSync(new URL('../public/painel.js',import.meta.url),'utf8');
  assert.match(js,/data-mostrar="\$\{k\}"/);assert.match(js,/opcionais: \$\('esOpc'\)\.value/);
  assert.match(readFileSync(new URL('../database/site_modelos_fieis.sql',import.meta.url),'utf8'),/'mostrar',jsonb_build_object\('km'/);
+});
+
+// os 6 sites originais (MG, Elite, Machado, Glycerio, Ervatti e Ultra) viram modelos fiéis
+const LOJAS_ORIGINAIS={premium:[/Elite/,/Mesquita/,/97006/],neon:[/[Mm]achado/,/Meriti/,/98115|96463/],claro:[/[Gg]lycerio/,/Agostinho/,/99088/],
+ editorial:[/[Ee]rvatti/,/Fontenelle/,/99142/,/área kids/i],vitrine:[/Ultra/,/Dutra/,/99787/,/[Ll]uxcar/]};
+test('os 6 modelos fiéis: páginas sem sobra da loja original, campos todos trocados, programação válida e texto da loja escapado', () => {
+ assert.deepEqual(Object.keys(MODELOS_FIEIS).sort(),['claro','editorial','garagem','neon','premium','vitrine']);
+ for(const [nome,proib] of Object.entries(LOJAS_ORIGINAIS)){
+  const dados=lojaDemoFiel(nome);dados.identidade={...dados.identidade,nome:'Loja <b>"X"</b> `${1}`',endereco:'</script><b>'};
+  dados.itens[0].atributos.obs='</script><script>alert(1)</script>';
+  for(const p of MODELOS_FIEIS[nome].paginas){
+   const modelo=readFileSync(new URL('../sites/'+nome+'/'+p,import.meta.url),'utf8');
+   for(const re of proib)assert.doesNotMatch(modelo,re,nome+'/'+p+' ainda tem '+re);
+   const h=renderFiel({nomeModelo:nome,pagina:p,dados,conta:'loja-teste-ab12cd34'});
+   assert.doesNotMatch(h,/\{\{[a-z]+:[A-Za-z0-9]+\}\}/,nome+'/'+p+': ficou campo sem trocar');
+   assert.doesNotMatch(h,/<b>"X"<\/b>|<\/script><b>|<\/script><script>alert/,nome+'/'+p+': texto da loja entrou como HTML');
+   for(const [,s] of h.matchAll(/<script(?![^>]*src)(?![^>]*ld\+json)[^>]*>([\s\S]*?)<\/script>/g))assert.doesNotThrow(()=>new Function(s),nome+'/'+p+': programação quebrada');
+   assert.match(h,/<script src="\/site\/tema\.js" data-loja="loja-teste-ab12cd34" defer>/);
+  }
+ }
+});
+
+test('estoque de cada modelo no formato que o site original lê (km, opcionais e descrição chegam)', () => {
+ const l=estoqueParaSite(lojaDemoFiel('premium').itens);
+ const p=estoqueDoModelo('premium',l).veiculos[0];assert.equal(p.km,28500);assert.ok(p.op.length);assert.match(p.desc,/descrição/);assert.equal(p.t,'SUV');
+ const n=estoqueDoModelo('neon',l);assert.equal(n.total,n.veiculos.length);
+ const c=estoqueDoModelo('claro',l).veiculos[0];assert.equal(c.ano_modelo,2024);assert.ok(c.opcionais.length);assert.ok(c.descricao);
+ const v=estoqueDoModelo('vitrine',l);assert.equal(v.total,v.carros.length);assert.ok(Array.isArray(v.carros[0].g));
+ assert.deepEqual(estoqueDoModelo('garagem',l),l);
+ const e=renderFiel({nomeModelo:'editorial',pagina:'index.html',dados:lojaDemoFiel('editorial'),conta:'x-loja'});
+ assert.equal(JSON.parse(e.match(/var CARROS = (\[.*?\]);/s)[1]).length,8,'Editorial: estoque escrito na página');
+});
+
+test('prévia: /s/demo-<modelo>/ abre o modelo nas páginas internas, sem a camada de temas', async t => {
+ const s=createApp({allowLocal:true,fetchImpl:async()=>ok(null)});
+ await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+ const b='http://127.0.0.1:'+s.address().port;
+ for(const m of ['premium','neon','claro','editorial','vitrine']){
+  const r=await fetch(b+'/s/demo-'+m+'/estoque.html');assert.equal(r.status,200,m);const h=await r.text();
+  assert.match(h,/Loja Demo Veículos/);assert.doesNotMatch(h,/site\/tema\.js/);
+ }
+ const est=await (await fetch(b+'/api/site/estoque?loja=demo-vitrine&modelo=vitrine')).json();assert.equal(est.carros.length,8);
 });

@@ -2952,11 +2952,11 @@ function desenharSite() {
 // ═══ Site da loja: modelo, identidade, textos e publicar (public/site/motor.js + /site/modelos/<id>.css) ═══
 const SITE_MODELOS = [
   ['garagem', 'Garagem', 'Para lojas de MOTOS. O site completo da MG: 4 páginas, vitrine animada, estilos (trail, scooter…), avaliações e Instagram.', true],
-  ['premium', 'Premium', 'Preto profundo e acabamento de concessionária. Para importados e blindados.', true],
-  ['neon', 'Neon', 'Escuro com cor vibrante e cara moderna. Para lojas que falam com o público jovem.', true],
-  ['claro', 'Claro', 'Fundo branco, direto ao ponto. Para loja popular e feirão.', true],
-  ['editorial', 'Editorial', 'Título com letra elegante e foto da loja. Para lojas tradicionais e de família.', true],
-  ['vitrine', 'Vitrine', 'Estoque em lista, linha a linha, com menu flutuante e degradê. Para lojas com muito estoque.', false]
+  ['premium', 'Premium', 'Para CARROS. O site completo da Elite: preto e amarelo, capa que troca de carro sozinha, filtros e ficha com galeria.', true],
+  ['neon', 'Neon', 'Para CARROS. O site completo da Machado: vidro e neon, brilho que segue o mouse, mapa da loja e ficha com galeria.', true],
+  ['claro', 'Claro', 'Para CARROS. O site completo da Glycerio: fundo claro, busca na capa, horário do dia em destaque e página de cada veículo.', true],
+  ['editorial', 'Editorial', 'Para CARROS. O site completo da Ervatti: letra elegante, capa com foto, números animados e ficha com galeria.', true],
+  ['vitrine', 'Vitrine', 'Para CARROS e MOTOS. O site completo da Ultra: estoque em lista com prévia flutuante, degradê e ficha da loja.', true]
 ];
 const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
 function desenharSiteModelo() {
@@ -2972,7 +2972,7 @@ function desenharSiteModelo() {
       <input type="radio" name="smModelo" value="${id}"${id === modelo ? ' checked' : ''}${ok ? '' : ' disabled'}>
       <span class="sm-amostra sm-${id}"><i></i><i></i><i></i></span>
       <b>${esc(n)}</b><small>${esc(d)}</small>
-      ${ok ? `<a href="/s/demo/?modelo=${id}" target="_blank" rel="noopener" class="sm-previa">Ver prévia</a>` : '<span class="sm-previa">Em preparação</span>'}</label>`).join('')}</div>
+      ${ok ? `<a href="/s/demo-${id}/" target="_blank" rel="noopener" class="sm-previa">Ver prévia</a>` : '<span class="sm-previa">Em preparação</span>'}</label>`).join('')}</div>
     <h3 class="st-tit">Identidade</h3>
     <div class="duas"><div><label for="smNome">Nome da loja</label><input id="smNome" maxlength="60" required value="${esc(nomePadrao)}"></div>
       <div><label for="smFonte">Fonte</label><select id="smFonte">${SITE_FONTES.map(([v, n]) => `<option value="${v}"${v === (i.fonte || 'saira') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>

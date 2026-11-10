@@ -1,5 +1,5 @@
 import {randomBytes,createHash} from 'node:crypto';
-import {estoqueParaSite,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
+import {estoqueParaSite,estoqueDoModelo,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
@@ -152,12 +152,12 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
  async function siteDados(req,res,soEstoque){
   const resp=(status,data,cache)=>{res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':cache||'no-store'});res.end(req.method==='HEAD'?undefined:JSON.stringify(data));};
   if(!['GET','HEAD'].includes(req.method))return resp(405,{ativo:false});
-  const loja=new URL(req.url,'https://localhost').searchParams.get('loja')||'';
+  const q=new URL(req.url,'https://localhost').searchParams,loja=q.get('loja')||'',formato=q.get('modelo')||'';
   if(!/^[a-z0-9-]{3,60}$/.test(loja))return resp(400,{ativo:false});
-  const dados=loja==='demo'&&soEstoque?{ativo:true,itens:lojaDemoFiel().itens}:await obterDados(loja);
+  const dados=/^demo(-|$)/.test(loja)&&soEstoque?{ativo:true,itens:lojaDemoFiel(formato).itens}:await obterDados(loja);
   if(!dados)return resp(503,{ativo:false,erro:'indisponivel'});
   // estoque no formato que os sites originais leem (modelos fiéis)
-  if(soEstoque)return resp(200,dados.ativo?estoqueParaSite(dados.itens,mostrarDo(dados.identidade)):[],'public, max-age=60');
+  if(soEstoque)return resp(200,dados.ativo?estoqueDoModelo(formato,estoqueParaSite(dados.itens,mostrarDo(dados.identidade))):estoqueDoModelo(formato,[]),'public, max-age=60');
   resp(200,dados,'public, max-age=60');
  }
  const api=async(req,res,pathname)=>{
