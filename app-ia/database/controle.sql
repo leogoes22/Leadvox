@@ -45,7 +45,8 @@ begin
   ('rastreio_contas.sql', to_regclass('leadvox_private.rastreio_anuncios') is not null),
   ('usuarios.sql', to_regproc('public.lv_usuarios_email_registrar') is not null),
   ('site_temas.sql', to_regproc('public.lv_site_publico') is not null),
-  ('site_modelos.sql', to_regproc('public.lv_site_dados') is not null)
+  ('site_modelos.sql', to_regproc('public.lv_site_dados') is not null),
+  ('site_modelo_vitrine.sql', 'vitrine'=any(leadvox_private.site_modelos()))
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;

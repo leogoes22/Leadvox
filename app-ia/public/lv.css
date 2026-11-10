@@ -552,3 +552,4 @@ textarea { min-height: 90px; resize: vertical; }
 .sm-logo{display:block;max-width:200px;max-height:90px;object-fit:contain;margin-top:8px;padding:8px;border-radius:10px;background:repeating-conic-gradient(#2224 0 25%,transparent 0 50%) 50%/16px 16px}
 .sm-logo[hidden]{display:none}
 input[type=color]{height:44px;padding:4px;cursor:pointer}
+.sm-vitrine{background:#0a1228;flex-direction:column;justify-content:center}.sm-vitrine i{flex:none;height:7px;background:linear-gradient(100deg,#2fc4b2,#2f7df6)}.sm-vitrine i:nth-child(2){opacity:.65}.sm-vitrine i:nth-child(3){opacity:.4}

@@ -1,0 +1,121 @@
+/* Modelo 6 · Vitrine (inspirado no site da Ultra Motors, ex-El Luxcar): menu flutuante em pílula, título em Syne com
+   traço ondulado em degradê, foto com etiqueta arredondada e o ESTOQUE EM LISTA (cada veículo numa linha numerada).
+   Cores e fonte do texto vêm do painel: --c1 (principal), --c2 (fundo), --f-texto. O título é sempre Syne. */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap');
+:root{--syne:'Syne',system-ui,sans-serif;--c1b:color-mix(in oklab,var(--c1) 55%,#ffffff 0%);--c1c:color-mix(in oklab,var(--c1) 60%,#2f7df6);
+ --grad:linear-gradient(100deg,var(--c1) 0%,var(--c1c) 100%);--painel:color-mix(in srgb,var(--c2) 88%,#fff 5%);--painel-2:color-mix(in srgb,var(--c2) 80%,#fff 9%);
+ --linha:rgba(255,255,255,.10);--linha-2:rgba(255,255,255,.22);--texto:#f0eeea;--dim:#9b9791;--fraco:#63605b}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body.lv{margin:0;background:var(--c2);color:var(--texto);font-family:var(--f-texto);line-height:1.55;counter-reset:carro;
+ background-image:linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:80px 100%}
+body.travado{overflow:hidden}
+a{color:inherit}
+h1,h2,h3{font-family:var(--syne);line-height:1.02;margin:0;font-weight:700;letter-spacing:-.02em}
+.bt{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:999px;font-weight:700;font-size:.92rem;text-decoration:none;border:1px solid transparent;cursor:pointer;font-family:var(--f-texto);transition:transform .2s}
+.bt:hover{transform:translateY(-1px)}
+.bt-1{background:var(--grad);color:var(--c1-texto)}
+.bt-2{background:transparent;color:var(--texto);border-color:var(--linha-2)}
+.bt-2:hover{border-color:var(--c1)}
+.bt-zap{background:#25d366;color:#04230f}
+/* menu flutuante em pílula */
+.topo{position:sticky;top:12px;z-index:20;display:flex;align-items:center;gap:6px;width:fit-content;max-width:calc(100% - 24px);margin:12px auto 0;padding:7px 7px 7px 16px;
+ background:color-mix(in srgb,var(--c2) 80%,transparent);backdrop-filter:blur(14px);border:1px solid var(--linha-2);border-radius:999px}
+.logo{display:flex;align-items:center;text-decoration:none;margin-right:10px}
+.logo-img{height:34px;max-width:200px;object-fit:contain}
+.logo-txt{font-family:var(--syne);font-weight:800;font-size:20px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.menu{display:flex;gap:2px}
+.menu a{text-decoration:none;color:var(--dim);font-weight:600;font-size:.88rem;padding:9px 14px;border-radius:999px}
+.menu a:hover{color:var(--texto);background:rgba(255,255,255,.07)}
+.topo .bt-zap{padding:10px 18px;font-size:.84rem;margin-left:6px}
+/* capa */
+.capa{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(40px,6vw,80px) clamp(16px,4vw,48px)}
+.selo{margin:0 0 18px;color:var(--dim);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.24em}
+.capa h1{font-size:clamp(44px,6.6vw,92px)}
+.capa h1::after{content:"";display:block;width:min(420px,90%);height:14px;margin-top:20px;
+ background:var(--grad);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 14'%3E%3Cpath d='M2 9 Q 40 1 80 8 T 160 8 T 240 7 T 320 8 T 418 6' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+ mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 14'%3E%3Cpath d='M2 9 Q 40 1 80 8 T 160 8 T 240 7 T 320 8 T 418 6' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.sub{color:var(--dim);font-size:1.05rem;max-width:56ch;margin:22px 0 0}
+.capa-bts{display:flex;gap:11px;flex-wrap:wrap;margin-top:30px}
+.capa-foto{position:relative;padding:0;border:0;background:var(--painel);cursor:pointer;border-radius:28px;overflow:hidden;min-height:340px}
+.capa-foto img{display:block;width:100%;height:100%;min-height:340px;aspect-ratio:5/4;object-fit:cover}
+.capa-legenda{position:absolute;left:16px;bottom:16px;display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;background:color-mix(in srgb,var(--c2) 75%,transparent);border:1px solid var(--linha-2);backdrop-filter:blur(10px);font-size:.86rem}
+.capa-legenda::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c1);box-shadow:0 0 10px var(--c1)}
+.capa-legenda b{font-weight:700}
+.capa-legenda span{color:var(--c1);font-weight:800}
+/* seções */
+section.estoque,section.financiamento,section.loja{padding:clamp(52px,7vw,104px) clamp(16px,4vw,48px)}
+.tit{display:flex;justify-content:space-between;align-items:flex-end;gap:26px;flex-wrap:wrap;margin-bottom:28px}
+.tit h2{font-size:clamp(36px,4.6vw,60px)}
+.tit p{color:var(--dim);margin:0;max-width:48ch}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;padding:8px;border:1px solid var(--linha);border-radius:999px;background:var(--painel)}
+.filtros input,.filtros select{background:transparent;color:var(--texto);border:0;border-radius:999px;padding:11px 16px;font-size:.92rem;font-family:var(--f-texto)}
+.filtros select{background:var(--painel-2)}
+.filtros select option{background:var(--c2)}
+.filtros input{flex:1;min-width:200px}
+.filtros input:focus,.filtros select:focus{outline:2px solid var(--c1)}
+/* ESTOQUE EM LISTA: cada veículo é uma linha numerada */
+.grade{display:flex;flex-direction:column;border-top:1px solid var(--linha);margin-top:18px}
+.card{counter-increment:carro;display:grid;grid-template-columns:42px 132px 1fr auto;align-items:center;gap:18px;padding:14px 6px;border-bottom:1px solid var(--linha);transition:background .2s}
+.card:hover{background:rgba(255,255,255,.03)}
+.card::before{content:counter(carro,decimal-leading-zero);font-family:var(--syne);font-size:.9rem;color:var(--fraco);font-weight:700}
+.card-foto{padding:0;border:0;background:var(--painel);cursor:pointer;width:132px;aspect-ratio:4/3;border-radius:12px;overflow:hidden}
+.card-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.sem-foto{display:flex;align-items:center;justify-content:center;height:100%;color:var(--fraco);font-size:.75rem}
+.card-txt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;grid-template-areas:"nome ficha preco" "versao ficha preco";gap:2px 20px;align-items:center;min-width:0}
+.card h3{grid-area:nome;font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.versao{grid-area:versao;color:var(--fraco);font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ficha{grid-area:ficha;color:var(--dim);font-size:.9rem;margin:0}
+.preco{grid-area:preco;font-family:var(--syne);font-size:1.3rem;font-weight:800;margin:0;text-align:right;white-space:nowrap;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card-bts{display:flex;gap:6px}
+.card-bts .bt{padding:10px 14px;font-size:.8rem}
+.card-bts .bt-1{width:42px;height:42px;padding:0;font-size:0}
+.card-bts .bt-1::after{content:"→";font-size:1.1rem;color:var(--c1-texto)}
+.vazio{color:var(--dim);padding:18px 0}
+.fin-form{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px;padding:8px;border:1px solid var(--linha);border-radius:28px;background:var(--painel)}
+.fin-form input{background:var(--painel-2);color:var(--texto);border:0;border-radius:999px;padding:13px 18px;font-size:.95rem;font-family:var(--f-texto)}
+.contatos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.contatos li{background:var(--painel);border:1px solid var(--linha);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.contatos b{color:var(--fraco);font-size:.72rem;text-transform:uppercase;letter-spacing:.2em}
+.contatos a{color:var(--c1);font-weight:700}
+.rodape{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:26px clamp(16px,4vw,48px) 96px;border-top:1px solid var(--linha);color:var(--fraco);font-size:.85rem}
+.rodape a{color:var(--fraco)}
+.zap-flutua{position:fixed;right:18px;bottom:18px;z-index:30;background:#25d366;color:#04230f;font-weight:800;text-decoration:none;padding:14px 20px;border-radius:999px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+/* detalhe do veículo */
+.det-fundo{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--c2) 80%,transparent);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
+.det{position:relative;display:grid;grid-template-columns:1.2fr 1fr;width:min(1080px,100%);max-height:92vh;overflow:auto;background:var(--painel);border:1px solid var(--linha-2);border-radius:28px}
+.det-x{position:absolute;top:12px;right:12px;z-index:2;width:40px;height:40px;border-radius:999px;border:1px solid var(--linha-2);background:rgba(0,0,0,.5);color:#fff;font-size:22px;cursor:pointer}
+.det-galeria{position:relative;background:#000;min-height:280px}
+.det-galeria img{width:100%;height:100%;object-fit:cover;display:block;max-height:92vh}
+.seta{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:999px;border:1px solid var(--linha-2);background:rgba(0,0,0,.5);color:#fff;font-size:28px;cursor:pointer}
+.seta.esq{left:12px}.seta.dir{right:12px}
+.cont{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);color:#fff;padding:5px 12px;border-radius:999px;font-size:.8rem}
+.det-txt{padding:28px}
+.det-txt h3{font-size:2rem}
+.det-txt .preco{font-size:1.7rem;text-align:left;margin-top:10px;width:fit-content}
+.ficha-tab{width:100%;border-collapse:collapse;margin:18px 0;font-size:.9rem}
+.ficha-tab th{text-align:left;color:var(--fraco);font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.16em;padding:9px 0;border-bottom:1px solid var(--linha);width:40%}
+.ficha-tab td{padding:9px 0;border-bottom:1px solid var(--linha)}
+.desc{color:var(--dim);font-size:.9rem}
+.det .card-bts{padding:10px 0 0;flex-wrap:wrap}
+.det .card-bts .bt{flex:1;padding:12px 16px;font-size:.86rem;width:auto;height:auto}
+.det .card-bts .bt-1{font-size:.86rem}
+.det .card-bts .bt-1::after{content:none}
+@media (max-width:900px){
+ .menu{display:none}
+ .capa{grid-template-columns:1fr}
+ .capa-foto{order:-1}
+ .card{grid-template-columns:96px 1fr;grid-template-areas:"foto txt" "foto bts";gap:6px 14px}
+ .card::before{display:none}
+ .card-foto{grid-area:foto;width:96px}
+ .card-txt{grid-area:txt;grid-template-columns:1fr;grid-template-areas:"nome" "versao" "ficha" "preco"}
+ .preco{text-align:left}
+ .card-bts{grid-area:bts}
+ .fin-form{grid-template-columns:1fr;border-radius:22px}
+ .det{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+ .topo .bt-zap{display:none}
+ .filtros{border-radius:22px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bt,.card{transition:none}}

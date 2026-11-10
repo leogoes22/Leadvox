@@ -81,9 +81,15 @@ test('painel: os 5 modelos aparecem; Garagem e Premium já podem ser escolhidos;
  assert.match(js,/\['claro', 'Claro', '[^']+', true\]/);
  assert.match(js,/\['neon', 'Neon', '[^']+', true\]/);
  assert.match(js,/\['editorial', 'Editorial', '[^']+', true\]/);
- for(const m of ['garagem','premium','claro','neon','editorial'])assert.ok(require_css(m),m+'.css existe e usa as cores do painel');
+ assert.match(js,/\['vitrine', 'Vitrine', '[^']+', true\]/);
+ for(const m of ['garagem','premium','claro','neon','editorial','vitrine'])assert.ok(require_css(m),m+'.css existe e usa as cores do painel');
  const bloco=js.slice(js.indexOf('const SITE_MODELOS = ['),js.indexOf('];',js.indexOf('const SITE_MODELOS = [')));
- assert.equal((bloco.match(/', false\]/g)||[]).length,0,'os 5 modelos estão prontos');
+ assert.equal((bloco.match(/', false\]/g)||[]).length,0,'os 6 modelos estão prontos');
+ assert.equal((bloco.match(/', true\]/g)||[]).length,6);
+ // o banco aceita os mesmos 6 modelos que o painel e o motor oferecem
+ const novo=readFileSync(new URL('../database/site_modelo_vitrine.sql',import.meta.url),'utf8');
+ assert.match(novo,/array\['garagem','premium','neon','claro','editorial','vitrine'\]/);
+ assert.match(readFileSync(new URL('../public/site/motor.js',import.meta.url),'utf8'),/var MODELOS = \['garagem', 'premium', 'neon', 'claro', 'editorial', 'vitrine'\]/);
  assert.match(js,/id="smLogoArq"/);assert.match(js,/id="smCor1"/);assert.match(js,/id="smCor2"/);assert.match(js,/id="smFonte"/);assert.match(js,/id="smPub"/);
  assert.match(js,/api\('site-modelo'/);assert.match(js,/function desenharSiteModelo\(\)/);
 });

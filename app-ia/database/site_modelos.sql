@@ -7,7 +7,7 @@ alter table leadvox_private.site_config add column if not exists identidade json
 alter table leadvox_private.site_config add column if not exists publicado boolean not null default false;
 
 create or replace function leadvox_private.site_modelos() returns text[] language sql immutable set search_path='' as $$
- select array['garagem','premium','neon','claro','editorial'];
+ select array['garagem','premium','neon','claro','editorial','vitrine'];
 $$;
 create or replace function leadvox_private.site_fontes() returns text[] language sql immutable set search_path='' as $$
  select array['saira','bebas','barlow','oswald','outfit'];

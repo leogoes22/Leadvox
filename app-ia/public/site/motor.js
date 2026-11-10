@@ -6,7 +6,7 @@
   'use strict';
   var conta = (location.pathname.match(/^\/s\/([a-z0-9-]{3,60})\/?$/) || [])[1] || '';
   var params = new URLSearchParams(location.search);
-  var MODELOS = ['garagem', 'premium', 'neon', 'claro', 'editorial'];
+  var MODELOS = ['garagem', 'premium', 'neon', 'claro', 'editorial', 'vitrine'];
   var FONTES = {
     saira: ['Saira Condensed', 'Albert Sans', 'Saira+Condensed:wght@600;700;800&family=Albert+Sans:wght@400;500;600;700'],
     bebas: ['Bebas Neue', 'Sora', 'Bebas+Neue&family=Sora:wght@400;500;600;700'],
@@ -202,7 +202,7 @@
 
   // Loja de exemplo para a prévia do painel: veículos com desenho no lugar da foto.
   function lojaDemo(m) {
-    var cores = { garagem: ['#d6921e', '#121110'], premium: ['#dbc300', '#0a0a0c'], neon: ['#7b2ff7', '#070409'], claro: ['#c8131e', '#000000'], editorial: ['#d3252f', '#0a0a0c'] };
+    var cores = { garagem: ['#d6921e', '#121110'], premium: ['#dbc300', '#0a0a0c'], neon: ['#7b2ff7', '#070409'], claro: ['#c8131e', '#000000'], editorial: ['#d3252f', '#0a0a0c'], vitrine: ['#2fc4b2', '#0a1228'] };
     var c = cores[m] || cores.garagem;
     var desenho = function (cor, moto) {
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><rect width="400" height="260" fill="#1d1d22"/><rect y="190" width="400" height="70" fill="#141418"/>' +
