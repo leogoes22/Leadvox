@@ -1,5 +1,8 @@
 import {createAccountApi,n8nDaConta} from './account-api.mjs';
 import {renderFiel,lojaDemoFiel,MODELOS_FIEIS} from './site-fiel.mjs';
+import {principalDe} from './integrations/dominio.mjs';
+// endereços do próprio painel: nunca são domínio de loja
+const PAINEL_HOSTS=new Set(['ia.leadvox.com.br','localhost','127.0.0.1',...String(process.env.PAINEL_HOSTS||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean)]);
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -60,6 +63,18 @@ export function createApp(options={}) {
   if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(req.method==='HEAD'?undefined:JSON.stringify({status:'ok',application:'leadvox-ia',mode:'producao',version:'1.0.0'}));}
   if(pathname.startsWith('/api/')){res.writeHead(404,{'Content-Type':'application/json'});return res.end(JSON.stringify({error:'Integração real ainda não habilitada'}));}
   if(pathname.split('/').some(p=>p.startsWith('.'))||pathname.includes('\\')||pathname.includes('\0')){res.writeHead(404);return res.end('Não encontrado');}
+  // domínio próprio da loja (www.sualoja.com.br): abre só o site dela, na raiz; o outro endereço (com ou sem www) redireciona
+  const hostReq=String(req.headers.host||'').toLowerCase().replace(/:\d+$/,'');
+  const dono=PAINEL_HOSTS.has(hostReq)||!accountApi.dominioDoHost?null:await accountApi.dominioDoHost(hostReq);
+  if(dono&&dono.conta){
+   const principal=principalDe(dono);
+   if(dono.tipo==='principal'&&hostReq!==principal){res.writeHead(301,{Location:'https://'+principal+req.url});return res.end();}
+   if(!pathname.startsWith('/site/')){
+    const pg=pathname.match(/^\/([a-z0-9-]{1,40}\.html)?$/);
+    if(!pg){res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});return res.end('Não encontrado');}
+    pathname='/s/'+dono.conta+'/'+(pg[1]||'');
+   }
+  }
   if(pathname==='/vendedor')pathname='/vendedor.html';
   // site da loja: /s/<conta>/ abre o modelo escolhido no painel (public/site/loja.html lê os dados de /api/site/dados)
   const rotaSite=pathname.match(/^\/s\/([a-z0-9-]{3,60})(?:\/([a-z0-9-]{1,40}\.html)?)?$/);

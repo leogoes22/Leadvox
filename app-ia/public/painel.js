@@ -2219,6 +2219,7 @@ async function carregarLv() {
   desenharLv(); desenharAsaas();
   carregarConsumo().catch(err => { $('lvConsumo').innerHTML = `<p class="muted">${esc(err.message)}</p>`; });
   carregarRastreioLista();
+  carregarDominiosAdmin();
 }
 // Módulo "Rastreamento de anúncios": quem tem, quantas contas de anúncio, leads e vendas em 30 dias e a mensalidade
 // (R$ 99 com 1 conta + R$ 39 por conta a mais). Some sem erro se o banco ainda não tiver rastreio_contas.sql.
@@ -2879,7 +2880,7 @@ function desenharSite() {
     <button type="button" class="sm" data-st-tira="${i}" aria-label="Tirar esta data">Tirar</button></div></div>`;
   const codigo = s.conta ? `<script src="${location.origin}/site/tema.js" data-loja="${s.conta}" defer></script>` : '';
   const siteLoja = (cfg.loja && cfg.loja.site) || '';
-  el.innerHTML = `<div id="stModelo"></div>
+  el.innerHTML = `<div id="stModelo"></div><div id="stDominio"></div>
     <h2 class="st-secao">Temas e campanha</h2>
     <div class="card estreito"><h3>1 · Ligar no seu site (só para site próprio)</h3>
       ${s.conta ? `<p class="muted" style="margin-top:6px">Cole este código uma vez no seu site, antes de &lt;/body&gt;. Nos sites feitos pela LeadVox, a gente já cola para você.</p>
@@ -2913,7 +2914,7 @@ function desenharSite() {
       <div class="form-bts"><button class="principal" id="stSalvar">Salvar</button></div>
       <p class="alerta" id="stErro" hidden></p>
     </form>`;
-  desenharSiteModelo();
+  desenharSiteModelo(); carregarDominio();
   let arte = c.arte || '';
   const agenda = () => [...document.querySelectorAll('#stAgenda .st-linha')].map(l => ({ tema: l.querySelector('.stAgTema').value, inicio: l.querySelector('.stAgIni').value, fim: l.querySelector('.stAgFim').value }));
   const ligarTira = () => document.querySelectorAll('[data-st-tira]').forEach(b => b.onclick = () => { const l = agenda(); l.splice(Number(b.dataset.stTira), 1); redesenharAgenda(l); });
@@ -3072,4 +3073,212 @@ function desenharSiteModelo() {
     catch (err) { mostra($('smErro'), err.message); }
     finally { bt.disabled = false; bt.textContent = 'Salvar o site'; }
   };
+}
+
+// ═══ Site da loja → Domínio próprio (www.sualoja.com.br ou estoque.sualoja.com.br) ═══
+// O lojista conecta um domínio que já tem (registros DNS + Verificar conexão) ou pede para a LeadVox registrar um.
+// "Domínio ativo" só quando o servidor conferiu de verdade: DNS na hospedagem certa, HTTPS válido e o site desta loja abrindo.
+let domDados = null, domForm = '';
+const DOM_STATUS = { pendente: ['rascunho', 'Pendente'], verificado: ['aviso', 'Domínio confirmado, falta pouco'], ativo: ['on', 'Domínio ativo'] };
+const DOM_PEDIDO = { recebido: 'Solicitação recebida', cotado: 'Cotação pronta', indisponivel: 'Nome indisponível', aceito: 'Aceito: registrando', registrado: 'Registrado', cancelado: 'Cancelado' };
+const reaisDom = v => v == null ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+async function carregarDominio() {
+  const box = $('stDominio'); if (!box) return;
+  try { domDados = await api('site-dominio?organization=' + encodeURIComponent(empresa.id)); }
+  catch (err) { box.innerHTML = `<h2 class="st-secao">Domínio próprio</h2><div class="card estreito"><p class="muted">${esc(err.message)}</p></div>`; return; }
+  desenharDominio();
+}
+function desenharDominio() {
+  const box = $('stDominio'); if (!box || !domDados) return;
+  const d = domDados, dom = d.dominio, ped = (d.pedidos || []).find(p => p.status !== 'cancelado');
+  const gh = (d.hospedagem || {}).tipo === 'github';
+  const modo = domForm || (dom ? 'status' : ped && ped.status !== 'registrado' ? 'pedido' : 'escolher');
+  let html = '<h2 class="st-secao">Domínio próprio</h2>';
+  if (!d.conta) { box.innerHTML = html + '<div class="card estreito"><p class="alerta">Ligue a sua IA primeiro (menu Agentes): o site usa a conta da IA.</p></div>'; return; }
+  if (modo === 'escolher') {
+    html += `<div class="card estreito"><h3>Use o endereço da sua marca</h3>
+      <p class="muted" style="margin-top:4px">Hoje o site abre em <a href="/s/${esc(d.conta)}/" target="_blank" rel="noopener">${esc(location.host)}/s/${esc(d.conta)}/</a>. Com o domínio próprio ele abre em um endereço como <b>www.sualoja.com.br</b>.</p>
+      <div class="duas" style="margin-top:12px"><button type="button" class="principal" data-dom="tenho">Já tenho domínio</button><button type="button" data-dom="registrar">Quero registrar um domínio</button></div></div>`;
+  } else if (modo === 'tenho') {
+    html += `<form class="card estreito" id="domSalvar"><h3>Já tenho domínio</h3>
+      <label for="domEnd">Endereço</label><input id="domEnd" maxlength="253" required placeholder="sualoja.com.br" value="${esc(dom ? dom.dominio : '')}">
+      <label for="domTipo">O que conectar</label><select id="domTipo">
+        <option value="principal"${dom && dom.tipo === 'subdominio' ? '' : ' selected'}>O domínio principal (sualoja.com.br e www.sualoja.com.br)</option>
+        <option value="subdominio"${dom && dom.tipo === 'subdominio' ? ' selected' : ''}>Só um subdomínio (ex.: estoque.sualoja.com.br): o site principal continua onde está</option></select>
+      <div id="domPrefBox"><label for="domPref">Endereço que abre o site</label><select id="domPref">
+        <option value="www"${dom && dom.preferido === 'raiz' ? '' : ' selected'}>Com www (recomendado): sem www redireciona</option>
+        <option value="raiz"${dom && dom.preferido === 'raiz' ? ' selected' : ''}>Sem www: com www redireciona</option></select></div>
+      <p class="alerta" id="domErro" hidden></p>
+      <div class="form-bts"><button class="principal" type="submit">Salvar e ver os registros</button><button type="button" data-dom="voltar">Voltar</button></div></form>`;
+  } else if (modo === 'registrar') {
+    html += `<form class="card estreito" id="domPedir"><h3>Quero registrar um domínio</h3>
+      <p class="muted" style="margin-top:4px">A equipe LeadVox consulta se o nome está livre e manda o valor do registro e da renovação. O domínio fica no nome da sua loja (CNPJ ou CPF do titular).</p>
+      <label for="domNome">Nome desejado</label><input id="domNome" maxlength="253" required placeholder="sualoja.com.br">
+      <p class="alerta" id="domErro" hidden></p>
+      <div class="form-bts"><button class="principal" type="submit">Enviar solicitação</button><button type="button" data-dom="voltar">Voltar</button></div></form>`;
+  } else if (modo === 'pedido' && ped) {
+    html += desenharPedidoDominio(ped);
+  } else if (dom) {
+    const st = DOM_STATUS[dom.status] || DOM_STATUS.pendente, ch = dom.checagem || {};
+    const linhaCheck = (ok, txt) => `<li class="${ok === true ? 'ok' : ok === false ? 'falta' : ''}">${ok === true ? '✓' : ok === false ? '✗' : '·'} ${esc(txt)}</li>`;
+    const checks = ch.em ? [
+      linhaCheck(ch.propriedade, 'Controle do domínio (registro TXT)'),
+      ...(ch.dns || []).map(x => linhaCheck(x.ok, x.host + ' aponta para ' + (gh ? 'o GitHub Pages' : 'a LeadVox'))),
+      ...(ch.https || []).map(x => linhaCheck(x.ok, x.host + ' com HTTPS')),
+      linhaCheck(ch.identidade, (ch.principal || d.principal) + ' abre o site desta loja'),
+      ...(ch.redirecionamento === null || ch.redirecionamento === undefined ? [] : [linhaCheck(ch.redirecionamento, 'O outro endereço redireciona para ' + (ch.principal || d.principal))])
+    ].join('') : '';
+    const pend = (ch.pendencias || []).map(p => `<li><span class="st ${p.quem === 'loja' ? 'rascunho' : 'aviso'}">${p.quem === 'loja' ? 'Você' : 'Equipe LeadVox'}</span> ${esc(p.texto)}</li>`).join('');
+    html += `<div class="card estreito dom-card"><div class="lista-topo"><div><h3>${esc(dom.tipo === 'principal' ? dom.dominio + ' e www.' + dom.dominio : dom.dominio)}</h3>
+        <p class="muted">${dom.status === 'ativo' ? 'O site abre em ' : 'Quando estiver ativo, o site abre em '}<a href="https://${esc(d.principal)}" target="_blank" rel="noopener">https://${esc(d.principal)}</a></p></div>
+        <span class="st ${st[0]}">${esc(st[1])}</span></div>
+      ${d.publicado ? '' : '<p class="alerta" style="margin-top:8px">O site ainda não está publicado: marque "Site publicado" no Modelo do site, acima.</p>'}
+      ${d.verificacaoLigada ? '' : '<p class="alerta" style="margin-top:8px">Pendente na LeadVox: a verificação de domínio ainda está sendo ligada na hospedagem. Você já pode criar os registros abaixo.</p>'}
+      <h4 style="margin-top:14px">1 · Crie estes registros no DNS do domínio</h4>
+      <div class="rolo"><table class="lv-tabela dom-tabela"><thead><tr><th>Tipo</th><th>Nome</th><th>Valor</th><th></th></tr></thead><tbody>
+        ${(d.registros || []).map((r, i) => `<tr><td><b>${esc(r.tipo)}</b></td><td><code>${esc(r.nome)}</code><small class="muted">${esc(r.completo)}</small></td>
+          <td><code>${esc(r.valor)}</code><small class="muted">${esc(r.para)}</small></td><td><button type="button" class="sm" data-dom-copiar="${i}">Copiar</button></td></tr>`).join('')}
+      </tbody></table></div>
+      <details class="dom-ajuda" open><summary>Onde colocar esses registros</summary>
+        <p><b>Domínio .br com o DNS no Registro.br:</b> entre em registro.br com a conta do titular → Painel → clique no domínio → <b>DNS</b> → Configurar zona DNS (ou "Editar zona") → <b>Nova entrada</b> para cada linha da tabela → Salvar.</p>
+        <p><b>DNS em outro provedor</b> (Cloudflare, Hostinger, GoDaddy, Locaweb, HostGator…): faça a alteração no painel desse provedor, na área de DNS ou Zona DNS. No Registro.br, em "Servidores DNS", aparece quem administra o DNS do seu domínio.</p>
+        <p><b>Não apague nada que já existe.</b> E-mail (registros MX e TXT do e-mail, como SPF), Google e outros serviços continuam funcionando. ${dom.tipo === 'principal' ? 'Só troque o registro A do "@" e o "www", se eles apontarem para o site antigo.' : 'Seu site principal continua onde está: só o subdomínio passa a abrir o site da LeadVox.'}</p>
+        <p><b>No Nome</b>, "@" é o próprio domínio. Alguns provedores pedem o endereço completo (ele aparece embaixo de cada nome).${gh ? ' Este site fica no GitHub Pages: o domínio também é configurado no repositório pela equipe LeadVox.' : ''}</p>
+        <p>Depois de salvar, a mudança pode levar de alguns minutos a algumas horas para valer. Aí é só clicar em Verificar conexão.</p>
+      </details>
+      <h4 style="margin-top:14px">2 · Verifique a conexão</h4>
+      ${checks ? `<ul class="dom-checks">${checks}</ul>` : '<p class="muted">Ainda não verificado.</p>'}
+      ${ch.em ? `<p class="muted" style="font-size:13px">Última verificação: ${esc(new Date(ch.em).toLocaleString('pt-BR'))}</p>` : ''}
+      ${pend ? `<h4 style="margin-top:10px">O que falta</h4><ul class="dom-pend">${pend}</ul>` : ''}
+      <p style="margin-top:8px"><b>Próxima ação:</b> ${esc(ch.proximo || 'Crie os registros da tabela e clique em Verificar conexão.')}</p>
+      <p class="alerta" id="domErro" hidden></p>
+      <div class="form-bts"><button type="button" class="principal" data-dom="verificar"${d.verificacaoLigada ? '' : ' disabled'}>Verificar conexão</button>
+        <button type="button" data-dom="tenho">Trocar endereço</button><button type="button" class="perigo" data-dom="remover">Remover domínio</button></div>
+    </div>`;
+    if (ped && ped.status !== 'registrado') html += desenharPedidoDominio(ped);
+  }
+  box.innerHTML = html;
+  const mostraErro = msg => { const e = $('domErro'); if (e) { e.textContent = msg; e.hidden = false; } else toast(msg, true); };
+  box.querySelectorAll('[data-dom]').forEach(b => b.onclick = async () => {
+    const a = b.dataset.dom;
+    if (a === 'tenho' || a === 'registrar') { domForm = a; return desenharDominio(); }
+    if (a === 'voltar') { domForm = ''; return desenharDominio(); }
+    if (a === 'remover' && !confirm('Remover o domínio ' + (dom ? dom.dominio : '') + ' deste site? O site volta a abrir só no endereço da LeadVox.')) return;
+    const txt = b.textContent; b.disabled = true; if (a === 'verificar') b.textContent = 'Verificando…';
+    try { domDados = await api('site-dominio', { organization: empresa.id, acao: a }); domForm = ''; desenharDominio();
+      if (a === 'verificar') toast(domDados.dominio && domDados.dominio.status === 'ativo' ? 'Domínio ativo!' : 'Verificação feita: veja o que falta.'); }
+    catch (err) { mostraErro(err.message); b.disabled = false; b.textContent = txt; }
+  });
+  box.querySelectorAll('[data-dom-copiar]').forEach(b => b.onclick = async () => {
+    const r = (d.registros || [])[+b.dataset.domCopiar]; if (!r) return;
+    try { await navigator.clipboard.writeText(r.valor); toast('Valor copiado.'); } catch { toast(r.valor); }
+  });
+  if ($('domTipo')) { const pref = () => { $('domPrefBox').hidden = $('domTipo').value !== 'principal'; }; $('domTipo').onchange = pref; pref(); }
+  if ($('domSalvar')) $('domSalvar').onsubmit = async ev => {
+    ev.preventDefault(); const bt = ev.target.querySelector('button[type=submit]'); bt.disabled = true;
+    try { domDados = await api('site-dominio', { organization: empresa.id, acao: 'salvar', dominio: $('domEnd').value, tipo: $('domTipo').value, preferido: $('domPref').value });
+      domForm = ''; desenharDominio(); toast('Domínio salvo. Agora crie os registros no DNS.'); }
+    catch (err) { mostraErro(err.message); bt.disabled = false; }
+  };
+  if ($('domPedir')) $('domPedir').onsubmit = async ev => {
+    ev.preventDefault(); const bt = ev.target.querySelector('button[type=submit]'); bt.disabled = true;
+    try { domDados = await api('site-dominio', { organization: empresa.id, acao: 'pedir', nome: $('domNome').value }); domForm = ''; desenharDominio(); toast('Solicitação recebida.'); }
+    catch (err) { mostraErro(err.message); bt.disabled = false; }
+  };
+  if ($('domAceitar')) $('domAceitar').onsubmit = async ev => {
+    ev.preventDefault(); const bt = ev.target.querySelector('button[type=submit]'); bt.disabled = true;
+    try { domDados = await api('site-dominio', { organization: empresa.id, acao: 'aceitar', id: Number(ev.target.dataset.id), titular: $('domTitular').value, documento: $('domDoc').value });
+      desenharDominio(); toast('Cotação aceita. A LeadVox vai registrar o domínio.'); }
+    catch (err) { mostraErro(err.message); bt.disabled = false; }
+  };
+  box.querySelectorAll('[data-dom-cancelar]').forEach(b => b.onclick = async () => {
+    if (!confirm('Cancelar este pedido de domínio?')) return;
+    try { domDados = await api('site-dominio', { organization: empresa.id, acao: 'cancelar', id: Number(b.dataset.domCancelar) }); domForm = ''; desenharDominio(); }
+    catch (err) { mostraErro(err.message); }
+  });
+}
+function desenharPedidoDominio(p) {
+  const resp = p.responsavelRenovacao === 'leadvox' ? 'a LeadVox renova' : 'a loja renova';
+  let corpo = '';
+  if (p.status === 'recebido') corpo = '<p><b>Solicitação recebida.</b> A equipe LeadVox vai consultar se o nome está livre e mandar aqui o valor do registro e da renovação.</p>';
+  else if (p.status === 'indisponivel') corpo = `<p>O nome <b>${esc(p.nome)}</b> não está disponível.${p.observacao ? ' ' + esc(p.observacao) : ''}</p><div class="form-bts"><button type="button" data-dom="registrar">Pedir outro nome</button></div>`;
+  else if (p.status === 'cotado') corpo = `<ul class="dom-cota"><li>Registro (1º ano): <b>${reaisDom(p.valorRegistro)}</b></li>
+      <li>Renovação (por ano): <b>${reaisDom(p.valorRenovacao)}</b> · ${p.renovacaoInclusa ? 'incluída no seu plano' : 'cobrada à parte'} · ${resp}</li></ul>
+      ${p.observacao ? `<p class="muted">${esc(p.observacao)}</p>` : ''}
+      <form id="domAceitar" data-id="${esc(p.id)}"><p class="muted">O domínio é registrado no nome do titular. Informe quem será o dono:</p>
+        <div class="duas"><div><label for="domTitular">Nome do titular (loja ou pessoa)</label><input id="domTitular" maxlength="120" required></div>
+          <div><label for="domDoc">CNPJ ou CPF do titular</label><input id="domDoc" inputmode="numeric" maxlength="18" required placeholder="00.000.000/0001-00"></div></div>
+        <p class="alerta" id="domErro" hidden></p>
+        <div class="form-bts"><button class="principal" type="submit">Aceitar e pedir o registro</button><button type="button" data-dom-cancelar="${esc(p.id)}">Não quero</button></div></form>`;
+  else if (p.status === 'aceito') corpo = `<p><b>Aceito.</b> A equipe LeadVox está registrando ${esc(p.nome)} no nome de ${esc(p.titularNome || 'titular')} (${esc(p.titularDocumento || '')}). Quando terminar, a configuração do domínio aparece aqui.</p>`;
+  else if (p.status === 'registrado') corpo = '<p><b>Registrado.</b> Agora siga a configuração do domínio.</p>';
+  return `<div class="card estreito"><div class="lista-topo"><div><h3>Pedido: ${esc(p.nome)}</h3><p class="muted">Enviado em ${esc(new Date(p.criadoEm).toLocaleDateString('pt-BR'))}</p></div>
+    <span class="st ${p.status === 'indisponivel' ? 'perdida' : p.status === 'cotado' ? 'aviso' : 'rascunho'}">${esc(DOM_PEDIDO[p.status] || p.status)}</span></div>${corpo}
+    ${p.status === 'recebido' ? `<div class="form-bts"><button type="button" data-dom-cancelar="${esc(p.id)}">Cancelar pedido</button></div>` : ''}</div>`;
+}
+
+// ═══ Super Admin → Domínios das lojas e pedidos de registro ═══
+let lvDom = null;
+async function carregarDominiosAdmin() {
+  const box = $('lvDominios'); if (!box) return;
+  try { lvDom = await api('admin-dominios'); } catch (err) { box.hidden = false; $('lvDominiosLista').innerHTML = `<p class="muted">${esc(err.message)}</p>`; return; }
+  box.hidden = false; desenharDominiosAdmin();
+}
+function desenharDominiosAdmin() {
+  const d = lvDom || {}, doms = d.dominios || [], peds = d.pedidos || [];
+  const pendExt = doms.filter(x => x.status !== 'ativo' && (x.checagem || {}).pendencias && x.checagem.pendencias.some(p => p.quem === 'leadvox'));
+  $('lvDominiosResumo').textContent = `${doms.length} domínio(s) · ${doms.filter(x => x.status === 'ativo').length} ativo(s) · ${peds.filter(p => ['recebido', 'aceito'].includes(p.status)).length} pedido(s) esperando a LeadVox`;
+  const st = s => DOM_STATUS[s] || DOM_STATUS.pendente;
+  $('lvDominiosLista').innerHTML = `
+    ${d.verificacaoLigada ? '' : `<div class="alerta" style="margin-bottom:10px"><b>Pendente na VPS:</b> a verificação de domínio está desligada. No Coolify, app do painel → Environment Variables, crie <code>SITE_DOMINIO_SEGREDO</code> com a chave abaixo e faça Redeploy.
+      <div class="form-bts"><button type="button" class="sm" id="lvDomChave">Mostrar a chave</button><code id="lvDomChaveTxt"></code></div></div>`}
+    ${pendExt.length ? `<div class="card" style="margin-bottom:10px"><h3>Esperando a equipe LeadVox</h3><ul class="dom-pend">${pendExt.map(x => `<li><b>${esc(x.empresa)}</b> · ${esc(x.dominio)}: ${x.checagem.pendencias.filter(p => p.quem === 'leadvox').map(p => esc(p.texto)).join(' ')}
+      ${x.hospedagem && x.hospedagem.tipo === 'github' ? '' : `<br><small class="muted">No Coolify, app do painel → Domains: acrescente ${(x.hosts || []).map(h => 'https://' + esc(h)).join(',')} (sem apagar os que já existem; o Coolify às vezes cria um "www." a mais: tire o que não for da loja) e faça Redeploy depois que o DNS já estiver apontando.</small>`}</li>`).join('')}</ul></div>` : ''}
+    <h3>Pedidos de registro</h3>
+    ${peds.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Empresa</th><th>Nome</th><th>Situação</th><th>Valores</th><th></th></tr></thead><tbody>
+      ${peds.map(p => `<tr><td><b>${esc(p.empresa)}</b><small class="muted">${esc(new Date(p.criadoEm).toLocaleDateString('pt-BR'))}</small></td><td><code>${esc(p.nome)}</code></td>
+        <td><span class="st ${p.status === 'aceito' || p.status === 'recebido' ? 'aviso' : 'rascunho'}">${esc(DOM_PEDIDO[p.status] || p.status)}</span>${p.titularNome ? `<small class="muted">Titular: ${esc(p.titularNome)} · ${esc(p.titularDocumento || '')}</small>` : ''}</td>
+        <td>${p.valorRegistro != null ? `${reaisDom(p.valorRegistro)} + ${reaisDom(p.valorRenovacao)}/ano<small class="muted">${p.renovacaoInclusa ? 'renovação no plano' : 'renovação à parte'} · ${p.responsavelRenovacao === 'leadvox' ? 'LeadVox renova' : 'loja renova'}</small>` : '—'}</td>
+        <td>${['recebido', 'cotado', 'indisponivel'].includes(p.status) ? `<button class="sm" type="button" data-lvdom-cotar="${esc(p.id)}">Consultar e cotar</button>` : ''}
+          ${p.status === 'aceito' ? `<button class="sm principal" type="button" data-lvdom-registrado="${esc(p.id)}">Já registrei</button>` : ''}</td></tr>
+        <tr hidden id="lvDomCota${esc(p.id)}"><td colspan="5"><form class="lv-dom-cota" data-id="${esc(p.id)}" data-nome="${esc(p.nome)}">
+          <div class="form-bts"><button type="button" class="sm" data-lvdom-consultar>Ver disponibilidade</button><span class="muted" data-lvdom-res></span></div>
+          <div class="tres"><div><label>Disponível?</label><select name="disp"><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+            <div><label>Registro (R$)</label><input name="reg" inputmode="decimal" value="${p.valorRegistro ?? ''}" placeholder="40,00"></div>
+            <div><label>Renovação por ano (R$)</label><input name="ren" inputmode="decimal" value="${p.valorRenovacao ?? ''}" placeholder="40,00"></div></div>
+          <div class="duas"><div><label>Renovação incluída no plano?</label><select name="incl"><option value="nao">Não, cobrada à parte</option><option value="sim"${p.renovacaoInclusa ? ' selected' : ''}>Sim, incluída</option></select></div>
+            <div><label>Quem renova</label><select name="resp"><option value="loja">A loja</option><option value="leadvox"${p.responsavelRenovacao === 'leadvox' ? ' selected' : ''}>A LeadVox</option></select></div></div>
+          <label>Observação para o cliente</label><input name="obs" maxlength="400" value="${esc(p.observacao || '')}">
+          <div class="form-bts"><button class="principal sm" type="submit">Mandar cotação</button></div></form></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhum pedido.</p>'}
+    <h3 style="margin-top:14px">Domínios das lojas</h3>
+    ${doms.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Empresa</th><th>Domínio</th><th>Situação</th><th>Hospedagem</th></tr></thead><tbody>
+      ${doms.map(x => `<tr><td><b>${esc(x.empresa)}</b><small class="muted">${esc(x.conta || '')}</small></td><td>${(x.hosts || []).map(h => `<code>${esc(h)}</code>`).join(' ')}</td>
+        <td><span class="st ${st(x.status)[0]}">${esc(st(x.status)[1])}</span>${(x.checagem || {}).proximo ? `<small class="muted">${esc(x.checagem.proximo)}</small>` : ''}</td>
+        <td><form class="lv-dom-hosp" data-org="${esc(x.organization)}"><select name="tipo"><option value="leadvox">LeadVox (VPS)</option><option value="github"${x.hospedagem && x.hospedagem.tipo === 'github' ? ' selected' : ''}>GitHub Pages</option></select>
+          <input name="repo" placeholder="dono/repositorio" value="${esc((x.hospedagem || {}).repo || '')}" maxlength="140"><button class="sm" type="submit">Salvar</button></form></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhuma loja configurou domínio ainda.</p>'}`;
+  const box = $('lvDominiosLista');
+  if ($('lvDomChave')) $('lvDomChave').onclick = async () => { try { const r = await api('admin-dominio-chave'); $('lvDomChaveTxt').textContent = r.chave || ''; } catch (err) { toast(err.message, true); } };
+  box.querySelectorAll('[data-lvdom-cotar]').forEach(b => b.onclick = () => { const tr = $('lvDomCota' + b.dataset.lvdomCotar); tr.hidden = !tr.hidden; });
+  box.querySelectorAll('[data-lvdom-consultar]').forEach(b => b.onclick = async () => {
+    const f = b.closest('form'), out = f.querySelector('[data-lvdom-res]'); out.textContent = 'Consultando…';
+    try { const r = await api('admin-dominio-disponivel', { nome: f.dataset.nome });
+      out.textContent = r.ok ? (r.disponivel ? 'Livre para registro.' : 'Já registrado por alguém.') : r.erro; if (r.ok) f.disp.value = r.disponivel ? 'sim' : 'nao'; }
+    catch (err) { out.textContent = err.message; }
+  });
+  box.querySelectorAll('form.lv-dom-cota').forEach(f => f.onsubmit = async ev => {
+    ev.preventDefault();
+    try { lvDom = { ...lvDom, ...await api('admin-dominio-cotar', { id: Number(f.dataset.id), disponivel: f.disp.value === 'sim', valorRegistro: f.reg.value, valorRenovacao: f.ren.value,
+        inclusa: f.incl.value === 'sim', responsavel: f.resp.value, observacao: f.obs.value }) }; desenharDominiosAdmin(); toast('Cotação enviada ao cliente.'); }
+    catch (err) { toast(err.message, true); }
+  });
+  box.querySelectorAll('[data-lvdom-registrado]').forEach(b => b.onclick = async () => {
+    if (!confirm('Confirma que o domínio já foi registrado no Registro.br no nome do titular? A configuração do domínio vai aparecer para a loja.')) return;
+    try { lvDom = { ...lvDom, ...await api('admin-dominio-registrado', { id: Number(b.dataset.lvdomRegistrado) }) }; desenharDominiosAdmin(); toast('Marcado como registrado.'); }
+    catch (err) { toast(err.message, true); }
+  });
+  box.querySelectorAll('form.lv-dom-hosp').forEach(f => f.onsubmit = async ev => {
+    ev.preventDefault();
+    try { lvDom = { ...lvDom, ...await api('admin-site-hospedagem', { organization: f.dataset.org, tipo: f.tipo.value, repo: f.repo.value }) }; desenharDominiosAdmin(); toast('Hospedagem salva.'); }
+    catch (err) { toast(err.message, true); }
+  });
 }

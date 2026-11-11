@@ -5,6 +5,7 @@ import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,nor
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
+import {DESTINO,normalizarDominio,registrosDns,principalDe,verificarDominio,assinarResultado,consultarDisponibilidade} from './integrations/dominio.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 import {configRastreio,conferirMeta,conferirLeitura,buscarAnuncios,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
@@ -35,6 +36,12 @@ function envioDe(r){
 // Usuários do painel de cada empresa (database/usuarios.sql e a função "usuarios"): recusas em palavras do cliente.
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const PAPEIS_PAINEL=['owner','admin','member'];
+export const DOMINIO_ERROS={tipo:'Escolha: domínio principal ou subdomínio.',dominio:'Confira o endereço: só o domínio, sem http e sem barra (ex.: sualoja.com.br).',
+ subdominio:'Para subdomínio, use algo como estoque.sualoja.com.br.',em_uso:'Este endereço já está ligado a outra loja. Se ele é seu, fale com a LeadVox.',
+ assinatura:'A verificação não foi aceita pelo banco. Tente de novo em instantes.',mudou:'O endereço mudou durante a verificação. Verifique de novo.',
+ pedido_aberto:'Você já tem um pedido de domínio em andamento.',documento:'Informe o CPF (11 números) ou o CNPJ (14 números) do titular.',
+ titular:'Informe o nome do titular do domínio.',pedido:'Este pedido não pode mais ser alterado.',cotacao:'Preencha disponibilidade, valores, renovação e o responsável.',
+ hospedagem:'Escolha a hospedagem (LeadVox ou GitHub com o repositório dono/nome).'};
 export const SITE_ERROS={avaliacoes:'São até 3 avaliações.',dados:'Dados inválidos.',tema:'Escolha um tema da lista.',agenda:'Confira as datas da agenda: o fim vem depois do início e cada tema dura até 2 meses.',
  campanha:'Confira os dados da campanha.',campanha_titulo:'Dê um título para a campanha.',campanha_validade:'Confira a data de validade da campanha.',
  campanha_arte:'Envie a arte de novo (JPG ou PNG de até 5 MB).',sem_conta:'Ligue a sua IA primeiro (menu Agentes): o site usa a conta da IA.',
@@ -99,7 +106,9 @@ export function tipoDoArquivo(b){
  }
  return {erro:'Envie um vídeo MP4, um PDF ou uma imagem JPG ou PNG.'};
 }
-export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
+export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSites,segredoDominio}={}){
+ // domínio próprio do site: a verificação sai para a internet (DNS e HTTPS) e assina o resultado para o banco
+ const SEGREDO_DOMINIO=segredoDominio??process.env.SITE_DOMINIO_SEGREDO??'',verificacoes=new Map(),hostsCache=new Map();
  const attempts=new Map(),testesGrupo=new Map(),simulacoes=new Map(); // testesGrupo: um teste de grupo a cada 20 s; simulacoes: uma mensagem de teste por vez
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
@@ -289,6 +298,37 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(typeof body.conta==='string')temasCache.delete(body.conta);
      send(res,200,{ok:true});
     }
+   }else if(action==='site-dominio'){
+    // Domínio próprio do site (Site da loja → Domínio). Dono, admin e Super Admin; o banco confere quem pode e guarda o resultado só com a assinatura do servidor.
+    const q=new URL(req.url,'https://localhost').searchParams;
+    const org=req.method==='GET'?q.get('organization'):body.organization;
+    if(!UUID_RE.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args={})=>{try{return await upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});}
+     catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe no domínio do site.'};}};
+    const confere=r=>{if(!r||r.ok!==true)throw {status:400,message:DOMINIO_ERROS[r?.erro]||'Não deu para salvar. Confira os campos.'};return r;};
+    const montar=d=>({...d,destino:DESTINO,verificacaoLigada:!!SEGREDO_DOMINIO,
+     principal:d?.dominio?principalDe(d.dominio):'',registros:d?.dominio?registrosDns({...d.dominio,hospedagem:d.hospedagem||{}}):[]});
+    if(req.method==='GET'){send(res,200,montar(await rpc('lv_site_dominio')));return true;}
+    const acao=String(body.acao||'');
+    if(acao==='salvar'){
+     const tipo=body.tipo==='subdominio'?'subdominio':'principal',d=normalizarDominio(body.dominio);
+     if(!d)throw {status:400,message:DOMINIO_ERROS.dominio};
+     confere(await rpc('lv_site_dominio_salvar',{p_dominio:d,p_tipo:tipo,p_preferido:body.preferido==='raiz'?'raiz':'www'}));
+    }else if(acao==='remover'){confere(await rpc('lv_site_dominio_remover'));hostsCache.clear();}
+    else if(acao==='verificar'){
+     if(!SEGREDO_DOMINIO)throw {status:503,message:'A verificação de domínio ainda não foi ligada na hospedagem da LeadVox. A equipe já foi avisada pelo Super Admin.'};
+     const agora=Date.now();if(agora-(verificacoes.get(org)||0)<10000)throw {status:429,message:'Espere alguns segundos antes de verificar de novo.'};
+     verificacoes.set(org,agora);if(verificacoes.size>5000)verificacoes.clear();
+     const d=await rpc('lv_site_dominio');if(!d?.dominio)throw {status:400,message:'Salve o endereço antes de verificar.'};
+     const r=await verificarDominio({...d.dominio,conta:d.conta,hospedagem:d.hospedagem||{}},{...(dns?{dns}:{}),fetchImpl:fetchSites||fetch});
+     const ts=Date.now();
+     const g=await rpc('lv_site_dominio_resultado',{p_dominio:d.dominio.dominio,p_status:r.status,p_checagem:r,p_ts:ts,p_assinatura:assinarResultado(SEGREDO_DOMINIO,org,d.dominio.dominio,r.status,ts)});
+     hostsCache.clear();confere(g);
+    }else if(acao==='pedir'){confere(await rpc('lv_site_dominio_pedir',{p_nome:String(body.nome||'').slice(0,253)}));}
+    else if(acao==='aceitar'){confere(await rpc('lv_site_dominio_pedido_aceitar',{p_id:Number(body.id)||0,p_titular:String(body.titular||'').slice(0,120),p_documento:String(body.documento||'').slice(0,20)}));}
+    else if(acao==='cancelar'){confere(await rpc('lv_site_dominio_pedido_cancelar',{p_id:Number(body.id)||0}));}
+    else throw {status:400,message:'Ação inválida.'};
+    send(res,200,montar(await rpc('lv_site_dominio')));
    }else if(action==='site-modelo'&&req.method==='POST'){
     // Modelo do site, identidade (logo, cores, fonte), textos e contatos. O banco confere quem pode e cada campo.
     if(!UUID_RE.test(body.organization||''))throw {status:400,message:'Empresa inválida.'};
@@ -396,6 +436,27 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
      if(req.method==='POST'&&typeof body.liberar!=='boolean')throw {status:400,message:'Ação inválida.'};
      try{send(res,200,await rpc('lv_admin_rastreio',{org,liberar:req.method==='POST'?body.liberar:null}));}
      catch{throw {status:409,message:'O módulo de rastreamento ainda não foi instalado no banco (rastreio.sql).'};}
+    }else if(action==='admin-dominios'&&req.method==='GET'){
+     // domínios das lojas, pedidos de registro e hospedagem (GitHub Pages ou LeadVox)
+     try{send(res,200,{...await rpc('lv_admin_dominios'),destino:DESTINO,verificacaoLigada:!!SEGREDO_DOMINIO});}
+     catch{throw {status:409,message:'Rode site_dominio.sql para ver os domínios.'};}
+    }else if(action==='admin-dominio-chave'&&req.method==='GET'){send(res,200,{chave:await rpc('lv_admin_dominio_chave'),ligada:!!SEGREDO_DOMINIO});}
+    else if(action==='admin-dominio-disponivel'&&req.method==='POST'){send(res,200,await consultarDisponibilidade(body.nome,{fetchImpl:fetchSites||fetch}));}
+    else if(action==='admin-dominio-cotar'&&req.method==='POST'){
+     const n=v=>v===''||v==null?null:Number(String(v).replace(',','.'));
+     const r=await rpc('lv_admin_dominio_cotar',{p_id:Number(body.id)||0,p_disponivel:body.disponivel===true,p_valor_registro:n(body.valorRegistro),p_valor_renovacao:n(body.valorRenovacao),
+      p_inclusa:typeof body.inclusa==='boolean'?body.inclusa:null,p_responsavel:body.responsavel==='leadvox'?'leadvox':body.responsavel==='loja'?'loja':null,p_obs:String(body.observacao||'').slice(0,400)});
+     if(!r||r.ok!==true)throw {status:400,message:DOMINIO_ERROS[r?.erro]||'Não deu para salvar a cotação.'};
+     send(res,200,await rpc('lv_admin_dominios'));
+    }else if(action==='admin-dominio-registrado'&&req.method==='POST'){
+     const r=await rpc('lv_admin_dominio_registrado',{p_id:Number(body.id)||0});
+     if(!r||r.ok!==true)throw {status:400,message:DOMINIO_ERROS[r?.erro]||'Não deu para marcar como registrado.'};
+     send(res,200,await rpc('lv_admin_dominios'));
+    }else if(action==='admin-site-hospedagem'&&req.method==='POST'){
+     if(!uuidOk(body.organization))throw {status:400,message:'Empresa inválida.'};
+     const r=await rpc('lv_admin_site_hospedagem',{org:body.organization,p_tipo:body.tipo==='github'?'github':'leadvox',p_repo:String(body.repo||'').trim().slice(0,140)});
+     if(!r||r.ok!==true)throw {status:400,message:DOMINIO_ERROS[r?.erro]||'Não deu para salvar a hospedagem.'};
+     send(res,200,await rpc('lv_admin_dominios'));
     }else if(action==='admin-rastreio-lista'&&req.method==='GET'){
      try{send(res,200,{empresas:await rpc('lv_admin_rastreio_lista')});}
      catch{throw {status:409,message:'Rode rastreio_contas.sql para ver a lista do rastreamento.'};}
@@ -823,6 +884,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false}={}){
   return true;
  };
  api.dadosDoSite=obterDados;
+ // de qual loja é um endereço próprio (só com controle provado); 1 minuto de memória, inclusive para "não é de ninguém"
+ api.dominioDoHost=async host=>{
+  const h=String(host||'').toLowerCase().replace(/:\d+$/,'');if(!normalizarDominio(h))return null;
+  const c=hostsCache.get(h);if(c&&Date.now()-c.em<60000)return c.dados;
+  let dados=null;try{dados=await upstream('/rest/v1/rpc/lv_site_dominio_host',{method:'POST',body:{p_host:h}});}catch{return c?c.dados:null;}
+  if(hostsCache.size>2000)hostsCache.clear();hostsCache.set(h,{dados:dados||null,em:Date.now()});return dados||null;
+ };
  return api;
 }
 
