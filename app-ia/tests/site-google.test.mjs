@@ -72,12 +72,13 @@ test('rota: confere quem pode mexer no site; sem a chave da LeadVox avisa; com a
  assert.equal((await f.post({organization:'x',link:'y'})).status,400);
 });
 
-test('painel: orientação da logo no "i", tratamento da logo no aparelho, logo obrigatória para publicar e botão do Google', () => {
+test('painel: orientação da logo no "i", tratamento da logo no aparelho e logo obrigatória para publicar; a busca no Google fica fora da tela (custo por consulta)', () => {
  const js=readFileSync(new URL('../public/painel.js',import.meta.url),'utf8');
  assert.match(js,/class="dica-i"[^>]*data-dica="Logo ideal: PNG sem fundo/);
  assert.match(js,/async function prepararLogo\(arq\)/);assert.match(js,/body: pr\.blob/);
  assert.match(js,/Sua logo é escura e vai sumir no topo escuro do site/);
  assert.match(js,/Para publicar, envie a logo da loja/);
- assert.match(js,/api\('site-google-avaliacoes', \{ organization: empresa\.id, link \}\)/);
+ assert.doesNotMatch(js,/site-google-avaliacoes|id="smGoogle"/);
+ assert.match(js,/no Google Maps, abra a loja → Avaliações/);
  assert.match(readFileSync(new URL('../public/lv.css',import.meta.url),'utf8'),/\.dica-i:hover::after/);
 });

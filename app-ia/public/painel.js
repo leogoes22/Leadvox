@@ -3049,10 +3049,8 @@ function desenharSiteModelo() {
       <div><label for="smCidade">Cidade (aparece nos textos do site)</label><input id="smCidade" maxlength="60" value="${esc(i.cidade || '')}" placeholder="Nova Iguaçu"></div></div>
     <div class="duas"><div><label for="smHora">Horário (separe os dias com ·)</label><input id="smHora" maxlength="120" value="${esc(i.horario || '')}" placeholder="Seg a sex 9h às 18h · Sáb 9h às 14h"></div><div></div></div>
     <h3 class="st-tit">Avaliações do Google</h3>
-    <p class="muted" style="margin-top:6px">Cole o link da loja no Google Maps (no Maps: Compartilhar → Copiar link) e clique em Puxar: entram até 3 avaliações de 4 ou 5 estrelas. Dá para conferir e trocar antes de salvar. Sem nenhuma avaliação, a seção não aparece no site.</p>
-    <div class="duas"><div><label for="smMapa">Link da loja no Google Maps</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div>
-      <div style="align-self:end"><button type="button" class="sm" id="smGoogle">Puxar avaliações do Google</button></div></div>
-    <p class="muted" id="smGoogleInfo" style="font-size:13px"></p>
+    <p class="muted" style="margin-top:6px">Coloque até 3 avaliações reais da loja no Google: no Google Maps, abra a loja → Avaliações → escolha as de 5 estrelas e copie o nome e o texto. Sem nenhuma, a seção de avaliações não aparece no site.</p>
+    <div class="duas"><div><label for="smMapa">Link da loja no Google Maps (opcional)</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div><div></div></div>
     ${[0, 1, 2].map(k => { const a = (i.avaliacoes || [])[k] || {}; return `<div class="duas sm-av"><div><label for="smAvN${k}">Nome do cliente</label><input id="smAvN${k}" maxlength="60" value="${esc(a.nome || '')}"></div>
       <div><label for="smAvT${k}">O que ele escreveu</label><textarea id="smAvT${k}" maxlength="400" rows="2">${esc(a.texto || '')}</textarea></div></div>`; }).join('')}
     <div class="duas"><div><label for="smInsta">Instagram</label><input id="smInsta" maxlength="31" value="${esc(i.instagram ? '@' + i.instagram : '')}" placeholder="@sualoja"></div>
@@ -3083,18 +3081,6 @@ function desenharSiteModelo() {
     } catch (err) { ev.target.value = ''; toast(err.message, true); }
   };
   $('smCor2').addEventListener('input', () => { $('smLogoTopo').style.background = $('smCor2').value; });
-  $('smGoogle').onclick = async () => {
-    const link = $('smMapa').value.trim(); if (!link) return toast('Cole o link da loja no Google Maps.', true);
-    const bt = $('smGoogle'); bt.disabled = true; $('smGoogleInfo').textContent = 'Buscando no Google…';
-    try {
-      const r = await api('site-google-avaliacoes', { organization: empresa.id, link });
-      const l = r.lugar || {}, av = r.avaliacoes || [];
-      [0, 1, 2].forEach(k => { const a = av[k]; if (a) { $('smAvN' + k).value = a.nome; $('smAvT' + k).value = a.texto; } });
-      $('smGoogleInfo').textContent = (l.nome ? l.nome + ': ' : '') + (l.nota ? 'nota ' + String(l.nota).replace('.', ',') + ' com ' + l.total + ' avaliações no Google. ' : '') +
-        (av.length ? av.length + ' avaliação(ões) de 4 ou 5 estrelas preenchida(s) abaixo. Confira e clique em Salvar o site.' : 'O Google não mandou avaliações de 4 ou 5 estrelas com texto para esta loja.');
-    } catch (err) { $('smGoogleInfo').textContent = ''; toast(err.message, true); }
-    finally { bt.disabled = false; }
-  };
   $('smLogoTira').onclick = () => { logo = ''; $('smLogoTopo').hidden = true; $('smLogoAviso').hidden = true; $('smLogoTira').hidden = true; $('smLogoArq').value = ''; $('smSugCores').disabled = true; };
   $('smSugCores').onclick = () => sugerirCores(false);
   // cores da logo: lê os pixels, junta os parecidos e escolhe a cor mais forte (principal) e uma escura para o fundo
