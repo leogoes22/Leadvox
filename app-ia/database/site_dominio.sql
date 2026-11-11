@@ -93,8 +93,8 @@ begin
   'publicado',coalesce((select c.publicado from leadvox_private.site_config c where c.organization_id=org),false),
   'hospedagem',jsonb_build_object('tipo',coalesce(h.tipo,'leadvox'),'repo',h.repo),
   'dominio',leadvox_private.dominio_json(r),
-  'pedidos',coalesce((select jsonb_agg(leadvox_private.dominio_pedido_json(p) order by p.criado_em desc) from
-    (select * from leadvox_private.site_dominio_pedidos p where p.organization_id=org order by p.criado_em desc limit 5) p),'[]'::jsonb));
+  'pedidos',coalesce((select jsonb_agg(leadvox_private.dominio_pedido_json(p) order by p.criado_em desc) from leadvox_private.site_dominio_pedidos p
+    where p.id in (select x.id from leadvox_private.site_dominio_pedidos x where x.organization_id=org order by x.criado_em desc limit 5)),'[]'::jsonb));
 end;$$;
 
 create or replace function public.lv_site_dominio_salvar(org uuid,p_dominio text,p_tipo text,p_preferido text) returns jsonb language plpgsql security definer set search_path='' as $$
