@@ -5,6 +5,7 @@ import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,nor
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
+import {avaliacoesDoGoogle} from './integrations/google-avaliacoes.mjs';
 import {DESTINO,normalizarDominio,registrosDns,principalDe,verificarDominio,assinarResultado,consultarDisponibilidade} from './integrations/dominio.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 import {configRastreio,conferirMeta,conferirLeitura,buscarAnuncios,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
@@ -106,7 +107,9 @@ export function tipoDoArquivo(b){
  }
  return {erro:'Envie um vídeo MP4, um PDF ou uma imagem JPG ou PNG.'};
 }
-export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSites,segredoDominio}={}){
+export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSites,segredoDominio,chaveGoogle}={}){
+ // avaliações do Google pelo link do Maps (Site da loja): chave da LeadVox na API do Google Places
+ const CHAVE_GOOGLE=chaveGoogle??process.env.GOOGLE_PLACES_KEY??'',buscasGoogle=new Map();
  // domínio próprio do site: a verificação sai para a internet (DNS e HTTPS) e assina o resultado para o banco
  const SEGREDO_DOMINIO=segredoDominio??process.env.SITE_DOMINIO_SEGREDO??'',verificacoes=new Map(),hostsCache=new Map();
  const attempts=new Map(),testesGrupo=new Map(),simulacoes=new Map(); // testesGrupo: um teste de grupo a cada 20 s; simulacoes: uma mensagem de teste por vez
@@ -298,6 +301,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      if(typeof body.conta==='string')temasCache.delete(body.conta);
      send(res,200,{ok:true});
     }
+   }else if(action==='site-google-avaliacoes'&&req.method==='POST'){
+    // Puxa as avaliações de 4 e 5 estrelas do Google pelo link do Maps; o lojista confere e salva no site.
+    const org=body.organization;if(!UUID_RE.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    try{await upstream('/rest/v1/rpc/lv_site_config',{method:'POST',token:authToken,body:{org}});}
+    catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe no site.'};}
+    if(!CHAVE_GOOGLE)throw {status:503,message:'A busca de avaliações no Google ainda não foi ligada pela LeadVox. Por enquanto, copie as avaliações à mão.'};
+    const agora=Date.now();if(agora-(buscasGoogle.get(org)||0)<10000)throw {status:429,message:'Espere alguns segundos antes de buscar de novo.'};
+    buscasGoogle.set(org,agora);if(buscasGoogle.size>5000)buscasGoogle.clear();
+    const r=await avaliacoesDoGoogle(String(body.link||'').slice(0,2000),{chave:CHAVE_GOOGLE,fetchImpl:fetchSites||fetch});
+    if(!r.ok)throw {status:r.erro==='google'?502:400,message:{link:'Cole o link da loja no Google Maps (no Maps: Compartilhar → Copiar link).',lugar:'Não achei a loja no Google com esse link. Confira se é o link da página da loja no Maps.',
+     chave:'A busca de avaliações no Google está com problema na chave da LeadVox. Avise o suporte.',google:'O Google não respondeu agora. Tente de novo em instantes.'}[r.erro]||'Não deu para buscar as avaliações.'};
+    send(res,200,r);
    }else if(action==='site-dominio'){
     // Domínio próprio do site (Site da loja → Domínio). Dono, admin e Super Admin; o banco confere quem pode e guarda o resultado só com a assinatura do servidor.
     const q=new URL(req.url,'https://localhost').searchParams;

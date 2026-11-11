@@ -2930,7 +2930,9 @@ function desenharSite() {
     const f = ev.target.files[0]; if (!f) return;
     if (f.size > 5242880) { ev.target.value = ''; return toast('A arte pode ter até 5 MB.', true); }
     try {
-      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: f });
+      $('smLogoAviso').hidden = true;
+      const pr = await prepararLogo(f);
+      const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: pr.blob });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || d.tipo !== 'imagem') throw Error(d.error || 'Envie uma imagem JPG ou PNG.');
       arte = d.url; $('stArtePrev').src = arte; $('stArtePrev').hidden = false; $('stArteTira').hidden = false; toast('Arte enviada. Clique em Salvar.');
@@ -2966,6 +2968,51 @@ const SITE_MODELOS = [
   ['vitrine', 'Vitrine', 'Para CARROS e MOTOS. O site completo da Ultra: estoque em lista com prévia flutuante, degradê e ficha da loja.', true]
 ];
 const SITE_FONTES = [['saira', 'Saira Condensed + Albert Sans'], ['bebas', 'Bebas Neue + Sora'], ['barlow', 'Barlow Condensed + Barlow'], ['oswald', 'Oswald + Manrope'], ['outfit', 'Outfit + Manrope']];
+// Logo do site: tira o fundo liso (branco, preto ou de uma cor só) a partir das bordas, corta as sobras transparentes,
+// reduz para no máximo 1200 x 400 e devolve PNG. Avisa quando ela é escura (some no topo escuro) ou pequena.
+async function prepararLogo(arq) {
+  const img = await createImageBitmap(arq).catch(() => null);
+  if (!img) throw Error('Não consegui abrir a logo. Envie em PNG ou JPG.');
+  const k0 = Math.min(1, 1600 / Math.max(img.width, img.height)), W = Math.max(1, Math.round(img.width * k0)), H = Math.max(1, Math.round(img.height * k0));
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(img, 0, 0, W, H);
+  const id = cx.getImageData(0, 0, W, H), px = id.data, avisos = [];
+  // fundo: as bordas quase todas de uma cor só e opacas
+  const borda = []; for (let x = 0; x < W; x += Math.max(1, W >> 6)) borda.push(x, (H - 1) * W + x); for (let y = 0; y < H; y += Math.max(1, H >> 6)) borda.push(y * W, y * W + W - 1);
+  const opacas = borda.filter(p => px[p * 4 + 3] > 240);
+  let tirouFundo = false;
+  if (opacas.length > borda.length * 0.9) {
+    const m = [0, 1, 2].map(c => opacas.reduce((s, p) => s + px[p * 4 + c], 0) / opacas.length);
+    const perto = (p, tol) => Math.abs(px[p * 4] - m[0]) + Math.abs(px[p * 4 + 1] - m[1]) + Math.abs(px[p * 4 + 2] - m[2]) <= tol;
+    if (opacas.filter(p => perto(p, 60)).length > opacas.length * 0.9) {
+      // a cor do fundo sai da imagem inteira, inclusive de dentro das letras (miolo do A, do O…), com a borda suave
+      for (let p = 0; p < W * H; p++) {
+        const dif = Math.abs(px[p * 4] - m[0]) + Math.abs(px[p * 4 + 1] - m[1]) + Math.abs(px[p * 4 + 2] - m[2]);
+        if (dif <= 45) px[p * 4 + 3] = 0; else if (dif < 90) px[p * 4 + 3] = Math.round(px[p * 4 + 3] * (dif - 45) / 45);
+      }
+      tirouFundo = true;
+    }
+  }
+  // corta as sobras transparentes e mede o quanto a logo é escura
+  let x0 = W, y0 = H, x1 = -1, y1 = -1, lum = 0, peso = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const p = (y * W + x) * 4, a = px[p + 3]; if (a <= 16) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    lum += a * (0.2126 * px[p] + 0.7152 * px[p + 1] + 0.0722 * px[p + 2]) / 255; peso += a;
+  }
+  if (x1 < 0) throw Error('A logo ficou vazia: envie a imagem com a logo bem visível.');
+  cx.putImageData(id, 0, 0);
+  const cw = x1 - x0 + 1, ch = y1 - y0 + 1, k = Math.min(1, 1200 / cw, 400 / ch);
+  const out = document.createElement('canvas'); out.width = Math.max(1, Math.round(cw * k)); out.height = Math.max(1, Math.round(ch * k));
+  out.getContext('2d').drawImage(cv, x0, y0, cw, ch, 0, 0, out.width, out.height);
+  if (peso && lum / peso < 0.22) avisos.push('Sua logo é escura e vai sumir no topo escuro do site: envie a versão com letras brancas ou coloridas.');
+  if (cw < 300) avisos.push('A logo é pequena (' + cw + ' px de largura) e pode ficar borrada: se tiver, envie uma maior, com pelo menos 600 px.');
+  if (ch > cw * 1.3) avisos.push('A logo é em pé: no topo do site ela fica pequena. Se tiver a versão deitada, ela fica melhor.');
+  const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+  if (!blob) throw Error('Não consegui preparar a logo. Tente outra imagem.');
+  if (blob.size > 5242880) throw Error('A logo ficou maior que 5 MB. Envie uma imagem menor.');
+  return { blob, avisos, tirouFundo };
+}
 function desenharSiteModelo() {
   const box = $('stModelo'); if (!box) return;
   const s = siteCfg || {}, i = s.identidade || {}, modelo = s.modelo || 'garagem';
@@ -2983,9 +3030,11 @@ function desenharSiteModelo() {
     <h3 class="st-tit">Identidade</h3>
     <div class="duas"><div><label for="smNome">Nome da loja</label><input id="smNome" maxlength="60" required value="${esc(nomePadrao)}"></div>
       <div><label for="smFonte">Fonte</label><select id="smFonte">${SITE_FONTES.map(([v, n]) => `<option value="${v}"${v === (i.fonte || 'saira') ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>
-    <label for="smLogoArq">Logo (PNG com fundo transparente fica melhor; até 5 MB)</label>
+    <label for="smLogoArq">Logo da loja <span class="dica-i" tabindex="0" role="note" aria-label="Logo ideal: PNG sem fundo (transparente), deitada (mais larga que alta), com pelo menos 600 px de largura, até 5 MB. O topo dos sites é escuro: use a versão com letras brancas ou coloridas (logo preta some). Se a sua logo tiver fundo branco ou preto liso, o painel tira o fundo e as sobras sozinho." data-dica="Logo ideal: PNG sem fundo (transparente), deitada (mais larga que alta), com pelo menos 600 px de largura, até 5 MB. O topo dos sites é escuro: use a versão com letras brancas ou coloridas (logo preta some). Se a sua logo tiver fundo branco ou preto liso, o painel tira o fundo e as sobras sozinho.">i</span></label>
+    <p class="muted" style="margin:2px 0 6px;font-size:13px">PNG sem fundo, deitada, com letras claras ou coloridas. Fundo branco ou preto liso o painel tira sozinho.</p>
     <div class="form-bts"><input type="file" id="smLogoArq" accept="image/png,image/jpeg"><button type="button" class="sm" id="smLogoTira"${i.logo ? '' : ' hidden'}>Tirar a logo</button></div>
-    <img id="smLogoPrev" class="sm-logo" alt="Logo da loja" src="${esc(i.logo || '')}"${i.logo ? '' : ' hidden'}>
+    <div class="sm-logo-topo" id="smLogoTopo" style="background:${esc(i.cor2 || '#121110')}"${i.logo ? '' : ' hidden'}><img id="smLogoPrev" class="sm-logo" alt="Logo da loja" src="${esc(i.logo || '')}"><small>Assim ela fica no topo do site</small></div>
+    <p class="alerta" id="smLogoAviso" hidden></p>
     <div class="duas"><div><label for="smCor1">Cor principal (botões e destaques)</label><input type="color" id="smCor1" value="${esc(i.cor1 || '#d6921e')}"></div>
       <div><label for="smCor2">Cor de fundo (no modelo Claro: topo e faixas)</label><input type="color" id="smCor2" value="${esc(i.cor2 || '#121110')}"></div></div>
     <div class="form-bts"><button type="button" class="sm" id="smSugCores"${i.logo ? '' : ' disabled'}>Sugerir cores da logo</button><span class="muted" id="smCoresInfo"></span></div>
@@ -3000,11 +3049,14 @@ function desenharSiteModelo() {
       <div><label for="smCidade">Cidade (aparece nos textos do site)</label><input id="smCidade" maxlength="60" value="${esc(i.cidade || '')}" placeholder="Nova Iguaçu"></div></div>
     <div class="duas"><div><label for="smHora">Horário (separe os dias com ·)</label><input id="smHora" maxlength="120" value="${esc(i.horario || '')}" placeholder="Seg a sex 9h às 18h · Sáb 9h às 14h"></div><div></div></div>
     <h3 class="st-tit">Avaliações do Google</h3>
-    <p class="muted" style="margin-top:6px">Copie até 3 avaliações reais da loja no Google. Sem nenhuma, a seção de avaliações não aparece no site.</p>
+    <p class="muted" style="margin-top:6px">Cole o link da loja no Google Maps (no Maps: Compartilhar → Copiar link) e clique em Puxar: entram até 3 avaliações de 4 ou 5 estrelas. Dá para conferir e trocar antes de salvar. Sem nenhuma avaliação, a seção não aparece no site.</p>
+    <div class="duas"><div><label for="smMapa">Link da loja no Google Maps</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div>
+      <div style="align-self:end"><button type="button" class="sm" id="smGoogle">Puxar avaliações do Google</button></div></div>
+    <p class="muted" id="smGoogleInfo" style="font-size:13px"></p>
     ${[0, 1, 2].map(k => { const a = (i.avaliacoes || [])[k] || {}; return `<div class="duas sm-av"><div><label for="smAvN${k}">Nome do cliente</label><input id="smAvN${k}" maxlength="60" value="${esc(a.nome || '')}"></div>
       <div><label for="smAvT${k}">O que ele escreveu</label><textarea id="smAvT${k}" maxlength="400" rows="2">${esc(a.texto || '')}</textarea></div></div>`; }).join('')}
     <div class="duas"><div><label for="smInsta">Instagram</label><input id="smInsta" maxlength="31" value="${esc(i.instagram ? '@' + i.instagram : '')}" placeholder="@sualoja"></div>
-      <div><label for="smMapa">Link do Google Maps (opcional)</label><input id="smMapa" maxlength="400" value="${esc(i.mapa || '')}" placeholder="https://maps.app.goo.gl/…"></div></div>
+      <div></div></div>
     <h3 class="st-tit">Estoque</h3>
     <p class="muted" style="margin-top:6px">${Number(s.veiculos) || 0} veículo(s) disponível(is) no menu Estoque. O site mostra os mesmos, com as fotos, e atualiza sozinho. Escolha o que aparece de cada veículo:</p>
     <div class="sm-mostrar">${[['km', 'Quilometragem'], ['preco', 'Preço'], ['opcionais', 'Opcionais'], ['descricao', 'Descrição']].map(([k, t]) =>
@@ -3024,11 +3076,26 @@ function desenharSiteModelo() {
       const r = await fetch('/api/account/material-arquivo?organization=' + encodeURIComponent(empresa.id), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' }, body: f });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || d.tipo !== 'imagem') throw Error(d.error || 'Envie a logo em PNG ou JPG.');
-      logo = d.url; $('smLogoPrev').src = logo; $('smLogoPrev').hidden = false; $('smLogoTira').hidden = false; $('smSugCores').disabled = false;
+      logo = d.url; $('smLogoPrev').src = logo; $('smLogoTopo').hidden = false; $('smLogoTira').hidden = false; $('smSugCores').disabled = false;
+      if (pr.avisos.length) mostra($('smLogoAviso'), pr.avisos.join(' '));
+      if (pr.tirouFundo) toast('Logo enviada: o fundo foi tirado. Confira a prévia.');
       sugerirCores(true);
     } catch (err) { ev.target.value = ''; toast(err.message, true); }
   };
-  $('smLogoTira').onclick = () => { logo = ''; $('smLogoPrev').hidden = true; $('smLogoTira').hidden = true; $('smLogoArq').value = ''; $('smSugCores').disabled = true; };
+  $('smCor2').addEventListener('input', () => { $('smLogoTopo').style.background = $('smCor2').value; });
+  $('smGoogle').onclick = async () => {
+    const link = $('smMapa').value.trim(); if (!link) return toast('Cole o link da loja no Google Maps.', true);
+    const bt = $('smGoogle'); bt.disabled = true; $('smGoogleInfo').textContent = 'Buscando no Google…';
+    try {
+      const r = await api('site-google-avaliacoes', { organization: empresa.id, link });
+      const l = r.lugar || {}, av = r.avaliacoes || [];
+      [0, 1, 2].forEach(k => { const a = av[k]; if (a) { $('smAvN' + k).value = a.nome; $('smAvT' + k).value = a.texto; } });
+      $('smGoogleInfo').textContent = (l.nome ? l.nome + ': ' : '') + (l.nota ? 'nota ' + String(l.nota).replace('.', ',') + ' com ' + l.total + ' avaliações no Google. ' : '') +
+        (av.length ? av.length + ' avaliação(ões) de 4 ou 5 estrelas preenchida(s) abaixo. Confira e clique em Salvar o site.' : 'O Google não mandou avaliações de 4 ou 5 estrelas com texto para esta loja.');
+    } catch (err) { $('smGoogleInfo').textContent = ''; toast(err.message, true); }
+    finally { bt.disabled = false; }
+  };
+  $('smLogoTira').onclick = () => { logo = ''; $('smLogoTopo').hidden = true; $('smLogoAviso').hidden = true; $('smLogoTira').hidden = true; $('smLogoArq').value = ''; $('smSugCores').disabled = true; };
   $('smSugCores').onclick = () => sugerirCores(false);
   // cores da logo: lê os pixels, junta os parecidos e escolhe a cor mais forte (principal) e uma escura para o fundo
   function sugerirCores(silencioso) {
@@ -3068,6 +3135,7 @@ function desenharSiteModelo() {
       mostrar: Object.fromEntries([...document.querySelectorAll('[data-mostrar]')].map(c => [c.dataset.mostrar, c.checked])) };
     // os modelos fiéis usam a cidade nos textos ("motos 0 km e seminovas em …"): sem ela, não publica
     if ($('smPub').checked && !identidade.cidade) return mostra($('smErro'), 'Para publicar, coloque a cidade da loja: ela aparece nos textos do site.');
+    if ($('smPub').checked && !logo) return mostra($('smErro'), 'Para publicar, envie a logo da loja: o site com o nome escrito no lugar da logo não fica com cara de marca.');
     bt.disabled = true; bt.textContent = 'Salvando…';
     try { await api('site-modelo', { organization: empresa.id, conta: s.conta, modelo: modeloSel, identidade, publicado: $('smPub').checked }); toast('Site salvo. Aparece em até 1 minuto.'); await carregarSite(); }
     catch (err) { mostra($('smErro'), err.message); }

@@ -554,6 +554,13 @@ textarea { min-height: 90px; resize: vertical; }
 input[type=color]{height:44px;padding:4px;cursor:pointer}
 .sm-vitrine{background:#0a1228;flex-direction:column;justify-content:center}.sm-vitrine i{flex:none;height:7px;background:linear-gradient(100deg,#2fc4b2,#2f7df6)}.sm-vitrine i:nth-child(2){opacity:.65}.sm-vitrine i:nth-child(3){opacity:.4}
 
+/* Site da loja → logo: orientação no "i" e prévia no topo escuro do site */
+.dica-i{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;font-size:11px;font-weight:700;font-style:italic;cursor:help;position:relative;margin-left:4px;opacity:.75;vertical-align:1px}
+.dica-i:hover,.dica-i:focus{opacity:1;outline:none}
+.dica-i:hover::after,.dica-i:focus::after{content:attr(data-dica);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:min(320px,80vw);padding:10px 12px;border-radius:10px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;font:400 13px/1.45 'DM Sans',sans-serif;font-style:normal;text-align:left;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.4);white-space:normal}
+.sm-logo-topo{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 18px;border-radius:12px;margin-top:8px;border:1px solid rgba(255,255,255,.08)}
+.sm-logo-topo img.sm-logo{max-height:56px;max-width:260px;width:auto;height:auto;margin:0;background:none}
+.sm-logo-topo small{color:#cbd5e1;font-size:12px}
 /* Site da loja → Domínio próprio */
 .dom-tabela td small,.lv-tabela td small{display:block;font-size:12px;margin-top:2px}
 .dom-tabela code{word-break:break-all}
