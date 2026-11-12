@@ -717,7 +717,13 @@ function desenharAgente() {
   $('agStDica').textContent = !agDados.ativo ? 'Não responde ninguém. Toque para ligar.' : emTeste ? 'Responde só: ' + nums.join(', ') + '.' : 'Respondendo os clientes no WhatsApp.';
   if (!testeSujo) { sw('agTesteSw', mt.ativo); $('agTesteBox').hidden = !mt.ativo; $('agTesteNum').value = nums.length ? nums.join(', ') : zapCurto(cfg.whatsapp || ''); }
   $('agDados').innerHTML = `<div><span>Tipo</span>${esc(nomeTipo(agDados.tipo))}</div><div><span>Porta de entrada</span>${agDados.entrada ? 'Sim' : 'Não'}</div>`
-    + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`;
+    + `<div><span>Versão salva</span>${esc(agDados.versao)}</div><div><span>Configuração</span>${agDados.configurado ? 'Concluída' : 'Pendente'}</div>`
+    + `<div><span>Fala preço?</span>${esc({ livre: 'Sim, o valor exato', a_partir: 'Só "a partir de"', nao_fala: 'Não fala valor' }[(c.precos || {}).politica] || 'Só "a partir de"')} <button type="button" class="link-bt" id="agMudaPreco">mudar</button></div>`;
+  $('agMudaPreco').onclick = () => {
+    document.querySelector('[data-ag="conhecimento"]')?.click();
+    let n = 0; const ir = () => { if (document.querySelector('[data-kp="precos"]')) { document.querySelector('[data-k="precos"]').click(); document.querySelector('[data-kp="precos"]').scrollIntoView({ behavior: 'smooth', block: 'start' }); } else if (n++ < 30) setTimeout(ir, 200); };
+    ir();
+  };
   const au = c.audio || {}, mm = c.multimodal || {}, falaTxt = { espelho: '✓ quando o cliente manda áudio', sempre: '✓ sempre' }[au.modo];
   const caps = [['Entende áudio', mm.entendeAudio !== false], ['Entende imagem', mm.entendeImagem !== false], ['Responde com áudio', !!falaTxt, falaTxt],
     ['Entende PDF e documentos', !!mm.documentos?.ativo], ['Entende planilhas', !!mm.planilhas?.ativo]];
@@ -1313,7 +1319,7 @@ $('mdUsar').onclick = () => {
 // responsável da oportunidade: o vendedor do ticket (com reserva) ou sempre a mesma pessoa
 function modoResp() {
   const fixo = $('rgModoResp').value === 'fixo';
-  $('rgRespRot').textContent = fixo ? 'Quem fica com todas as oportunidades' : 'Se ninguém estiver atendendo ainda';
+  $('rgRespRot').textContent = fixo ? 'Quem fica com todas as oportunidades' : 'Quem fica com a oportunidade quando ela é criada (ex.: a pré-venda)';
   $('rgRespDica').hidden = fixo;
 }
 $('rgModoResp').addEventListener('change', modoResp);

@@ -153,7 +153,7 @@
                 <button type="button" data-k="empresa" aria-pressed="true">Empresa</button>
                 <button type="button" data-k="horario">Horário</button>
                 <button type="button" data-k="perguntas">Perguntas e regras</button>
-                <button type="button" data-k="precos">Preços</button>
+                <button type="button" data-k="precos">Preços e valores</button>
               </nav>
               <div id="kPaineis"></div>
               <div class="salvar-barra"><span class="muted" id="kSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar base de conhecimento</button></div>
@@ -350,10 +350,11 @@
               <input id="rgGrupo" inputmode="numeric" maxlength="40" placeholder="120363000000000000">
               <button type="button" class="sm" data-testar-grupo="rgGrupo" style="margin-top:8px">Mandar mensagem de teste</button>
               <p class="muted" style="font-size:13px;margin-top:6px">Crie o grupo com o número da loja e mande um "oi" lá. Na LeadVox, abra a conversa do grupo, clique no nome dele e copie o número que aparece embaixo.</p>
-              <label for="rgModoResp">Responsável pela oportunidade no funil</label>
-              <select id="rgModoResp"><option value="atendente">Quem está atendendo o cliente (o vendedor do ticket)</option><option value="fixo">Um responsável fixo</option></select>
-              <label for="rgResp" id="rgRespRot">Se ninguém estiver atendendo ainda</label><select id="rgResp"></select>
-              <p class="muted" style="font-size:13px;margin-top:6px" id="rgRespDica">Se a IA passar o cliente para uma pessoa, a oportunidade fica com essa pessoa. Senão, com quem a LeadVox distribuiu o ticket.</p>
+              <h4 style="margin-top:14px">Responsável pela oportunidade no funil</h4>
+              <label for="rgResp" id="rgRespRot">Quem fica com a oportunidade quando ela é criada (ex.: a pré-venda)</label><select id="rgResp"></select>
+              <label for="rgModoResp">Quando a IA passar o cliente para um vendedor</label>
+              <select id="rgModoResp"><option value="atendente">A oportunidade passa para o vendedor que recebeu o cliente</option><option value="fixo">A oportunidade continua sempre com a mesma pessoa</option></select>
+              <p class="muted" style="font-size:13px;margin-top:6px" id="rgRespDica">Exemplo: a oportunidade nasce com a pré-venda e, quando a IA passa o cliente para a Ana (rodízio ou regra), ela vira da Ana. Se a LeadVox já tiver um vendedor no ticket, ela nasce com ele.</p>
             </div>
             <div class="salvar-barra"><span class="muted" id="rgSujo">Tudo salvo.</span><button class="principal" type="submit">Salvar ações e regras</button></div>
           </form>
