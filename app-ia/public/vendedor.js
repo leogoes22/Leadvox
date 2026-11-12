@@ -1,4 +1,4 @@
-// Plugin do Vendedor (dentro da LeadVox): a LeadVox manda o atendimento aberto por postMessage (DEFAULT_DATA);
+// Plugin do Usuário (dentro da LeadVox): a LeadVox manda o atendimento aberto por postMessage (DEFAULT_DATA);
 // o link do plugin traz a chave da loja (?k=conta&t=chave). Tudo passa por /api/plugin (o servidor repassa ao motor).
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,7 +19,7 @@ function lerTicket(t) {
   if (!t || !t.id) return null;
   const c = t.contact || {};
   return { id: String(t.id), tel: String(c.number || t.number || ''), cliente: c.name || c.pushname || '', contactId: String(t.contactId || c.id || ''),
-    vendedor: (t.user && t.user.name) || '', depto: (t.queue && (t.queue.queue || t.queue.name)) || '' };
+    vendedor: (t.user && t.user.name) || '', usuarioId: String(t.userId || (t.user && t.user.id) || '').replace(/\D/g, ''), depto: (t.queue && (t.queue.queue || t.queue.name)) || '' };
 }
 window.addEventListener('message', ev => {
   let host = ''; try { host = new URL(ev.origin).hostname; } catch (e) { return; }
@@ -41,7 +41,7 @@ function abrirTicket() {
   aviso('');
   $('pvCliente').hidden = false;
   $('pvCliente').innerHTML = `<b>${esc(ticket.cliente || 'Cliente')}</b><small>${esc(fone(ticket.tel))}${ticket.depto ? ' · ' + esc(ticket.depto) : ''}</small>
-    <small>Vendedor: ${esc(ticket.vendedor || 'ninguém assumiu ainda')}</small>`;
+    <small>Com: ${esc(ticket.vendedor || 'ninguém assumiu ainda')}</small>`;
   carregar();
 }
 async function carregar() {
@@ -51,104 +51,120 @@ async function carregar() {
 }
 function desenhar() {
   ajustarAbas();
-  const ia = ctx.ia || {}, r = ctx.resumo || {};
+  const ia = ctx.ia || {};
   const cor = { atendendo: 'on', equipe: 'pausa', pausada: 'pausa', desligada: 'off', teste: 'off' }[ia.estado] || '';
-  const titulo = { atendendo: 'IA atendendo', equipe: 'Equipe conversando', pausada: 'IA pausada neste atendimento', desligada: 'IA desligada', teste: 'IA em teste' }[ia.estado] || 'IA';
+  const titulo = { atendendo: 'IA atendendo', equipe: 'Equipe atendendo', pausada: 'IA desligada neste atendimento', desligada: 'IA desligada', teste: 'IA em teste' }[ia.estado] || 'IA';
   const pode = ['atendendo', 'equipe', 'pausada'].includes(ia.estado);
   $('pvSituacao').innerHTML = `<div class="st-ia"><i class="${cor}"></i><div><h3>${esc(titulo)}</h3><p class="muted" style="font-size:13px;margin-top:2px">${esc(ia.texto || '')}</p></div></div>
-    ${pode ? (ia.estado === 'pausada'
-      ? '<button type="button" class="principal bt-largo" id="pvAlternar" data-acao="devolver">▶️ Devolver para a IA</button>'
-      : '<button type="button" class="bt-largo" id="pvAlternar" data-acao="pausar">⏸️ Pausar a IA neste atendimento</button>') : ''}`;
+    ${pode ? (ia.estado === 'atendendo'
+      ? '<button type="button" class="bt-largo" id="pvAlternar" data-acao="pausar">⏸️ Desligar a IA neste atendimento</button>'
+      : '<button type="button" class="principal bt-largo" id="pvAlternar" data-acao="devolver">▶️ Ligar a IA neste atendimento</button>') : ''}`;
   if ($('pvAlternar')) $('pvAlternar').onclick = alternar;
-  desenharPainel(); desenharAgenda();
-  // o que a IA já sabe, enxuto: nome, carros que viu e a última mensagem do cliente
-  const vistos = (r.vistos || []).map(v => `<li>${esc(v.nome)}${v.preco ? ' — ' + Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : ''}</li>`).join('');
-  $('pvResumo').hidden = false;
-  $('pvResumo').innerHTML = `<h3>📋 O que a IA já sabe</h3>
-    <p style="margin-top:6px"><span class="muted">Nome:</span> ${esc(r.nome || ticket.cliente || '—')}</p>
-    ${vistos ? '<p class="muted" style="font-size:13px;margin-top:8px">🚗 Viu com a IA:</p><ul>' + vistos + '</ul>' : ''}
-    ${r.ultimaCliente ? `<p class="muted" style="font-size:13px;margin-top:8px">Última mensagem do cliente${r.ultimaCliente.ts ? ' (' + esc(dataBR(r.ultimaCliente.ts)) + ')' : ''}:</p><div class="msg">${esc(r.ultimaCliente.texto)}</div>` : ''}`;
+  aviso(ctx.painel && ctx.painel.alerta ? '🔴 ' + ctx.painel.alerta : '');
+  desenharTransferir(); desenharOportunidade(); desenharResumo();
 }
 
-// ── painelzinho do cliente: tudo já guardado no motor e na LeadVox, nenhuma chamada de IA ──
-const ha = ts => {
-  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
-  if (m < 1) return 'agora'; if (m < 60) return 'há ' + m + ' min';
-  const h = Math.floor(m / 60); if (h < 24) return 'há ' + h + ' h' + (m % 60 && h < 3 ? ' ' + (m % 60) + ' min' : '');
-  const d = Math.floor(h / 24); return 'há ' + d + (d === 1 ? ' dia' : ' dias');
-};
-const quandoBR = ms => new Date(ms).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
-const vezes = n => n === 1 ? '1 vez' : n + ' vezes';
-function desenharPainel() {
-  const p = ctx.painel; if (!p) { $('pvPainel').hidden = true; return; }
-  // a LeadVox recusou o último envio da IA (WhatsApp desconectado, chave inválida): o vendedor avisa o gestor
-  aviso(p.alerta ? '🔴 ' + p.alerta : '');
-  const item = (ic, titulo, sub, cls) => `<div class="num${cls ? ' ' + cls : ''}"><span>${ic}</span><div><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`;
-  const espera = p.esperando
-    ? item('⏱️', 'Cliente esperando ' + esc(ha(p.esperando)), 'A última mensagem foi dele.', 'alerta-num')
-    : item('⏱️', 'Sem cliente esperando', p.ultimaLoja ? 'Última mensagem da loja ' + esc(ha(p.ultimaLoja.ts)) + (p.ultimaLoja.quem === 'ia' ? ' (IA)' : ' (equipe)') : '');
-  const fu = p.followups || {}, eq = p.equipe || {};
-  const subFu = [fu.ultimo ? 'último ' + esc(ha(fu.ultimo)) : '', fu.proximo && fu.proximo > Date.now() ? 'próximo ' + esc(quandoBR(fu.proximo)) : ''].filter(Boolean).join(' · ');
-  const subEq = eq.ultimo ? 'última ' + esc(ha(eq.ultimo)) + (eq.nome ? ' (' + esc(eq.nome) + ')' : '') : 'Ninguém da equipe falou ainda.';
-  $('pvPainel').hidden = false;
-  $('pvPainel').innerHTML = `<h3>📊 Este cliente</h3><div class="nums">
-    ${espera}
-    ${item('🔁', 'Follow-ups da IA: ' + (fu.n ? esc(vezes(fu.n)) : 'nenhum ainda'), subFu)}
-    ${item('💬', 'Equipe falou com ele: ' + (eq.n ? esc(vezes(eq.n)) : 'nenhuma vez'), subEq)}
-    ${item('📍', p.etapa ? 'Etapa: ' + esc(p.etapa) : 'Sem oportunidade aberta no funil', p.etapa ? 'Oportunidade aberta no funil da LeadVox.' : '')}
-  </div>`;
-}
-
-// ── agendar follow-up da IA: data, hora e o assunto; na hora a IA escreve no contexto ──
-const RESULTADO = { enviado: 'O último follow-up agendado foi enviado', cancelado: 'O último follow-up agendado foi cancelado', ia_desligada: 'O último agendado não saiu: IA desligada',
-  modo_teste: 'O último agendado não saiu: IA em modo de teste', waba_24h: 'O último agendado não saiu: WhatsApp oficial passou de 24 h (só modelo)' };
-const local = d => { const p = x => String(x).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); };
-function desenharAgenda() {
-  const p = ctx.painel || {}, a = p.agenda, card = $('pvAgendar');
+// ── botão Transferir: só para quem está marcado no painel naquele departamento (rodízio, mesma vez da IA) ──
+let trSetor = null, trProx = {};
+function desenharTransferir() {
+  const card = $('pvTransf'), setores = ((ctx.transferir || {}).setores || []);
+  if (!setores.length) { card.hidden = true; return; }
+  if (!trSetor || !setores.some(s => s.filaId === trSetor)) trSetor = setores[0].filaId;
+  const s = setores.find(x => x.filaId === trSetor);
+  const prox = trProx[trSetor];
+  const fila = !s.rodizio ? '<div class="proxima">Vai para a fila do <b>' + esc(s.nome) + '</b>: quem aceitar primeiro pega.</div>'
+    : prox === undefined ? '<div class="proxima muted">Vendo quem é o próximo da fila…</div>'
+    : prox && prox.erro ? '<div class="proxima">' + esc(prox.erro) + '</div>'
+    : '<div class="proxima">Vai para o próximo da fila do ' + esc(s.nome) + ': <b>' + esc(prox.proximo || '—') + '</b>' + (prox.como === 'carteira' ? ' <span class="muted">(já atendia este cliente)</span>' : '') +
+      ((prox.ordem || []).length > 1 ? '<br><span class="muted">Ordem: ' + prox.ordem.map(esc).join(' → ') + ' → e começa de novo</span>' : '') + '</div>';
+  const escolha = s.escolher && (s.pessoas || []).length ? '<label for="trPessoa" style="margin-top:8px">Ou escolher a pessoa</label><select id="trPessoa"><option value="">Próximo da fila</option>' +
+    s.pessoas.map(p => '<option value="' + p.id + '">' + esc(p.nome) + '</option>').join('') + '</select>' : '';
   card.hidden = false;
-  if (a) {
-    card.innerHTML = `<h3>📅 Follow-up da IA agendado</h3>
-      <div class="num" style="margin-top:8px"><span>🗓️</span><div><b>${esc(quandoBR(a.quando))}</b><small>${a.assunto ? 'Assunto: ' + esc(a.assunto) : 'Retomar o último assunto da conversa'}${a.vendedor ? ' · por ' + esc(a.vendedor) : ''}</small></div></div>
-      <button type="button" class="bt-largo" id="pvCancelar">Cancelar agendamento</button>`;
-    $('pvCancelar').onclick = cancelarAgenda; return;
-  }
-  const ult = p.ultimaAgenda && RESULTADO[p.ultimaAgenda.resultado];
-  const agora = new Date(), min = new Date(agora.getTime() + 10 * 60000);
-  card.innerHTML = `<h3>📅 Agendar follow-up da IA</h3>
-    <p class="muted" style="font-size:13px;margin-top:4px">Na hora marcada a IA manda uma mensagem retomando o assunto, mesmo com o atendimento finalizado. Fica registrado em nota interna.</p>
-    ${ult ? `<p class="muted" style="font-size:12px;margin-top:6px">${esc(ult)} (${esc(ha(p.ultimaAgenda.em))}).</p>` : ''}
-    <div class="atalhos" role="group" aria-label="Atalhos de data">
-      <button type="button" class="sm" data-dias="1">Amanhã 10h</button><button type="button" class="sm" data-dias="2">Em 2 dias 10h</button><button type="button" class="sm" data-dias="7">Em 1 semana 10h</button>
-    </div>
-    <label for="pvQuando" style="margin-top:8px">Data e hora</label>
-    <input id="pvQuando" type="datetime-local" min="${local(min)}" max="${local(new Date(agora.getTime() + 90 * 864e5))}">
-    <label for="pvAssunto">O que a IA deve retomar <small>(opcional)</small></label>
-    <textarea id="pvAssunto" maxlength="300" placeholder="Ex.: retomar a simulação do financiamento do Renegade"></textarea>
-    <button type="button" class="principal bt-largo" id="pvAgendarBt">Agendar follow-up</button>
-    <p class="muted" style="font-size:12px;margin-top:6px">WhatsApp oficial: passadas 24 h da última mensagem do cliente, só sai mensagem modelo (template). Aí a IA não manda e avisa em nota interna.</p>`;
-  card.querySelectorAll('[data-dias]').forEach(b => b.onclick = () => { const d = new Date(); d.setDate(d.getDate() + Number(b.dataset.dias)); d.setHours(10, 0, 0, 0); $('pvQuando').value = local(d); });
-  $('pvAgendarBt').onclick = agendar;
+  card.innerHTML = '<h3>➡️ Transferir atendimento</h3>' +
+    '<div class="es-chips" role="group" aria-label="Departamento" style="margin-top:10px">' + setores.map(x => '<button type="button" data-tr="' + x.filaId + '" aria-pressed="' + (x.filaId === trSetor) + '">' + esc(x.nome) + '</button>').join('') + '</div>' +
+    fila + escolha + '<button type="button" class="principal bt-largo" id="trEnviar">Transferir para ' + esc(s.nome) + '</button>' +
+    '<p class="muted" style="font-size:12px;margin-top:8px">A oportunidade passa junto para quem receber o cliente, com o resumo. A fila é a mesma da IA: ninguém é favorecido.</p>';
+  card.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => { trSetor = Number(b.dataset.tr); desenharTransferir(); });
+  $('trEnviar').onclick = transferir;
+  if (s.rodizio && prox === undefined) verFila(s.filaId);
 }
-async function agendar() {
-  if (ocupado) return; const quando = $('pvQuando').value;
-  if (!quando) { toast('Escolha a data e a hora.', true); $('pvQuando').focus(); return; }
-  ocupado = true; const bt = $('pvAgendarBt'); bt.disabled = true; bt.textContent = 'Agendando…';
-  try { const j = await chamar('agendar', { quando: quando.slice(0, 16), assunto: $('pvAssunto').value.trim() }); ctx = { ...ctx, ia: j.ia || ctx.ia, painel: j.painel || ctx.painel }; desenhar(); toast('Follow-up agendado. Ficou registrado em nota interna.'); }
-  catch (err) { toast(err.message, true); bt.disabled = false; bt.textContent = 'Agendar follow-up'; }
+async function verFila(filaId) {
+  try { const j = await chamar('fila', { filaId, usuarioId: ticket.usuarioId }); trProx[filaId] = { proximo: j.proximo, como: j.como, ordem: j.ordem || [] }; }
+  catch (err) { trProx[filaId] = { erro: err.message }; }
+  if (trSetor === filaId) desenharTransferir();
+}
+async function transferir() {
+  if (ocupado) return;
+  const s = ((ctx.transferir || {}).setores || []).find(x => x.filaId === trSetor); if (!s) return;
+  const pessoaId = $('trPessoa') ? $('trPessoa').value : '';
+  const nomeP = pessoaId ? (s.pessoas.find(p => String(p.id) === pessoaId) || {}).nome : (trProx[s.filaId] || {}).proximo;
+  if (!confirm('Transferir este cliente para ' + s.nome + (nomeP ? ' (' + nomeP + ')' : '') + '?')) return;
+  ocupado = true; const bt = $('trEnviar'); bt.disabled = true; bt.textContent = 'Transferindo…';
+  try {
+    const j = await chamar('transferir', { filaId: s.filaId, pessoaId, usuarioId: ticket.usuarioId });
+    const t = j.transferido || {};
+    toast('Transferido para ' + (t.pessoa || t.setor) + '.' + (t.oportunidade === false ? ' A oportunidade não mudou: confira no funil.' : ''));
+    trProx = {}; ctx = { ...ctx, ia: j.ia || ctx.ia }; carregar();
+  } catch (err) { toast(err.message, true); bt.disabled = false; bt.textContent = 'Transferir para ' + s.nome; }
   finally { ocupado = false; }
 }
-async function cancelarAgenda() {
-  if (ocupado || !confirm('Cancelar o follow-up agendado deste cliente?')) return;
-  ocupado = true; $('pvCancelar').disabled = true;
-  try { const j = await chamar('cancelar'); ctx = { ...ctx, painel: j.painel || ctx.painel }; desenhar(); toast('Agendamento cancelado.'); }
-  catch (err) { toast(err.message, true); desenhar(); }
+
+// ── oportunidade aberta no funil: etapa, responsável, valor, interesse, origem do lead; Vendido / Perdido ──
+function desenharOportunidade() {
+  const card = $('pvOport'), o = ctx.oportunidade, it = ctx.interesse, org = ctx.origem;
+  if (!o && !org) { card.hidden = true; return; }
+  const cel = (rot, val) => '<div><small>' + rot + '</small><b>' + esc(val || '—') + '</b></div>';
+  card.hidden = false;
+  card.innerHTML = '<h3>💼 Oportunidade</h3>' +
+    (o ? '<div class="op-grade">' + cel('Etapa', o.etapa) + cel('Responsável', o.responsavel) + cel('Valor', o.valor ? brl(o.valor) : '') + cel('Interesse', it ? it.nome : '') + '</div>'
+      : '<p class="muted" style="font-size:13px;margin-top:6px">Sem oportunidade aberta no funil.</p>') +
+    (org ? '<span class="origem">' + (org.tipo === 'anuncio' ? '📣 Veio do anúncio' : '📍 Origem:') + ' <b>' + esc(org.texto) + '</b></span>' : '') +
+    (o ? '<div class="dois"><button type="button" class="ganho" data-fim="won">✅ Vendido</button><button type="button" class="perda" data-fim="lost">❌ Perdido</button></div>' : '');
+  card.querySelectorAll('[data-fim]').forEach(b => b.onclick = () => fechar(b.dataset.fim));
+}
+async function fechar(status) {
+  if (ocupado || !confirm(status === 'won' ? 'Marcar este cliente como VENDIDO? A oportunidade vai para Ganho.' : 'Marcar este cliente como PERDIDO? A oportunidade vai para Perdido.')) return;
+  ocupado = true;
+  try { await chamar('fechar', { status }); toast(status === 'won' ? 'Venda marcada. Parabéns! 🎉' : 'Marcado como perdido.'); carregar(); }
+  catch (err) { toast(err.message, true); }
   finally { ocupado = false; }
+}
+
+// ── resumo: o que a IA já sabe e coletou, com "Copiar" para mandar ao gerente ou ao financeiro ──
+function textoResumo() {
+  const r = ctx.resumo || {}, it = ctx.interesse, l = [];
+  l.push('Cliente: ' + (r.nome || ticket.cliente || '—') + ' · ' + fone(ticket.tel));
+  if (it) l.push('Procura: ' + it.nome + (it.preco ? ' · ' + brl(it.preco) : ''));
+  (ctx.coleta || []).forEach(c => l.push(c.k + ': ' + c.v));
+  if (ctx.origem) l.push('Origem: ' + ctx.origem.texto);
+  if (ctx.resumoIA) l.push('Resumo: ' + ctx.resumoIA);
+  if (r.ultimaCliente) l.push('Última mensagem: ' + r.ultimaCliente.texto);
+  return l.join('\n');
+}
+function desenharResumo() {
+  const r = ctx.resumo || {}, it = ctx.interesse;
+  const linha = (k, v) => '<div class="rs-l"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>';
+  const vistos = (r.vistos || []).filter(v => !it || v.nome !== it.nome).slice(-3);
+  $('pvResumo').hidden = false;
+  $('pvResumo').innerHTML = '<h3>📋 Resumo do atendimento</h3><div style="margin-top:8px">' +
+    linha('Nome', r.nome || ticket.cliente || '—') +
+    (it ? linha('Procura', it.nome + (it.preco ? ' · ' + brl(it.preco) : '')) : '') +
+    (ctx.coleta || []).filter(c => !/^nome$/i.test(c.k)).map(c => linha(c.k, c.v)).join('') + '</div>' +
+    (ctx.resumoIA ? '<p class="muted" style="font-size:13px;margin-top:10px">Resumo da IA:</p><div class="msg">' + esc(ctx.resumoIA) + '</div>' : '') +
+    (vistos.length ? '<p class="muted" style="font-size:13px;margin-top:10px">🚗 Também viu com a IA:</p><ul>' + vistos.map(v => '<li>' + esc(v.nome) + (v.preco ? ' — ' + brl(v.preco) : '') + '</li>').join('') + '</ul>' : '') +
+    (r.ultimaCliente ? '<p class="muted" style="font-size:13px;margin-top:10px">Última mensagem do cliente' + (r.ultimaCliente.ts ? ' (' + esc(dataBR(r.ultimaCliente.ts)) + ')' : '') + ':</p><div class="msg">' + esc(r.ultimaCliente.texto) + '</div>' : '') +
+    '<button type="button" class="bt-largo" id="rsCopiar">📋 Copiar resumo</button>';
+  $('rsCopiar').onclick = async () => {
+    const t = textoResumo();
+    try { await navigator.clipboard.writeText(t); toast('Resumo copiado.'); }
+    catch (e) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); toast('Resumo copiado.'); } catch (e2) { toast('Não deu para copiar aqui.', true); } a.remove(); }
+  };
 }
 async function alternar(e) {
   if (ocupado) return; const acao = e.currentTarget.dataset.acao;
-  if (acao === 'pausar' && !confirm('Pausar a IA neste atendimento? Ela não responde este cliente até você devolver ou o atendimento fechar.')) return;
+  if (acao === 'pausar' && !confirm('Desligar a IA neste atendimento? Ela não responde este cliente até você ligar de novo ou o atendimento fechar.')) return;
   ocupado = true; e.currentTarget.disabled = true;
-  try { const j = await chamar(acao); ctx = { ...ctx, ia: j.ia, painel: j.painel || ctx.painel }; desenhar(); toast(acao === 'pausar' ? 'IA pausada neste atendimento. Ficou registrado em nota interna.' : 'Atendimento devolvido para a IA.'); }
+  try { const j = await chamar(acao); ctx = { ...ctx, ia: j.ia }; desenhar(); toast(acao === 'pausar' ? 'IA desligada neste atendimento. Ficou registrado em nota interna.' : 'IA ligada de novo neste atendimento.'); }
   catch (err) { toast(err.message, true); desenhar(); }
   finally { ocupado = false; }
 }
@@ -156,7 +172,7 @@ async function alternar(e) {
 // para marcar as fotos; Ficha / Fotos / Vídeo mostram "vai chegar assim" com o texto editável e o preço opcional. ──
 let esItens = null, esFiltro = 'todos', esAberto = null, esEnviando = false;
 const MAX_FOTOS = 10;
-const brl = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+function brl(v) { return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
 const kmTxt = n => n === null || n === undefined ? '' : Number(n) === 0 ? '0 km' : Number(n).toLocaleString('pt-BR') + ' km';
 const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const codigo = c => String(c || '').replace(/^[a-z]{1,4}:/i, '');
@@ -603,5 +619,5 @@ document.querySelectorAll('#pvAbas [data-aba]').forEach(b => b.onclick = () => {
 });
 
 // início: sem a chave da loja não há o que fazer; fora da LeadVox, explica como abrir
-if (!/^[a-z0-9-]{1,24}-[0-9a-f]{8}$/.test(CHAVE.k) || !/^[0-9a-f]{24}$/.test(CHAVE.t)) aviso('Link do plugin incompleto. Peça o link ao gestor (painel → Canais WhatsApp → Plugin do Vendedor).');
+if (!/^[a-z0-9-]{1,24}-[0-9a-f]{8}$/.test(CHAVE.k) || !/^[0-9a-f]{24}$/.test(CHAVE.t)) aviso('Link do plugin incompleto. Peça o link ao gestor (painel → Canais WhatsApp → Plugin do Usuário).');
 else setTimeout(() => { if (!ticket) aviso(window.top === window ? 'Este plugin abre dentro da LeadVox, ao lado do atendimento.' : 'Abra um atendimento na LeadVox para ver os dados do cliente.'); }, 4000);

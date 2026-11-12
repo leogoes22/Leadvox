@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>LeadVox · Plugin do Vendedor</title>
+<title>LeadVox · Plugin do Usuário</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/lv.css">
@@ -166,11 +166,26 @@
   .pv .pv-veic-acoes button:hover:not(:disabled) { background: var(--verde-fundo); }
   .pv .pv-veic-acoes button:disabled { opacity: .4; }
   .pv .pv-veic-acoes button.feito { color: var(--verde); }
+  /* aba IA: transferir, oportunidade e resumo */
+  .pv .op-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .pv .op-grade div { background: var(--fundo, #0b1220); border: 1px solid var(--linha); border-radius: 10px; padding: 8px 10px; }
+  .pv .op-grade small { display: block; color: var(--suave); font-size: 12px; }
+  .pv .op-grade b { font-size: 14px; }
+  .pv .origem { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; padding: 5px 10px; border-radius: 999px; background: rgba(59,130,246,.14); border: 1px solid rgba(59,130,246,.35); font-size: 13px; }
+  .pv .dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .pv .dois button { padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; font: inherit; }
+  .pv .ganho { background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.45); color: #86efac; }
+  .pv .perda { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.4); color: #fca5a5; }
+  .pv .proxima { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--linha); font-size: 13px; }
+  .pv .proxima b { color: var(--verde, #22c55e); }
+  .pv .rs-l { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--linha); font-size: 13px; }
+  .pv .rs-l span:first-child { color: var(--suave); }
+  .pv .rs-l span:last-child { text-align: right; font-weight: 600; }
 </style>
 </head>
 <body>
 <main class="pv">
-  <div class="pv-topo"><img src="/logo-leadvox.png" alt="LeadVox" width="92" height="28"><small>Plugin do Vendedor</small></div>
+  <div class="pv-topo"><img src="/logo-leadvox.png" alt="LeadVox" width="92" height="28"><small>Plugin do Usuário</small></div>
   <div id="pvAviso" class="alerta" hidden></div>
   <div id="pvCliente" class="pv-cli" hidden></div>
   <nav class="abas" id="pvAbas" aria-label="Plugin">
@@ -180,8 +195,8 @@
   </nav>
   <section id="abaIa">
     <div class="card" id="pvSituacao"><p class="muted">Abra um atendimento na LeadVox para ver a IA deste cliente.</p></div>
-    <div class="card" id="pvPainel" hidden></div>
-    <div class="card" id="pvAgendar" hidden></div>
+    <div class="card" id="pvTransf" hidden></div>
+    <div class="card" id="pvOport" hidden></div>
     <div class="card" id="pvResumo" hidden></div>
   </section>
   <section id="abaEstoque" hidden>

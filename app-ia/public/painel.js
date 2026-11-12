@@ -1113,16 +1113,19 @@ function desenharSetores() {
     <div class="tres"><div><label for="sN${i}">Departamento</label><input id="sN${i}" data-c="nome" list="rgDeps" maxlength="60" placeholder="Ex.: Comercial" value="${esc(s.nome)}"></div>
       <div><label for="sF${i}">Nº da fila na LeadVox</label><input id="sF${i}" data-c="filaId" maxlength="10" inputmode="numeric" placeholder="Ex.: 66" value="${esc(s.filaId)}"></div>
       <div><label for="sQ${i}">Quando a IA manda para cá</label><input id="sQ${i}" data-c="quando" maxlength="200" placeholder="Ex.: cliente quer comprar" value="${esc(s.quando)}"></div></div>
-    <label for="sD${i}">Como o cliente chega aos vendedores</label>
+    <label for="sD${i}">Como o cliente chega aos usuários</label>
     <select id="sD${i}" data-c="distribuicao"><option value="fila">Fila do departamento: fica pendente e quem aceitar primeiro pega</option>
-      <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada vendedor, na ordem</option></select>
-    ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => { const v = s.vendedores.find(x => String(x.id) === String(u.id)); return `<div class="vend-lin"><label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${v ? 'checked' : ''}> ${esc(u.name)}</label>${v ? `<input data-vzap="${esc(u.id)}" inputmode="numeric" maxlength="15" placeholder="WhatsApp do vendedor: 5521999999999" value="${esc(v.whatsapp || '')}" aria-label="WhatsApp de ${esc(u.name)}">` : ''}</div>`; }).join('')
-      : '<p class="muted" style="font-size:13px">Conecte a LeadVox em Credenciais de API para escolher os vendedores.</p>'}
-      <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o vendedor. Cliente que volta fica com o mesmo vendedor.' : 'Marque os vendedores deste departamento, na ordem em que devem receber.'}</p>
-      <label for="sT${i}">Se o vendedor não responder o cliente</label>
-      <select id="sT${i}" data-c="trocaMin">${[[0, 'Não trocar de vendedor'], ...[15, 20, 30, 40, 50, 60].map(m => [m, 'Passar para o próximo vendedor depois de ' + m + ' min'])]
+      <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada usuário, na ordem</option></select>
+    ${s.distribuicao !== 'rodizio' ? '' : `<div style="margin-top:6px">${us.length ? us.map(u => { const v = s.vendedores.find(x => String(x.id) === String(u.id)); return `<div class="vend-lin"><label class="check-lin" style="margin-top:6px"><input type="checkbox" data-vend="${esc(u.id)}" ${v ? 'checked' : ''}> ${esc(u.name)}</label>${v ? `<input data-vzap="${esc(u.id)}" inputmode="numeric" maxlength="15" placeholder="WhatsApp do usuário: 5521999999999" value="${esc(v.whatsapp || '')}" aria-label="WhatsApp de ${esc(u.name)}">` : ''}</div>`; }).join('')
+      : '<p class="muted" style="font-size:13px">Conecte a LeadVox em Credenciais de API para escolher os usuários.</p>'}
+      <p class="muted" style="font-size:13px;margin-top:6px">${s.vendedores.length ? 'Ordem: ' + s.vendedores.map(v => esc(v.nome)).join(' → ') + ' → e começa de novo. O ticket vai direto para o usuário. Cliente que volta fica com o mesmo usuário. Quem não está marcado nunca recebe por aqui (nem pela IA, nem pelo plugin).' : 'Marque os usuários deste departamento, na ordem em que devem receber. Só eles recebem.'}</p>
+      <label for="sP${i}">Transferir pelo plugin</label>
+      <select id="sP${i}" data-c="pluginEscolha"><option value="fila">Sempre para o próximo da fila (ninguém escolhe)</option><option value="escolher" ${s.pluginEscolha === 'escolher' ? 'selected' : ''}>O usuário pode escolher a pessoa (só entre os marcados)</option></select>
+      <p class="muted" style="font-size:13px;margin-top:6px">O botão Transferir do plugin usa a mesma fila da IA. A oportunidade passa junto para quem receber o cliente.</p>
+      <label for="sT${i}">Se o usuário não responder o cliente</label>
+      <select id="sT${i}" data-c="trocaMin">${[[0, 'Não trocar de usuário'], ...[15, 20, 30, 40, 50, 60].map(m => [m, 'Passar para o próximo usuário depois de ' + m + ' min'])]
         .map(([v, t]) => `<option value="${v}" ${Number(s.trocaMin) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      <p class="muted" style="font-size:13px;margin-top:6px">Conta só dentro do horário de atendimento, troca uma vez por atendimento e fica registrado em nota interna. Cliente sem responder nunca troca o vendedor.</p></div>`}
+      <p class="muted" style="font-size:13px;margin-top:6px">Conta só dentro do horário de atendimento, troca uma vez por atendimento e fica registrado em nota interna. Cliente sem responder nunca troca o usuário.</p></div>`}
   </div>`).join('') + (setoresEd.length < 12 ? '<button type="button" class="leve" id="rgMaisSet">+ Adicionar departamento</button>' : '');
   desenharPadrao();
 }
@@ -1159,7 +1162,7 @@ function desenharAcoes() {
   $('rgModoResp').value = r.responsavel === 'fixo' ? 'fixo' : 'atendente'; modoResp();
   setoresEd = (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao,
     distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: Array.isArray(s.vendedores) ? s.vendedores.filter(v => v && v.id) : [],
-    trocaMin: Number(s.trocaMin) || 0 }));
+    trocaMin: Number(s.trocaMin) || 0, pluginEscolha: s.pluginEscolha === 'escolher' ? 'escolher' : 'fila' }));
   desenharSetores(); atualizarListasAcoes(); limparRg();
   carregarListasIA().then(atualizarListasAcoes);
 }
@@ -1336,7 +1339,8 @@ $('agAcoes').onsubmit = async e => {
     const padrao = $('rgPadrao').value;
     const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao),
       distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome, whatsapp: zap55(v.whatsapp) })).filter(v => v.id) : [],
-      trocaMin: s.distribuicao === 'rodizio' && [15, 20, 30, 40, 50, 60].includes(Number(s.trocaMin)) ? Number(s.trocaMin) : 0 }));
+      trocaMin: s.distribuicao === 'rodizio' && [15, 20, 30, 40, 50, 60].includes(Number(s.trocaMin)) ? Number(s.trocaMin) : 0,
+      pluginEscolha: s.distribuicao === 'rodizio' && s.pluginEscolha === 'escolher' ? 'escolher' : 'fila' }));
     const zapRuim = setores.flatMap(s => s.vendedores).find(v => v.whatsapp && !/^55\d{10,11}$/.test(v.whatsapp));
     if (zapRuim) throw Error('WhatsApp de ' + zapRuim.nome + ': use 55 + DDD + número.');
     const semVend = setores.find(s => s.distribuicao === 'rodizio' && !s.vendedores.length);
@@ -1595,12 +1599,12 @@ function desenharEventos() {
   };
   desenharPluginLink();
 }
-// link do Plugin do Vendedor (mesmo endereço deste painel, página /vendedor com a chave da loja)
+// link do Plugin do Usuário (mesmo endereço deste painel, página /vendedor com a chave da loja)
 function desenharPluginLink() {
   const el = $('pvConteudo'), p = eventos && eventos.plugin;
   if (!p) { el.innerHTML = '<p class="dica">Gerando o link do plugin… aparece em até 2 minutos.</p>'; return; }
   const link = location.origin + '/vendedor?k=' + encodeURIComponent(p.conta) + '&t=' + encodeURIComponent(p.t);
-  el.innerHTML = `<div class="ev-url"><input id="pvUrl" readonly aria-label="Link do Plugin do Vendedor" value="${esc(link)}"><button type="button" class="principal sm" id="pvCopiar">Copiar</button></div>`;
+  el.innerHTML = `<div class="ev-url"><input id="pvUrl" readonly aria-label="Link do Plugin do Usuário" value="${esc(link)}"><button type="button" class="principal sm" id="pvCopiar">Copiar</button></div>`;
   $('pvCopiar').onclick = async () => {
     try { await navigator.clipboard.writeText(link); } catch { $('pvUrl').select(); document.execCommand('copy'); }
     toast('Link do plugin copiado. Cole na LeadVox ao criar o plugin.');
@@ -1748,7 +1752,7 @@ const TOUR_PAINEL = () => [
   { ir: 'agentes:conhecimento', alvo: '[data-ag="conhecimento"]', t: 'Base de conhecimento', txt: 'Tudo o que este agente sabe da empresa: o que vende, horário, regras e as perguntas frequentes.' },
   { alvo: '[data-pg="estoque"]', menu: 1, t: CATALOGO[tipoCatalogo()].titulo, txt: CATALOGO[tipoCatalogo()].desc + ' A IA só oferece o que está aqui.' },
   { alvo: '[data-pg="etiquetas"]', menu: 1, t: 'Dados da sua LeadVox', txt: 'Etiquetas, etapas do funil, origens, usuários, departamentos e motivos vêm da sua LeadVox. A IA usa para marcar o lead e passar para a pessoa certa.' },
-  { alvo: '[data-pg="canais"]', menu: 1, t: 'Canais WhatsApp', txt: 'O endereço que você cola na LeadVox para as mensagens chegarem até a IA, e o link do Plugin do Vendedor.' },
+  { alvo: '[data-pg="canais"]', menu: 1, t: 'Canais WhatsApp', txt: 'O endereço que você cola na LeadVox para as mensagens chegarem até a IA, e o link do Plugin do Usuário.' },
   { alvo: '[data-pg="credenciais"]', menu: 1, t: 'Credenciais de API', txt: 'Onde você conecta a LeadVox, o estoque e outras contas. As chaves ficam guardadas em cofre e não voltam para a tela.' },
   { alvo: '[data-pg="conta"]', menu: 1, t: 'Minha conta', txt: 'Dados da empresa e da loja, o seu plano e a senha.' },
   { alvo: '#btGuia', t: 'Primeiros passos', txt: 'Volte aqui quando quiser: os passos que faltam, este tour e as dúvidas comuns.' }

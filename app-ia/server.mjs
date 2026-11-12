@@ -11,7 +11,7 @@ const root = path.resolve(fileURLToPath(new URL('./public/', import.meta.url)));
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon'};
 // Plugin do Vendedor: abre dentro da LeadVox (iframe ao lado do atendimento); o resto do painel não abre em iframe nenhum.
 const PLUGIN_PAGINAS=new Set(['/vendedor','/vendedor.html','/vendedor.js']);
-const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta','orcamento']);
+const PLUGIN_ACOES=new Set(['contexto','pausar','devolver','agendar','cancelar','estoque','enviar_carro','proposta','orcamento','fila','transferir','fechar']);
 // proposta comercial / orçamento de serviços (segmentos que não são de veículos): itens com quantidade e preço, e as condições
 function camposOrcamento(b,txt){
  const n=(x,max)=>{const s=String(x??'').trim(),v=Number(/,/.test(s)?s.replace(/\./g,'').replace(',','.'):s);return Number.isFinite(v)&&v>0?Math.min(Math.round(v*1000)/1000,max):0;};
@@ -117,6 +117,9 @@ export function createApp(options={}) {
   const txt=(v,n)=>typeof v==='string'||typeof v==='number'?String(v).slice(0,n):'';
   if(!/^[a-z0-9-]{1,24}-[0-9a-f]{8}$/.test(txt(b.k,40))||!/^[0-9a-f]{24}$/.test(txt(b.t,30))||!PLUGIN_ACOES.has(b.acao))return responder(400,{ok:false,erro:'Link do plugin incompleto. Peça o link ao gestor.'});
   const corpo={k:b.k,t:b.t,acao:b.acao,tel:txt(b.tel,20),ticketId:txt(b.ticketId,12),vendedor:txt(b.vendedor,60),cliente:txt(b.cliente,80),contactId:txt(b.contactId,12)};
+  // transferir / fila: departamento (fila da LeadVox), pessoa escolhida (só se o lojista deixar) e quem está com o ticket; fechar: Ganho ou Perdido
+  if(b.acao==='fila'||b.acao==='transferir'){corpo.filaId=txt(b.filaId,9).replace(/\D/g,'');corpo.pessoaId=txt(b.pessoaId,9).replace(/\D/g,'');corpo.usuarioId=txt(b.usuarioId,9).replace(/\D/g,'');if(!corpo.filaId)return responder(400,{ok:false,erro:'Escolha o departamento.'});}
+  if(b.acao==='fechar'){if(!['won','lost'].includes(b.status))return responder(400,{ok:false,erro:'Escolha Vendido ou Perdido.'});corpo.status=b.status;}
   // agendar: data e hora locais do vendedor (AAAA-MM-DDTHH:MM) e o assunto que a IA deve retomar
   if(b.acao==='agendar'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(txt(b.quando,20)))return responder(400,{ok:false,erro:'Escolha a data e a hora do follow-up.'});corpo.quando=b.quando;corpo.assunto=txt(b.assunto,300);}
   // estoque: busca no catálogo da loja; enviar_carro: ficha + até 10 fotos para o cliente do atendimento
