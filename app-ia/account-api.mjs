@@ -11,11 +11,10 @@ import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
 import {configRastreio,conferirMeta,conferirLeitura,buscarAnuncios,montarEvento,enviarMeta,sha256} from './supabase/functions/rastreio/rastreio.mjs';
 const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
-// Motor do painel: conta nova já nasce no n8n novo (VPS); as contas abaixo seguem no antigo até a virada de cada uma.
+// Motor do painel: TODAS as contas do painel rodam no n8n novo (VPS). O n8n antigo não atende mais o painel.
 // Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
-export const N8N_ANTIGO='https://webhook.lv-mktdeconversa.com/webhook/',N8N_NOVO='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
-const CONTAS_N8N_ANTIGO=new Set(['brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9','leadvox-5c95bde0','lajes-bueno-0f4d201f','motoliketeste-3eaec7f7']);
-export const n8nDaConta=(conta)=>CONTAS_N8N_ANTIGO.has(String(conta||''))?N8N_ANTIGO:N8N_NOVO;
+export const N8N_NOVO='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+export const n8nDaConta=()=>N8N_NOVO;
 // Versão dos Termos de Uso e da Política de Privacidade (public/termos.html e privacidade.html). Trocar a data pede o aceite de novo.
 export const TERMOS_VERSAO='2026-11-01';
 // Error codes returned by the Motor IA functions (iag_*), in the client's words.

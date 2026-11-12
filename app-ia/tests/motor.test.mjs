@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createApp} from '../server.mjs';
 import {jwtPayload,n8nDaConta} from '../account-api.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
@@ -301,9 +302,7 @@ test('seller plugin opens only inside LeadVox and its API forwards only known fi
  assert.equal((await fetch(base+'/api/plugin',{method:'POST',headers:{Origin:'https://outro.site','Content-Type':'application/json'},body:'{}'})).status,403);
 });
 
-test('n8n da conta: conta nova vai para o n8n novo; as antigas ficam no antigo até a virada',()=>{
- assert.equal(n8nDaConta('cliente-novo-12345678'),'https://n8n.leadvox.com.br/webhook/');
- assert.equal(n8nDaConta(''),'https://n8n.leadvox.com.br/webhook/');
- for(const c of ['p5-motors-d6a0d8aa','leadvox-crm-ia-a6d3e545'])assert.equal(n8nDaConta(c),'https://n8n.leadvox.com.br/webhook/');
- for(const c of ['brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9'])assert.equal(n8nDaConta(c),'https://webhook.lv-mktdeconversa.com/webhook/');
+test('n8n da conta: todas as contas do painel usam o n8n novo (nenhuma fica no antigo)',()=>{
+ for(const c of ['cliente-novo-12345678','','p5-motors-d6a0d8aa','leadvox-crm-ia-a6d3e545','brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9'])assert.equal(n8nDaConta(c),'https://n8n.leadvox.com.br/webhook/');
+ assert.doesNotMatch(readFileSync(new URL('../account-api.mjs',import.meta.url),'utf8'),/lv-mktdeconversa/);
 });
