@@ -2648,7 +2648,32 @@ $('opBusca').oninput = desenharOportunidades;
 /* ═══════════ RASTREAMENTO DE ANÚNCIOS (módulo extra) ═══════════
    Webhook próprio na LeadVox → função "rastreio" do Supabase: grava de qual anúncio veio o lead e avisa a Meta
    quando o card fica qualificado ou ganho. Aqui o dono configura e acompanha; o Super Admin libera o módulo. */
-let rast = null, rastPeriodo = 30, rastRel = null, rastConta = null;
+// INÍCIO periodoRastreio: atalhos de período dos Resultados → { ini, fim, rotulo } em datas de São Paulo (o teste roda este trecho sozinho)
+const RS_PERIODOS = [['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7', '7 dias'], ['30', '30 dias'], ['mes', 'Este mês'], ['mespassado', 'Mês passado'], ['pers', 'Personalizado']];
+function periodoRastreio(p, hoje) {
+  const dt = s => new Date(s + 'T12:00:00Z'), iso = x => x.toISOString().slice(0, 10), mais = (s, n) => iso(new Date(dt(s).getTime() + n * 864e5));
+  const br = s => s.slice(8, 10) + '/' + s.slice(5, 7), faixa = (a, b) => br(a) + ' a ' + br(b);
+  const ok = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && !isNaN(dt(s));
+  const tipo = p?.tipo, h = hoje, mes1 = h.slice(0, 8) + '01';
+  if (tipo === 'hoje') return { ini: h, fim: h, rotulo: 'Hoje, ' + br(h) };
+  if (tipo === 'ontem') { const o = mais(h, -1); return { ini: o, fim: o, rotulo: 'Ontem, ' + br(o) }; }
+  if (tipo === '30') { const i = mais(h, -29); return { ini: i, fim: h, rotulo: 'Últimos 30 dias (' + faixa(i, h) + ')' }; }
+  if (tipo === 'mes') return { ini: mes1, fim: h, rotulo: 'Este mês (' + faixa(mes1, h) + ')' };
+  if (tipo === 'mespassado') { const f = mais(mes1, -1), i = f.slice(0, 8) + '01'; return { ini: i, fim: f, rotulo: 'Mês passado (' + faixa(i, f) + ')' }; }
+  if (tipo === 'pers' && ok(p.de) && ok(p.ate)) {
+    let [i, f] = p.de <= p.ate ? [p.de, p.ate] : [p.ate, p.de];
+    if (f > h) f = h; if (i > f) i = f;
+    if (mais(i, 365) < f) i = mais(f, -365); // o servidor aceita até 366 dias
+    return { ini: i, fim: f, rotulo: i === f ? 'Dia ' + br(i) + '/' + i.slice(0, 4) : faixa(i, f) + (i.slice(0, 4) !== h.slice(0, 4) || f.slice(0, 4) !== h.slice(0, 4) ? ' (' + i.slice(0, 4) + (f.slice(0, 4) !== i.slice(0, 4) ? '–' + f.slice(0, 4) : '') + ')' : '') };
+  }
+  const i = mais(h, -6); return { ini: i, fim: h, rotulo: 'Últimos 7 dias (' + faixa(i, h) + ')', tipo: '7' };
+}
+// FIM periodoRastreio
+const hojeSP = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+// O painel lembra o último período escolhido (só neste navegador); o padrão é 7 dias.
+let rastPer = (() => { try { const p = JSON.parse(localStorage.getItem('lv_rs_periodo') || 'null'); if (p && RS_PERIODOS.some(([k]) => k === p.tipo)) return p; } catch {} return { tipo: '7' }; })();
+let rastPersAberto = false;
+let rast = null, rastRel = null, rastConta = null;
 const rsReais = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const EVENTO_QUALIF = { QualifiedLead: 'Lead qualificado (QualifiedLead)', Lead: 'Lead (Lead)', LeadSubmitted: 'Lead na conversa (LeadSubmitted)', Contact: 'Contato (Contact)',
   Schedule: 'Agendamento (Schedule)', SubmitApplication: 'Ficha enviada (SubmitApplication)', CompleteRegistration: 'Cadastro completo (CompleteRegistration)' };
@@ -2776,8 +2801,8 @@ async function salvarRastreio(ativo, passo) {
   } catch (err) { toast(err.message, true); }
 }
 async function carregarRelatorioRastreio() {
-  const fim = new Date(), ini = new Date(Date.now() - (rastPeriodo - 1) * 864e5), dia = d => d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  try { rastRel = await api('rastreio-relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + dia(ini) + '&fim=' + dia(fim) + (rastConta ? '&conta=' + encodeURIComponent(rastConta) : '')); }
+  const { ini, fim } = periodoRastreio(rastPer, hojeSP());
+  try { rastRel = await api('rastreio-relatorio?organization=' + encodeURIComponent(empresa.id) + '&ini=' + ini + '&fim=' + fim + (rastConta ? '&conta=' + encodeURIComponent(rastConta) : '')); }
   catch (err) { rastRel = { erro: err.message }; }
   desenharRelatorioRastreio();
 }
@@ -2792,7 +2817,13 @@ const rsConta = x => x?.conta ? `<span class="rs-conta">${esc(x.conta)}</span>` 
 function desenharRelatorioRastreio() {
   const el = $('rsRel'); if (!el) return;
   const d = rastRel || {}, t = d.totais || {}, contas = d.contas || [];
-  const periodo = `<div class="form-bts">${[7, 30, 90].map(n => `<button type="button" class="sm${n === rastPeriodo ? ' principal' : ''}" data-rs-periodo="${n}">${n} dias</button>`).join('')}</div>`;
+  const hoje = hojeSP(), per = periodoRastreio(rastPer, hoje), atual = per.tipo || rastPer.tipo, umDia = per.ini === per.fim;
+  const periodo = `<div class="form-bts rs-periodos" role="group" aria-label="Período">${RS_PERIODOS.map(([k, nome]) => {
+    const on = k === 'pers' ? atual === 'pers' || rastPersAberto : k === atual && !rastPersAberto;
+    return `<button type="button" class="sm${on ? ' principal' : ''}" aria-pressed="${on}" data-rs-periodo="${k}">${nome}</button>`; }).join('')}</div>
+    ${rastPersAberto ? `<div class="filtro rs-pers"><div><label for="rsDe">De</label><input type="date" id="rsDe" max="${hoje}" value="${per.ini}"></div>
+      <div><label for="rsAte">Até</label><input type="date" id="rsAte" max="${hoje}" value="${per.fim}"></div>
+      <button type="button" class="principal sm" id="rsAplicar">Aplicar</button><button type="button" class="sm" id="rsCancelarPer">Cancelar</button></div>` : ''}`;
   if (d.erro) { el.innerHTML = `<h3>Resultados</h3>${periodo}<p class="alerta">${esc(d.erro)}</p>`; ligarPeriodoRastreio(); return; }
   // Filtro por conta de anúncio: aparece quando há mais de uma conta (ou um filtro já escolhido).
   const filtro = contas.length > 1 || rastConta ? `<div class="form-bts rs-filtro"><button type="button" class="sm${!rastConta ? ' principal' : ''}" data-rs-conta="">Todas as contas</button>${contas.map(c =>
@@ -2800,8 +2831,9 @@ function desenharRelatorioRastreio() {
   const aviso = d.semConta && !rast?.temTokenAnuncios ? `<p class="dica">${d.semConta} lead(s) ainda sem conta de anúncio. Para ver a conta e a campanha, cole o token de leitura de anúncios no passo 2.</p>` : '';
   const st = { enviado: ['on', 'A Meta recebeu'], erro: ['perdida', 'Não enviado'], pendente: ['rascunho', 'Enviando'] };
   const sit = { venda: ['on', 'Venda'], qualificado: ['rascunho', 'Qualificado'], lead: ['', 'Lead'] };
-  const hora = x => new Date(x).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px">Leads que chegaram por anúncio nos últimos ${rastPeriodo} dias e o que eles viraram.</p></div></div>${periodo}${filtro}${aviso}
+  // Hoje ou Ontem: os leads mostram só a hora (todos são do mesmo dia)
+  const hora = x => new Date(x).toLocaleString('pt-BR', umDia ? { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' } : { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+  el.innerHTML = `<div class="lista-topo"><div><h3>Resultados</h3><p class="muted" style="margin-top:4px"><b class="rs-per-nome">${esc(per.rotulo)}</b> · leads que chegaram por anúncio e o que eles viraram.</p></div></div>${periodo}${filtro}${aviso}
     <div class="rs-totais"><div><b>${t.leads || 0}</b><span>leads de anúncio</span></div><div><b>${t.qualificados || 0}</b><span>qualificados</span></div>
       <div><b>${t.vendas || 0}</b><span>vendas</span></div><div><b>${rsReais(t.valor)}</b><span>em vendas</span></div></div>
     ${(d.anuncios || []).length ? `<div class="rolo"><table class="tabela-d"><thead><tr><th>Campanha / anúncio</th><th>Conta</th><th>Leads</th><th>Qualificados</th><th>Vendas</th><th>Valor</th></tr></thead><tbody>
@@ -2817,7 +2849,18 @@ function desenharRelatorioRastreio() {
   ligarPeriodoRastreio();
 }
 function ligarPeriodoRastreio() {
-  document.querySelectorAll('[data-rs-periodo]').forEach(b => b.onclick = () => { rastPeriodo = Number(b.dataset.rsPeriodo); carregarRelatorioRastreio(); });
+  const guardar = () => { try { localStorage.setItem('lv_rs_periodo', JSON.stringify(rastPer)); } catch {} };
+  document.querySelectorAll('[data-rs-periodo]').forEach(b => b.onclick = () => {
+    const k = b.dataset.rsPeriodo;
+    if (k === 'pers') { rastPersAberto = true; desenharRelatorioRastreio(); $('rsDe')?.focus(); return; } // só busca no Aplicar
+    rastPersAberto = false; rastPer = { tipo: k }; guardar(); carregarRelatorioRastreio();
+  });
+  if ($('rsAplicar')) $('rsAplicar').onclick = () => {
+    const de = $('rsDe').value, ate = $('rsAte').value;
+    if (!de || !ate) { toast('Escolha as duas datas.', true); return; }
+    rastPersAberto = false; rastPer = { tipo: 'pers', de, ate }; guardar(); carregarRelatorioRastreio();
+  };
+  if ($('rsCancelarPer')) $('rsCancelarPer').onclick = () => { rastPersAberto = false; desenharRelatorioRastreio(); };
   document.querySelectorAll('[data-rs-conta]').forEach(b => b.onclick = () => { rastConta = b.dataset.rsConta || null; carregarRelatorioRastreio(); });
 }
 // Super Admin: liberar ou tirar o módulo da empresa (fica no histórico).
