@@ -306,3 +306,20 @@ test('n8n da conta: todas as contas do painel usam o n8n novo (nenhuma fica no a
  for(const c of ['cliente-novo-12345678','','p5-motors-d6a0d8aa','leadvox-crm-ia-a6d3e545','brants-car-1f42143d','vassouras-granrio-5ab85d2e','leadvox-ia-420245d9'])assert.equal(n8nDaConta(c),'https://n8n.leadvox.com.br/webhook/');
  assert.doesNotMatch(readFileSync(new URL('../account-api.mjs',import.meta.url),'utf8'),/lv-mktdeconversa/);
 });
+
+test('ligar à LeadVox: a recusa do banco vira o motivo certo na tela', async t => {
+ const caso=async(msg)=>{const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  const fn=(u.match(/rpc\/([a-z_]+)/)||[])[1];
+  if(fn==='lv_chat_secret')return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8',token:jwt({tenantId:17,sessionId:64})}]);
+  if(fn==='lv_motor_conectar')return {ok:false,status:400,json:async()=>({code:'P0001',message:msg})};
+  return ok({ok:true});}});
+  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+  const base='http://127.0.0.1:'+s.address().port;
+  const r=await fetch(base+'/api/account/motor',{method:'POST',headers:{Origin:base,Cookie:'__Host-lv_session=x'},body:JSON.stringify({organization:org,acao:'conectar'})});
+  return [r.status,(await r.json()).error];};
+ let [st,er]=await caso('forbidden');assert.equal(st,403);assert.match(er,/dono ou um administrador/);
+ [st,er]=await caso('invalid');assert.equal(st,400);assert.match(er,/endereço da LeadVox/);
+ [st,er]=await caso('duplicate key value violates unique constraint');assert.equal(st,409);assert.match(er,/já está ligado a outra conta/);
+ [st,er]=await caso('outra coisa');assert.equal(st,400);assert.match(er,/Não foi possível concluir/);
+});

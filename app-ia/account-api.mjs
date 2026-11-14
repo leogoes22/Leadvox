@@ -118,7 +118,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
  async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
   let r;try{r=await fetchImpl(URL_BASE+route,{method,headers:{apikey:KEY,Authorization:'Bearer '+(token||KEY),'Content-Type':'application/json',Prefer:prefer},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000),redirect:'error'});}catch{throw {status:503,message:'Serviço temporariamente indisponível.'};}
   const data=await r.json().catch(()=>null);
-  if(!r.ok)throw {status:r.status===429?429:400,message:r.status===429?'Muitas tentativas. Aguarde alguns minutos.':'Não foi possível concluir. Confira os dados e tente novamente.'};
+  // detalhe: o motivo do banco (ex.: forbidden, invalid), para as rotas traduzirem; não vai para a tela
+  if(!r.ok)throw {status:r.status===429?429:400,message:r.status===429?'Muitas tentativas. Aguarde alguns minutos.':'Não foi possível concluir. Confira os dados e tente novamente.',detalhe:String(data?.message||data?.hint||'').slice(0,300)};
   return data;
  }
  // O painel faz várias chamadas juntas e o token de renovação só vale uma vez: todas usam a mesma renovação.
@@ -528,7 +529,15 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
       }
       falha(r,'Não deu para mudar o agente.');
      }else throw {status:400,message:'Ação inválida.'};
-    }catch(e){if(e.status&&e.message)throw e;throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
+    }catch(e){
+     // recusa do banco: diz o motivo em vez do "Não foi possível concluir" genérico
+     const d=String(e?.detalhe||'');
+     if(/forbidden/i.test(d))throw {status:403,message:'Só o dono ou um administrador desta empresa pode mexer na IA. Entre com a conta do cliente (o acesso da LeadVox de fora não basta).'};
+     if(acao==='conectar'||acao==='vincular'){
+      if(/invalid/i.test(d))throw {status:400,message:'O endereço da LeadVox salvo em Credenciais não é aceito pelo motor (precisa ser https://chat…api.leadvox.com.br/v1/api/external/…). Conecte de novo em Credenciais de API.'};
+      if(/duplicate|unique|already|exists|outra conta/i.test(d))throw {status:409,message:'Esse número da LeadVox já está ligado a outra conta da IA. Fale com o suporte da LeadVox para soltar o número antes.'};
+     }
+     if(e.status&&e.message)throw {status:e.status,message:e.message};throw {status:400,message:'Não deu para concluir. Só o dono da empresa pode mexer na IA.'};}
     send(res,200,await rpc('lv_motor_status',{}));
    }else if(action==='eventos'&&req.method==='GET'){
     // Endereço do Webhook de eventos (Sentinela) da empresa e quando chegou o último evento.
