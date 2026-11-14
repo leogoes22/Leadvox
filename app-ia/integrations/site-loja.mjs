@@ -84,6 +84,34 @@ export async function lerSiteLoja(endereco,opcoes={}){
  return extrairIdentidade(buf.toString('utf8'),final);
 }
 
+// Assistente "Monte sua IA": o texto visível do site (início + até 3 páginas internas como sobre, contato, perguntas
+// frequentes, serviços) para a IA aprender o que a empresa vende. Mesmas proteções da leitura acima, página a página.
+const PAGINA_UTIL=/sobre|quem-somos|quemsomos|empresa|institucional|nossa-historia|contato|fale-conosco|faq|duvidas|perguntas|servicos|servico|financiamento|como-comprar|garantia|politica-de-troca|trocas/i;
+const textoDaPagina=html=>limpo(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>|<svg[\s\S]*?<\/svg>|<(nav|footer)[\s\S]*?<\/\1>/gi,' ').replace(/<\/(p|div|li|h[1-6]|section|article|tr|br)>|<br\s*\/?>/gi,' · '),6000).replace(/(\s·\s*){2,}/g,' · ');
+export function linksUteis(html,base){
+ const host=new URL(base).hostname,vistos=new Set(),out=[];
+ for(const m of html.matchAll(/<a\s[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+  let u;try{u=new URL(m[1],base);}catch{continue;}
+  if(!/^https?:$/.test(u.protocol)||u.hostname!==host||/\.(pdf|jpe?g|png|gif|webp|zip|mp4)$/i.test(u.pathname))continue;
+  const chave=u.pathname.replace(/\/$/,'');if(!chave||vistos.has(chave))continue;
+  if(!PAGINA_UTIL.test(u.pathname+' '+limpo(m[2],80)))continue;
+  vistos.add(chave);u.hash='';out.push(u.href);if(out.length>=3)break;
+ }
+ return out;
+}
+export async function lerSiteTexto(endereco,opcoes={}){
+ const url=/^https?:\/\//i.test(endereco)?endereco:'https://'+String(endereco||'').trim();
+ const {buf,url:final}=await buscar(url,{...opcoes,max:MAX_PAGINA,aceita:'text/html'});
+ const html=buf.toString('utf8');
+ const titulo=h=>limpo((/<title[^>]*>([\s\S]*?)<\/title>/i.exec(h)||[])[1],120);
+ const desc=meta(html,'description')||meta(html,'og:description');
+ const paginas=[{url:final,titulo:titulo(html),texto:(desc?limpo(desc,300)+' · ':'')+textoDaPagina(html)}];
+ for(const link of linksUteis(html,final)){
+  try{const p=await buscar(link,{...opcoes,max:MAX_PAGINA,aceita:'text/html'});const h=p.buf.toString('utf8');paginas.push({url:p.url,titulo:titulo(h),texto:textoDaPagina(h)});}catch{}
+ }
+ return {identidade:extrairIdentidade(html,final),paginas:paginas.map(p=>({url:p.url,titulo:p.titulo,texto:p.texto.slice(0,6000)}))};
+}
+
 // A logo achada no site vem para o painel como data URL (o navegador converte para JPEG antes de guardar)
 export async function baixarLogoSite(url,opcoes={}){
  const {buf,tipo}=await buscar(url,{...opcoes,max:MAX_IMAGEM,aceita:'image/*'});

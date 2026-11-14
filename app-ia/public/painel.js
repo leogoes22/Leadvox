@@ -548,7 +548,9 @@ function desenharMotor() {
   if (!motor.vinculado) {
     box.innerHTML = `<h3>Sua IA ainda não está ligada ao motor da LeadVox</h3>
       <p class="muted" style="margin-top:6px">Ao ligar, criamos a sua conta no motor que atende o WhatsApp. Se a sua LeadVox já estiver conectada em Credenciais, o número já fica ligado.</p>
-      <button class="principal" type="button" id="mVincular" style="margin-top:12px">Ligar minha IA</button>`;
+      ${asCta()}
+      <button class="${empresa.role === 'owner' ? 'leve' : 'principal'}" type="button" id="mVincular" style="margin-top:12px">Só ligar minha IA (configuro depois)</button>`;
+    if ($('mAssist')) $('mAssist').onclick = abrirAssistente;
     $('mVincular').onclick = async () => { $('mVincular').disabled = true; try { await acaoMotor({ acao: 'vincular' }, 'IA ligada ao motor.'); desenharMotor(); } catch { $('mVincular').disabled = false; } };
     $('agDetalhe').hidden = true; return;
   }
@@ -559,11 +561,14 @@ function desenharMotor() {
   const ags = motor.agentes || [];
   box.innerHTML = `<div class="lista-topo"><div><h3>Seus agentes de IA</h3><p class="muted" style="margin-top:4px">${linhaCx}</p></div>
       <div class="form-bts" style="margin:0"><select id="mTipo" style="width:auto">${(motor.tipos || []).map(t => `<option value="${esc(t.codigo)}">${esc(t.nome)}</option>`).join('')}</select>
-      <button type="button" class="principal sm" id="mCriar" ${ags.length >= motor.limite ? 'disabled title="Limite de agentes"' : ''}>+ Novo agente</button></div></div>
+      <button type="button" class="principal sm" id="mCriar" ${ags.length >= motor.limite ? 'disabled title="Limite de agentes"' : ''}>+ Novo agente</button>
+      ${ags.length && ags.length < motor.limite && empresa.role === 'owner' ? '<button type="button" class="sm" id="mAssist2" title="Responda 5 perguntas e a IA sai montada">✨ Montar com assistente</button>' : ''}</div></div>
     <div style="margin-top:8px">${ags.map(a => `<div class="item"><div><b>${esc(a.nome || 'Agente sem nome')}${a.entrada ? ' <span class="st">porta de entrada</span>' : ''}</b>
         <small>${esc(nomeTipo(a.tipo))} · versão ${esc(a.versao)}${a.configurado ? '' : ' · <span style="color:var(--amarelo)">configuração pendente</span>'}</small></div>
         <div class="bts"><span class="liga"><button type="button" class="switch" role="switch" aria-checked="${!!a.ativo}" data-ligar-ag="${esc(a.chave)}" aria-label="IA ${esc(a.nome || '')} ligada"><span></span></button><b class="${a.ativo ? 'on' : ''}">${a.ativo ? 'Ligada' : 'Desligada'}</b></span><button type="button" class="sm" data-abrir-ag="${esc(a.chave)}" ${a.chave === agSel ? 'aria-pressed="true"' : ''}>Abrir</button></div></div>`).join('')
-      || '<p class="muted" style="padding:12px 0">Nenhum agente ainda. Escolha o tipo e clique em Novo agente.</p>'}</div>`;
+      || (asCta() || '<p class="muted" style="padding:12px 0">Nenhum agente ainda. Escolha o tipo e clique em Novo agente.</p>')}</div>`;
+  if ($('mAssist')) $('mAssist').onclick = abrirAssistente;
+  if ($('mAssist2')) $('mAssist2').onclick = abrirAssistente;
   $('mConectar') && ($('mConectar').onclick = async () => { try { await acaoMotor({ acao: 'conectar' }, 'WhatsApp ligado ao motor.'); desenharMotor(); } catch {} });
   $('mCriar').onclick = async () => { $('mCriar').disabled = true; try { await acaoMotor({ acao: 'criar', tipo: $('mTipo').value }, 'Agente criado.'); const novo = (motor.agentes || []).at(-1); desenharMotor(); if (novo) abrirAgenteMotor(novo.chave); } catch { $('mCriar').disabled = false; } };
   document.querySelectorAll('[data-abrir-ag]').forEach(b => b.onclick = () => abrirAgenteMotor(b.dataset.abrirAg));
@@ -1177,7 +1182,16 @@ function sugerirDepartamentos() {
   if (!$('rgDeps')) $('rgSetores').insertAdjacentHTML('afterend', '<datalist id="rgDeps"></datalist>');
   $('rgDeps').innerHTML = deps.map(d => `<option value="${esc(d.name)}">`).join('');
 }
+// Origem de quem chega por anúncio (o motor marca no CRM na primeira mensagem): uma origem da LeadVox ou nenhuma
+function desenharOrigemAd() {
+  const sel = $('rgOrigemAd'); if (!sel || !agDados) return;
+  const atual = ((agDados.config.crm || {}).origemAnuncio) || null, os = (listas.origens || []).filter(o => o && o.id && o.name);
+  const opc = os.map(o => `<option value="${esc(o.id)}"${atual && String(atual.id) === String(o.id) ? ' selected' : ''}>${esc(limpaNome(o.name))}</option>`);
+  if (atual && atual.id && !os.some(o => String(o.id) === String(atual.id))) opc.unshift(`<option value="${esc(atual.id)}" selected>${esc(atual.nome || 'Origem ' + atual.id)}</option>`);
+  sel.innerHTML = `<option value="">Não marcar</option>${opc.join('')}${!listas.origens ? '<option value="" disabled>Conecte a LeadVox para ver as origens</option>' : ''}`;
+}
 function atualizarListasAcoes() {
+  desenharOrigemAd();
   sugerirDepartamentos();
   if (setoresEd.some(s => s.distribuicao === 'rodizio')) desenharSetores(); // a lista de vendedores chegou
   if (agDados) desenharLugar(); // a lista de departamentos chegou
@@ -1354,7 +1368,9 @@ $('agAcoes').onsubmit = async e => {
     const unicas = acoes.filter((a, i) => a.id === undefined || acoes.findIndex(b => b.cod === a.cod && b.id === a.id) === i);
     // de qual funil é cada etapa: o motor transfere a oportunidade quando a etapa nova é de outro funil
     const funis = Object.fromEntries((listas.status || []).filter(e => e.funil).map(e => [String(e.id), e.funil]));
-    const config = { ...c, setores, crm: { ...crm, listaEtiquetas: lista },
+    const oa = $('rgOrigemAd'), oaId = Number(oa.value) || 0;
+    const origemAnuncio = oaId ? { id: oaId, nome: (oa.selectedOptions[0]?.textContent || '').trim().slice(0, 60) } : null;
+    const config = { ...c, setores, crm: { ...crm, listaEtiquetas: lista, origemAnuncio },
       regras: { texto: $('rgTexto').value.trim(), grupo: $('rgGrupo').value.replace(/\D/g, ''), responsavel: $('rgModoResp').value, usuarioId: Number($('rgResp').value) || null, acoes: unicas,
         ...(Object.keys(funis).length ? { funis } : {}) } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
@@ -1627,7 +1643,10 @@ function itensProntos() {
     ['Mensagens da LeadVox chegando', 'Endereço do webhook de eventos colado na LeadVox.', recebendo(), 'canais', '#evCard',
       'Copie este endereço e cole na LeadVox em Configurações → API → Webhook de eventos. Sem ele, a IA não fica sabendo que chegou mensagem.'],
     ['Base de conhecimento', 'O que a empresa faz e pelo menos uma pergunta frequente.', !!(c.empresa?.descricao && (c.conhecimento?.faq || []).length), 'agentes:conhecimento', '#kForm',
-      'Conte o que a empresa faz e cadastre as perguntas que os clientes mais fazem. A IA responde com base no que está aqui.']
+      'Conte o que a empresa faz e cadastre as perguntas que os clientes mais fazem. A IA responde com base no que está aqui.'],
+    // a metodologia de cada loja: etiquetas, etapa do funil, origem do lead no CRM, oportunidade e responsável, passagem para a equipe
+    ['Funil, origem e oportunidade', 'Regras de etiqueta, etapa do funil, origem do lead, oportunidade e responsável.', !!String(c.regras?.texto || '').trim(), 'agentes:automacoes', '#rgModelo',
+      'O jeito da sua loja trabalhar: quando a IA marca etiqueta, muda a etapa do funil, registra a origem do lead no CRM, cria a oportunidade, quem fica de responsável e para quem ela passa o cliente. Use o Modelo pronto: ele monta as regras com as listas da sua LeadVox, e você ajusta do seu jeito.']
   ];
   if (cfg.niche === 'automotivo') itens.push(['Estoque com veículos', 'Veículos disponíveis e a IA usando o estoque.', !!(c.catalogo?.usar && (estoque?.itens || []).some(i => i.status === 'disponivel')), 'estoque', '#esTopo',
     'Cadastre os veículos aqui ou conecte o AutoCerto ou o Revenda Mais em Credenciais. A IA só oferece o que está no estoque.']);
@@ -2881,8 +2900,234 @@ async function carregarRastreioAdmin(e) {
   };
 }
 
+/* ═══════════ ASSISTENTE "MONTE SUA IA" ═══════════
+   Para quem é leigo: site/Instagram/Maps + 5 perguntas → o servidor lê o site e o fluxo iag-montar-ia (n8n novo)
+   escreve a configuração → o dono confere tudo → o painel cria o agente DESLIGADO e segue para o Testar e os Primeiros passos. */
+const AS_TRABALHOS = [
+  ['vender', 'sdr', '🎯', 'Vender e agendar visita', 'Apresenta o que você vende, tira dúvidas e marca a visita.'],
+  ['agendar', 'agendamento', '📅', 'Agendar horário', 'Marca consulta, serviço ou atendimento na agenda.'],
+  ['orcamento', 'catalogo', '🧾', 'Orçamento ou pedido', 'Coleta o que o cliente precisa e monta o orçamento.'],
+  ['duvidas', 'recepcao', '💬', 'Tirar dúvidas e encaminhar', 'Responde o básico e passa para a pessoa certa.'],
+  ['suporte', 'suporte', '🛠️', 'Pós-venda e suporte', 'Atende quem já é cliente: garantia, problema, pedido.']];
+const AS_PRECOS = [['livre', '💲', 'Pode falar o preço', 'Fala o valor exato de cada item.'], ['a_partir', '🏷️', 'Só “a partir de”', 'Dá a faixa e o valor final a equipe confirma.'], ['nao_fala', '🤐', 'Não fala preço', 'Diz que a equipe passa o valor.']];
+const AS_TONS = [['profissional', '👔', 'Profissional', 'Olá! Sou {n}, assistente virtual da {e}. Como posso ajudar?'],
+  ['amigavel', '😊', 'Amigável', 'Oi! Aqui é {n}, da {e} 😊 Como posso te ajudar hoje?'], ['descontraido', '🤙', 'Descontraído', 'E aí, tudo certo? Sou {n} da {e}! Bora resolver o que você precisa?']];
+const AS_HORARIOS = { comercial: ['Comercial + sábado de manhã', ['08:00', '18:00'], ['08:00', '12:00'], null], sabado: ['Seg a sáb o dia todo', ['09:00', '18:00'], ['09:00', '18:00'], null],
+  todos: ['Todos os dias', ['08:00', '20:00'], ['08:00', '20:00'], ['09:00', '14:00']], h24: ['24 horas', ['00:00', '23:59'], ['00:00', '23:59'], ['00:00', '23:59']] };
+const AS_CHIPS = { automotivo: ['Carros seminovos', 'Carros 0 km', 'Motos', 'Financiamento', 'Aceita troca', 'Consignação'], imoveis: ['Venda', 'Aluguel', 'Lançamentos', 'Financiamento'],
+  saude: ['Consultas', 'Exames', 'Estética', 'Convênios'], advocacia: ['Trabalhista', 'Previdenciário', 'Família', 'Consulta on-line'], educacao: ['Cursos livres', 'Idiomas', 'Aula experimental', 'On-line'],
+  varejo: ['Entrega', 'Retirada na loja', 'Atacado', 'Varejo'], viagens: ['Pacotes nacionais', 'Internacionais', 'Passagens', 'Parcelamento'], outro: ['Entrega', 'Orçamento grátis', 'Atendimento na região'] };
+const AS_PASSOS = ['fontes', 'vende', 'trabalho', 'horario', 'preco', 'nome'];
+let AS = null;
+function assistenteNovo() {
+  const h = AS_HORARIOS.comercial, nome = cfg.aiName || '';
+  return { passo: 0, R: { site: '', instagram: '', mapa: '', vende: '', trabalho: cfg.niche === 'saude' ? 'agendar' : 'vender', hor: 'comercial', horario: { semana: h[1], sabado: h[2], domingo: h[3] },
+    preco: 'a_partir', nome, tom: 'amigavel' }, resultado: null, criando: false };
+}
+// Convite na tela de agentes quando ainda não há IA (só o dono monta)
+const asCta = () => empresa?.role !== 'owner' ? '' : `<div class="as-cta"><span aria-hidden="true">🤖</span><div><b>Monte a sua IA em 3 minutos</b>
+  <small>Cole o link do seu site e responda 5 perguntas rápidas. A gente monta a IA e você confere tudo antes de ligar.</small></div>
+  <button type="button" class="principal" id="mAssist">✨ Montar com o assistente</button></div>`;
+function abrirAssistente() {
+  if (!motor || motor.setupPending) { toast('A sua IA ainda está carregando. Tente de novo em instantes.', true); return; }
+  if (motor.vinculado && (motor.agentes || []).length >= motor.limite) { toast('Você já usou todos os agentes do seu plano.', true); return; }
+  if (!AS || AS.resultado?.criado) AS = assistenteNovo();
+  if (!$('dlgMonte').open) $('dlgMonte').showModal();
+  if (AS.resultado && !AS.resultado.criado) asRevisao(); else asTela();
+}
+$('miFechar').onclick = () => { if (AS?.criando) return; if (AS && AS.passo > 0 && !AS.resultado?.criado && !confirm('Sair do assistente? As suas respostas ficam guardadas até você fechar o painel.')) return; $('dlgMonte').close(); };
+const asNomeEmpresa = () => cfg.displayName || empresa?.name || 'sua empresa';
+const asTiposOk = () => { const t = new Set((motor?.tipos || []).map(x => x.codigo)); return AS_TRABALHOS.filter(x => !t.size || t.has(x[1])); };
+function asOpcoes(lista, atual, campo) {
+  return `<div class="as-opcoes">${lista.map(([k, ic, t, d]) => `<button type="button" class="as-opcao" aria-pressed="${k === atual}" data-as-op="${campo}:${k}"><span class="as-ic" aria-hidden="true">${ic}</span><span><b>${esc(t)}</b>${d ? `<small>${esc(d)}</small>` : ''}</span></button>`).join('')}</div>`;
+}
+function asLer() {
+  const R = AS.R, p = AS_PASSOS[AS.passo], v = id => ($(id)?.value || '').trim();
+  if (p === 'fontes') { R.site = v('miSite'); R.instagram = v('miInsta'); R.mapa = v('miMapa'); }
+  if (p === 'vende') R.vende = v('miVende');
+  if (p === 'horario') document.querySelectorAll('[data-as-h]').forEach(i => { const [d, k] = i.dataset.asH.split(':'); if (R.horario[d]) R.horario[d][+k] = i.value; });
+  if (p === 'nome') R.nome = v('miNome');
+}
+function asTela() {
+  const R = AS.R, p = AS_PASSOS[AS.passo], total = AS_PASSOS.length; let h = '';
+  $('miCorpo').onclick = null; $('miCorpo').oninput = null;
+  if (p === 'fontes') h = `<h3 class="as-h">Onde a gente encontra a sua empresa?</h3><p class="muted">Cole o que você tiver. A gente lê o site para aprender o que você vende, os diferenciais e as dúvidas comuns. Nada é obrigatório.</p>
+    <label for="miSite">🌐 Site da empresa</label><input id="miSite" maxlength="200" inputmode="url" placeholder="www.suaempresa.com.br" value="${esc(R.site)}">
+    <div class="duas"><div><label for="miInsta">📸 Instagram</label><input id="miInsta" maxlength="60" placeholder="@suaempresa" value="${esc(R.instagram)}"></div>
+    <div><label for="miMapa">📍 Link do Google Maps <small>(endereço)</small></label><input id="miMapa" maxlength="400" placeholder="https://maps.app.goo.gl/…" value="${esc(R.mapa)}"></div></div>`;
+  if (p === 'vende') h = `<h3 class="as-h">O que a ${esc(asNomeEmpresa())} vende ou faz?</h3><p class="muted">Em uma frase, do jeito que você explicaria para um cliente.</p>
+    <textarea id="miVende" rows="3" maxlength="400" placeholder="Ex.: ${esc(exemplo().seg)}">${esc(R.vende)}</textarea>
+    <div class="as-chips">${(AS_CHIPS[cfg.niche] || AS_CHIPS.outro).map(c => `<button type="button" class="sm" data-as-chip="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>`;
+  if (p === 'trabalho') h = `<h3 class="as-h">Qual é o principal trabalho da IA?</h3><p class="muted">Ela também responde o resto, mas foca nisso.</p>${asOpcoes(asTiposOk().map(([k, , ic, t, d]) => [k, ic, t, d]), R.trabalho, 'trabalho')}`;
+  if (p === 'horario') {
+    const dias = [['semana', 'Seg a sex'], ['sabado', 'Sábado'], ['domingo', 'Domingo']];
+    h = `<h3 class="as-h">Qual o horário de atendimento?</h3><p class="muted">Fora desse horário a IA continua respondendo e avisa quando a equipe volta.</p>
+    <div class="as-chips">${Object.entries(AS_HORARIOS).map(([k, x]) => `<button type="button" class="sm${R.hor === k ? ' principal' : ''}" aria-pressed="${R.hor === k}" data-as-hor="${k}">${esc(x[0])}</button>`).join('')}</div>
+    <div class="as-dias">${dias.map(([d, nome]) => { const v = R.horario[d]; return `<b>${nome}</b>${v ? `<input type="time" aria-label="${nome}: abre" value="${v[0]}" data-as-h="${d}:0"><input type="time" aria-label="${nome}: fecha" value="${v[1]}" data-as-h="${d}:1">` : '<span class="muted as-fechado">Fechado</span>'}
+      <button type="button" class="sm" data-as-fecha="${d}">${v ? 'Fechar' : 'Abrir'}</button>`; }).join('')}</div>`;
+  }
+  if (p === 'preco') h = `<h3 class="as-h">A IA pode falar o preço?</h3><p class="muted">Você muda isso quando quiser.</p>${asOpcoes(AS_PRECOS, R.preco, 'preco')}`;
+  if (p === 'nome') {
+    const tom = AS_TONS.find(t => t[0] === R.tom) || AS_TONS[1];
+    h = `<h3 class="as-h">Como a sua IA vai se chamar e falar?</h3><p class="muted">O nome aparece para o cliente. O jeito de falar vale para todas as mensagens.</p>
+    <label for="miNome">Nome da IA</label><input id="miNome" maxlength="30" placeholder="Ex.: Bruna" value="${esc(R.nome)}">
+    <div class="as-chips">${['Bruna', 'Carol', 'Augusto', 'Lia', 'Rafa'].map(n => `<button type="button" class="sm" data-as-nome="${n}">${n}</button>`).join('')}</div>
+    ${asOpcoes(AS_TONS.map(([k, ic, t]) => [k, ic, t, '']), R.tom, 'tom')}
+    <p class="muted" style="margin-top:14px;font-size:13px">Assim ela pode começar a conversa:</p>
+    <div class="as-exemplo"><span class="as-av" id="miAv">${esc((R.nome || 'IA')[0])}</span><div class="as-bolha" id="miExTom">${esc(tom[3].replace('{n}', R.nome || 'a IA').replace('{e}', asNomeEmpresa()))}</div></div>`;
+  }
+  const ultimo = AS.passo === total - 1;
+  $('miCorpo').innerHTML = `<div class="as-progresso"><span>Passo ${AS.passo + 1} de ${total}</span><div class="pronto-barra"><i style="width:${Math.round((AS.passo + 1) / (total + 1) * 100)}%"></i></div></div>
+    <div class="as-corpo">${h}</div><p class="erro" id="miErro" hidden></p>
+    <div class="as-rodape">${AS.passo ? '<button type="button" class="leve" id="miVolta">← Voltar</button>' : '<span></span>'}
+      <div class="form-bts" style="margin:0">${p === 'fontes' ? '<button type="button" id="miPula">Não tenho site</button>' : ''}<button type="button" class="principal" id="miSegue">${ultimo ? '✨ Montar minha IA' : 'Continuar'}</button></div></div>`;
+  asLigar(p);
+}
+function asLigar(p) {
+  const R = AS.R, erro = m => { $('miErro').textContent = m; $('miErro').hidden = false; };
+  if ($('miVolta')) $('miVolta').onclick = () => { asLer(); AS.passo--; asTela(); };
+  if ($('miPula')) $('miPula').onclick = () => { asLer(); R.site = ''; AS.passo++; asTela(); };
+  $('miSegue').onclick = () => {
+    asLer();
+    if (p === 'vende' && R.vende.length < 3) return erro('Conte em uma frase o que a sua empresa vende ou faz.');
+    if (p === 'nome' && !R.nome) return erro('Dê um nome para a sua IA.');
+    if (AS.passo < AS_PASSOS.length - 1) { AS.passo++; asTela(); } else asMontar();
+  };
+  document.querySelectorAll('[data-as-op]').forEach(b => b.onclick = () => { asLer(); const [c, k] = b.dataset.asOp.split(':'); R[c] = k; asTela(); });
+  document.querySelectorAll('[data-as-chip]').forEach(b => b.onclick = () => { const t = $('miVende'), c = b.dataset.asChip; t.value = t.value.trim() ? t.value.trim().replace(/[.]$/, '') + ', ' + c.toLowerCase() : c; t.focus(); });
+  document.querySelectorAll('[data-as-hor]').forEach(b => b.onclick = () => { const x = AS_HORARIOS[b.dataset.asHor]; R.hor = b.dataset.asHor; R.horario = { semana: x[1] && [...x[1]], sabado: x[2] && [...x[2]], domingo: x[3] && [...x[3]] }; asTela(); });
+  document.querySelectorAll('[data-as-fecha]').forEach(b => b.onclick = () => { asLer(); const d = b.dataset.asFecha; R.horario[d] = R.horario[d] ? null : ['09:00', '13:00']; R.hor = ''; asTela(); });
+  document.querySelectorAll('[data-as-nome]').forEach(b => b.onclick = () => { R.nome = b.dataset.asNome; asTela(); });
+  if ($('miNome')) $('miNome').oninput = () => { R.nome = $('miNome').value.trim(); const t = AS_TONS.find(x => x[0] === R.tom) || AS_TONS[1];
+    $('miExTom').textContent = t[3].replace('{n}', R.nome || 'a IA').replace('{e}', asNomeEmpresa()); $('miAv').textContent = (R.nome || 'IA')[0]; };
+  $('miCorpo').querySelector('input, textarea, .as-opcao[aria-pressed="true"]')?.focus();
+}
+async function asMontar() {
+  const R = AS.R, etapas = [R.site ? `Lendo o site ${R.site}` : 'Juntando as suas respostas', `Escrevendo como ${R.nome} se apresenta`, 'Criando as perguntas frequentes', 'Definindo o que perguntar ao cliente', 'Conferindo: nada de preço ou promessa inventada'];
+  AS.criando = true;
+  $('miCorpo').innerHTML = `<div class="as-montando"><h3 class="as-h">✨ Montando ${esc(R.nome)}…</h3><p class="muted">Leva menos de um minuto. Não feche esta janela.</p>
+    <div class="pronto-barra" style="margin-top:14px"><i id="miBar" style="width:4%"></i></div><ol id="miEtapas">${etapas.map(e => `<li><span class="as-st">○</span>${esc(e)}</li>`).join('')}</ol></div>`;
+  const li = [...document.querySelectorAll('#miEtapas li')]; let i = 0, fim = false;
+  const marca = n => li.forEach((x, j) => { x.className = j < n ? 'feito' : j === n ? 'agora' : ''; x.querySelector('.as-st').innerHTML = j < n ? '✓' : j === n ? '<span class="as-spin"></span>' : '○'; if ($('miBar')) $('miBar').style.width = Math.max(4, Math.round(n / li.length * 100)) + '%'; });
+  marca(0); const relogio = setInterval(() => { if (!fim && i < li.length - 1) marca(++i); }, 6000);
+  try {
+    if (!motor.vinculado) { await acaoMotor({ acao: 'vincular' }); }
+    const r = await api('assistente-ia', { organization: empresa.id, empresa: { nome: asNomeEmpresa(), nicho: cfg.niche || 'outro' },
+      fontes: { site: R.site, instagram: R.instagram, mapa: R.mapa },
+      respostas: { vende: R.vende, trabalho: R.trabalho, preco: R.preco, nome: R.nome, tom: R.tom, horario: R.horario } });
+    fim = true; clearInterval(relogio); marca(li.length); await esperar(400);
+    AS.resultado = r; AS.criando = false; asRevisao();
+  } catch (err) {
+    fim = true; clearInterval(relogio); AS.criando = false;
+    $('miCorpo').innerHTML = `<div class="as-montando"><h3 class="as-h">Não deu para montar agora</h3><p class="alerta">${esc(err.message)}</p>
+      <div class="as-rodape"><button type="button" class="leve" id="miVolta">← Voltar às perguntas</button><button type="button" class="principal" id="miDeNovo">Tentar de novo</button></div></div>`;
+    $('miVolta').onclick = () => asTela(); $('miDeNovo').onclick = asMontar;
+  }
+}
+const AS_TAG = { site: '<span class="as-tag site">do site</span>', respostas: '<span class="as-tag resp">das suas respostas</span>', confira: '<span class="as-tag conf">⚠ confira</span>', ok: '<span class="as-tag resp">conferido</span>' };
+function asRevisao() {
+  const r = AS.resultado, d = r.rascunho, R = r.respostas, trab = AS_TRABALHOS.find(x => x[0] === R.trabalho);
+  const conf = d.faq.filter(f => f.origem === 'confira').length, deSite = (r.fontes.paginas || []).length;
+  $('miCorpo').innerHTML = `<div class="as-rev">
+    <p class="muted">Leia com calma: tudo dá para editar ou apagar. Os itens com ${AS_TAG.confira} a IA não teve certeza; os que você não conferir ficam de fora (dá para pôr depois na Base de conhecimento).</p>
+    <div class="as-chips"><span class="as-tag resp">${trab ? trab[2] + ' ' + esc(trab[3]) : ''}</span><span class="as-tag">${d.faq.length} perguntas frequentes</span>${conf ? `<span class="as-tag conf" id="miConfN">${conf} para conferir</span>` : ''}${deSite ? `<span class="as-tag site">lido de ${deSite} página(s) do site</span>` : ''}</div>
+    ${r.aviso ? `<p class="alerta">${esc(r.aviso)}</p>` : ''}
+    <section class="as-sec"><h3>👋 Como ${esc(R.nome)} se apresenta</h3><textarea id="miApres" rows="2" maxlength="400">${esc(d.apresentacao)}</textarea></section>
+    <section class="as-sec"><h3>🏢 Sobre a empresa ${deSite ? AS_TAG.site : AS_TAG.respostas}</h3>
+      <div class="duas"><div><label for="miSeg">Ramo</label><input id="miSeg" maxlength="120" value="${esc(d.empresa.segmento)}"></div><div><label for="miPub">Para quem vende</label><input id="miPub" maxlength="400" value="${esc(d.empresa.publico)}"></div></div>
+      <label for="miDesc">O que a empresa vende ou faz</label><textarea id="miDesc" rows="3" maxlength="800">${esc(d.empresa.descricao)}</textarea>
+      <label for="miDif">Diferenciais</label><textarea id="miDif" rows="2" maxlength="800">${esc(d.empresa.diferenciais)}</textarea></section>
+    <section class="as-sec"><h3>🕐 Horário e preço ${AS_TAG.respostas}</h3><p class="muted" style="margin-top:6px">${esc(asHorarioTexto(R.horario))} · ${esc(AS_PRECOS.find(x => x[0] === R.preco)?.[2] || '')}</p></section>
+    ${d.contatos.length ? `<section class="as-sec"><h3>📍 Contatos e endereço</h3><div id="miContatos">${d.contatos.map((c, i) => `<div class="as-item" data-as-ct="${i}"><div><b>${esc(c.tema)}</b> ${AS_TAG[c.origem] || ''}<input maxlength="400" value="${esc(c.resposta)}" aria-label="${esc(c.tema)}"></div><button type="button" class="sm perigo" data-as-del>Apagar</button></div>`).join('')}</div></section>` : ''}
+    <section class="as-sec"><div class="lista-topo"><h3>❓ Perguntas frequentes</h3><button type="button" class="sm" id="miMaisFaq">+ Adicionar</button></div><div id="miFaq">${d.faq.map((f, i) => asFaqHtml(f, i)).join('')}</div></section>
+    <section class="as-sec"><h3>📝 O que ${esc(R.nome)} pergunta ao cliente</h3><div class="as-chips" id="miColeta">${d.coleta.map(c => asChipHtml(c.nome)).join('')}</div>
+      <div class="as-add"><input id="miColetaNova" maxlength="60" placeholder="Outro dado (ex.: Cidade)"><button type="button" class="sm" id="miColetaMais">Adicionar</button></div></section>
+    <section class="as-sec"><h3>🚫 O que ${esc(R.nome)} nunca faz</h3><div id="miProib">${d.proibido.map(x => asLinhaHtml(x)).join('')}</div>
+      <div class="as-add"><input id="miProibNova" maxlength="300" placeholder="Outra regra"><button type="button" class="sm" id="miProibMais">Adicionar</button></div></section>
+    <section class="as-sec"><h3>🔁 Mensagens para retomar quem parou de responder</h3><p class="muted" style="font-size:13px;margin-top:4px">Ficam guardadas; o follow-up só começa quando você ligar em Captura.</p>
+      <label for="miF1">Depois de 1 hora</label><textarea id="miF1" rows="2" maxlength="500">${esc(d.followup[0] || '')}</textarea>
+      <label for="miF2">Depois de 1 dia</label><textarea id="miF2" rows="2" maxlength="500">${esc(d.followup[1] || '')}</textarea></section>
+    <p class="erro" id="miErro" hidden></p>
+    <div class="as-rodape as-fixo"><button type="button" class="leve" id="miRefazer">↺ Refazer as respostas</button><button type="button" class="principal" id="miCriar">✓ Criar ${esc(R.nome)} (nasce desligada)</button></div></div>`;
+  asLigarRevisao();
+}
+const asHorarioTexto = h => [['semana', 'Seg a sex'], ['sabado', 'Sábado'], ['domingo', 'Domingo']].map(([k, n]) => n + (h[k] ? ' ' + h[k][0] + ' às ' + h[k][1] : ' fechado')).join(' · ');
+function asFaqHtml(f, i) {
+  return `<div class="as-faq${f.origem === 'confira' ? ' conf' : ''}" data-as-faq="${i}" data-origem="${esc(f.origem)}"><div>
+    <input class="as-p" maxlength="200" value="${esc(f.p)}" aria-label="Pergunta"> ${AS_TAG[f.origem] || ''}
+    <textarea class="as-r" rows="2" maxlength="1000" aria-label="Resposta" placeholder="Escreva a resposta">${esc(f.r)}</textarea>${f.nota && f.origem === 'confira' ? `<small class="as-nota">${esc(f.nota)}</small>` : ''}</div>
+    <div class="as-acoes">${f.origem === 'confira' ? '<button type="button" class="sm principal" data-as-ok>Está certo</button>' : ''}<button type="button" class="sm perigo" data-as-del>Apagar</button></div></div>`;
+}
+const asChipHtml = n => `<span class="as-chip">${esc(n)}<button type="button" class="leve" data-as-del aria-label="Tirar ${esc(n)}">✕</button></span>`;
+const asLinhaHtml = x => `<div class="as-item"><div><input maxlength="300" value="${esc(x)}" aria-label="Regra"></div><button type="button" class="sm perigo" data-as-del>Apagar</button></div>`;
+function asLigarRevisao() {
+  const corpo = $('miCorpo'), contaConf = () => { const n = corpo.querySelectorAll('.as-faq.conf').length, el = $('miConfN'); if (el) { el.textContent = n + ' para conferir'; el.hidden = !n; } };
+  corpo.onclick = e => {
+    const del = e.target.closest('[data-as-del]'); if (del) { (del.closest('.as-faq, .as-item, .as-chip')).remove(); contaConf(); return; }
+    const ok = e.target.closest('[data-as-ok]');
+    if (ok) { const f = ok.closest('.as-faq'); if (!f.querySelector('.as-r').value.trim()) { f.querySelector('.as-r').focus(); toast('Escreva a resposta antes de confirmar.', true); return; }
+      f.classList.remove('conf'); f.dataset.origem = 'ok'; f.querySelector('.as-tag.conf')?.replaceWith(Object.assign(document.createElement('span'), { className: 'as-tag resp', textContent: 'conferido' })); f.querySelector('.as-nota')?.remove(); ok.remove(); contaConf(); }
+  };
+  // escrever a resposta de um item "confira" já conta como conferido
+  corpo.oninput = e => { const f = e.target.closest('.as-faq.conf'); if (f && e.target.classList.contains('as-r') && e.target.value.trim().length > 3) f.querySelector('[data-as-ok]')?.classList.add('pulsa'); };
+  $('miMaisFaq').onclick = () => { const box = $('miFaq'); box.insertAdjacentHTML('afterbegin', asFaqHtml({ p: '', r: '', origem: 'ok' }, 'novo')); box.querySelector('.as-p').focus(); };
+  const addLista = (inp, box, html) => { const v = $(inp).value.trim(); if (!v) return; $(box).insertAdjacentHTML('beforeend', html(v)); $(inp).value = ''; $(inp).focus(); };
+  $('miColetaMais').onclick = () => addLista('miColetaNova', 'miColeta', asChipHtml); $('miColetaNova').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('miColetaMais').click(); } };
+  $('miProibMais').onclick = () => addLista('miProibNova', 'miProib', asLinhaHtml); $('miProibNova').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('miProibMais').click(); } };
+  $('miRefazer').onclick = () => { AS.resultado = null; AS.passo = 0; asTela(); };
+  $('miCriar').onclick = asCriar;
+}
+// Lê a revisão e monta a configuração no formato do motor (mesmo formato das abas do agente)
+function asConfig() {
+  const r = AS.resultado, R = r.respostas, corpo = $('miCorpo'), v = id => ($(id)?.value || '').trim();
+  const pad = configPadrao(r.tipo, R.nome), d = (x) => x ? { abre: x[0], fecha: x[1] } : null, h = R.horario;
+  const faq = [...corpo.querySelectorAll('.as-faq')].filter(f => f.dataset.origem !== 'confira').map(f => ({ p: f.querySelector('.as-p').value.trim(), r: f.querySelector('.as-r').value.trim() })).filter(f => f.p && f.r).slice(0, 60);
+  const oficiais = [...corpo.querySelectorAll('[data-as-ct]')].map(x => ({ tema: x.querySelector('b').textContent, resposta: x.querySelector('input').value.trim() })).filter(x => x.resposta);
+  const coleta = [...corpo.querySelectorAll('#miColeta .as-chip')].map(c => c.firstChild.textContent.trim()).filter(Boolean).slice(0, 8);
+  const obrig = new Set((r.rascunho.coleta || []).filter(c => c.obrigatorio).map(c => c.nome));
+  const proibido = [...corpo.querySelectorAll('#miProib input')].map(i => i.value.trim()).filter(Boolean).slice(0, 20);
+  const site = r.fontes.site ? (/^https?:\/\//i.test(r.fontes.site) ? r.fontes.site : 'https://' + r.fontes.site) : '';
+  return mesclar(pad, {
+    identidade: { ...pad.identidade, nome: R.nome, apresentacao: v('miApres'), tom: R.tom },
+    empresa: { ...pad.empresa, segmento: v('miSeg'), descricao: v('miDesc'), publico: v('miPub'), diferenciais: v('miDif'), site, instagram: r.fontes.instagram || '' },
+    horario: { ...pad.horario, dias: { seg: d(h.semana), ter: d(h.semana), qua: d(h.semana), qui: d(h.semana), sex: d(h.semana), sab: d(h.sabado), dom: d(h.domingo) } },
+    conhecimento: { ...pad.conhecimento, faq, oficiais, proibido },
+    precos: { ...pad.precos, politica: R.preco },
+    coleta: { ...pad.coleta, campos: coleta.length ? coleta.map((nome, i) => ({ nome, obrigatorio: obrig.has(nome) || i === 0 })) : pad.coleta.campos },
+    transferencia: { mensagem: r.rascunho.transferencia || '' },
+    followup: { ...pad.followup, ativo: false, toques: [{ minutos: 60, texto: v('miF1') }, { minutos: 1440, texto: v('miF2') }] }
+  });
+}
+async function asCriar() {
+  const bt = $('miCriar'), R = AS.resultado.respostas, erro = m => { $('miErro').textContent = m; $('miErro').hidden = false; };
+  if (!$('miApres').value.trim()) return erro('Escreva como a IA se apresenta.');
+  const config = asConfig(); bt.disabled = true; AS.criando = true; bt.textContent = 'Criando…';
+  try {
+    const antes = new Set((motor.agentes || []).map(a => a.chave));
+    await acaoMotor({ acao: 'criar', tipo: AS.resultado.tipo });
+    const novo = (motor.agentes || []).find(a => !antes.has(a.chave)); if (!novo) throw new Error('O agente foi criado, mas não apareceu na lista. Atualize a página.');
+    const ag = await api('motor?organization=' + encodeURIComponent(empresa.id) + '&agente=' + encodeURIComponent(novo.chave));
+    await acaoMotor({ acao: 'salvar', agente: novo.chave, config, versaoBase: ag.versao, concluir: true });
+    await carregarMotor(); AS.resultado.criado = novo.chave; AS.criando = false;
+    desenharMotor(); AS.carregando = abrirAgenteMotor(novo.chave).then(atualizarGuia);
+    asPronto(R.nome, novo.chave);
+  } catch (err) { AS.criando = false; bt.disabled = false; bt.textContent = `✓ Criar ${R.nome} (nasce desligada)`; erro(err.message); }
+}
+function asPronto(nome) {
+  $('miCorpo').innerHTML = `<div class="as-montando" style="text-align:center"><div style="font-size:42px">🎉</div><h3 class="as-h">${esc(nome)} está criada!</h3>
+    <p class="muted">Ela está <b>desligada</b>: nenhum cliente fala com ela até você ligar. Primeiro, converse com ela como se fosse um cliente.</p>
+    <div class="form-bts" style="justify-content:center"><button type="button" class="principal" id="miTestar">💬 Testar ${esc(nome)} agora</button><button type="button" id="miPassos">🚀 Ver os próximos passos</button></div>
+    <div class="as-cta" style="text-align:left;margin-top:22px"><span aria-hidden="true">🧩</span><div><b>Agora, o jeito da sua loja trabalhar</b>
+      <small>Diga quando ${esc(nome)} marca etiqueta, muda a etapa do funil, registra a origem do lead no CRM, cria a oportunidade, quem fica de responsável e para quem ela passa o cliente. O Modelo pronto já monta as regras com as listas da sua LeadVox; você ajusta do seu jeito.</small></div>
+      <button type="button" id="miFunil">Personalizar funil, origem e oportunidade</button></div></div>`;
+  const irAba = async aba => { $('dlgMonte').close(); await AS?.carregando; abrir('agentes'); await esperar(300); document.querySelector(`[data-ag="${aba}"]`)?.click(); };
+  $('miTestar').onclick = () => irAba('testar');
+  $('miFunil').onclick = async () => { await irAba('automacoes'); abrirModelo(false); };
+  $('miPassos').onclick = () => { $('dlgMonte').close(); abrirGuia(); };
+}
+
 /* ═══════════ INÍCIO ═══════════ */
-const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+const local =['localhost', '127.0.0.1'].includes(location.hostname);
 setModo('login');
 if (location.protocol !== 'https:' && !local) { $('pHttp').hidden = false; $('formPorta').hidden = true; $('pLinks').hidden = true; }
 else carregar().catch(() => porta(false));

@@ -328,6 +328,12 @@
           </div>
           <form id="agAcoes" data-agp="automacoes" hidden>
             <div class="card">
+              <h3>Origem de quem chega por anúncio</h3>
+              <p class="muted">Quando o cliente chega clicando num anúncio da Meta (Instagram ou Facebook), a IA marca esta origem no CRM da LeadVox logo na primeira mensagem. Uma vez por contato; se uma regra sua marcar outra origem, a regra vale.</p>
+              <label for="rgOrigemAd">Origem do lead</label>
+              <select id="rgOrigemAd" style="max-width:420px"><option value="">Não marcar</option></select>
+            </div>
+            <div class="card">
               <h3>Regras da IA</h3>
               <p class="muted">Cada regra é a situação e, logo depois, as ações (uma por linha fica mais fácil de ler, mas não é obrigatório). Digite <b>@</b> para escolher a ação (etiqueta, etapa do funil, origem do lead, transferência, nota ou aviso). Quando a situação acontece, a IA dispara todas as ações daquela linha.</p>
               <div class="form-bts" style="margin-top:10px"><button type="button" class="principal sm" id="rgModelo">Usar modelo pronto</button></div>
@@ -803,6 +809,10 @@
   <div class="form-bts"><button type="button" class="principal" id="mdUsar">Colocar nas regras</button><button type="button" class="sm" id="mdAtualizar">Atualizar listas</button></div>
 </dialog>
 
+<dialog id="dlgMonte" class="janela larga as-janela" aria-labelledby="miTitulo">
+  <div class="janela-topo"><h2 id="miTitulo">Monte sua IA</h2><button type="button" class="leve" id="miFechar" aria-label="Fechar">✕</button></div>
+  <div id="miCorpo"></div>
+</dialog>
 <dialog id="dlgGuia" class="janela larga" aria-labelledby="guiaTitulo">
   <div class="janela-topo"><h2 id="guiaTitulo">Primeiros passos</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
   <div id="guiaProgresso"></div>

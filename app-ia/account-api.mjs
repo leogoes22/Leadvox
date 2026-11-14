@@ -4,7 +4,8 @@ import {handleBilling} from './billing.mjs';
 import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
-import {lerSiteLoja,baixarLogoSite} from './integrations/site-loja.mjs';
+import {lerSiteLoja,baixarLogoSite,lerSiteTexto} from './integrations/site-loja.mjs';
+import {conferirRespostas,pedidoN8n,limparRascunho} from './assistente-ia.mjs';
 import {avaliacoesDoGoogle} from './integrations/google-avaliacoes.mjs';
 import {DESTINO,normalizarDominio,registrosDns,principalDe,verificarDominio,assinarResultado,consultarDisponibilidade} from './integrations/dominio.mjs';
 import {pedidoAssinatura} from './supabase/functions/cobranca/cobranca.mjs';
@@ -106,11 +107,12 @@ export function tipoDoArquivo(b){
  }
  return {erro:'Envie um vídeo MP4, um PDF ou uma imagem JPG ou PNG.'};
 }
-export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSites,segredoDominio,chaveGoogle}={}){
+export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSites,segredoDominio,chaveGoogle,esperaChave=3000,lookupSites}={}){
  // avaliações do Google pelo link do Maps (Site da loja): chave da LeadVox na API do Google Places
  const CHAVE_GOOGLE=chaveGoogle??process.env.GOOGLE_PLACES_KEY??'',buscasGoogle=new Map();
  // domínio próprio do site: a verificação sai para a internet (DNS e HTTPS) e assina o resultado para o banco
  const SEGREDO_DOMINIO=segredoDominio??process.env.SITE_DOMINIO_SEGREDO??'',verificacoes=new Map(),hostsCache=new Map();
+ const assistentes=new Map(); // assistente "Monte sua IA": uma montagem por empresa a cada 15 s
  const attempts=new Map(),testesGrupo=new Map(),simulacoes=new Map(); // testesGrupo: um teste de grupo a cada 20 s; simulacoes: uma mensagem de teste por vez
  const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  async function upstream(route,{method='GET',body,token,prefer='return=representation'}={}){
@@ -565,6 +567,33 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     if(!d||!r.ok)return send(res,200,{ok:false,envios:[],aviso:'A IA não respondeu. Confira se o agente está ligado e em qual departamento ele atende (aba Identidade).'}),true;
     send(res,200,{ok:d.ok!==false,agente:String(d.agente||'').slice(0,60),envios:(Array.isArray(d.envios)?d.envios:[]).slice(0,10).map(e=>({texto:String(e.texto||'').slice(0,4000),midia:/^https:\/\//.test(e.midia||'')?String(e.midia):'',fila:e.fila||null,vendedor:e.vendedor||null})),
      transf:d.transf||null,nota:String(d.nota||'').slice(0,3000),acoes:d.acoes||{},etiquetas:Array.isArray(d.etiquetas)?d.etiquetas.slice(0,20):[],aviso:d.aviso?String(d.aviso).slice(0,300):''});
+   }else if(action==='assistente-ia'&&req.method==='POST'){
+    // Assistente "Monte sua IA": lê o site da empresa, manda as respostas para o fluxo iag-montar-ia do n8n novo
+    // (a mesma chave de eventos da conta protege o fluxo) e devolve o rascunho para o dono conferir. Não grava nada.
+    const org=body.organization;
+    if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const c=conferirRespostas(body);
+    const agora=Date.now();if(agora-(assistentes.get(org)||0)<15000)throw {status:429,message:'Calma: a sua IA ainda está sendo montada.'};
+    assistentes.set(org,agora);if(assistentes.size>5000)assistentes.clear();
+    const eventos=()=>upstream('/rest/v1/rpc/lv_motor_eventos',{method:'POST',token:authToken,body:{org}});
+    let ev;try{ev=await eventos();}catch{throw {status:400,message:'Só o dono da empresa pode montar a IA.'};}
+    if(!ev?.vinculado)throw {status:400,message:'Ligue a sua IA ao motor antes de montar (botão Ligar minha IA).'};
+    if(!/^[0-9a-f]{24}$/.test(ev.token||'')){
+     // conta recém-ligada: pede a chave agora em vez de esperar a rodada de 2 min do n8n
+     try{await fetchImpl(n8nDaConta(ev.conta)+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000),redirect:'error'});}catch{}
+     await new Promise(r=>setTimeout(r,esperaChave));try{ev=await eventos();}catch{}
+     if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){assistentes.delete(org);throw {status:400,message:'A sua IA ainda está sendo preparada. Tente de novo em 1 minuto.'};}
+    }
+    let lido=null,aviso='';
+    if(c.fontes.site){try{lido=await lerSiteTexto(c.fontes.site,{fetchImpl:fetchSites||fetchImpl,...(lookupSites?{lookup:lookupSites}:{})});}catch(e){aviso='Não deu para ler o site ('+(e?.message||'erro')+'). A IA foi montada só com as suas respostas.';}}
+    let r;try{r=await fetchImpl(n8nDaConta(ev.conta)+'iag-montar-ia?k='+encodeURIComponent(ev.conta)+'&t='+ev.token,{method:'POST',redirect:'error',signal:AbortSignal.timeout(90000),
+     headers:{'Content-Type':'application/json'},body:JSON.stringify(pedidoN8n(c,lido))});}
+    catch{assistentes.delete(org);throw {status:502,message:'A montagem demorou demais. Tente de novo.'};}
+    if(r.status===404){assistentes.delete(org);throw {status:503,message:'O assistente ainda não está disponível. Avise o suporte da LeadVox.'};}
+    const d=await r.json().catch(()=>null);
+    if(!r.ok||!d||d.ok===false){assistentes.delete(org);throw {status:502,message:'Não deu para montar a IA agora. Tente de novo em instantes.'};}
+    send(res,200,{ok:true,tipo:c.respostas.tipo,respostas:c.respostas,fontes:{...c.fontes,paginas:(lido?.paginas||[]).map(p=>({url:p.url,titulo:p.titulo}))},
+     rascunho:limparRascunho(d,c,lido),aviso});
    }else if(action==='grupo-teste'&&req.method==='POST'){
     // Manda uma mensagem de teste para o grupo do WhatsApp pela conexão LeadVox da empresa (grupo = id + @g.us).
     const org=body.organization,grupo=String(body.grupo??'').replace(/@.*/,'').replace(/\D/g,'');
