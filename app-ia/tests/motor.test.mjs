@@ -323,3 +323,20 @@ test('ligar à LeadVox: a recusa do banco vira o motivo certo na tela', async t 
  [st,er]=await caso('duplicate key value violates unique constraint');assert.equal(st,409);assert.match(er,/já está ligado a outra conta/);
  [st,er]=await caso('outra coisa');assert.equal(st,400);assert.match(er,/Não foi possível concluir/);
 });
+
+test('departamentos: quando nenhuma rota da LeadVox responde, só o Super Admin vê o que cada rota devolveu (sem token)', async t => {
+ const caso=async admin=>{const s=createApp({allowLocal:true,fetchImpl:async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return ok({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  const fn=(u.match(/rpc\/([a-z_]+)/)||[])[1];
+  if(fn==='lv_chat_secret')return ok([{api_root:'https://chat2api.leadvox.com.br/v1',api_id:'5ac8-e8dc',token:'segredo-do-token'}]);
+  if(fn==='lv_is_platform_admin')return ok(admin);
+  if(u.includes('leadvox.com.br'))return u.includes('/queues?')&&!u.includes('/api/')?ok({filas:'x'}):{ok:false,status:404,json:async()=>({})};
+  return ok({ok:true});}});
+  await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
+  const base='http://127.0.0.1:'+s.address().port;
+  const r=await fetch(base+'/api/account/chat?organization='+org+'&kind=departamentos',{headers:{Origin:base,Cookie:'__Host-lv_session=x'}});
+  return [r.status,(await r.json()).error];};
+ const [st,er]=await caso(true);assert.equal(st,502);assert.match(er,/Rotas testadas/);assert.match(er,/\/api\/external\/5ac8-e8dc\/queues → 404/);assert.match(er,/\/queues → 200 sem lista \[filas\]/);
+ assert.doesNotMatch(er,/segredo-do-token/);
+ const [,er2]=await caso(false);assert.doesNotMatch(er2,/Rotas testadas/);
+});

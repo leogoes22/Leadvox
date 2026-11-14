@@ -57,11 +57,16 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  }
  const ext=p=>'/api/external/'+p;
  // Rotas não documentadas: fica com a primeira lista que vier. Token recusado na API externa é erro de credencial.
+ // tentativas: o que cada rota respondeu (rota e status, nunca o token nem o conteúdo), para o Super Admin ver por que falhou
  async function firstList(paths,code){
+  const tentativas=[];
   for(const p of paths){const [path,raiz]=Array.isArray(p)?p:[p,false];
-   try{const list=pickList(await get(path,raiz));if(list)return list;}catch(e){if(e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))throw e;}
+   const rota=(raiz?'(tela) ':'')+path;
+   try{const body=await get(path,raiz);const list=pickList(body);if(list)return list;
+    tentativas.push(rota+' → 200 sem lista'+(body&&typeof body==='object'?' ['+Object.keys(body).slice(0,6).join(',')+']':''));}
+   catch(e){if(e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))throw e;tentativas.push(rota+' → '+(e.http||e.code));}
   }
-  throw new ChatApiError(code);
+  const erro=new ChatApiError(code);erro.tentativas=tentativas;throw erro;
  }
  return Object.freeze({
   users:()=>get(ext('users/'+api)),
