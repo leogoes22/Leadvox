@@ -9,7 +9,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 WORKDIR /app
 # o package.json vem da etapa de testes para a montagem esperar os testes passarem
 COPY --from=testes --chown=node:node /app/package.json ./
-COPY --chown=node:node server.mjs account-api.mjs billing.mjs site-fiel.mjs ./
+COPY --chown=node:node server.mjs account-api.mjs billing.mjs site-fiel.mjs assistente-ia.mjs ./
 COPY --chown=node:node integrations ./integrations
 # modelos fiéis do site da loja (o HTML original de cada site, convertido em campos)
 COPY --chown=node:node sites ./sites
