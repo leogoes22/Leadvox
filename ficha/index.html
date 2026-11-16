@@ -398,7 +398,7 @@ function desenharPrincipal() {
   const i = ETAPAS.findIndex(e => e.id === etapaId), e = ETAPAS[i];
   const dest = d => d === CRM ? '<span class="chip crm">CRM LeadVox</span>' : '<span class="chip ia">IA</span>';
   m.innerHTML = `<div class="topo"><div class="tit"><span class="rot">Etapa ${i + 1} de ${ETAPAS.length} · ${esc(ficha.nome || 'Sem nome')}</span><h2>${esc(e.titulo)}</h2><p>${esc(e.resumo)}</p></div>
-    <div class="acoes"><span class="estado" id="estadoSalvo">Tudo salvo.</span>
+    <div class="acoes"><span class="estado" id="estadoSalvo">${ficha.nova ? 'Ainda não gravada: grava quando você preencher.' : 'Tudo salvo.'}</span>
       <button type="button" class="bt" id="alternarStatus">${ficha.status === 'pronta' ? 'Voltar para rascunho' : 'Marcar como pronta'}</button>
       <button type="button" class="bt" id="verJson">Ver respostas (JSON)</button>
       <button type="button" class="bt pri" id="gerarCrm">Gerar arquivo do CRM</button></div></div>
@@ -453,7 +453,7 @@ function nova(base) {
   const id = base && base.id || ('f-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
   ficha = { id, nome: '', contato: '', status: 'rascunho', nova: true, dados: { canais: { feriadosNacionais: true } }, ...(base || {}) };
   ficha.dados = ficha.dados || {}; atualId = id; etapaId = 'empresa'; desenharTudo();
-  if (ficha.nome) { dirty = true; salvar(); } else setTimeout(() => $('#f-empresa-nome')?.focus(), 50);
+  if (!ficha.nome) setTimeout(() => $('#f-empresa-nome')?.focus(), 50);
 }
 
 // ── eventos ──

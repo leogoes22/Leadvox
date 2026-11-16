@@ -60,3 +60,11 @@ test('página da ficha: fala com o n8n, lê o ticket da LeadVox e não usa o ban
   assert.doesNotMatch(html, /claude\.use|\bdb\.doc\(/);
   assert.match(html, /leadvox-modelo-crm/);
 });
+
+test('página da ficha: abrir o plugin numa conversa não grava ficha, só o primeiro preenchimento', () => {
+  const html = readFileSync(new URL('../../ficha/index.html', import.meta.url), 'utf8');
+  const corpoNova = html.slice(html.indexOf('function nova('), html.indexOf('// ── eventos ──'));
+  assert.ok(corpoNova.length > 0);
+  assert.doesNotMatch(corpoNova, /dirty\s*=\s*true|salvar\(\);\s*}/);
+  assert.match(html, /Ainda não gravada/);
+});
