@@ -215,6 +215,21 @@
                 <h4 style="margin:14px 0 4px">WhatsApp oficial</h4>
                 <p class="dica">Depois de 24 h sem o cliente falar, a Meta só aceita template aprovado. Escolha o template de cada tentativa: a variável {{1}} recebe o nome do cliente. No WhatsApp por QR code, a IA escreve a mensagem.</p>
                 <div id="cpFfTpl"></div>
+                <h4 style="margin:14px 0 4px">Mover a oportunidade no funil</h4>
+                <p class="dica">Opcional. A IA move a oportunidade aberta do cliente; se ele não tiver oportunidade aberta, ela não cria uma nova.</p>
+                <div id="cpFfFunil"></div>
+                <h4 style="margin:14px 0 4px">Quando o cliente responder</h4>
+                <select id="cpFfVolta" aria-label="Quem atende quando o cliente responder"><option value="ia">A IA continua atendendo</option><option value="vendedor">A conversa volta para quem fechou o atendimento (a IA fica em silêncio com este cliente)</option></select>
+                <h4 style="margin:14px 0 4px">Avisos</h4>
+                <p class="dica">Usam o WhatsApp do gerente e o grupo de avisos cadastrados em Avisos, logo abaixo. Levam o cliente, o motivo, o que foi enviado, o funil e um resumo do atendimento.</p>
+                <div class="duas"><label class="check-lin"><input type="checkbox" id="cpFfAvG"> Avisar o gerente</label><label class="check-lin"><input type="checkbox" id="cpFfAvGr"> Avisar no grupo</label></div>
+                <div class="duas" style="margin-top:4px"><label class="check-lin"><input type="checkbox" id="cpFfAvT"> A cada tentativa</label><label class="check-lin"><input type="checkbox" id="cpFfAvR" checked> Quando o cliente responder</label></div>
+                <label class="check-lin" style="margin-top:4px"><input type="checkbox" id="cpFfAvF"> Quando terminar sem resposta (3 dias depois da última tentativa)</label>
+                <p class="muted" id="cpFfAvAviso" style="font-size:13px"></p>
+                <h4 style="margin:14px 0 4px">Etiqueta e dias</h4>
+                <label for="cpFfEtq">Etiqueta enquanto o cliente está no follow-up</label>
+                <select id="cpFfEtq"><option value="">Nenhuma</option></select>
+                <label class="check-lin" style="margin-top:8px"><input type="checkbox" id="cpFfUteis"> Só de segunda a sexta (no sábado e no domingo, a tentativa espera a segunda-feira)</label>
                 <p class="dica">Na LeadVox, ligue o evento "Atendimento finalizado" no webhook da IA (Configurações → API/Webhook), senão a IA não fica sabendo do fechamento.</p>
               </div>
             </div>
@@ -421,6 +436,7 @@
       </div>
       <div class="grade">
         <div class="met"><small>Follow-ups enviados</small><b data-d="followups">—</b><span id="dRet">e recontatos</span></div>
+        <div class="met"><small>Follow-ups do fechamento</small><b data-d="fechamentoEnviados">—</b><span id="dFfVolta">clientes que voltaram</span></div>
         <div class="met"><small>Passadas entre agentes</small><b data-d="passagens">—</b></div>
         <div class="met"><small>Pedidos e orçamentos</small><b data-d="pedidos">—</b></div>
         <div class="met"><small>Pausados por parecer robô</small><b data-d="robos">—</b><span>a IA parou e avisou a equipe</span></div>

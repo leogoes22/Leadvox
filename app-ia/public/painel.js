@@ -1075,6 +1075,33 @@ async function desenharFf() {
   $('cpFfTpl').innerHTML = (tErro ? `<p class="muted" style="font-size:13px">${esc(tErro)}</p>` : !usaveis.length ? '<p class="muted" style="font-size:13px">Nenhum template aprovado nessa LeadVox (com até uma variável). Sem template, no WhatsApp oficial a IA só deixa uma nota interna para a equipe.</p>' : '')
     + FF_DIAS.map((d, i) => { const e = escolhidos[i] || null, opts = usaveis.some(t => String(t.id) === String(e?.id)) || !e ? usaveis : [{ id: e.id, name: e.nome }, ...usaveis];
       return `<div><label for="cpFfT${i}">${i + 1}ª tentativa · ${d} dias depois</label><select id="cpFfT${i}"><option value="">Sem template (só nota interna no oficial)</option>${opts.map(t => `<option value="${esc(t.id)}" ${String(t.id) === String(e?.id) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>`; }).join('');
+  // funil: etapas de todos os funis da LeadVox (o nome já leva o funil quando há mais de um)
+  let etapas = null; try { etapas = listas.status || (listas.status = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=status')).items); } catch { etapas = null; }
+  const fn = ffSalvo.funil || {};
+  const selEtapa = (id, rot, atual, perdida) => { const e = atual || null, lista = etapas || [];
+    const opts = lista.some(x => String(x.id) === String(e?.id)) || !e?.id ? lista : [{ id: e.id, name: e.nome }, ...lista];
+    return `<div><label for="${id}">${rot}</label><select id="${id}"><option value="">Não mover</option>${perdida ? `<option value="__perdida" ${e?.perdida ? 'selected' : ''}>Marcar como perdida</option>` : ''}${opts.map(x => `<option value="${esc(x.id)}" ${String(x.id) === String(e?.id) && !e?.perdida ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>`; };
+  $('cpFfFunil').innerHTML = (etapas ? '' : '<p class="muted" style="font-size:13px">Não deu para ler as etapas do funil da LeadVox agora; o que já estava salvo continua valendo.</p>')
+    + '<div class="duas">' + selEtapa('cpFfFnF', 'Ao fechar a conversa', fn.fechar)
+    + FF_DIAS.map((d, i) => selEtapa('cpFfFn' + i, `${i + 1}ª tentativa (${d} dias)`, (fn.tentativas || [])[i])).join('')
+    + selEtapa('cpFfFnR', 'Se o cliente responder', fn.respondeu) + selEtapa('cpFfFnX', 'Fim sem resposta', fn.fim, true) + '</div>';
+  // avisos, volta, etiqueta e dias úteis
+  const av = ffSalvo.avisos || {}, avAg = agDados.config.avisos || {};
+  $('cpFfAvG').checked = !!av.gerente; $('cpFfAvGr').checked = !!av.grupo;
+  $('cpFfAvT').checked = !!av.tentativa; $('cpFfAvR').checked = av.respondeu !== false; $('cpFfAvF').checked = !!av.fim;
+  const falta = [!(avAg.gerente || {}).whatsapp && 'o WhatsApp do gerente', !((avAg.grupo || {}).id || (agDados.config.regras || {}).grupo) && 'o grupo de avisos'].filter(Boolean);
+  $('cpFfAvAviso').textContent = falta.length ? 'Ainda falta cadastrar ' + falta.join(' e ') + ' em Avisos.' : '';
+  $('cpFfVolta').value = ffSalvo.volta === 'vendedor' ? 'vendedor' : 'ia';
+  $('cpFfUteis').checked = !!ffSalvo.diasUteis;
+  let etqs = null; try { etqs = listas.etiquetas || (listas.etiquetas = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=etiquetas')).items); } catch { etqs = null; }
+  const etq = ffSalvo.etiqueta || null, eOpts = (etqs || []).some(x => x.name === etq?.nome) || !etq ? (etqs || []) : [{ id: etq.id, name: etq.nome }, ...(etqs || [])];
+  $('cpFfEtq').innerHTML = '<option value="">Nenhuma</option>' + eOpts.map(x => `<option value="${esc(x.id)}" data-nome="${esc(x.name)}" ${x.name === etq?.nome ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+}
+// etapa escolhida → {id, nome} (ou perdida), guardando o nome para a nota e o aviso
+function lerEtapaFf(id) {
+  const s = $(id), v = s?.value || ''; if (!v) return null;
+  if (v === '__perdida') return { perdida: true, nome: 'Perdida' };
+  return { id: v, nome: limpaNome(s.selectedOptions[0]?.textContent || '').slice(0, 120) };
 }
 function lerFf() {
   const motivos = [...$('cpFfMotivos').querySelectorAll('input[data-ffm]:checked')].map(ch => ({ id: ch.dataset.ffm, nome: limpaNome(ch.dataset.ffn).slice(0, 120),
@@ -1084,7 +1111,13 @@ function lerFf() {
     const t = todos.find(x => String(x.id) === v) || (ffSalvo.templates || []).find(x => String(x?.id) === v);
     return t ? { id: String(t.id), nome: String(t.name ?? t.nome ?? '').slice(0, 120), vars: tplVars(t) || Number(t.vars) || 0 } : null; });
   if (ligado('cpFf') && !motivos.length) throw Error('Follow-up do fechamento: marque pelo menos um motivo.');
-  return { ativo: ligado('cpFf'), dias: FF_DIAS, motivos, templates };
+  const avisos = { gerente: $('cpFfAvG').checked, grupo: $('cpFfAvGr').checked, tentativa: $('cpFfAvT').checked, respondeu: $('cpFfAvR').checked, fim: $('cpFfAvF').checked };
+  const eo = $('cpFfEtq').selectedOptions[0];
+  return { ativo: ligado('cpFf'), dias: FF_DIAS, motivos, templates,
+    funil: { fechar: lerEtapaFf('cpFfFnF'), tentativas: FF_DIAS.map((d, i) => lerEtapaFf('cpFfFn' + i)), respondeu: lerEtapaFf('cpFfFnR'), fim: lerEtapaFf('cpFfFnX') },
+    avisos, volta: $('cpFfVolta').value === 'vendedor' ? 'vendedor' : 'ia',
+    etiqueta: eo && eo.value ? { id: eo.value, nome: limpaNome(eo.dataset.nome || eo.textContent).slice(0, 60) } : null,
+    diasUteis: $('cpFfUteis').checked };
 }
 function marcarCp() { cpSujo = true; avisoSujo('cpSujo', true); }
 function limparCp() { cpSujo = false; avisoSujo('cpSujo', false); }
@@ -2041,8 +2074,10 @@ function desenharDashboard(dias) {
   const somaU = k => dias.reduce((s, d) => s + (Number((d.uso || {})[k]) || 0), 0);
   const fmt = n => Number(n).toLocaleString('pt-BR');
   const conv = soma('conversas'), transf = soma('transferidos'), teste = somaU('contatosTeste');
-  const val = { conversas: conv, novos: soma('novos'), transferidos: transf, respostas: somaU('respostas'), followups: soma('followups'), passagens: soma('passagens'), pedidos: soma('pedidos'), robos: somaU('robos') };
+  const val = { conversas: conv, novos: soma('novos'), transferidos: transf, respostas: somaU('respostas'), followups: soma('followups'), passagens: soma('passagens'), pedidos: soma('pedidos'), robos: somaU('robos'), fechamentoEnviados: soma('fechamentoEnviados') };
   document.querySelectorAll('#vDashboard [data-d]').forEach(b => { b.textContent = fmt(val[b.dataset.d] || 0); });
+  const voltaram = soma('fechamentoVoltaram');
+  $('dFfVolta').textContent = voltaram ? fmt(voltaram) + (voltaram === 1 ? ' cliente voltou' : ' clientes voltaram') : 'clientes que voltaram';
   $('dTaxa').textContent = conv ? Math.round(transf / conv * 100) + '% das conversas' : 'das conversas';
   $('dRet').textContent = soma('retomadas') ? 'e ' + fmt(soma('retomadas')) + ' recontatos no dia seguinte' : 'e recontatos';
   $('dTeste').textContent = teste ? 'inclui conversas de números de teste' : 'mensagens que a IA mandou';
