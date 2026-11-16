@@ -188,12 +188,27 @@ document.querySelectorAll('[data-sair]').forEach(b => b.onclick = async () => {
   document.querySelectorAll('dialog[open]').forEach(d => d.close());
   desligarSuporte();
   try { await api('logout', {}); } catch {}
+  try { sessionStorage.removeItem(DENTRO); } catch {}
   conta = null; setModo('login'); porta(false);
 });
 
 
 /* ═══════════ APP ═══════════ */
 let conta = null, empresa = null, cfg = {};
+// A conta da LeadVox (dono da plataforma) entra no Painel LeadVox: só os clientes, as fichas, as cobranças e os relatórios.
+// O painel de lojista só aparece depois de "Acessar suporte" num cliente (anotado nesta aba do navegador).
+let modoLv = false;
+const DENTRO = 'lv_dentro';
+function entrarCliente(id) {
+  try { sessionStorage.setItem(DENTRO, id); } catch {}
+  history.replaceState(null, '', '#agentes');
+  return carregar();
+}
+function voltarLv() {
+  try { sessionStorage.removeItem(DENTRO); } catch {}
+  history.replaceState(null, '', '#clientes');
+  return carregar().catch(err => toast(err.message, true));
+}
 
 async function salvarCfg(mudancas) {
   await api('workspace', { organization: empresa.id, settings: mudancas });
@@ -205,12 +220,19 @@ async function carregar() {
   // Mais de uma empresa (ex.: acesso de suporte da LeadVox): lembra a última escolhida neste aparelho.
   const orgs = conta.organizations || [];
   let salva = ''; try { salva = localStorage.getItem('lv_empresa') || ''; } catch {}
-  empresa = orgs.find(o => o.id === salva) || orgs.find(o => o.role === 'owner') || orgs[0] || null;
+  const propria = orgs.find(o => o.role === 'owner') || orgs[0] || null;
+  modoLv = false;
+  if (conta.platformAdmin) {
+    let dentro = ''; try { dentro = sessionStorage.getItem(DENTRO) || ''; } catch {}
+    empresa = orgs.find(o => o.id === dentro) || null;
+    if (!empresa) { modoLv = true; empresa = propria; }
+  } else empresa = orgs.find(o => o.id === salva) || propria;
   cfg = {};
-  if (empresa) {
+  if (empresa && !modoLv) {
     try { const w = await api('workspace?organization=' + encodeURIComponent(empresa.id)); cfg = w.workspace?.[0]?.settings || {}; } catch {}
   }
   pedirAceite();
+  if (modoLv) return abrirLv(location.hash.slice(1) || 'clientes');
   if (!empresa || !cfg.onboarded) return montar();
   abrirApp(location.hash.slice(1) || 'agentes');
 }
@@ -263,9 +285,19 @@ const MENU = [
   ['credenciais', 'Credenciais de API', 'chave', 'LeadVox, estoque e cobranças.'],
   '-',
   ['cobrancas', 'Cobranças', 'cartao', 'Clientes, planos e mensalidades.'],
-  ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.'],
-  ['leadvox', 'Painel LeadVox', 'escudo', 'Todos os clientes da plataforma. Só você vê.']
+  ['conta', 'Minha conta', 'engrenagem', 'Empresa, negócio e senha.']
 ];
+// Menu do Painel LeadVox (só a conta da LeadVox vê; não se mistura com o menu do lojista).
+const MENU_LV = [
+  ['clientes', 'Clientes', 'pessoas', 'Todos os clientes da LeadVox e o acesso de suporte.'],
+  ['fichas', 'Fichas de cadastro', 'arquivo', 'A ficha de implantação de cada cliente.'],
+  ['lv-cobrancas', 'Cobranças', 'cartao', 'As assinaturas dos seus clientes.'],
+  ['relatorios', 'Relatórios', 'grafico', 'O que a IA atendeu em cada cliente.'],
+  '-',
+  ['lv-config', 'Configurações', 'engrenagem', 'Asaas, domínios dos sites e motores de IA.']
+];
+const LV_PG = MENU_LV.filter(m => m !== '-').map(m => m[0]);
+const menuAtual = () => modoLv ? MENU_LV : MENU;
 // O item Painel do menu junta três telas em abas; cada aba continua com o seu endereço (#dashboard, #oportunidades, #rastreio).
 const PAINEL_ABAS = [
   ['dashboard', 'Visão geral', 'grafico', 'O que a IA fez no período.'],
@@ -274,7 +306,8 @@ const PAINEL_ABAS = [
 ];
 let painelAba = 'dashboard';
 const SECAO = { agentes: 'vAgentes', painel: 'vDashboard', dashboard: 'vDashboard', oportunidades: 'vOportunidades', rastreio: 'vRastreio', estoque: 'vEstoque', site: 'vSite', etiquetas: 'vLista', status: 'vLista', origens: 'vLista', usuarios: 'vLista',
-  departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta', leadvox: 'vLeadvox' };
+  departamentos: 'vLista', motivos: 'vLista', canais: 'vCanais', credenciais: 'vCredenciais', cobrancas: 'vCobrancas', conta: 'vConta',
+  clientes: 'vLvClientes', fichas: 'vLvFichas', 'lv-cobrancas': 'vLvCobrancas', relatorios: 'vLvRelatorios', 'lv-config': 'vLvConfig' };
 const LISTA = {
   etiquetas: ['Suas etiquetas aparecem aqui', 'Puxadas da sua LeadVox quando a conexão estiver ligada. A IA usa as etiquetas para marcar os leads.'],
   status: ['Suas etapas do funil aparecem aqui', 'As etapas do funil da sua LeadVox. A IA move o lead de etapa conforme a conversa.'],
@@ -283,18 +316,37 @@ const LISTA = {
   departamentos: ['Seus departamentos aparecem aqui', 'Comercial, financeiro, pós-venda… A IA transfere para o departamento certo.'],
   motivos: ['Seus motivos de fechamento aparecem aqui', 'Puxados da sua LeadVox (Configurações → Motivos de fechamento): comprou, sem interesse, sem resposta…']
 };
-const visivel = pg => pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'site' ? (cfg.niche === 'automotivo' || !!conta.platformAdmin) : pg === 'leadvox' ? !!conta.platformAdmin : !!SECAO[pg];
+const visivel = pg => modoLv || LV_PG.includes(pg) ? modoLv && LV_PG.includes(pg)
+  : pg === 'cobrancas' ? !!cfg.billingEnabled : pg === 'site' ? (cfg.niche === 'automotivo' || !!conta.platformAdmin) : !!SECAO[pg];
 const zapFmt = z => z ? z.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : 'Não informado';
 
 function desenharMenu() {
-  $('menu').innerHTML = MENU.map(m => m === '-' ? m : itemMenu(m)).map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
+  $('menu').innerHTML = menuAtual().map(m => m === '-' ? m : itemMenu(m)).map(m => m === '-' ? '<div class="menu-sep"></div>' : visivel(m[0])
     ? `<button type="button" class="menu-it" data-pg="${m[0]}" title="${m[1]}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[m[2]]}</svg>${m[1]}</button>` : '').join('');
   document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => abrir(b.dataset.pg));
   aplicarExemplos();
 }
 
+// O que muda no cabeçalho entre o Painel LeadVox e o painel de um cliente.
+function modoCabecalho() {
+  $('btGuia').hidden = modoLv; $('btConta').hidden = modoLv;
+  $('btVoltarLv').hidden = modoLv || !conta.platformAdmin;
+  $('logoIr').href = modoLv ? '#clientes' : '#agentes';
+  $('telaApp').classList.toggle('modo-lv', modoLv);
+  // o chat de ajuda é do lojista: some no Painel LeadVox (o webchat não tem como esconder o botão, então é pelo estilo)
+  document.body.classList.toggle('sem-chat', modoLv);
+}
+$('btVoltarLv').onclick = voltarLv;
+function abrirLv(pg) {
+  $('telaPorta').hidden = true; $('telaApp').hidden = false;
+  $('rodape').innerHTML = `<b style="color:var(--texto)">Painel LeadVox</b><br>${esc(conta.user.email)}`;
+  for (const id of ['suporteAviso', 'planoAviso', 'saudeAviso', 'cabEmpresa']) $(id).hidden = true;
+  modoCabecalho(); desenharMenu();
+  abrir(pg);
+}
 function abrirApp(pg) {
   $('telaPorta').hidden = true; $('telaApp').hidden = false;
+  modoCabecalho();
   const nicho = NICHOS[cfg.niche] || NICHOS.outro, nome = cfg.displayName || empresa.name;
   const fim = empresa.trial_ends_at ? new Date(empresa.trial_ends_at) : null;
   $('rodape').innerHTML = `<b style="color:var(--texto)">${esc(nome)}</b><br>${esc(nicho.n)}${fim ? '<br>Teste até ' + fim.toLocaleDateString('pt-BR') : ''}`;
@@ -345,21 +397,22 @@ function marcarSuporte(id, aberto) {
 // Seletor de empresa (quem tem mais de uma) e o aviso do acesso de suporte da LeadVox.
 function desenharEmpresas() {
   const orgs = conta.organizations || [], sel = $('cabEmpresa');
-  sel.hidden = orgs.length < 2;
+  sel.hidden = orgs.length < 2 || !!conta.platformAdmin;
   sel.innerHTML = orgs.map(o => `<option value="${esc(o.id)}"${o.id === empresa.id ? ' selected' : ''}>${esc(o.name)}${o.role === 'owner' || !conta.platformAdmin ? '' : ' · suporte'}</option>`).join('');
   sel.onchange = () => { try { localStorage.setItem('lv_empresa', sel.value); } catch {} carregar().catch(err => toast(err.message, true)); };
-  // aviso só nas empresas em que o admin entrou pelo Gerenciar → Entrar como suporte (anotado neste aparelho)
-  const suporte = conta.platformAdmin && empresa.role !== 'owner' && suporteAberto().includes(empresa.id);
-  $('suporteAviso').hidden = !suporte;
-  if (suporte) {
-    $('suporteAviso').innerHTML = `<span>🛟</span><div><b>Modo suporte: você está no painel de ${esc(empresa.name)}</b>
-      <p>O que você mudar aqui vale para o cliente. O acesso fica registrado e termina sozinho.</p>
-      <div class="bts"><button class="sm" type="button" id="supSair">Encerrar suporte e voltar</button></div></div>`;
-    $('supSair').onclick = async () => {
+  // A LeadVox dentro do painel de um cliente: a faixa diz onde ela está e leva de volta ao Painel LeadVox.
+  const dentro = !!conta.platformAdmin, suporte = dentro && empresa.role !== 'owner';
+  $('suporteAviso').hidden = !dentro;
+  if (dentro) {
+    $('suporteAviso').innerHTML = `<span>🛟</span><div><b>${suporte ? 'Modo suporte: você está no painel de' : 'Você está no painel de lojista da sua empresa,'} ${esc(empresa.name)}</b>
+      <p>${suporte ? 'O que você mudar aqui vale para o cliente. O acesso fica registrado e termina sozinho.' : 'Para ver todos os clientes, volte ao Painel LeadVox.'}</p>
+      <div class="bts"><button class="principal sm" type="button" id="supVoltar">← Voltar ao Painel LeadVox</button>
+        ${suporte ? '<button class="sm" type="button" id="supSair">Encerrar suporte e voltar</button>' : ''}</div></div>`;
+    $('supVoltar').onclick = voltarLv;
+    if (suporte) $('supSair').onclick = async () => {
       try { await api('admin-suporte', { organization: empresa.id, encerrar: true }); } catch (err) { return toast(err.message, true); }
-      try { localStorage.removeItem('lv_empresa'); } catch {}
       marcarSuporte(empresa.id, false);
-      toast('Suporte encerrado.'); carregar().catch(err => toast(err.message, true));
+      toast('Suporte encerrado.'); voltarLv();
     };
   }
 }
@@ -456,11 +509,11 @@ const kAberta = () => abaAtual === 'agentes' && document.querySelector('[data-ag
 function abrir(pg) {
   if (pg === 'conhecimento') { abrir('agentes'); document.querySelector('[data-ag="conhecimento"]')?.click(); return; }
   if (pg === 'painel') pg = painelAba;
-  if (!visivel(pg)) pg = 'agentes';
+  if (!visivel(pg)) pg = modoLv ? 'clientes' : 'agentes';
   abaAtual = pg;
   const aba = PAINEL_ABAS.find(m => m[0] === pg);
   if (aba) painelAba = pg;
-  const item = aba ? ['painel', 'Painel', aba[2], aba[3]] : itemMenu(MENU.find(m => m[0] === pg));
+  const item = aba ? ['painel', 'Painel', aba[2], aba[3]] : itemMenu(menuAtual().find(m => m[0] === pg));
   $('painelAbas').hidden = !aba;
   document.querySelectorAll('#painelAbas [data-ir]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ir === pg)));
   for (const id of new Set(Object.values(SECAO))) $(id).hidden = id !== SECAO[pg];
@@ -476,7 +529,7 @@ function abrir(pg) {
   if (pg === 'site') carregarSite();
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
-  if (pg === 'leadvox') carregarLv().catch(err => toast(err.message, true));
+  if (LV_PG.includes(pg)) carregarLv().catch(err => toast(err.message, true));
   if (pg === 'conta') carregarUsuariosConta();
   $('lateral').classList.remove('aberta');
   if (location.hash.slice(1) !== pg) history.replaceState(null, '', '#' + pg);
@@ -495,7 +548,7 @@ $('btMenu').onclick = () => {
   if (matchMedia('(max-width: 760px)').matches) $('lateral').classList.toggle('aberta');
   else menuRecolhido(!$('telaApp').classList.contains('recolhido'));
 };
-addEventListener('hashchange', () => { if (conta && empresa && cfg.onboarded) abrir(location.hash.slice(1)); });
+addEventListener('hashchange', () => { if (conta && (modoLv || (empresa && cfg.onboarded))) abrir(location.hash.slice(1)); });
 
 /* agente: lê e grava a configuração do Motor IA (tabelas iag_* pelo servidor) */
 let motor = null, agSel = null, agDados = null;
@@ -1775,9 +1828,11 @@ function carregarWebchat() {
 // (ERR_WEBCHAT_IDENTITY_DISABLED). Sem identificador, a conversa começa pelo formulário do chat.
 function identificarSuporte() {}
 function ligarSuporte() {
-  carregarWebchat().then(() => { identificarSuporte(); try { window.$envioMensagemChat.toggleBubbleVisibility('show'); } catch {} }).catch(() => { webchat = null; });
+  if (modoLv) return;
+  carregarWebchat().then(() => { if (modoLv) return; identificarSuporte(); try { window.$envioMensagemChat.toggleBubbleVisibility('show'); } catch {} }).catch(() => { webchat = null; });
 }
 function desligarSuporte() {
+  document.body.classList.add('sem-chat');
   try { const c = window.$envioMensagemChat; c.reset(); c.toggleBubbleVisibility('hide'); } catch {}
 }
 function abrirSuporte() {
@@ -1810,7 +1865,7 @@ function desenharGuia() {
     <div><b>${esc(x.t)}</b>${i === prox ? ' <span class="st rascunho">próximo passo</span>' : ''}<small>${esc(x.ok ? x.d : x.explica)}</small></div>
     <button type="button" class="sm${i === prox ? ' principal' : ''}" data-guia-ir="${i}">${x.ok ? 'Rever' : 'Me mostra'}</button></li>`).join('');
   document.querySelectorAll('[data-guia-ir]').forEach(b => b.onclick = () => { const x = p[+b.dataset.guiaIr]; tourIniciar([{ ir: x.ir, alvo: x.alvo, t: x.t, txt: x.explica }], true); });
-  $('guiaTourAdmin').hidden = !conta.platformAdmin;
+  $('guiaTourAdmin').hidden = true; // o tour da LeadVox fica no Painel LeadVox (Clientes → Tour)
 }
 function abrirGuia() {
   desenharGuia(); if (!$('dlgGuia').open) $('dlgGuia').showModal();
@@ -1849,12 +1904,13 @@ const TOUR_PAINEL = () => [
   { alvo: '#btGuia', t: 'Primeiros passos', txt: 'Volte aqui quando quiser: os passos que faltam, este tour e as dúvidas comuns.' }
 ];
 const TOUR_ADMIN = [
-  { ir: 'leadvox', alvo: '#lvNumeros', t: 'Números da plataforma', txt: 'Quantos clientes estão em teste, ativos, atrasados ou pausados, e quanto entra por mês.' },
-  { ir: 'leadvox', alvo: '#lvAlertas', t: 'Precisa de você', txt: 'Teste acabando, fatura vencida, IA pausada, sem mensagens chegando. Comece o dia por aqui.' },
-  { ir: 'leadvox', alvo: '#lvConsumo', t: 'Consumo de IA', txt: 'Quanto cada cliente gastou de IA no período. Serve para ver quem está caro antes da conta da OpenAI chegar.' },
-  { ir: 'leadvox', alvo: '#lvLista', t: 'Clientes', txt: 'Busque a empresa e clique nela para estender o teste, trocar o plano, dar cortesia, suspender ou entrar como suporte.' },
-  { ir: 'leadvox', alvo: '#lvAsaas', t: 'Asaas da LeadVox', txt: 'A conta que recebe as assinaturas. Teste (sandbox) para testar sem dinheiro; Produção para cobrar de verdade.' }
+  { ir: 'clientes', alvo: '#lvAlertas', t: 'Precisa de você', txt: 'Teste acabando, fatura vencida, IA pausada, sem mensagens chegando. Comece o dia por aqui.' },
+  { ir: 'clientes', alvo: '#lvLista', t: 'Clientes', txt: 'Busque a empresa. "Acessar suporte" entra no painel do cliente; "Gerenciar" estende o teste, troca o plano, dá cortesia ou suspende.' },
+  { ir: 'lv-cobrancas', alvo: '#lvNumeros', t: 'Cobranças', txt: 'Quanto entra por mês e quantos clientes estão em teste, ativos, atrasados ou pausados.' },
+  { ir: 'relatorios', alvo: '#lvConsumo', t: 'Relatórios', txt: 'Quanto a IA atendeu em cada cliente no período, e o custo medido quando o cliente usa a própria chave.' },
+  { ir: 'lv-config', alvo: '#lvAsaas', t: 'Asaas da LeadVox', txt: 'A conta que recebe as assinaturas. Teste (sandbox) para testar sem dinheiro; Produção para cobrar de verdade.' }
 ];
+$('lvTour').onclick = () => tourIniciar(TOUR_ADMIN);
 let tour = null;
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 const celular = () => matchMedia('(max-width: 760px)').matches;
@@ -2368,7 +2424,7 @@ function desenharLv() {
   $('lvNAlertas').textContent = '(' + todos.filter(a => a.t !== 'info').length + ')';
   $('lvAlertas').innerHTML = todos.length ? todos.map(a => `<button type="button" class="${a.t}" data-em-abrir="${esc(a.e.id)}"><span>${a.t === 'bad' ? '🔴' : a.t === 'warn' ? '🟡' : 'ℹ️'} ${esc(a.m)}</span><small class="muted">${esc(a.e.nome)}</small></button>`).join('')
     : '<p class="muted">Nada pedindo atenção agora.</p>';
-  desenharLvLista();
+  desenharLvLista(); desenharLvCob();
 }
 function desenharLvLista() {
   const busca = ($('lvBusca').value || '').trim().toLowerCase();
@@ -2379,9 +2435,41 @@ function desenharLvLista() {
       const extra = c.status === 'teste' ? ' · ' + c.diasTeste + 'd' : '';
       return `<tr><td><b>${esc(e.nome)}</b><br><small class="muted">${esc(e.email || '')}</small></td><td><span class="st ${s[1]}">${esc(s[0] + extra)}</span>${e.suporte ? ' <span class="st">suporte</span>' : ''}</td>
         <td>${esc(c.planoNome || '—')}</td><td class="num">${u.conversas || 0}</td><td class="num">${u.respostas || 0}</td><td>${quando(e.ultimoEvento)}</td><td class="num">${usd(e.usd30)}</td>
-        <td><button class="sm" type="button" data-em-abrir="${esc(e.id)}">Gerenciar</button></td></tr>`; }).join('')}</tbody></table></div>`
+        <td><div class="form-bts" style="flex-wrap:nowrap;margin:0"><button class="principal sm" type="button" data-lv-entrar="${esc(e.id)}">${minhaEmpresa(e.id) ? 'Abrir painel' : 'Acessar suporte'}</button>
+          <button class="sm" type="button" data-em-abrir="${esc(e.id)}">Gerenciar</button></div></td></tr>`; }).join('')}</tbody></table></div>`
     : '<p class="muted" style="padding:16px 0">Nenhuma empresa.</p>';
 }
+// Cobranças: a assinatura de cada cliente (plano, valor, próxima fatura e situação).
+const COB_PENDENTE = ['aguardando', 'atrasada', 'suspensa', 'expirado'];
+function desenharLvCob() {
+  const f = $('lvCobFiltro').value;
+  const lista = lv.filter(e => { const s = (e.cobranca || {}).status; return !f || (f === 'pendente' ? COB_PENDENTE.includes(s) : f === 'ativa' ? ['ativa', 'cortesia'].includes(s) : s === f); })
+    .sort((a, b) => COB_PENDENTE.includes((b.cobranca || {}).status) - COB_PENDENTE.includes((a.cobranca || {}).status));
+  $('lvCobLista').innerHTML = lista.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Empresa</th><th>Situação</th><th>Plano</th><th class="num">Valor por mês</th>
+    <th>Pagamento</th><th>Próxima fatura</th><th></th></tr></thead><tbody>${lista.map(e => {
+      const c = e.cobranca || {}, s = SIT[c.status] || [c.status || '—', ''];
+      const prox = c.status === 'atrasada' && c.atrasadaDesde ? 'venceu em ' + dataBR(c.atrasadaDesde) : c.status === 'teste' && c.testeAte ? 'teste até ' + new Date(c.testeAte).toLocaleDateString('pt-BR')
+        : c.status === 'cortesia' ? (c.cortesiaAte ? 'cortesia até ' + dataBR(c.cortesiaAte) : 'cortesia sem prazo') : c.proximoVencimento ? dataBR(c.proximoVencimento) : '—';
+      return `<tr><td><b>${esc(e.nome)}</b></td><td><span class="st ${s[1]}">${esc(s[0])}</span></td><td>${esc(c.planoNome || '—')}</td>
+        <td class="num">${c.valorCents ? dinheiro(c.valorCents) : '—'}</td><td>${esc(FORMA_NOME[c.forma] || '—')}</td><td>${esc(prox)}</td>
+        <td><div class="form-bts" style="flex-wrap:nowrap;margin:0">${c.link && COB_PENDENTE.includes(c.status) ? `<a class="bt sm" href="${esc(c.link)}" target="_blank" rel="noopener">Fatura ↗</a>` : ''}
+          <button class="sm" type="button" data-em-abrir="${esc(e.id)}">Gerenciar</button></div></td></tr>`; }).join('')}</tbody></table></div>`
+    : '<p class="muted" style="padding:16px 0">Nenhuma assinatura nesta situação.</p>';
+}
+$('lvCobFiltro').onchange = desenharLvCob;
+// "Acessar suporte": abre o acesso (2 h, registrado) se ainda não estiver aberto e entra no painel do cliente.
+const minhaEmpresa = id => (conta?.organizations || []).some(o => o.id === id && o.role === 'owner');
+async function acessarCliente(id, bt) {
+  const e = lv.find(x => x.id === id); if (!e) return;
+  const minha = minhaEmpresa(id);
+  bt.disabled = true;
+  try { if (!minha && !e.suporte) await api('admin-suporte', { organization: id, horas: 2, motivo: 'Suporte pelo Painel LeadVox' }); }
+  catch (err) { bt.disabled = false; return toast(err.message, true); }
+  if (!minha) marcarSuporte(id, true);
+  toast('Entrando no painel de ' + e.nome + '…');
+  entrarCliente(id).catch(err => toast(err.message, true));
+}
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-lv-entrar]'); if (b) acessarCliente(b.dataset.lvEntrar, b); });
 $('lvBusca').oninput = desenharLvLista;
 $('lvAtualizar').onclick = () => carregarLv().then(() => toast('Atualizado.')).catch(err => toast(err.message, true));
 $('lvPeriodo').onchange = () => carregarConsumo().catch(err => toast(err.message, true));
@@ -2495,11 +2583,10 @@ async function irParaRobo(e, chave, aba, bt) {
   try {
     if (!e.suporte) await api('admin-suporte', { organization: e.id, horas: 4, motivo: 'Ajustar o robô ' + (r?.nome || chave) });
   } catch (err) { bt.disabled = false; return toast(err.message, true); }
-  try { localStorage.setItem('lv_empresa', e.id); sessionStorage.setItem('lv_ir_robo', JSON.stringify({ org: e.id, chave, aba })); } catch {}
+  try { sessionStorage.setItem('lv_ir_robo', JSON.stringify({ org: e.id, chave, aba })); } catch {}
   marcarSuporte(e.id, true);
-  history.replaceState(null, '', '#agentes');
   $('dlgEmpresa').close(); toast('Abrindo ' + (r?.nome || 'o robô') + ' de ' + e.nome + '…');
-  carregar().catch(err => toast(err.message, true));
+  entrarCliente(e.id).catch(err => toast(err.message, true));
 }
 // Chegou pelo "Editar" / "Testar a IA" do Super Admin: abre aquele robô na aba pedida (uma vez).
 function roboPedido() {
@@ -2516,9 +2603,8 @@ document.querySelectorAll('[data-em]').forEach(b => b.onclick = async () => {
   try {
     if (acao === 'suporte') {
       await api('admin-suporte', { organization: e.id, horas: Number($('emHoras').value), motivo: $('emMotivo').value.trim() });
-      try { localStorage.setItem('lv_empresa', e.id); } catch {}
       marcarSuporte(e.id, true);
-      $('dlgEmpresa').close(); toast('Entrando no painel de ' + e.nome + '…'); return carregar();
+      $('dlgEmpresa').close(); toast('Entrando no painel de ' + e.nome + '…'); return entrarCliente(e.id);
     }
     if (acao === 'suporte-fim') { await api('admin-suporte', { organization: e.id, encerrar: true }); marcarSuporte(e.id, false); toast('Suporte encerrado.'); }
     else {
@@ -2537,7 +2623,7 @@ $('emExcluir').onclick = async () => {
   $('emExcluir').disabled = true;
   try {
     await api('admin-excluir', { organization: e.id, confirma: $('emExcluirNome').value });
-    try { if (localStorage.getItem('lv_empresa') === e.id) localStorage.removeItem('lv_empresa'); } catch {}
+    try { if (localStorage.getItem('lv_empresa') === e.id) localStorage.removeItem('lv_empresa'); if (sessionStorage.getItem(DENTRO) === e.id) sessionStorage.removeItem(DENTRO); } catch {}
     $('dlgEmpresa').close(); toast(e.nome + ' foi excluída.');
     if (empresa?.id === e.id) return carregar();
     await carregarLv();

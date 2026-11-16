@@ -637,3 +637,6 @@ input[type=color]{height:44px;padding:4px;cursor:pointer}
 .as-cta { display: flex; gap: 14px; align-items: center; margin: 12px 0 4px; padding: 16px; border-radius: 12px; border: 1px solid rgba(43,232,123,.35); background: var(--verde-fundo); }
 .as-cta > span { font-size: 30px; } .as-cta > div { flex: 1; } .as-cta small { display: block; color: var(--suave); margin-top: 2px; }
 @media (max-width: 560px) { .as-cta { flex-wrap: wrap; } .as-cta button { width: 100%; } .as-faq { flex-direction: column; } .as-acoes { flex-direction: row; } .as-faq .as-p { width: 100%; } }
+
+/* Painel LeadVox e tela de entrada: sem o chat de ajuda do lojista */
+body.sem-chat .vtx-sdk-bubble, body.sem-chat .vtx-sdk-frame { display: none !important; }

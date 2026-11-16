@@ -14,6 +14,9 @@ Mesma de leadvox.com.br/agente-ia.html e /sdr/: fundo #070d1c, cartões #0e1730,
 
 `conta.html` e `cobrancas.html` só redirecionam para o painel.
 
+## Painel LeadVox (só a conta da LeadVox)
+Quem é dono da plataforma (`platform_admins`) entra direto no Painel LeadVox, com menu próprio: Clientes, Fichas de cadastro, Cobranças, Relatórios e Configurações (Asaas, domínios, motores). O menu de lojista não aparece ali. Em Clientes, "Acessar suporte" abre o acesso (2 h, registrado) e entra no painel daquele cliente; a faixa do topo e o botão "← Painel LeadVox" trazem de volta. O cliente em que a LeadVox está fica anotado só na aba do navegador (`sessionStorage`, chave `lv_dentro`): login novo sempre abre o Painel LeadVox.
+
 ## Rastreamento de anúncios (módulo extra)
 Liga o lead que chegou por anúncio de clique para WhatsApp à venda e avisa a Meta (lead qualificado e compra com o valor no Ganho).
 - **Liberar para um cliente:** Painel LeadVox → Gerenciar a empresa → chave "Rastreamento de anúncios". Sem a chave, o cliente vê o convite para contratar.

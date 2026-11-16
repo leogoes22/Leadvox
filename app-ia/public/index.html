@@ -94,7 +94,7 @@
 <!-- ═══════════ APP ═══════════ -->
 <div id="telaApp" class="app" hidden>
   <aside class="lateral" id="lateral">
-    <a class="logo" href="#agentes"><img src="/logo-leadvox.png" alt="LeadVox" width="196" height="60"></a>
+    <a class="logo" id="logoIr" href="#agentes"><img src="/logo-leadvox.png" alt="LeadVox" width="196" height="60"></a>
     <nav id="menu" aria-label="Menu"></nav>
     <div class="rodape" id="rodape"></div>
   </aside>
@@ -104,7 +104,7 @@
         <button class="bt-menu" type="button" id="btMenu" aria-label="Abrir menu">☰</button>
         <div><h1 id="cabTitulo"></h1><p id="cabSub"></p></div>
       </div>
-      <div class="dir"><select id="cabEmpresa" class="cab-empresa" aria-label="Empresa" hidden></select><button class="sm guia-bt" type="button" id="btGuia">🚀 Primeiros passos</button><button class="sm" type="button" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
+      <div class="dir"><button class="principal sm" type="button" id="btVoltarLv" hidden>← Painel LeadVox</button><select id="cabEmpresa" class="cab-empresa" aria-label="Empresa" hidden></select><button class="sm guia-bt" type="button" id="btGuia">🚀 Primeiros passos</button><button class="sm" type="button" id="btConta" data-ir="conta">Minha conta</button><button class="leve" type="button" data-sair>Sair</button></div>
     </header>
     <div class="pagina">
     <div id="suporteAviso" class="saude aviso" role="status" hidden></div>
@@ -709,34 +709,47 @@
       </form>
     </section>
 
-    <section id="vLeadvox" hidden>
-      <div class="card">
-        <div class="lista-topo"><div><h2>Painel LeadVox</h2>
-          <p class="muted">Só você vê esta aba: assinaturas, clientes que precisam de você, consumo de IA e suporte.</p></div>
-          <button class="sm" type="button" id="lvAtualizar">Atualizar</button></div>
-        <div class="numeros" id="lvNumeros"></div>
-      </div>
-      <div class="lv-duas">
-        <div class="card"><h3>⚠️ Precisa de você <span class="muted" id="lvNAlertas"></span></h3><div id="lvAlertas" class="lv-alertas"></div></div>
-        <div class="card"><div class="lista-topo"><h3>💰 Consumo de IA</h3>
-          <select id="lvPeriodo" class="sm-sel" aria-label="Período do consumo"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
-          <div id="lvConsumo" class="lv-consumo"></div></div>
-      </div>
+    <section id="vLvClientes" hidden>
+      <div class="card"><div class="lista-topo"><h3>⚠️ Precisa de você <span class="muted" id="lvNAlertas"></span></h3>
+        <div class="form-bts"><button class="sm" type="button" id="lvTour">▶ Tour</button><button class="sm" type="button" id="lvAtualizar">Atualizar</button></div></div>
+        <div id="lvAlertas" class="lv-alertas"></div></div>
       <div class="card tabela-cli">
-        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Situação da assinatura, uso da IA nos últimos 7 dias e acesso de suporte.</p></div>
+        <div class="lista-topo"><div><h2>Clientes</h2><p class="muted">Todos os clientes da LeadVox. Acesse o suporte para entrar no painel do cliente; em Gerenciar ficam o plano, os robôs e os usuários.</p></div>
           <input id="lvBusca" class="sm-sel" type="search" placeholder="Buscar empresa" aria-label="Buscar empresa"></div>
         <div id="lvLista" style="margin-top:10px"></div>
       </div>
-      <div class="card tabela-cli" id="lvDominios" hidden>
-        <div class="lista-topo"><div><h2>Domínios dos sites <small class="muted">Site da loja</small></h2>
-          <p class="muted" id="lvDominiosResumo">Domínios próprios das lojas e pedidos de registro.</p></div></div>
-        <div id="lvDominiosLista" style="margin-top:10px"></div>
+    </section>
+
+    <section id="vLvFichas" hidden>
+      <div class="card"><h2>Fichas de cadastro</h2>
+        <p class="muted">A Ficha de Implantação de cada cliente novo. Por enquanto ela é preenchida pelo plugin, dentro da conversa na LeadVox; a lista das fichas aqui no painel é a próxima etapa.</p>
+        <div class="form-bts" style="margin-top:10px"><a class="bt sm" href="https://leadvox.com.br/ficha/" target="_blank" rel="noopener">Abrir a ficha ↗</a></div></div>
+    </section>
+
+    <section id="vLvCobrancas" hidden>
+      <div class="card"><h2>Cobranças</h2>
+        <p class="muted">As assinaturas dos seus clientes: quanto entra por mês e quem está em dia.</p>
+        <div class="numeros" id="lvNumeros"></div>
       </div>
+      <div class="card tabela-cli">
+        <div class="lista-topo"><div><h2>Assinaturas</h2><p class="muted">Plano, valor, próxima fatura e situação de cada cliente.</p></div>
+          <select id="lvCobFiltro" class="sm-sel" aria-label="Filtrar por situação"><option value="">Todas</option><option value="pendente">Com pendência</option><option value="ativa">Em dia</option><option value="teste">Em teste</option></select></div>
+        <div id="lvCobLista" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section id="vLvRelatorios" hidden>
+      <div class="card"><div class="lista-topo"><div><h2>Atendimento da IA</h2><p class="muted">Respostas da IA por dia e por cliente.</p></div>
+        <select id="lvPeriodo" class="sm-sel" aria-label="Período do consumo"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
+        <div id="lvConsumo" class="lv-consumo"></div></div>
       <div class="card tabela-cli" id="lvRastreio" hidden>
         <div class="lista-topo"><div><h2>Rastreamento de anúncios <small class="muted">módulo extra</small></h2>
           <p class="muted" id="lvRastreioResumo">Clientes com o módulo, contas de anúncio, leads e vendas dos últimos 30 dias.</p></div></div>
         <div id="lvRastreioLista" style="margin-top:10px"></div>
       </div>
+    </section>
+
+    <section id="vLvConfig" hidden>
       <div class="card" id="lvAsaas"><h3>Asaas da LeadVox</h3>
         <p class="muted" id="lvAsaasStatus">Conecte a conta do Asaas que recebe as assinaturas. A chave fica guardada no cofre e não volta para a tela.</p>
         <form id="lvAsaasForm" class="duas" style="align-items:end">
@@ -744,17 +757,17 @@
           <div><label for="lvAsaasChave">Chave da API do Asaas</label><input id="lvAsaasChave" type="password" autocomplete="off" placeholder="$aact_…"></div>
           <button class="principal sm" type="submit">Conectar e criar o retorno de pagamentos</button>
         </form></div>
-      <div class="modulos">
-        <div class="card"><h3>Cobrar seus clientes</h3>
-          <p>As mensalidades dos seus clientes ficam na aba Cobranças da LeadVox: cadastre o cliente, o plano e a recorrência.</p>
-          <button class="principal sm" type="button" data-ir="cobrancas">Abrir cobranças</button></div>
-        <div class="card"><h3>Motores de IA</h3>
-          <p>Os administradores que você já usa para os agentes e para o SDR automotivo.</p>
-          <div class="form-bts" style="margin-top:8px">
-            <a class="bt sm" href="https://leadvox.com.br/admin-motor-ia.html" target="_blank" rel="noopener">Admin agentes ↗</a>
-            <a class="bt sm" href="https://leadvox.com.br/admin-motor-sdr.html" target="_blank" rel="noopener">Admin SDR ↗</a>
-          </div></div>
+      <div class="card tabela-cli" id="lvDominios" hidden>
+        <div class="lista-topo"><div><h2>Domínios dos sites <small class="muted">Site da loja</small></h2>
+          <p class="muted" id="lvDominiosResumo">Domínios próprios das lojas e pedidos de registro.</p></div></div>
+        <div id="lvDominiosLista" style="margin-top:10px"></div>
       </div>
+      <div class="card"><h3>Motores de IA</h3>
+        <p>Os administradores que você já usa para os agentes e para o SDR automotivo.</p>
+        <div class="form-bts" style="margin-top:8px">
+          <a class="bt sm" href="https://leadvox.com.br/admin-motor-ia.html" target="_blank" rel="noopener">Admin agentes ↗</a>
+          <a class="bt sm" href="https://leadvox.com.br/admin-motor-sdr.html" target="_blank" rel="noopener">Admin SDR ↗</a>
+        </div></div>
     </section>
     </div>
   </div>
