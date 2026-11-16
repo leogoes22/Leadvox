@@ -66,7 +66,8 @@ test('o SQL confere o dono da plataforma, não muda o plugin e fica fora do aces
 test('o mapa de campos do painel acompanha a página da ficha', { skip: !existsSync(new URL('../../ficha/index.html', import.meta.url)) && 'a página da ficha não está nesta montagem' }, () => {
   const html = readFileSync(new URL('../../ficha/index.html', import.meta.url), 'utf8');
   assert.deepEqual(FICHA_ETAPAS, extrair(html), 'A ficha mudou: rode "node ficha-campos.mjs" na pasta app-ia.');
-  assert.equal(readFileSync(new URL('../public/ficha-campos.js', import.meta.url), 'utf8'), arquivo(extrair(html)));
+  // o Git no Windows pode trocar o fim de linha do arquivo gerado
+  assert.equal(readFileSync(new URL('../public/ficha-campos.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n'), arquivo(extrair(html)));
 });
 test('tela: a aba Fichas lista, mostra as respostas e liga ao cliente', () => {
   const js = readFileSync(new URL('../public/painel.js', import.meta.url), 'utf8'), html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
