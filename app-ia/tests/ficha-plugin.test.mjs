@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { pedidoCode, RESPOSTA, fluxoFicha, ORIGENS } from '../n8n/ficha-plugin.mjs';
 
 const CHAVE = 'lvficha-' + '0123456789abcdef'.repeat(2);
@@ -52,7 +52,10 @@ test('SQL: tabela fora do REST e funções só para o n8n', () => {
   }
 });
 
-test('página da ficha: fala com o n8n, lê o ticket da LeadVox e não usa o banco do claude.ai', () => {
+// A página da ficha fica fora desta pasta (../ficha). Na montagem do Docker só esta pasta é copiada: lá estes dois testes são pulados
+// (senão a montagem para e nenhuma versão nova entra no ar); no GitHub Actions e na máquina eles rodam.
+const semPagina = !existsSync(new URL('../../ficha/index.html', import.meta.url)) && 'a página da ficha não está nesta montagem';
+test('página da ficha: fala com o n8n, lê o ticket da LeadVox e não usa o banco do claude.ai', { skip: semPagina }, () => {
   const html = readFileSync(new URL('../../ficha/index.html', import.meta.url), 'utf8');
   assert.match(html, /n8n\.leadvox\.com\.br\/webhook\/ficha-implantacao/);
   assert.match(html, /DEFAULT_DATA/);
@@ -61,7 +64,7 @@ test('página da ficha: fala com o n8n, lê o ticket da LeadVox e não usa o ban
   assert.match(html, /leadvox-modelo-crm/);
 });
 
-test('página da ficha: abrir o plugin numa conversa não grava ficha, só o primeiro preenchimento', () => {
+test('página da ficha: abrir o plugin numa conversa não grava ficha, só o primeiro preenchimento', { skip: semPagina }, () => {
   const html = readFileSync(new URL('../../ficha/index.html', import.meta.url), 'utf8');
   const corpoNova = html.slice(html.indexOf('function nova('), html.indexOf('// ── eventos ──'));
   assert.ok(corpoNova.length > 0);

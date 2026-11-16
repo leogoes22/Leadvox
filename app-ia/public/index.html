@@ -721,9 +721,13 @@
     </section>
 
     <section id="vLvFichas" hidden>
-      <div class="card"><h2>Fichas de cadastro</h2>
-        <p class="muted">A Ficha de Implantação de cada cliente novo. Por enquanto ela é preenchida pelo plugin, dentro da conversa na LeadVox; a lista das fichas aqui no painel é a próxima etapa.</p>
-        <div class="form-bts" style="margin-top:10px"><a class="bt sm" href="https://leadvox.com.br/ficha/" target="_blank" rel="noopener">Abrir a ficha ↗</a></div></div>
+      <div class="card tabela-cli">
+        <div class="lista-topo"><div><h2>Fichas de cadastro</h2>
+          <p class="muted">A Ficha de Implantação de cada cliente. Ela é preenchida pelo plugin, na conversa da LeadVox; aqui você consulta as respostas e liga cada ficha ao cliente.</p></div>
+          <div class="form-bts" style="margin:0"><select id="lvFichasFiltro" class="sm-sel" aria-label="Filtrar fichas"><option value="">Todas</option><option value="pronta">Prontas para montar</option><option value="rascunho">Rascunho</option><option value="sem">Sem cliente ligado</option></select>
+            <input id="lvFichasBusca" class="sm-sel" type="search" placeholder="Buscar ficha" aria-label="Buscar ficha"></div></div>
+        <div id="lvFichasLista" style="margin-top:10px"><p class="muted">Carregando as fichas…</p></div>
+      </div>
     </section>
 
     <section id="vLvCobrancas" hidden>
@@ -801,6 +805,16 @@
   <label class="aceite"><input type="checkbox" id="tmAceite"><span>Li e aceito os Termos de Uso e a Política de Privacidade.</span></label>
   <p class="erro" id="tmErro" hidden></p>
   <div class="form-bts"><button class="principal" type="button" id="tmOk">Aceitar e continuar</button><button class="leve" type="button" data-sair>Sair</button></div>
+</dialog>
+
+<dialog id="dlgFicha" class="janela larga" aria-labelledby="fiTitulo">
+  <div class="janela-topo"><h2 id="fiTitulo">Ficha</h2><button type="button" class="leve" data-fechar aria-label="Fechar">✕</button></div>
+  <div id="fiResumo"></div>
+  <div class="duas" style="align-items:end;margin-top:12px">
+    <div><label for="fiCliente">Cliente desta ficha</label><select id="fiCliente"></select></div>
+    <div class="form-bts" style="margin:0"><button class="principal sm" type="button" id="fiVincular">Salvar cliente</button><button class="sm" type="button" id="fiSuporte" hidden>Acessar suporte</button></div>
+  </div>
+  <div id="fiRespostas" class="fi-respostas"></div>
 </dialog>
 
 <dialog id="dlgEmpresa" class="janela larga" aria-labelledby="emTitulo">

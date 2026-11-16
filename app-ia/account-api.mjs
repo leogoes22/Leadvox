@@ -474,6 +474,22 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      const r=await rpc('lv_admin_site_hospedagem',{org:body.organization,p_tipo:body.tipo==='github'?'github':'leadvox',p_repo:String(body.repo||'').trim().slice(0,140)});
      if(!r||r.ok!==true)throw {status:400,message:DOMINIO_ERROS[r?.erro]||'Não deu para salvar a hospedagem.'};
      send(res,200,await rpc('lv_admin_dominios'));
+    }else if(action==='admin-fichas'&&req.method==='GET'){
+     // Fichas de cadastro (Ficha de Implantação): a lista com o cliente ligado a cada uma.
+     try{send(res,200,{fichas:await rpc('lv_admin_fichas')});}
+     catch{throw {status:409,message:'Rode fichas_painel.sql para ver as fichas no painel.'};}
+    }else if(action==='admin-ficha'&&req.method==='GET'){
+     if(!/^[a-z0-9-]{3,60}$/.test(q.get('id')||''))throw {status:400,message:'Ficha inválida.'};
+     const ficha=await rpc('lv_admin_ficha',{p_id:q.get('id')});
+     if(!ficha)throw {status:404,message:'Ficha não encontrada. Atualize a lista.'};
+     send(res,200,{ficha});
+    }else if(action==='admin-ficha-vincular'&&req.method==='POST'){
+     // liga a ficha a um cliente; organization vazio desliga
+     const org=body.organization||null;
+     if(!/^[a-z0-9-]{3,60}$/.test(body.id||'')||(org!==null&&!uuidOk(org)))throw {status:400,message:'Ficha ou empresa inválida.'};
+     const r=await rpc('lv_admin_ficha_vincular',{p_id:body.id,org});
+     if(!r||r.ok!==true)throw {status:400,message:r?.erro==='empresa'?'Empresa não encontrada. Atualize a lista.':'Ficha não encontrada. Atualize a lista.'};
+     send(res,200,{fichas:await rpc('lv_admin_fichas')});
     }else if(action==='admin-rastreio-lista'&&req.method==='GET'){
      try{send(res,200,{empresas:await rpc('lv_admin_rastreio_lista')});}
      catch{throw {status:409,message:'Rode rastreio_contas.sql para ver a lista do rastreamento.'};}

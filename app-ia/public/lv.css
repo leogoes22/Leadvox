@@ -640,3 +640,14 @@ input[type=color]{height:44px;padding:4px;cursor:pointer}
 
 /* Painel LeadVox e tela de entrada: sem o chat de ajuda do lojista */
 body.sem-chat .vtx-sdk-bubble, body.sem-chat .vtx-sdk-frame { display: none !important; }
+
+/* Ficha de cadastro aberta no Painel LeadVox: uma etapa por bloco que abre e fecha */
+.fi-respostas { margin-top: 16px; display: grid; gap: 8px; }
+.fi-etapa { border: 1px solid var(--linha); border-radius: 12px; padding: 0 14px; background: var(--painel); }
+.fi-etapa summary { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; cursor: pointer; font-weight: 600; }
+.fi-etapa summary small { color: var(--suave); font-weight: 400; }
+.fi-etapa summary small.cheio { color: var(--verde); }
+.fi-etapa h4 { margin: 10px 0 6px; font-size: 13px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
+.fi-etapa > p, .fi-etapa > .ag-dados, .fi-etapa > .fi-linha { margin-bottom: 12px; }
+.fi-linha { border-left: 2px solid var(--linha); padding-left: 12px; }
+.fi-linha > b { display: block; font-size: 13px; margin-bottom: 4px; }

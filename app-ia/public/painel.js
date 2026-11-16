@@ -1,5 +1,6 @@
 import { schedule, cycles } from '/billing-schedule.js';
 import { modeloRegras, sugerirItem, montarRegra, juntarRegras } from '/modelos-regras.js';
+import { FICHA_ETAPAS } from '/ficha-campos.js';
 
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -530,6 +531,7 @@ function abrir(pg) {
   if (pg === 'canais') { desenharEventos(); carregarEventos().then(desenharEventos); }
   if (pg === 'cobrancas') carregarFin().catch(err => toast(err.message, true));
   if (LV_PG.includes(pg)) carregarLv().catch(err => toast(err.message, true));
+  if (pg === 'fichas') carregarFichas();
   if (pg === 'conta') carregarUsuariosConta();
   $('lateral').classList.remove('aberta');
   if (location.hash.slice(1) !== pg) history.replaceState(null, '', '#' + pg);
@@ -2457,6 +2459,80 @@ function desenharLvCob() {
     : '<p class="muted" style="padding:16px 0">Nenhuma assinatura nesta situação.</p>';
 }
 $('lvCobFiltro').onchange = desenharLvCob;
+
+// Fichas de cadastro: a Ficha de Implantação de cada cliente (preenchida pelo plugin). Aqui: lista, respostas e o cliente ligado.
+let fichas = [], fichaAtual = null;
+const FI_DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
+const fiCheio = v => Array.isArray(v) ? v.some(fiCheio) : v && typeof v === 'object' ? Object.values(v).some(fiCheio) : v === true || typeof v === 'number' || (typeof v === 'string' && v.trim() !== '');
+const fiData = ms => ms ? new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+async function carregarFichas() {
+  try { fichas = (await api('admin-fichas')).fichas || []; desenharFichas(); }
+  catch (err) { fichas = []; $('lvFichasLista').innerHTML = `<p class="muted" style="padding:16px 0">${esc(err.message)}</p>`; }
+}
+function desenharFichas() {
+  const busca = ($('lvFichasBusca').value || '').trim().toLowerCase(), f = $('lvFichasFiltro').value;
+  const lista = fichas.filter(x => (!busca || (x.nome + ' ' + (x.empresa || '') + ' ' + (x.contato || '')).toLowerCase().includes(busca))
+    && (!f || (f === 'sem' ? !x.organization : x.status === f)));
+  $('lvFichasLista').innerHTML = lista.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Ficha</th><th>Situação</th><th>Cliente</th><th>Atualizada em</th><th></th></tr></thead><tbody>${lista.map(x =>
+    `<tr><td><b>${esc(x.nome || 'Sem nome')}</b>${x.contato ? `<br><small class="muted">${esc(zapFmt(x.contato.replace(/^55(?=\d{10,11}$)/, '')))}</small>` : ''}</td>
+      <td><span class="st ${x.status === 'pronta' ? 'on' : 'rascunho'}">${x.status === 'pronta' ? 'Pronta para montar' : 'Rascunho'}</span></td>
+      <td>${x.empresa ? esc(x.empresa) : '<span class="muted">Sem cliente ligado</span>'}</td><td>${fiData(x.atualizadoEm)}</td>
+      <td><button class="principal sm" type="button" data-ficha-abrir="${esc(x.id)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`
+    : `<p class="muted" style="padding:16px 0">${fichas.length ? 'Nenhuma ficha com este filtro.' : 'Nenhuma ficha ainda. Elas aparecem aqui quando a equipe preenche a Ficha de Implantação pelo plugin, na conversa da LeadVox.'}</p>`;
+}
+$('lvFichasBusca').oninput = desenharFichas; $('lvFichasFiltro').onchange = desenharFichas;
+// O valor de um campo, pronto para mostrar ('' quando está vazio). Tudo o que veio da ficha passa pelo esc.
+function fiValor(c, v) {
+  if (!fiCheio(v)) return '';
+  if (c.t === 'check') return 'Sim';
+  if (c.t === 'lines') return (Array.isArray(v) ? v : [v]).filter(fiCheio).map(x => esc(x)).join('<br>');
+  if (c.t === 'horario') return FI_DIAS.map(([k, n]) => { const d = (v || {})[k] || {}; return d.aberto ? `${n}: ${esc(d.ini || '?')} às ${esc(d.fim || '?')}` : ''; }).filter(Boolean).join('<br>');
+  if (c.t === 'rows') return (Array.isArray(v) ? v : []).filter(fiCheio).map((r, i) => `<div class="fi-linha"><b>${esc(c.l)} ${i + 1}</b><div class="ag-dados">${(c.cols || []).map(col => {
+    const x = fiValor(col, (r || {})[col.k]); return x ? `<div><span>${esc(col.l)}</span>${x}</div>` : ''; }).join('')}</div></div>`).join('');
+  if (c.t === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dataBR(v);
+  return esc(typeof v === 'object' ? JSON.stringify(v) : v).replace(/\n/g, '<br>');
+}
+function desenharFicha() {
+  const f = fichaAtual; if (!f) return;
+  const dados = f.dados || {};
+  $('fiTitulo').textContent = f.nome || 'Ficha sem nome';
+  let feitos = 0, total = 0;
+  const etapas = FICHA_ETAPAS.map((e, i) => {
+    const campos = e.blocos.flatMap(b => b.campos), ok = campos.filter(c => fiCheio((dados[e.id] || {})[c.k])).length;
+    feitos += ok; total += campos.length;
+    const blocos = e.blocos.map(b => {
+      const simples = [], linhas = [];
+      for (const c of b.campos) { const x = fiValor(c, (dados[e.id] || {})[c.k]); if (!x) continue;
+        if (c.t === 'rows') linhas.push(x); else simples.push(`<div><span>${esc(c.l)}</span>${x}</div>`); }
+      return simples.length || linhas.length ? `<h4>${esc(b.titulo)}</h4>${simples.length ? `<div class="ag-dados">${simples.join('')}</div>` : ''}${linhas.join('')}` : '';
+    }).join('');
+    return `<details class="fi-etapa"${ok ? ' open' : ''}><summary><span>${String(i + 1).padStart(2, '0')} · ${esc(e.titulo)}</span><small class="${ok === campos.length ? 'cheio' : ''}">${ok}/${campos.length}</small></summary>
+      ${blocos || '<p class="muted">Nada preenchido nesta etapa.</p>'}</details>`;
+  }).join('');
+  $('fiResumo').innerHTML = `<p><span class="st ${f.status === 'pronta' ? 'on' : 'rascunho'}">${f.status === 'pronta' ? 'Pronta para montar' : 'Rascunho'}</span></p>
+    <div class="ag-dados" style="margin-top:8px"><div><span>Preenchimento</span>${feitos} de ${total} campos</div>${f.contato ? `<div><span>Contato</span>${esc(zapFmt(f.contato.replace(/^55(?=\d{10,11}$)/, '')))}</div>` : ''}
+      <div><span>Criada em</span>${fiData(f.criadoEm)}</div><div><span>Atualizada em</span>${fiData(f.atualizadoEm)}</div></div>`;
+  $('fiCliente').innerHTML = '<option value="">Sem cliente ligado</option>' + lv.map(e => `<option value="${esc(e.id)}"${e.id === f.organization ? ' selected' : ''}>${esc(e.nome)}</option>`).join('');
+  $('fiSuporte').hidden = !f.organization || !lv.some(e => e.id === f.organization);
+  $('fiSuporte').textContent = minhaEmpresa(f.organization) ? 'Abrir painel' : 'Acessar suporte';
+  $('fiRespostas').innerHTML = etapas;
+}
+async function abrirFicha(id, bt) {
+  if (bt) bt.disabled = true;
+  try { fichaAtual = (await api('admin-ficha?id=' + encodeURIComponent(id))).ficha; desenharFicha(); if (!$('dlgFicha').open) $('dlgFicha').showModal(); }
+  catch (err) { toast(err.message, true); } finally { if (bt) bt.disabled = false; }
+}
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-ficha-abrir]'); if (b) abrirFicha(b.dataset.fichaAbrir, b); });
+$('fiVincular').onclick = async () => {
+  const f = fichaAtual; if (!f) return;
+  const bt = $('fiVincular'); bt.disabled = true;
+  try {
+    fichas = (await api('admin-ficha-vincular', { id: f.id, organization: $('fiCliente').value })).fichas || [];
+    f.organization = $('fiCliente').value || null; f.empresa = (lv.find(e => e.id === f.organization) || {}).nome || null;
+    desenharFichas(); desenharFicha(); toast(f.organization ? 'Ficha ligada a ' + f.empresa + '.' : 'Ficha sem cliente ligado.');
+  } catch (err) { toast(err.message, true); } finally { bt.disabled = false; }
+};
+$('fiSuporte').onclick = () => { const id = fichaAtual?.organization; if (!id) return; $('dlgFicha').close(); acessarCliente(id, $('fiSuporte')); };
 // "Acessar suporte": abre o acesso (2 h, registrado) se ainda não estiver aberto e entra no painel do cliente.
 const minhaEmpresa = id => (conta?.organizations || []).some(o => o.id === id && o.role === 'owner');
 async function acessarCliente(id, bt) {
