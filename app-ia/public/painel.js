@@ -2551,26 +2551,61 @@ $('lvAtualizar').onclick = () => carregarLv().then(() => toast('Atualizado.')).c
 $('lvPeriodo').onchange = () => carregarConsumo().catch(err => toast(err.message, true));
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-em-abrir]'); if (b) abrirEmpresa(b.dataset.emAbrir); });
 
-// Consumo: respostas da IA por dia (relatório do motor) e custo medido quando a empresa usa a própria chave OpenAI.
+// Relatórios: os números de cada cliente no período (relatório do motor, custo medido com a chave própria e o rastreamento de anúncios).
+// Sem relatorio_admin.sql no banco, o servidor devolve só conversas, respostas e custo (completo: false).
+let rel = null;
 async function carregarConsumo() {
   const dias = Number($('lvPeriodo').value) || 30, br = d => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
   const fim = br(new Date()), ini = br(new Date(Date.now() - (dias - 1) * 864e5));
-  const d = await api('admin-consumo?ini=' + ini + '&fim=' + fim), linhas = d.dias || [];
-  const porDia = {}, porOrg = {};
-  for (let i = 0; i < dias; i++) porDia[br(new Date(Date.parse(ini + 'T15:00:00Z') + i * 864e5))] = 0;
-  for (const l of linhas) { porDia[l.dia] = (porDia[l.dia] || 0) + (Number(l.respostas) || 0);
-    const o = porOrg[l.org] ||= { respostas: 0, conversas: 0, usd: 0 }; o.respostas += Number(l.respostas) || 0; o.conversas += Number(l.conversas) || 0; o.usd += Number(l.usd) || 0; }
+  const d = await api('admin-relatorio?ini=' + ini + '&fim=' + fim);
+  rel = { dias, ini, linhas: d.dias || [], anuncios: d.anuncios || [], completo: d.completo !== false };
+  desenharRelatorio();
+}
+function desenharRelatorio() {
+  if (!rel) return;
+  const n = v => Number(v) || 0, nome = id => (lv.find(e => e.id === id) || {}).nome || 'Empresa', num = v => n(v).toLocaleString('pt-BR');
+  const CAMPOS = ['conversas', 'novos', 'transferidos', 'followups', 'respostas', 'usd'];
+  const porOrg = {};
+  for (const l of rel.linhas) { const o = porOrg[l.org] ||= {}; for (const c of CAMPOS) o[c] = (o[c] || 0) + n(l[c]); }
+  for (const a of rel.anuncios) Object.assign(porOrg[a.org] ||= {}, { leads: n(a.leads), vendas: n(a.vendas), valor: n(a.valor), anuncios: true });
+  // o seletor de cliente: quem tem número no período primeiro, depois os outros
+  const sel = $('lvRelCliente'), atual = sel.value;
+  const ordem = [...lv].sort((a, b) => n((porOrg[b.id] || {}).conversas) - n((porOrg[a.id] || {}).conversas) || a.nome.localeCompare(b.nome));
+  sel.innerHTML = '<option value="">Todos os clientes</option>' + ordem.map(e => `<option value="${esc(e.id)}"${e.id === atual ? ' selected' : ''}>${esc(e.nome)}</option>`).join('');
+  const org = sel.value;
+  const t = org ? (porOrg[org] || {}) : Object.values(porOrg).reduce((s, o) => { for (const k of [...CAMPOS, 'leads', 'vendas', 'valor']) s[k] = (s[k] || 0) + n(o[k]); s.anuncios ||= o.anuncios; return s; }, {});
+  $('lvRelSub').textContent = (org ? nome(org) : 'Todos os clientes') + ' · últimos ' + rel.dias + ' dias.';
+  const bloco = (v, r) => `<div><b>${v}</b><small>${r}</small></div>`;
+  $('lvRelNumeros').innerHTML = bloco(num(t.conversas), 'conversas atendidas pela IA')
+    + (rel.completo ? bloco(num(t.novos), 'leads novos') + bloco(num(t.transferidos), 'passados para a equipe') + bloco(num(t.followups), 'follow-ups enviados') : '')
+    + bloco(num(t.respostas), 'respostas da IA')
+    + (rel.completo ? bloco(t.anuncios ? num(t.vendas) : '—', t.anuncios ? 'vendas por anúncio · ' + rsReais(t.valor) : 'vendas por anúncio (sem o módulo)') : '')
+    + bloco(usd(t.usd), 'custo de IA medido');
+  $('lvRelAviso').hidden = rel.completo;
+  $('lvRelAviso').textContent = rel.completo ? '' : 'Mostrando só o básico. Rode relatorio_admin.sql no banco para ver leads novos, passagens para a equipe, follow-ups e vendas.';
+  // gráfico: respostas da IA por dia (de todos ou do cliente escolhido)
+  const br = d => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10), porDia = {};
+  for (let i = 0; i < rel.dias; i++) porDia[br(new Date(Date.parse(rel.ini + 'T15:00:00Z') + i * 864e5))] = 0;
+  for (const l of rel.linhas) if (!org || l.org === org) porDia[l.dia] = (porDia[l.dia] || 0) + n(l.respostas);
   const serie = Object.entries(porDia).sort(), max = Math.max(1, ...serie.map(s => s[1])), W = 600, H = 150, base = 128, larg = W / serie.length;
   const barras = serie.map(([dia, v], i) => { const h = Math.round(v / max * 108); return `<rect x="${(i * larg + larg * .15).toFixed(1)}" y="${base - h}" width="${(larg * .7).toFixed(1)}" height="${h}" rx="2" fill="var(--verde)"><title>${dataBR(dia)}: ${v} respostas</title></rect>`; }).join('');
-  const total = serie.reduce((t, s) => t + s[1], 0), nome = id => (lv.find(e => e.id === id) || {}).nome || 'Empresa';
-  const tabela = Object.entries(porOrg).sort((a, b) => b[1].respostas - a[1].respostas).map(([id, o]) => `<tr><td>${esc(nome(id))}</td><td class="num">${o.conversas}</td><td class="num">${o.respostas}</td><td class="num">${usd(o.usd)}</td></tr>`).join('');
-  $('lvConsumo').innerHTML = `<p class="muted" style="font-size:13px;margin:0">${total.toLocaleString('pt-BR')} respostas da IA em ${dias} dias · pico de ${max.toLocaleString('pt-BR')} num dia</p>
+  const total = serie.reduce((s, x) => s + x[1], 0);
+  $('lvConsumo').innerHTML = `<p class="muted" style="font-size:13px;margin:0">${total.toLocaleString('pt-BR')} respostas da IA em ${rel.dias} dias · pico de ${max.toLocaleString('pt-BR')} num dia</p>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Respostas da IA por dia"><line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--linha)"/>${barras}
       <text x="0" y="${H - 4}" fill="var(--suave)" font-size="11">${dataBR(serie[0][0])}</text><text x="${W}" y="${H - 4}" fill="var(--suave)" font-size="11" text-anchor="end">${dataBR(serie[serie.length - 1][0])}</text>
-      <text x="0" y="12" fill="var(--suave)" font-size="11">${max}</text></svg>
-    ${tabela ? `<div class="rolo"><table><thead><tr><th>Empresa</th><th class="num">Conversas</th><th class="num">Respostas</th><th class="num">Custo medido</th></tr></thead><tbody>${tabela}</tbody></table></div>` : ''}
-    <p class="muted" style="font-size:12px">O custo medido aparece quando a empresa usa a própria chave OpenAI (Credenciais de API). Valores estimados em dólar, sem impostos.</p>`;
+      <text x="0" y="12" fill="var(--suave)" font-size="11">${max}</text></svg>`;
+  // tabela por cliente: todos os clientes, os com mais conversas primeiro
+  const c = rel.completo;
+  $('lvRelLista').innerHTML = ordem.length ? `<div class="rolo"><table class="lv-tabela"><thead><tr><th>Cliente</th><th class="num">Conversas</th>${c ? '<th class="num">Leads novos</th><th class="num">Para a equipe</th><th class="num">Follow-ups</th>' : ''}
+    <th class="num">Respostas</th>${c ? '<th class="num">Vendas por anúncio</th><th class="num">Valor vendido</th>' : ''}<th class="num">Custo de IA</th><th></th></tr></thead><tbody>${ordem.map(e => { const o = porOrg[e.id] || {};
+      return `<tr${e.id === org ? ' class="sel"' : ''}><td><b>${esc(e.nome)}</b></td><td class="num">${num(o.conversas)}</td>${c ? `<td class="num">${num(o.novos)}</td><td class="num">${num(o.transferidos)}</td><td class="num">${num(o.followups)}</td>` : ''}
+        <td class="num">${num(o.respostas)}</td>${c ? `<td class="num">${o.anuncios ? num(o.vendas) : '—'}</td><td class="num">${o.anuncios ? rsReais(o.valor) : '—'}</td>` : ''}<td class="num">${usd(o.usd)}</td>
+        <td><button class="sm" type="button" data-rel-ver="${esc(e.id === org ? '' : e.id)}">${e.id === org ? 'Ver todos' : 'Ver'}</button></td></tr>`; }).join('')}</tbody></table></div>
+    <p class="muted" style="font-size:12px">Os números da IA chegam a cada 15 minutos. O custo de IA aparece quando o cliente usa a própria chave OpenAI (em dólar, sem impostos). Vendas só para quem tem o Rastreamento de anúncios.</p>`
+    : '<p class="muted" style="padding:16px 0">Nenhum cliente.</p>';
 }
+$('lvRelCliente').onchange = desenharRelatorio;
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-rel-ver]'); if (!b) return; $('lvRelCliente').value = b.dataset.relVer; desenharRelatorio(); scrollTo(0, 0); });
 
 function desenharAsaas() {
   const a = lvAsaas || {};

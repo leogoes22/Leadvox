@@ -743,9 +743,14 @@
     </section>
 
     <section id="vLvRelatorios" hidden>
-      <div class="card"><div class="lista-topo"><div><h2>Atendimento da IA</h2><p class="muted">Respostas da IA por dia e por cliente.</p></div>
-        <select id="lvPeriodo" class="sm-sel" aria-label="Período do consumo"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div>
-        <div id="lvConsumo" class="lv-consumo"></div></div>
+      <div class="card"><div class="lista-topo"><div><h2>Relatórios</h2><p class="muted" id="lvRelSub">O que a IA fez nos seus clientes no período.</p></div>
+        <div class="form-bts" style="margin:0"><select id="lvRelCliente" class="sm-sel" aria-label="Cliente"><option value="">Todos os clientes</option></select>
+          <select id="lvPeriodo" class="sm-sel" aria-label="Período"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div></div>
+        <div class="numeros" id="lvRelNumeros"></div>
+        <p class="muted" id="lvRelAviso" style="font-size:13px;margin-top:10px" hidden></p></div>
+      <div class="card"><h3>Respostas da IA por dia</h3><div id="lvConsumo" class="lv-consumo"></div></div>
+      <div class="card tabela-cli"><div class="lista-topo"><div><h2>Por cliente</h2><p class="muted">Clique em Ver para olhar os números e o gráfico só daquele cliente.</p></div></div>
+        <div id="lvRelLista" style="margin-top:10px"></div></div>
       <div class="card tabela-cli" id="lvRastreio" hidden>
         <div class="lista-topo"><div><h2>Rastreamento de anúncios <small class="muted">módulo extra</small></h2>
           <p class="muted" id="lvRastreioResumo">Clientes com o módulo, contas de anúncio, leads e vendas dos últimos 30 dias.</p></div></div>

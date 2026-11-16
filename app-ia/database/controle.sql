@@ -51,7 +51,8 @@ begin
   ('site_modelos_fieis.sql', exists(select 1 from leadvox_private.sql_aplicado where arquivo='site_modelos_fieis.sql')),
   ('site_dominio.sql', to_regproc('public.lv_site_dominio_host') is not null),
   ('fichas.sql', to_regproc('public.lv_ficha_salvar') is not null),
-  ('fichas_painel.sql', to_regproc('public.lv_admin_fichas') is not null)
+  ('fichas_painel.sql', to_regproc('public.lv_admin_fichas') is not null),
+  ('relatorio_admin.sql', to_regproc('public.lv_admin_relatorio') is not null)
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;

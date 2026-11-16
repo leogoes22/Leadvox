@@ -404,6 +404,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      const ini=q.get('ini'),fim=q.get('fim');
      if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
      send(res,200,{dias:await rpc('lv_admin_consumo',{ini,fim})});
+    }else if(action==='admin-relatorio'&&req.method==='GET'){
+     // Relatórios do Painel LeadVox: os números de cada cliente no período. Sem relatorio_admin.sql no banco, devolve só o básico (conversas, respostas e custo).
+     const ini=q.get('ini'),fim=q.get('fim');
+     if(!/^\d{4}-\d{2}-\d{2}$/.test(ini||'')||!/^\d{4}-\d{2}-\d{2}$/.test(fim||'')||fim<ini||Date.parse(fim)-Date.parse(ini)>366*864e5)throw {status:400,message:'Escolha um período de até 366 dias.'};
+     let r=null;try{r=await rpc('lv_admin_relatorio',{ini,fim});}catch{}
+     if(r&&Array.isArray(r.dias))send(res,200,{dias:r.dias,anuncios:Array.isArray(r.anuncios)?r.anuncios:[],completo:true});
+     else send(res,200,{dias:await rpc('lv_admin_consumo',{ini,fim}),anuncios:[],completo:false});
     }else if(action==='admin-acao'&&req.method==='POST'){
      if(!uuidOk(body.organization)||!['estender','plano','cortesia','suspender','reativar','obs','lembrete'].includes(body.acao))throw {status:400,message:'Ação inválida.'};
      const dados=body.dados&&typeof body.dados==='object'&&!Array.isArray(body.dados)?body.dados:{};

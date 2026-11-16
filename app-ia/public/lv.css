@@ -651,3 +651,6 @@ body.sem-chat .vtx-sdk-bubble, body.sem-chat .vtx-sdk-frame { display: none !imp
 .fi-etapa > p, .fi-etapa > .ag-dados, .fi-etapa > .fi-linha { margin-bottom: 12px; }
 .fi-linha { border-left: 2px solid var(--linha); padding-left: 12px; }
 .fi-linha > b { display: block; font-size: 13px; margin-bottom: 4px; }
+
+/* Relatórios: a linha do cliente escolhido */
+.lv-tabela tr.sel td { background: rgba(43,232,123,.07); }
