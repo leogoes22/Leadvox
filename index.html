@@ -93,7 +93,7 @@
       "offers": {
         "@type": "Offer",
         "priceCurrency": "BRL",
-        "price": "397.90",
+        "price": "397.00",
         "priceValidUntil": "2026-12-31"
       },
       "aggregateRating": {
@@ -1694,7 +1694,7 @@ async function enviarPlano(){
       (mesmos valores, sem desconto) no N8N (evento "capturado"). Se em alguns minutos
       ela não tiver enviado, o N8N manda o resgate no WhatsApp dela.
    4) Com adicionais marcados não há PDF: o evento vai sem proposta e o caminho é a reunião. */
-const RESGATE_URL = "https://webhook.lv-mktdeconversa.com/webhook/plano-site";
+const RESGATE_URL = "https://n8n.leadvox.com.br/webhook/plano-site";   // n8n novo (VPS)
 const PROPOSTA_JS = "/proposta/proposta-leadvox.js";   // gerador do PDF (pasta /proposta do site)
 const PS = { sid: Math.random().toString(36).slice(2, 10), liberado:false, pronto:false, nome:"", wa:"", loja:"", tipo:"carro",
              timer:null, capTimer:null, capturado:"", ultimoCap:"", enviando:false };

@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Ficha de Implantação LeadVox</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: barra lateral com as fichas e as 11 etapas (vira coluna única no celular); à direita, a etapa aberta com os campos e, em cada bloco, para onde a resposta vai (CRM ou IA). */
+:root {
+  --bg: #f3f6f4; --surface: #ffffff; --sunk: #eaf0ec; --ink: #13201a; --muted: #5b6b63; --line: #d6e0da;
+  --accent: #0f9d58; --accent-ink: #ffffff; --accent-soft: #dcf3e6; --crm: #2563c9; --crm-soft: #e3ecfb; --ia: #7a3fd0; --ia-soft: #efe6fb;
+  --warn: #9a5b00; --warn-soft: #fff1d6; --bad: #b42318;
+  --display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1512; --surface: #14201b; --sunk: #0f1a16; --ink: #e5efe9; --muted: #93a69c; --line: #26362f;
+  --accent: #2be87b; --accent-ink: #062113; --accent-soft: #123526; --crm: #7fb0ff; --crm-soft: #172741; --ia: #c3a1ff; --ia-soft: #2a1d41;
+  --warn: #f2c063; --warn-soft: #33270f; --bad: #ff8a80; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1512; --surface: #14201b; --sunk: #0f1a16; --ink: #e5efe9; --muted: #93a69c; --line: #26362f;
+  --accent: #2be87b; --accent-ink: #062113; --accent-soft: #123526; --crm: #7fb0ff; --crm-soft: #172741; --ia: #c3a1ff; --ia-soft: #2a1d41;
+  --warn: #f2c063; --warn-soft: #33270f; --bad: #ff8a80; color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+.contato { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; display: grid; gap: 2px; }
+.contato b { overflow-wrap: anywhere; }
+.app { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 22px; max-width: 1240px; margin: 0 auto; padding-block: 22px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 20px; }
+h2 { font-size: 24px; }
+h3 { font-size: 15px; }
+.lado { display: grid; gap: 14px; align-content: start; }
+.marca { display: grid; gap: 4px; }
+.marca small { color: var(--muted); }
+.caixa { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.rot { font: 700 11px/1 var(--body); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.bt { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+.bt:hover { border-color: var(--accent); }
+.bt.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.bt.perigo { color: var(--bad); }
+.bt.mini { padding: 4px 9px; font-size: 13px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fichas { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+.ficha { text-align: left; border: 1px solid transparent; background: var(--sunk); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
+.ficha[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.ficha b { font-weight: 600; overflow-wrap: anywhere; }
+.ficha small { color: var(--muted); font-size: 12px; }
+.chip { display: inline-block; font: 700 11px/1 var(--body); padding: 4px 7px; border-radius: 99px; letter-spacing: 0.04em; }
+.chip.rascunho { background: var(--warn-soft); color: var(--warn); }
+.chip.pronta { background: var(--accent-soft); color: var(--accent); }
+.chip.crm { background: var(--crm-soft); color: var(--crm); }
+.chip.ia { background: var(--ia-soft); color: var(--ia); }
+.etapas { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.etapas button { width: 100%; text-align: left; border: 0; background: none; border-radius: 8px; padding: 8px 10px; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.etapas button:hover { background: var(--sunk); }
+.etapas button[aria-current="true"] { background: var(--accent-soft); }
+.etapas .n { font: 500 12px/1 var(--mono); color: var(--muted); }
+.etapas .pct { font: 500 12px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.etapas .pct.cheio { color: var(--accent); }
+main { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.topo { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; justify-content: space-between; }
+.topo .tit { display: grid; gap: 6px; min-width: 0; }
+.topo p { margin: 0; color: var(--muted); max-width: 70ch; }
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.bloco { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.bloco-cab { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.bloco-cab p { margin: 0; color: var(--muted); font-size: 13.5px; flex-basis: 100%; }
+.grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.campo { display: grid; gap: 5px; min-width: 0; }
+.campo.largo { grid-column: 1 / -1; }
+.campo label, .campo .lbl { font-weight: 600; font-size: 13.5px; }
+.campo small { color: var(--muted); font-size: 12.5px; }
+input[type=text], input[type=date], input[type=time], select, textarea { width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 8px 10px; }
+textarea { resize: vertical; min-height: 70px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.check input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; }
+.linhas { display: grid; gap: 10px; }
+.linha { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px; background: var(--sunk); }
+.linha .grade { gap: 10px 12px; }
+.linha input[type=text], .linha select, .linha textarea { background: var(--surface); }
+.linha-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.linha-cab span { font: 500 12px/1 var(--mono); color: var(--muted); }
+.horario { display: grid; gap: 6px; }
+.dia { display: grid; grid-template-columns: 110px 90px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
+.vazio { text-align: center; padding: 48px 20px; display: grid; gap: 12px; justify-items: center; }
+.vazio p { margin: 0; color: var(--muted); max-width: 52ch; }
+.aviso { border-radius: 10px; padding: 10px 12px; font-size: 13.5px; background: var(--warn-soft); color: var(--warn); }
+.ok { color: var(--accent); }
+.estado { font-size: 13px; color: var(--muted); }
+.json { width: 100%; min-height: 220px; font: 500 12px/1.45 var(--mono); }
+.confirma { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13.5px; }
+.navega { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  .etapas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .grade { grid-template-columns: 1fr; }
+  .etapas { grid-template-columns: 1fr; }
+  .dia { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: no-preference) { .bt, .ficha, .etapas button { transition: background .15s, border-color .15s; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="lado">
+    <div class="marca">
+      <span class="rot">LeadVox · implantação</span>
+      <h1>Ficha de implantação</h1>
+      <small>Uma ficha por cliente. Preencha na entrevista; depois gere o arquivo do CRM e peça ao Claude: "monta a ficha da &lt;empresa&gt;".</small>
+    </div>
+    <div class="contato" id="contatoConversa" hidden></div>
+    <div class="caixa">
+      <div class="bloco-cab"><span class="rot">Fichas</span><button class="bt mini pri" id="novaFicha" type="button">+ Nova ficha</button></div>
+      <div class="fichas" id="listaFichas"><p class="estado">Carregando as fichas…</p></div>
+    </div>
+    <nav class="caixa" aria-label="Etapas da ficha">
+      <span class="rot">Etapas</span>
+      <ol class="etapas" id="listaEtapas"></ol>
+    </nav>
+  </aside>
+  <main id="principal">
+    <div class="caixa vazio"><p class="estado">Carregando…</p></div>
+  </main>
+</div>
+
+<script>
+(() => {
+const CRM = 'crm', IA = 'ia';
+const TIPOS_CAMPO = ['Texto curto', 'Texto longo', 'Número', 'Moeda', 'Data', 'Data e hora', 'Seleção única', 'Múltipla escolha', 'Sim/Não', 'E-mail', 'Telefone', 'URL', 'Arquivo'];
+const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
+// Cada etapa: blocos com destino (CRM da LeadVox ou painel da IA) e campos. O tipo do campo define como ele é salvo.
+const ETAPAS = [
+  { id: 'empresa', titulo: 'Empresa', resumo: 'Quem é o cliente e quem responde pela implantação.', blocos: [
+    { titulo: 'Dados da empresa', destino: [CRM, IA], nota: 'Vira o nome da conta, o segmento da IA e a base que o assistente "Monte sua IA" lê (site, Instagram, Maps).', campos: [
+      { k: 'nome', l: 'Nome da empresa', t: 'text', obrig: true },
+      { k: 'ramo', l: 'Ramo', t: 'select', op: ['Loja de veículos (carros e motos)', 'Saúde e clínicas', 'Advocacia', 'Educação', 'Imobiliária', 'Varejo e produtos', 'Serviços', 'Viagens', 'Outro'] },
+      { k: 'cidade', l: 'Cidade / UF', t: 'text' },
+      { k: 'site', l: 'Site', t: 'text', ph: 'https://' },
+      { k: 'instagram', l: 'Instagram', t: 'text', ph: '@' },
+      { k: 'maps', l: 'Google Maps (link ou endereço)', t: 'text' } ] },
+    { titulo: 'Responsável pela implantação', destino: [CRM], nota: 'Vira o dono da conta na LeadVox e no painel da IA.', campos: [
+      { k: 'respNome', l: 'Nome', t: 'text' },
+      { k: 'respWhats', l: 'WhatsApp', t: 'text', ph: '(21) 99999-9999' },
+      { k: 'respEmail', l: 'E-mail de login', t: 'text' },
+      { k: 'obs', l: 'Observações da entrevista', t: 'textarea', largo: true } ] } ] },
+  { id: 'canais', titulo: 'Canais e horário', resumo: 'Números de WhatsApp, horário de atendimento e feriados.', blocos: [
+    { titulo: 'Números de WhatsApp', destino: [CRM], nota: 'Canais da LeadVox. A conexão (QR code ou Meta) é feita pelo cliente ou por você na hora.', campos: [
+      { k: 'numeros', l: 'Número', t: 'rows', cols: [
+        { k: 'numero', l: 'Número', t: 'text' },
+        { k: 'tipo', l: 'Tipo', t: 'select', op: ['WhatsApp oficial (API da Meta)', 'QR code'] },
+        { k: 'uso', l: 'Para que serve', t: 'text', ph: 'vendas, suporte, pós-venda…' } ] } ] },
+    { titulo: 'Horário de atendimento', destino: [CRM, IA], nota: 'Horário da LeadVox e horário que a IA informa ao cliente.', campos: [
+      { k: 'horario', l: 'Horário', t: 'horario', largo: true },
+      { k: 'feriadosNacionais', l: 'Usar os feriados nacionais', t: 'check' },
+      { k: 'feriadosExtras', l: 'Outros feriados ou dias fechados', t: 'lines', ph: 'Um por linha. Ex.: 20/01 · Dia de São Sebastião', largo: true },
+      { k: 'foraHorario', l: 'Mensagem fora do horário', t: 'textarea', largo: true } ] } ] },
+  { id: 'equipe', titulo: 'Equipe', resumo: 'Quem atende, em quais departamentos e como o cliente chega até cada um.', blocos: [
+    { titulo: 'Usuários', destino: [CRM, IA], nota: 'Usuários da LeadVox. A senha cada pessoa cria no primeiro acesso. O WhatsApp serve para o aviso de passagem.', campos: [
+      { k: 'usuarios', l: 'Usuário', t: 'rows', cols: [
+        { k: 'nome', l: 'Nome', t: 'text' },
+        { k: 'email', l: 'E-mail', t: 'text' },
+        { k: 'whatsapp', l: 'WhatsApp', t: 'text' },
+        { k: 'perfil', l: 'Perfil', t: 'select', op: ['Usuário', 'Supervisor', 'Administrador'] },
+        { k: 'departamento', l: 'Departamento', t: 'text' },
+        { k: 'limite', l: 'Atendimentos ao mesmo tempo', t: 'text', ph: 'vazio = sem limite' },
+        { k: 'semDistribuicao', l: 'Não recebe distribuição automática', t: 'check' } ] } ] },
+    { titulo: 'Departamentos (filas)', destino: [CRM, IA], nota: 'Filas da LeadVox e os destinos para onde a IA passa o cliente.', campos: [
+      { k: 'departamentos', l: 'Departamento', t: 'rows', cols: [
+        { k: 'nome', l: 'Nome', t: 'text' },
+        { k: 'quando', l: 'Quando a IA manda para cá', t: 'text', ph: 'cliente quer comprar, pediu suporte…' },
+        { k: 'distribuicao', l: 'Como chega aos usuários', t: 'select', op: ['Fila: quem aceitar primeiro', 'Rodízio: um cliente para cada, na ordem'] },
+        { k: 'ordem', l: 'Usuários do rodízio, na ordem', t: 'text' },
+        { k: 'mensagem', l: 'Mensagem padrão do departamento', t: 'textarea' } ] } ] } ] },
+  { id: 'funil', titulo: 'Jornada de venda', resumo: 'Funis, etapas e status do cliente.', blocos: [
+    { titulo: 'Funis e etapas', destino: [CRM], nota: 'Pipelines da LeadVox. Cada etapa vira uma coluna do funil.', campos: [
+      { k: 'funis', l: 'Funil', t: 'rows', cols: [
+        { k: 'nome', l: 'Nome do funil', t: 'text' },
+        { k: 'padrao', l: 'Funil padrão', t: 'check' },
+        { k: 'descricao', l: 'Descrição', t: 'text' },
+        { k: 'cor', l: 'Cor do funil (opcional)', t: 'text', ph: '#2196F3' },
+        { k: 'etapas', l: 'Etapas, na ordem (uma por linha; cor opcional depois de |)', t: 'lines', ph: 'Novo lead | #6deef7\nEm atendimento\nProposta enviada\nFechado' } ] } ] },
+    { titulo: 'Status do cliente', destino: [CRM, IA], nota: 'Status do lead na LeadVox. A IA usa para marcar em que ponto o cliente está.', campos: [
+      { k: 'status', l: 'Status, na ordem (um por linha; cor opcional depois de |)', t: 'lines', ph: 'Novo lead | #9933ff\nQualificado\nVisita agendada\nCliente', largo: true },
+      { k: 'statusGanho', l: 'Status depois de ganhar a venda', t: 'text' } ] } ] },
+  { id: 'classificacao', titulo: 'Classificação do lead', resumo: 'De onde o cliente vem, etiquetas e o que precisa saber dele.', blocos: [
+    { titulo: 'Origem e etiquetas', destino: [CRM, IA], nota: 'Origens do lead e etiquetas da LeadVox. A IA marca as duas pelas regras.', campos: [
+      { k: 'origens', l: 'Origens do lead (uma por linha)', t: 'lines', ph: 'Instagram\nFacebook\nGoogle\nIndicação\nSite' },
+      { k: 'origemAnuncio', l: 'Origem de quem chega por anúncio', t: 'text', ph: 'Ex.: Tráfego pago' },
+      { k: 'etiquetas', l: 'Etiquetas (uma por linha; cor opcional depois de |)', t: 'lines', ph: '🔥 Lead Quente | #ff3333\nFinanciamento\nTroca', largo: true } ] },
+    { titulo: 'O que precisa saber do lead', destino: [CRM, IA], nota: 'Campos customizados do contato. A IA pergunta e preenche.', campos: [
+      { k: 'campos', l: 'Campo', t: 'rows', cols: [
+        { k: 'nome', l: 'Nome do campo', t: 'text', ph: 'CPF, cidade, veículo de interesse…' },
+        { k: 'tipo', l: 'Tipo', t: 'select', op: TIPOS_CAMPO },
+        { k: 'opcoes', l: 'Opções (só para seleção, separadas por vírgula)', t: 'text' },
+        { k: 'iaPergunta', l: 'A IA pergunta ao cliente', t: 'check' } ] } ] } ] },
+  { id: 'fechamento', titulo: 'Fechamento', resumo: 'Motivos de fechamento, ganho e perda, pesquisa, produtos e metas.', blocos: [
+    { titulo: 'Motivos de fechamento', destino: [CRM, IA], nota: 'Motivos da LeadVox. Os marcados com follow-up entram no follow-up do fechamento (5, 7, 15 e 30 dias).', campos: [
+      { k: 'motivos', l: 'Motivo', t: 'rows', cols: [
+        { k: 'nome', l: 'Motivo', t: 'text' },
+        { k: 'mensagem', l: 'Mensagem ao fechar', t: 'text', ph: 'vazio = não envia' },
+        { k: 'pedirValor', l: 'Pergunta o valor da venda', t: 'check' },
+        { k: 'avaliacao', l: 'Envia a pesquisa de satisfação', t: 'check' },
+        { k: 'followup', l: 'Faz follow-up depois do fechamento', t: 'check' },
+        { k: 'objetivo', l: 'Objetivo do follow-up', t: 'text', ph: 'Ex.: perguntar se ficou dúvida do orçamento' } ] } ] },
+    { titulo: 'Ganho, perda e pesquisa', destino: [CRM], nota: 'Motivos de ganho/perda das oportunidades e a pesquisa de satisfação.', campos: [
+      { k: 'ganhoPerda', l: 'Motivos de ganho ou perda (um por linha)', t: 'lines', ph: 'Achou caro\nComprou no concorrente\nSem crédito' },
+      { k: 'pesquisa', l: 'Usar pesquisa de satisfação', t: 'check' },
+      { k: 'perguntas', l: 'Perguntas da pesquisa (uma por linha)', t: 'lines', ph: 'Qual nota você dá para o atendimento?' } ] },
+    { titulo: 'Produtos e metas', destino: [CRM, IA], nota: 'Produtos das oportunidades e metas de venda. A IA usa os produtos como catálogo quando não é loja de veículos.', campos: [
+      { k: 'produtos', l: 'Produto ou serviço', t: 'rows', cols: [
+        { k: 'nome', l: 'Nome', t: 'text' },
+        { k: 'valor', l: 'Valor', t: 'text', ph: 'R$' },
+        { k: 'descricao', l: 'Descrição', t: 'text' } ] },
+      { k: 'metas', l: 'Meta', t: 'rows', cols: [
+        { k: 'mes', l: 'Mês/ano', t: 'text', ph: '12/2026' },
+        { k: 'tipo', l: 'Tipo da meta', t: 'select', op: ['Valor vendido', 'Quantidade de vendas', 'Oportunidades criadas'] },
+        { k: 'valor', l: 'Valor', t: 'text' } ] } ] } ] },
+  { id: 'mensagens', titulo: 'Mensagens rápidas', resumo: 'Atalhos que a equipe usa no chat.', blocos: [
+    { titulo: 'Mensagens rápidas', destino: [CRM], nota: 'Mensagens rápidas da LeadVox (o atalho é o que a equipe digita).', campos: [
+      { k: 'rapidas', l: 'Mensagem', t: 'rows', cols: [
+        { k: 'atalho', l: 'Atalho', t: 'text', ph: '/endereco' },
+        { k: 'texto', l: 'Texto', t: 'textarea' } ] } ] } ] },
+  { id: 'ia', titulo: 'A IA', resumo: 'Função, nome e jeito de falar do agente.', blocos: [
+    { titulo: 'Identidade', destino: [IA], nota: 'Aba Identidade do agente no painel da IA.', campos: [
+      { k: 'funcao', l: 'Principal trabalho da IA', t: 'select', op: ['SDR / Pré-atendimento (vender e agendar visita)', 'Recepção / Triagem', 'Suporte / Dúvidas', 'Vendedor com catálogo (orçamento ou pedido)', 'Pedido de agendamento', 'Agenda integrada', 'Pós-venda / Pesquisa', 'Cobrança'] },
+      { k: 'nome', l: 'Nome da IA', t: 'text', ph: 'Ex.: Carol' },
+      { k: 'apresentacao', l: 'Como ela se apresenta', t: 'textarea', largo: true },
+      { k: 'tom', l: 'Jeito de falar', t: 'select', op: ['Amigável', 'Profissional', 'Descontraído'] },
+      { k: 'emojis', l: 'Emojis', t: 'select', op: ['Poucos', 'Não usar', 'À vontade'] },
+      { k: 'tratamento', l: 'Trata o cliente por', t: 'select', op: ['Você', 'Senhor / senhora'] },
+      { k: 'ondeAtende', l: 'Onde atende', t: 'text', ph: 'Porta de entrada, ou o departamento' } ] },
+    { titulo: 'Voz e modelo', destino: [IA], nota: 'Abas Multimodal e Comportamento.', campos: [
+      { k: 'voz', l: 'Responde com áudio', t: 'select', op: ['Só texto', 'Quando o cliente manda áudio', 'Sempre'] },
+      { k: 'vozTipo', l: 'Voz', t: 'select', op: ['Feminina', 'Masculina', 'Neutra'] },
+      { k: 'modelo', l: 'Modelo', t: 'select', op: ['Rápido e econômico', 'Mais inteligente (custa mais)'] },
+      { k: 'espera', l: 'Espera antes de responder', t: 'select', op: ['10 segundos', '5 segundos', '15 segundos', '20 segundos', '30 segundos'] } ] } ] },
+  { id: 'conhecimento', titulo: 'Conhecimento', resumo: 'O que a IA precisa saber para atender sem inventar.', blocos: [
+    { titulo: 'O negócio', destino: [IA], nota: 'Base de conhecimento do agente (Empresa, Perguntas e regras, Preços).', campos: [
+      { k: 'vende', l: 'O que vende ou faz', t: 'textarea', largo: true },
+      { k: 'publico', l: 'Para quem vende', t: 'text' },
+      { k: 'diferenciais', l: 'Diferenciais', t: 'textarea' },
+      { k: 'precos', l: 'A IA fala preço?', t: 'select', op: ['Fala o valor exato', 'Só "a partir de"; o valor final é com a equipe', 'Não fala; a equipe passa o valor'] },
+      { k: 'condicoes', l: 'Pagamento, financiamento, troca, garantia', t: 'textarea', largo: true },
+      { k: 'proibido', l: 'O que a IA nunca faz (uma regra por linha)', t: 'lines', ph: 'Não promete aprovação de crédito\nNão dá desconto', largo: true } ] },
+    { titulo: 'Perguntas frequentes', destino: [IA], nota: 'Perguntas e respostas da base de conhecimento.', campos: [
+      { k: 'faq', l: 'Pergunta', t: 'rows', cols: [
+        { k: 'p', l: 'Pergunta do cliente', t: 'text' },
+        { k: 'r', l: 'Resposta', t: 'textarea' } ] } ] },
+    { titulo: 'Arquivos e estoque', destino: [IA], nota: 'Aba Arquivos do agente e Estoque/Produtos do painel.', campos: [
+      { k: 'arquivos', l: 'Arquivo ou link', t: 'rows', cols: [
+        { k: 'titulo', l: 'O que é', t: 'text', ph: 'Catálogo, vídeo da loja, tabela…' },
+        { k: 'link', l: 'Link (ou "vou mandar")', t: 'text' },
+        { k: 'quando', l: 'Quando a IA envia', t: 'select', op: ['Quando o cliente pedir', 'Quando falar do assunto', 'No fim, antes de passar para a equipe'] } ] },
+      { k: 'estoque', l: 'De onde vem o estoque', t: 'select', op: ['Não tem estoque', 'AutoCerto', 'Revenda Mais', 'Planilha', 'Cadastro no painel'] },
+      { k: 'estoqueObs', l: 'Detalhes do estoque', t: 'text' } ] } ] },
+  { id: 'regras', titulo: 'Regras e avisos', resumo: 'Quando a IA passa o cliente, o que marca no CRM e quem é avisado.', blocos: [
+    { titulo: 'Regras da IA', destino: [IA, CRM], nota: 'Ações e regras do agente. Cada regra vira uma ação no CRM (etiqueta, etapa, origem, passagem).', campos: [
+      { k: 'regras', l: 'Regra', t: 'rows', cols: [
+        { k: 'quando', l: 'Quando', t: 'text', ph: 'cliente quer financiar, pediu visita…' },
+        { k: 'acao', l: 'A IA faz', t: 'select', op: ['Passa para o departamento', 'Passa para a pessoa', 'Marca etiqueta', 'Tira etiqueta', 'Muda a etapa do funil', 'Define a origem do lead', 'Escreve nota interna', 'Avisa no grupo'] },
+        { k: 'destino', l: 'Qual (departamento, pessoa, etiqueta, etapa…)', t: 'text' } ] } ] },
+    { titulo: 'Passagem e oportunidade', destino: [IA, CRM], nota: 'Comportamento do agente e regras de oportunidade.', campos: [
+      { k: 'depoisVendedor', l: 'Depois de passar para o vendedor', t: 'select', op: ['A IA para e o vendedor atende pela LeadVox', 'A IA continua (o vendedor fala pelo WhatsApp dele)'] },
+      { k: 'donoOportunidade', l: 'Quem fica com a oportunidade quando ela é criada', t: 'text' },
+      { k: 'oportunidadeSegue', l: 'Quando a IA passa o cliente', t: 'select', op: ['A oportunidade passa para o vendedor que recebeu', 'A oportunidade fica com a mesma pessoa'] },
+      { k: 'gerente', l: 'WhatsApp do gerente (avisos)', t: 'text' },
+      { k: 'grupo', l: 'Grupo de avisos no WhatsApp', t: 'text', ph: 'ID do grupo (começa com 120363)' },
+      { k: 'resumoDia', l: 'Resumo do dia no WhatsApp', t: 'check' } ] },
+    { titulo: 'Follow-up', destino: [IA, CRM], nota: 'Quando o cliente some no meio da conversa e depois que a conversa é fechada (motivos marcados na etapa Fechamento).', campos: [
+      { k: 'fuSilencio', l: 'Retomar quem parou de responder', t: 'check' },
+      { k: 'fuTempos', l: 'Quando (até 3 tentativas)', t: 'text', ph: 'Ex.: 1 hora, 1 dia, 2 dias' },
+      { k: 'fuJanela', l: 'Horário dos follow-ups', t: 'text', ph: '09:00 às 20:00' },
+      { k: 'ffEtapas', l: 'Follow-up do fechamento: etapa do funil em cada momento', t: 'textarea', ph: 'Ao fechar: …\n5 dias: …\n7 dias: …\n15 dias: …\n30 dias: …\nSe responder: …\nSem resposta: … (ou perdida)', largo: true },
+      { k: 'ffAvisos', l: 'Avisar gerente/grupo', t: 'select', op: ['Só quando o cliente responder', 'A cada tentativa e quando responder', 'Também quando terminar sem resposta', 'Não avisar'] },
+      { k: 'ffVolta', l: 'Quando o cliente responder', t: 'select', op: ['A IA continua atendendo', 'Volta para quem fechou o atendimento'] },
+      { k: 'ffEtiqueta', l: 'Etiqueta durante o follow-up', t: 'text' },
+      { k: 'ffUteis', l: 'Só de segunda a sexta', t: 'check' },
+      { k: 'ffTemplates', l: 'Templates aprovados (WhatsApp oficial), um por tentativa', t: 'lines', ph: '1ª: …\n2ª: …\n3ª: …\n4ª: …' } ] } ] },
+  { id: 'teste', titulo: 'Teste e ligação', resumo: 'Como testar e quando a IA começa a atender.', blocos: [
+    { titulo: 'Teste', destino: [IA], nota: 'Modo de teste do agente e data para ligar.', campos: [
+      { k: 'numerosTeste', l: 'Números de teste (um por linha)', t: 'lines', ph: '(21) 99999-9999' },
+      { k: 'aprovador', l: 'Quem aprova a IA', t: 'text' },
+      { k: 'dataLigar', l: 'Data para ligar', t: 'date' },
+      { k: 'plano', l: 'Plano contratado', t: 'select', op: ['CRM LeadVox', 'CRM LeadVox + IA SDR Pro', 'Outro'] },
+      { k: 'pendencias', l: 'Pendências do cliente', t: 'textarea', largo: true } ] } ] }
+];
+
+// ── arquivo do criador de CRM (formato "leadvox-modelo-crm" versão 1) ──
+// Leva o que o criador monta: filas, etiquetas, funis e etapas, status, origens, motivos, ganho/perda, campos e mensagens rápidas.
+// Usuários, horário, IA e regras ficam só na ficha (o Claude monta essa parte no painel da IA).
+const CODIGO_CAMPO = ['text', 'textarea', 'number', 'currency', 'date', 'datetime', 'select', 'multiselect', 'boolean', 'email', 'phone', 'url', 'file'];
+const PALETA = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#E53935', '#009688', '#607D8B', '#795548', '#00f57b', '#f5a700'];
+const corDe = (txt, i) => { const m = /\|\s*(#[0-9a-fA-F]{3,8})\s*$/.exec(txt || ''); return { nome: String(txt || '').replace(/\|\s*#[0-9a-fA-F]{3,8}\s*$/, '').trim(), cor: m ? m[1] : PALETA[i % PALETA.length] }; };
+const lista = v => (Array.isArray(v) ? v : []).filter(x => x && (typeof x === 'string' ? x.trim() : Object.values(x).some(cheio)));
+function arquivoCRM(f) {
+  const d = f.dados || {}, eq = d.equipe || {}, fu = d.funil || {}, cl = d.classificacao || {}, fe = d.fechamento || {}, me = d.mensagens || {};
+  const origens = lista(cl.origens).map(o => String(o).trim());
+  if (cl.origemAnuncio && !origens.some(o => o.toLowerCase() === cl.origemAnuncio.trim().toLowerCase())) origens.push(cl.origemAnuncio.trim());
+  return {
+    tipo: 'leadvox-modelo-crm', versao: 1, geradoEm: new Date().toISOString(),
+    origem: { painel: 'chat.leadvox.com.br', loja: f.nome || '' },
+    filas: lista(eq.departamentos).filter(x => (x.nome || '').trim()).map(x => ({ queue: x.nome.trim(), isActive: true, messageDefaultContact: (x.mensagem || '').trim() || null })),
+    etiquetas: lista(cl.etiquetas).map((t, i) => { const c = corDe(t, i); return { tag: c.nome, color: c.cor, isActive: true }; }).filter(x => x.tag),
+    funisCliente: [],
+    pipelines: lista(fu.funis).filter(x => (x.nome || '').trim()).map((p, i) => ({
+      name: p.nome.trim(), description: (p.descricao || '').trim(), isDefault: !!p.padrao, color: /^#[0-9a-fA-F]{3,8}$/.test((p.cor || '').trim()) ? p.cor.trim() : PALETA[i % PALETA.length],
+      steps: lista(p.etapas).map((s, k) => { const c = corDe(s, k); return { name: c.nome, color: c.cor, order: k + 1, predefinedTasks: [] }; }).filter(s => s.name) })),
+    statusLead: lista(fu.status).map((s, i) => { const c = corDe(s, i); return { status: c.nome, color: c.cor, active: true, funil: null }; }).filter(s => s.status),
+    origens: origens.filter(Boolean).map(name => ({ name, active: true })),
+    motivosFechamento: lista(fe.motivos).filter(x => (x.nome || '').trim()).map(m => ({ reason: m.nome.trim(), farewellMessage: (m.mensagem || '').trim() || null, active: true,
+      sendSatisfactionSurvey: !!m.avaliacao, sendSaleValue: !!m.pedirValor, funil: null, filas: [] })),
+    ganhoPerda: lista(fe.ganhoPerda).map(n => ({ name: String(n).trim(), message: null, active: true, funil: null })),
+    campos: lista(cl.campos).filter(x => (x.nome || '').trim()).map(c => { const i = TIPOS_CAMPO.indexOf(c.tipo), tipo = CODIGO_CAMPO[i] || 'textarea';
+      const ops = String(c.opcoes || '').split(',').map(s => s.trim()).filter(Boolean);
+      return { field: c.nome.trim(), type: tipo, config: (tipo === 'select' || tipo === 'multiselect') && ops.length ? { options: ops } : {}, active: true }; }),
+    respostas: lista(me.rapidas).filter(x => (x.atalho || '').trim() && (x.texto || '').trim()).map(r => ({ key: r.atalho.trim(), message: r.texto, isUserReply: false, filas: [], midias: 0 }))
+  };
+}
+const contagem = a => [['filas', 'filas'], ['etiquetas', 'etiquetas'], ['pipelines', 'funis'], ['statusLead', 'status'], ['origens', 'origens'], ['motivosFechamento', 'motivos de fechamento'], ['ganhoPerda', 'motivos de ganho/perda'], ['campos', 'campos'], ['respostas', 'mensagens rápidas']]
+  .map(([k, n]) => a[k].length + ' ' + n).join(' · ') + ' · ' + a.pipelines.reduce((s, p) => s + p.steps.length, 0) + ' etapas';
+
+// ── estado ──
+const qs = new URLSearchParams(location.search);
+const CFG = { API: qs.get('api') || 'https://n8n.leadvox.com.br/webhook/ficha-implantacao', KEY: qs.get('k') || '', ORIGENS: ['https://chat.leadvox.com.br', 'https://crm.leadvox.com.br'] };
+let fichas = [], atualId = null, ficha = null, etapaId = 'empresa', salvando = Promise.resolve(), timer = null, dirty = false;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lerCaminho = (o, p) => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
+const porCaminho = (o, p, v) => { const ks = p.split('.'); let a = o; ks.slice(0, -1).forEach((k, i) => { if (a[k] == null) a[k] = /^\d+$/.test(ks[i + 1]) ? [] : {}; a = a[k]; }); a[ks[ks.length - 1]] = v; };
+const cheio = v => Array.isArray(v) ? v.length > 0 : v && typeof v === 'object' ? Object.values(v).some(cheio) : v === true || (typeof v === 'string' && v.trim() !== '');
+const slug = s => String(s || 'cliente').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'cliente';
+const quando = ms => { if (!ms) return ''; const d = new Date(ms); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
+
+function progresso(e) {
+  const campos = e.blocos.flatMap(b => b.campos);
+  const feitos = campos.filter(c => cheio(lerCaminho(ficha?.dados || {}, e.id + '.' + c.k))).length;
+  return { feitos, total: campos.length };
+}
+
+// ── lista lateral ──
+function desenharFichas(msg) {
+  const el = $('#listaFichas');
+  if (msg) { el.innerHTML = `<p class="estado">${esc(msg)}</p>`; return; }
+  if (!fichas.length) { el.innerHTML = '<p class="estado">Nenhuma ficha ainda. Clique em "Nova ficha" para começar a primeira entrevista.</p>'; return; }
+  el.innerHTML = fichas.map(f => `<button type="button" class="ficha" data-ficha="${esc(f.id)}" aria-current="${f.id === atualId}">
+    <b>${esc(f.nome || 'Sem nome')}</b><small><span class="chip ${f.status === 'pronta' ? 'pronta' : 'rascunho'}">${f.status === 'pronta' ? 'Pronta para montar' : 'Rascunho'}</span> ${esc(quando(f.atualizadoEm))}</small></button>`).join('');
+}
+function desenharEtapas() {
+  $('#listaEtapas').innerHTML = ETAPAS.map((e, i) => { const p = progresso(e);
+    return `<li><button type="button" data-etapa="${e.id}" aria-current="${e.id === etapaId}"><span class="n">${String(i + 1).padStart(2, '0')}</span><span>${esc(e.titulo)}</span><span class="pct ${ficha && p.feitos === p.total ? 'cheio' : ''}">${ficha ? p.feitos + '/' + p.total : ''}</span></button></li>`; }).join('');
+}
+
+// ── campos ──
+function campoHtml(c, base, valor) {
+  const id = 'f-' + base.replace(/\./g, '-');
+  const lab = `<label for="${id}">${esc(c.l)}${c.obrig ? ' *' : ''}</label>`;
+  const larg = c.largo || c.t === 'rows' || c.t === 'horario' ? ' largo' : '';
+  if (c.t === 'text') return `<div class="campo${larg}">${lab}<input type="text" id="${id}" data-p="${base}" value="${esc(valor)}" placeholder="${esc(c.ph || '')}"></div>`;
+  if (c.t === 'date') return `<div class="campo${larg}">${lab}<input type="date" id="${id}" data-p="${base}" value="${esc(valor)}"></div>`;
+  if (c.t === 'textarea') return `<div class="campo${larg}">${lab}<textarea id="${id}" data-p="${base}" placeholder="${esc(c.ph || '')}">${esc(valor)}</textarea></div>`;
+  if (c.t === 'lines') return `<div class="campo${larg}">${lab}<textarea id="${id}" data-p="${base}" data-linhas="1" placeholder="${esc(c.ph || '')}">${esc((valor || []).join('\n'))}</textarea></div>`;
+  if (c.t === 'select') return `<div class="campo${larg}">${lab}<select id="${id}" data-p="${base}"><option value="">Escolha…</option>${c.op.map(o => `<option ${o === valor ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`;
+  if (c.t === 'check') return `<div class="campo${larg}"><label class="check"><input type="checkbox" id="${id}" data-p="${base}" ${valor ? 'checked' : ''}> ${esc(c.l)}</label></div>`;
+  if (c.t === 'horario') {
+    const h = valor || {};
+    return `<div class="campo largo"><span class="lbl">${esc(c.l)}</span><div class="horario">${DIAS.map(([k, n]) => { const d = h[k] || {};
+      return `<div class="dia"><span>${n}</span><label class="check"><input type="checkbox" id="${id}-${k}-a" data-p="${base}.${k}.aberto" ${d.aberto ? 'checked' : ''}> Aberto</label>
+        <input type="time" aria-label="${n}: abre" id="${id}-${k}-i" data-p="${base}.${k}.ini" value="${esc(d.ini)}"><input type="time" aria-label="${n}: fecha" id="${id}-${k}-f" data-p="${base}.${k}.fim" value="${esc(d.fim)}"></div>`; }).join('')}</div></div>`;
+  }
+  if (c.t === 'rows') {
+    const linhas = Array.isArray(valor) ? valor : [];
+    return `<div class="campo largo"><div class="linhas">${linhas.map((r, i) => `<div class="linha"><div class="linha-cab"><span>${esc(c.l)} ${i + 1}</span><button type="button" class="bt mini perigo" data-tirar="${base}.${i}">Tirar</button></div>
+      <div class="grade">${c.cols.map(col => campoHtml(col, base + '.' + i + '.' + col.k, (r || {})[col.k])).join('')}</div></div>`).join('')}</div>
+      <div><button type="button" class="bt mini" data-mais="${base}">+ ${esc(c.l)}</button></div></div>`;
+  }
+  return '';
+}
+function desenharPrincipal() {
+  const m = $('#principal');
+  if (!ficha) {
+    m.innerHTML = `<div class="caixa vazio"><h2>Comece uma ficha</h2><p>Crie uma ficha para cada cliente que você entrevista. Ela tem 11 etapas, do cadastro da empresa ao dia de ligar a IA, e cada bloco mostra se vira configuração no CRM da LeadVox, no painel da IA ou nos dois.</p><button type="button" class="bt pri" id="novaFicha2">+ Nova ficha</button>${CFG.KEY ? '' : '<p class="aviso">Falta a chave do plugin. Abra pelo link completo cadastrado na LeadVox.</p>'}</div>`;
+    return;
+  }
+  const i = ETAPAS.findIndex(e => e.id === etapaId), e = ETAPAS[i];
+  const dest = d => d === CRM ? '<span class="chip crm">CRM LeadVox</span>' : '<span class="chip ia">IA</span>';
+  m.innerHTML = `<div class="topo"><div class="tit"><span class="rot">Etapa ${i + 1} de ${ETAPAS.length} · ${esc(ficha.nome || 'Sem nome')}</span><h2>${esc(e.titulo)}</h2><p>${esc(e.resumo)}</p></div>
+    <div class="acoes"><span class="estado" id="estadoSalvo">${ficha.nova ? 'Ainda não gravada: grava quando você preencher.' : 'Tudo salvo.'}</span>
+      <button type="button" class="bt" id="alternarStatus">${ficha.status === 'pronta' ? 'Voltar para rascunho' : 'Marcar como pronta'}</button>
+      <button type="button" class="bt" id="verJson">Ver respostas (JSON)</button>
+      <button type="button" class="bt pri" id="gerarCrm">Gerar arquivo do CRM</button></div></div>
+    <section class="bloco" id="caixaCrm" hidden><div class="bloco-cab"><h3>Arquivo do criador de CRM</h3><button type="button" class="bt mini" id="copiarCrm">Copiar</button><p id="resumoCrm"></p></div><textarea class="json" id="textoCrm" readonly></textarea></section>
+    ${e.blocos.map(b => `<section class="bloco"><div class="bloco-cab"><h3>${esc(b.titulo)}</h3><span>${b.destino.map(dest).join(' ')}</span><p>${esc(b.nota)}</p></div>
+      <div class="grade">${b.campos.map(c => campoHtml(c, e.id + '.' + c.k, lerCaminho(ficha.dados, e.id + '.' + c.k))).join('')}</div></section>`).join('')}
+    <section class="bloco" id="caixaJson" hidden><div class="bloco-cab"><h3>Respostas desta ficha</h3><button type="button" class="bt mini" id="copiarJson">Copiar</button><p>É isto que o Claude lê quando você pede "monta a ficha da ${esc(ficha.nome || 'empresa')}".</p></div><textarea class="json" id="textoJson" readonly></textarea></section>
+    <div class="navega"><button type="button" class="bt" data-etapa="${i > 0 ? ETAPAS[i - 1].id : ''}" ${i > 0 ? '' : 'hidden'}>← ${i > 0 ? esc(ETAPAS[i - 1].titulo) : ''}</button>
+      <span class="confirma" id="zonaExcluir"><button type="button" class="bt perigo" id="excluir">Excluir ficha</button></span>
+      <button type="button" class="bt pri" data-etapa="${i < ETAPAS.length - 1 ? ETAPAS[i + 1].id : ''}" ${i < ETAPAS.length - 1 ? '' : 'hidden'}>${i < ETAPAS.length - 1 ? esc(ETAPAS[i + 1].titulo) : ''} →</button></div>`;
+}
+function desenharTudo() { desenharFichas(); desenharEtapas(); desenharPrincipal(); }
+
+// ── salvar (uma gravação por vez, depois de uma pausa na digitação) ──
+function marcarSujo() {
+  dirty = true; const s = $('#estadoSalvo'); if (s) s.textContent = 'Salvando…';
+  clearTimeout(timer); timer = setTimeout(salvar, 900);
+}
+// as fichas ficam no banco da LeadVox; a página fala com o n8n, que confere a chave do plugin (?k=)
+async function api(acao, extra) {
+  if (!CFG.KEY) throw { code: 'chave' };
+  let r; try { r = await fetch(CFG.API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ k: CFG.KEY, acao, ...(extra || {}) }) }); }
+  catch (e) { throw { code: 'sem conexão' }; }
+  let j = null; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || !j || j.ok === false) throw { code: (j && j.erro) || ('HTTP ' + r.status) };
+  return j;
+}
+function salvar() {
+  if (!ficha || !dirty) return salvando;
+  dirty = false;
+  const id = ficha.id, corpo = { nome: ficha.nome || '', contato: ficha.contato || '', status: ficha.status || 'rascunho', dados: JSON.parse(JSON.stringify(ficha.dados || {})) };
+  salvando = salvando.then(() => api('salvar', { id, ficha: corpo })).then(j => {
+    ficha.atualizadoEm = j.atualizadoEm || Date.now(); ficha.nova = false;
+    const f = fichas.find(x => x.id === id); if (f) Object.assign(f, { nome: corpo.nome, status: corpo.status, atualizadoEm: ficha.atualizadoEm }); else fichas.unshift({ id, nome: corpo.nome, contato: corpo.contato, status: corpo.status, atualizadoEm: ficha.atualizadoEm });
+    desenharFichas();
+    const s = $('#estadoSalvo'); if (s && !dirty) s.innerHTML = '<span class="ok">Salvo.</span>';
+  }).catch(e => { const s = $('#estadoSalvo'); if (s) s.textContent = e && e.code === 'chave' ? 'Chave do plugin errada: confira o link na LeadVox.' : 'Não salvou (' + (e && e.code || 'erro') + '). Continue digitando que eu tento de novo.'; dirty = true; });
+  return salvando;
+}
+async function abrir(id) {
+  if (dirty) await salvar();
+  atualId = id; desenharFichas();
+  $('#principal').innerHTML = '<div class="caixa vazio"><p class="estado">Abrindo a ficha…</p></div>';
+  try { const j = await api('abrir', { id }); if (!j.ficha) { atualId = null; ficha = null; desenharTudo(); return; }
+    ficha = j.ficha; ficha.dados = ficha.dados || {}; }
+  catch (e) { $('#principal').innerHTML = '<div class="caixa vazio"><p class="aviso">Não deu para abrir a ficha (' + esc(e.code || 'erro') + ').</p></div>'; return; }
+  etapaId = 'empresa'; desenharTudo(); try { localStorage.setItem('ficha-atual', id); } catch (e) {}
+}
+// ficha nova só vai para o banco no primeiro preenchimento (abrir uma conversa não cria ficha vazia)
+function nova(base) {
+  if (dirty) salvar();
+  const id = base && base.id || ('f-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  ficha = { id, nome: '', contato: '', status: 'rascunho', nova: true, dados: { canais: { feriadosNacionais: true } }, ...(base || {}) };
+  ficha.dados = ficha.dados || {}; atualId = id; etapaId = 'empresa'; desenharTudo();
+  if (!ficha.nome) setTimeout(() => $('#f-empresa-nome')?.focus(), 50);
+}
+
+// ── eventos ──
+document.addEventListener('input', ev => {
+  const el = ev.target, p = el.dataset && el.dataset.p; if (!p || !ficha) return;
+  const v = el.type === 'checkbox' ? el.checked : el.dataset.linhas ? el.value.split('\n').map(s => s.trim()).filter(Boolean) : el.value;
+  porCaminho(ficha.dados, p, v);
+  if (p === 'empresa.nome') { ficha.nome = el.value.trim(); const f = fichas.find(x => x.id === ficha.id); if (f) f.nome = ficha.nome; desenharFichas(); }
+  marcarSujo(); desenharEtapas();
+});
+document.addEventListener('change', ev => { if (ev.target.matches('select, input[type=checkbox], input[type=date], input[type=time]')) ev.target.dispatchEvent(new Event('input', { bubbles: true })); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.id === 'novaFicha' || b.id === 'novaFicha2') return void nova();
+  if (b.dataset.ficha) return abrir(b.dataset.ficha);
+  if (b.dataset.etapa !== undefined && b.dataset.etapa) { if (!ficha) return; etapaId = b.dataset.etapa; desenharEtapas(); desenharPrincipal(); $('#principal').scrollIntoView({ block: 'start' }); return; }
+  if (!ficha) return;
+  if (b.dataset.mais) { const arr = lerCaminho(ficha.dados, b.dataset.mais); porCaminho(ficha.dados, b.dataset.mais, [...(Array.isArray(arr) ? arr : []), {}]); marcarSujo(); desenharEtapas(); desenharPrincipal(); return; }
+  if (b.dataset.tirar) { const ks = b.dataset.tirar.split('.'), i = Number(ks.pop()), arr = lerCaminho(ficha.dados, ks.join('.')) || []; arr.splice(i, 1); marcarSujo(); desenharEtapas(); desenharPrincipal(); return; }
+  if (b.id === 'alternarStatus') { ficha.status = ficha.status === 'pronta' ? 'rascunho' : 'pronta'; const f = fichas.find(x => x.id === ficha.id); if (f) f.status = ficha.status; marcarSujo(); desenharFichas(); b.textContent = ficha.status === 'pronta' ? 'Voltar para rascunho' : 'Marcar como pronta'; return; }
+  if (b.id === 'verJson') { const c = $('#caixaJson'); c.hidden = !c.hidden; $('#textoJson').value = JSON.stringify({ ficha: ficha.id, nome: ficha.nome, status: ficha.status, ...ficha.dados }, null, 2); if (!c.hidden) c.scrollIntoView({ block: 'nearest' }); return; }
+  if (b.id === 'gerarCrm') {
+    const a = arquivoCRM(ficha), txt = JSON.stringify(a, null, 2), nome = 'crm-' + slug(ficha.nome) + '.json';
+    const c = $('#caixaCrm'); c.hidden = false; $('#textoCrm').value = txt;
+    $('#resumoCrm').textContent = 'Formato leadvox-modelo-crm, versão 1. ' + contagem(a) + '. Usuários, horário e a parte da IA ficam na ficha.';
+    c.scrollIntoView({ block: 'nearest' });
+    try { const url = URL.createObjectURL(new Blob([txt], { type: 'application/json' })), a = document.createElement('a');
+      a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+      $('#resumoCrm').textContent += ' Baixando ' + nome + '. Se o download não começar, use Copiar.'; }
+    catch (e) { $('#resumoCrm').textContent += ' Não deu para baixar aqui: use Copiar e salve como ' + nome + '.'; }
+    return;
+  }
+  if (b.id === 'copiarCrm') { const t = $('#textoCrm'); try { navigator.clipboard.writeText(t.value).then(() => { b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); }, () => t.select()); } catch (e) { t.select(); } return; }
+  if (b.id === 'copiarJson') { const t = $('#textoJson'); const fim = () => { b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); };
+    try { navigator.clipboard.writeText(t.value).then(fim, () => { t.select(); }); } catch (e) { t.select(); } return; }
+  if (b.id === 'excluir') { $('#zonaExcluir').innerHTML = `Excluir "${esc(ficha.nome || 'Sem nome')}" de vez? <button type="button" class="bt perigo" id="excluirSim">Excluir</button> <button type="button" class="bt" id="excluirNao">Cancelar</button>`; return; }
+  if (b.id === 'excluirNao') { $('#zonaExcluir').innerHTML = '<button type="button" class="bt perigo" id="excluir">Excluir ficha</button>'; return; }
+  if (b.id === 'excluirSim') { const id = ficha.id, eraNova = ficha.nova; clearTimeout(timer); dirty = false;
+    const apagar = () => { fichas = fichas.filter(f => f.id !== id); ficha = null; atualId = null; try { localStorage.removeItem('ficha-atual'); } catch (e) {} desenharTudo(); };
+    if (eraNova) { apagar(); return; }
+    b.disabled = true; api('excluir', { id }).then(apagar).catch(e => { b.disabled = false; $('#zonaExcluir').insertAdjacentHTML('beforeend', ' <span class="aviso">Não excluiu (' + esc(e.code || 'erro') + ').</span>'); }); return; }
+});
+window.addEventListener('pagehide', () => { if (dirty) salvar(); });
+
+// ── conversa aberta na LeadVox (o plugin recebe o ticket por mensagem) ──
+function campoContato(c, nomes) {
+  const cf = c && (c.customFields || c.extraInfo); if (!cf) return '';
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  const alvos = nomes.map(norm);
+  if (Array.isArray(cf)) { const it = cf.find(x => x && alvos.includes(norm(x.name || x.key || '')) && x.value); return it ? String(it.value) : ''; }
+  for (const k in cf) if (alvos.includes(norm(k)) && cf[k]) return String(cf[k]);
+  return '';
+}
+let contatoAtual = null, listaPronta = false;
+function aplicarTicket(t) {
+  const c = (t && t.contact) || {}, numero = String(c.number || '').replace(/\D/g, '');
+  if (!numero || (contatoAtual && contatoAtual.numero === numero)) return;
+  contatoAtual = { numero, nome: c.name || c.pushname || '', id: 'c-' + numero };
+  const empresa = campoContato(c, ['Nome Empresa.:', 'Nome Empresa', 'Empresa']) || c.company || '';
+  const box = $('#contatoConversa'); box.hidden = false;
+  box.innerHTML = `<span class="rot">Conversa aberta</span><b>${esc(contatoAtual.nome || 'Contato')}</b><span>${esc(numero)}${empresa ? ' · ' + esc(empresa) : ''}</span>`;
+  const abrirDoContato = () => {
+    if (fichas.some(f => f.id === contatoAtual.id)) { abrir(contatoAtual.id); return; }
+    nova({ id: contatoAtual.id, contato: numero, nome: empresa, dados: { canais: { feriadosNacionais: true },
+      empresa: { nome: empresa, respNome: contatoAtual.nome, respWhats: numero, respEmail: c.email || campoContato(c, ['E-mail.:', 'E-mail', 'Email']),
+        instagram: campoContato(c, ['Instagram']), cidade: campoContato(c, ['Praça/UF', 'Cidade']) } } });
+  };
+  if (listaPronta) abrirDoContato(); else contatoAtual.pendente = abrirDoContato;
+}
+window.addEventListener('message', ev => {
+  if (!CFG.ORIGENS.includes(ev.origin)) return;
+  let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
+  if (m && m.type === 'DEFAULT_DATA' && m.data && m.data.ticket) aplicarTicket(m.data.ticket);
+});
+
+// ── início ──
+desenharTudo();
+(async () => {
+  if (!CFG.KEY) { desenharFichas('Falta a chave do plugin. Abra pelo link completo cadastrado na LeadVox (com ?k= no fim).'); return; }
+  try { fichas = (await api('listar')).fichas || []; }
+  catch (e) { desenharFichas(e.code === 'chave' ? 'A chave do plugin não confere. Confira o link cadastrado na LeadVox.' : 'Não deu para carregar as fichas (' + (e.code || 'erro') + '). Recarregue o plugin.'); return; }
+  listaPronta = true; desenharFichas();
+  if (contatoAtual && contatoAtual.pendente) { contatoAtual.pendente(); return; }
+  let ult = null; try { ult = localStorage.getItem('ficha-atual'); } catch (e) {}
+  if (ult && fichas.some(f => f.id === ult)) abrir(ult);
+})();
+})();
+</script>
+
+</body>
+</html>
