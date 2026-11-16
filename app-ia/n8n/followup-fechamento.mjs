@@ -114,11 +114,13 @@ export function decidir(ficha, hist, agora) {
 // Code do n8n (um item por vez): junta a ficha e o histórico e decide.
 export const DECIDIR_ENVIO = `// Para cada ficha: manda agora (IA, template ou só nota), espera, ou encerra (cliente respondeu, equipe reabriu, fim sem resposta).
 ${decidir.toString()}
+// o Redis "get" devolve só o histórico (descarta o resto do item): a ficha vem do "Separar Fichas"
+const base = $('Separar Fichas').item.json;
 let hist = []; try { hist = JSON.parse($json.histRaw || '[]'); } catch (e) {}
-const d = decidir($json.ficha, hist, Date.now());
+const d = decidir(base.ficha, hist, Date.now());
 const nome = p => p === 'cliente' ? 'Cliente' : p === 'ia' ? 'IA' : p === 'equipe' ? 'Equipe' : 'Sistema';
-const ultimas = (Array.isArray(hist) ? hist : []).filter(h => Number(h.ts) <= Number($json.ficha.fechadoEm) + 60000).slice(-15).map(h => nome(h.p) + ': ' + String(h.t || '').slice(0, 300)).join('\\n');
-return { json: { chave: $json.chave, ficha: $json.ficha, ultimas, momento: d.acao === 'enviar' ? 'tentativa' : d.acao, ...d } };`;
+const ultimas = (Array.isArray(hist) ? hist : []).filter(h => Number(h.ts) <= Number(base.ficha.fechadoEm) + 60000).slice(-15).map(h => nome(h.p) + ': ' + String(h.t || '').slice(0, 300)).join('\\n');
+return { json: { chave: base.chave, ficha: base.ficha, ultimas, momento: d.acao === 'enviar' ? 'tentativa' : d.acao, ...d } };`;
 
 // Code do n8n (um item por vez): pedido para a OpenAI — mensagem da retomada (QR code) e resumo do atendimento (avisos).
 export const PEDIR_IA = `const j = $json, f = j.ficha;

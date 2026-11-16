@@ -169,7 +169,8 @@ test('os Codes do n8n rodam como no fluxo', () => {
   const sep = rodar(SEPARAR_FICHAS, { $input: { 'iag_ff_a:1': JSON.stringify(ficha()), outra: 'x' } });
   assert.equal(sep.length, 1); assert.equal(sep[0].json.chaveHist, 'iag_hist_loja-ab12cd34:552181081044');
   const f = ficha({ fechadoEm: Date.now() - 5 * DIA - 60000, janelaIni: '00:00', janelaFim: '23:59' });
-  const dec = rodar(DECIDIR_ENVIO, {}, { chave: 'iag_ff_a:1', ficha: f, histRaw: JSON.stringify([{ p: 'cliente', t: 'quero ver o orçamento', ts: f.fechadoEm - DIA }]) });
+  // o Redis "get" do n8n devolve só o histórico: a ficha vem do "Separar Fichas"
+  const dec = rodar(DECIDIR_ENVIO, { 'Separar Fichas': { chave: 'iag_ff_a:1', ficha: f } }, { histRaw: JSON.stringify([{ p: 'cliente', t: 'quero ver o orçamento', ts: f.fechadoEm - DIA }]) });
   assert.equal(dec.json.acao, 'enviar'); assert.equal(dec.json.momento, 'tentativa'); assert.match(dec.json.ultimas, /Cliente: quero ver/);
   const ped = rodar(PEDIR_IA, {}, dec.json);
   assert.match(ped.json.corpoIA.messages[0].content, /perguntar se ficou dúvida/); assert.equal(ped.json.corpoIA.response_format.type, 'json_object');
