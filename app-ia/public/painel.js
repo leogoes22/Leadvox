@@ -1045,9 +1045,47 @@ function desenharComportamento() {
   sw('cpGrupo', av.grupo?.ativo); $('cpGrupoId').value = av.grupo?.id || (c.regras || {}).grupo || ''; $('cpGrupoQuando').value = av.grupo?.quando || 'equipe';
   sw('cpRes', av.resumo?.ativo); $('cpResZap').value = av.resumo?.whatsapp || ''; $('cpResHora').value = String(av.resumo?.hora || 19);
   $('cpLimH').value = lim.hora || 25; $('cpLimD').value = lim.dia || 50;
-  mostrarFu(); limparCp();
+  const ff = c.fechamento || {};
+  sw('cpFf', ff.ativo); ffSalvo = ff;
+  mostrarFu(); limparCp(); desenharFf();
 }
-const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); };
+const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); $('cpFfBox').hidden = !ligado('cpFf'); };
+/* follow-up pelo motivo de fechamento: a equipe fecha a conversa com um motivo da LeadVox e a IA retoma o cliente
+   5, 7, 15 e 30 dias depois, com o objetivo do motivo. No WhatsApp oficial vai o template escolhido para cada tentativa. */
+const FF_DIAS = [5, 7, 15, 30];
+let ffSalvo = {};
+// só templates aprovados com no máximo uma variável no texto ({{1}} = nome do cliente)
+const tplVars = t => new Set(String(t?.preview || '').match(/\{\{\s*\d+\s*\}\}/g) || []).size;
+async function desenharFf() {
+  const salvos = Array.isArray(ffSalvo.motivos) ? ffSalvo.motivos : [];
+  let motivos = null, erro = '';
+  try { motivos = listas.motivos || (listas.motivos = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=motivos')).items); }
+  catch (err) { erro = err.message; }
+  const base = motivos || salvos.map(m => ({ id: m.id, name: m.nome }));
+  $('cpFfMotivos').innerHTML = !base.length ? `<p class="muted">${esc(erro || 'Cadastre os motivos de fechamento na LeadVox (Configurações → Motivos de Fechamento).')}</p>`
+    : `${erro ? `<p class="muted" style="font-size:13px">${esc(erro)} Mostrando os motivos já salvos.</p>` : ''}<p class="dica" style="margin-top:0">Marque os motivos que recebem follow-up e diga o objetivo da conversa.</p>`
+      + base.map(m => { const s = salvos.find(x => String(x.id) === String(m.id));
+        return `<div class="linha-lista"><label class="check-lin"><input type="checkbox" data-ffm="${esc(m.id)}" data-ffn="${esc(m.name)}" ${s ? 'checked' : ''}> ${esc(m.name)}</label>
+          <input data-ffo="${esc(m.id)}" maxlength="300" value="${esc(s?.objetivo || '')}" placeholder="Objetivo. Ex.: perguntar se ficou alguma dúvida sobre o orçamento" aria-label="Objetivo do follow-up para ${esc(m.name)}"></div>`; }).join('');
+  let tpls = null, tErro = '';
+  try { tpls = listas.templates || (listas.templates = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=templates')).items); }
+  catch (err) { tErro = err.message; }
+  const usaveis = (tpls || []).filter(t => /^approved$/i.test(t.status || 'APPROVED') && tplVars(t) <= 1);
+  const escolhidos = Array.isArray(ffSalvo.templates) ? ffSalvo.templates : [];
+  $('cpFfTpl').innerHTML = (tErro ? `<p class="muted" style="font-size:13px">${esc(tErro)}</p>` : !usaveis.length ? '<p class="muted" style="font-size:13px">Nenhum template aprovado nessa LeadVox (com até uma variável). Sem template, no WhatsApp oficial a IA só deixa uma nota interna para a equipe.</p>' : '')
+    + FF_DIAS.map((d, i) => { const e = escolhidos[i] || null, opts = usaveis.some(t => String(t.id) === String(e?.id)) || !e ? usaveis : [{ id: e.id, name: e.nome }, ...usaveis];
+      return `<div><label for="cpFfT${i}">${i + 1}ª tentativa · ${d} dias depois</label><select id="cpFfT${i}"><option value="">Sem template (só nota interna no oficial)</option>${opts.map(t => `<option value="${esc(t.id)}" ${String(t.id) === String(e?.id) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>`; }).join('');
+}
+function lerFf() {
+  const motivos = [...$('cpFfMotivos').querySelectorAll('input[data-ffm]:checked')].map(ch => ({ id: ch.dataset.ffm, nome: limpaNome(ch.dataset.ffn).slice(0, 120),
+    objetivo: ($('cpFfMotivos').querySelector(`input[data-ffo="${CSS.escape(ch.dataset.ffm)}"]`)?.value || '').trim().slice(0, 300) }));
+  const todos = listas.templates || [];
+  const templates = FF_DIAS.map((d, i) => { const v = $('cpFfT' + i)?.value || ''; if (!v) return null;
+    const t = todos.find(x => String(x.id) === v) || (ffSalvo.templates || []).find(x => String(x?.id) === v);
+    return t ? { id: String(t.id), nome: String(t.name ?? t.nome ?? '').slice(0, 120), vars: tplVars(t) || Number(t.vars) || 0 } : null; });
+  if (ligado('cpFf') && !motivos.length) throw Error('Follow-up do fechamento: marque pelo menos um motivo.');
+  return { ativo: ligado('cpFf'), dias: FF_DIAS, motivos, templates };
+}
 function marcarCp() { cpSujo = true; avisoSujo('cpSujo', true); }
 function limparCp() { cpSujo = false; avisoSujo('cpSujo', false); }
 $('agComportamento').querySelectorAll('.switch').forEach(b => b.onclick = () => { sw(b.id, !ligado(b.id)); mostrarFu(); marcarCp(); });
@@ -1070,6 +1108,7 @@ $('agComportamento').onsubmit = async e => {
     const config = { ...c,
       comportamento: { ...(c.comportamento || {}), modelo: $('cpModelo').value, criatividade: $('cpCriat').value, espera: Number($('cpEspera').value), assinatura: ligado('cpAssina') },
       followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00' },
+      fechamento: lerFf(),
       avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
         gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
         vendedor: { ativo: ligado('cpVend'), iaContinua: $('cpVendModo').value === 'continua' },

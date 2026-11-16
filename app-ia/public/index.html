@@ -207,6 +207,18 @@
               </div>
             </div>
             <div class="card">
+              <h3>Depois que a conversa é fechada</h3>
+              <div class="lin-sw"><span>Follow-up pelo motivo de fechamento<small>Quando a equipe fecha a conversa escolhendo um motivo, a IA retoma o cliente 5, 7, 15 e 30 dias depois, com o objetivo daquele motivo. Para se o cliente responder ou a conversa for reaberta. Só sai no horário do follow-up acima.</small></span>
+                <button type="button" class="switch" role="switch" aria-checked="false" id="cpFf" aria-label="Follow-up pelo motivo de fechamento"><span></span></button></div>
+              <div id="cpFfBox">
+                <div id="cpFfMotivos"><p class="muted">Carregando os motivos de fechamento da LeadVox…</p></div>
+                <h4 style="margin:14px 0 4px">WhatsApp oficial</h4>
+                <p class="dica">Depois de 24 h sem o cliente falar, a Meta só aceita template aprovado. Escolha o template de cada tentativa: a variável {{1}} recebe o nome do cliente. No WhatsApp por QR code, a IA escreve a mensagem.</p>
+                <div id="cpFfTpl"></div>
+                <p class="dica">Na LeadVox, ligue o evento "Atendimento finalizado" no webhook da IA (Configurações → API/Webhook), senão a IA não fica sabendo do fechamento.</p>
+              </div>
+            </div>
+            <div class="card">
               <h3>Avisos</h3>
               <div class="lin-sw"><span>Retomar no dia seguinte<small>Se o cliente e a equipe ficaram quietos, a IA manda uma mensagem só, perto de 24 h depois.</small></span>
                 <button type="button" class="switch" role="switch" aria-checked="false" id="cpRet" aria-label="Retomar no dia seguinte"><span></span></button></div>

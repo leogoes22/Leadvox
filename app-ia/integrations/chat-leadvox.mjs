@@ -70,6 +70,8 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  }
  return Object.freeze({
   users:()=>get(ext('users/'+api)),
+  // Templates do WhatsApp oficial (documentado: GET /v1/api/external/template/{apiId}).
+  templates:()=>get(ext('template/'+api)),
   tags:()=>get(ext(api+'/tags')),
   pipelineSteps:()=>get(ext(api+'/pipeline-steps')),
   // The departments (queues) route is not documented; like the SDR Motor, try the known candidates and keep the first list.
@@ -139,6 +141,16 @@ export function normalizeItems(list){
   // etapa: de qual funil ela é (o motor transfere de funil quando a etapa nova é de outro)
   ...(/^[0-9]{1,12}$/.test(String(x?.pipelineId??''))?{funil:String(x.pipelineId)}:{})
  })).filter(x=>x.id||x.name);
+}
+// Templates do WhatsApp oficial: só id, nome, texto de exemplo, status e idioma chegam ao navegador.
+export function normalizeTemplates(list){
+ return (list||[]).filter(x=>x&&x.id!=null&&!x.deletedAt).slice(0,300).map(x=>({
+  id:String(x.id),
+  name:String(x.name??'').slice(0,120),
+  preview:String(x.preview??'').slice(0,600),
+  status:String(x.status??'').toUpperCase().slice(0,20),
+  language:String(x.language??'').slice(0,10)
+ })).filter(x=>x.name);
 }
 // Monta a tela do funil como a tela Pipeline do chat (vários funis, etapas na ordem, totais da LeadVox).
 // Se a LeadVox recusar essas rotas, usa a API externa: um funil só, com as etapas da conta.

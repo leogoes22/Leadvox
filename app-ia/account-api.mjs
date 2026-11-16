@@ -1,7 +1,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {estoqueParaSite,estoqueDoModelo,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
-import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
+import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeTemplates,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite,lerSiteTexto} from './integrations/site-loja.mjs';
@@ -819,7 +819,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      send(res,200,{connected:true,apiId:parsed.apiId});
     }else if(action==='chat'&&req.method==='GET'){
      const kind=new URL(req.url,'https://localhost').searchParams.get('kind');
-     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins',motivos:'closingReasons'}[kind];
+     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins',motivos:'closingReasons',templates:'templates'}[kind];
      if(!call)throw {status:400,message:'Lista inválida.'};
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
@@ -832,7 +832,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
       :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'+diag}
       :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'+diag}
       :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'+diag}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
-     send(res,200,{items:normalizeItems(list)});
+     send(res,200,{items:call==='templates'?normalizeTemplates(list):normalizeItems(list)});
     }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='rastreio'||action==='rastreio-relatorio'||action==='rastreio-teste'){
     // Rastreamento de anúncios (módulo extra). O webhook e o envio à Meta ficam na função "rastreio" do Supabase;
