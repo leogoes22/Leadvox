@@ -94,6 +94,14 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch,se
  return Object.freeze({
   temSessao:!!sessao,
   users:()=>get(ext('users/'+api)),
+  // Usuários para escolher no painel (rodízio, transferir para pessoa): com o login do usuário, a tela da LeadVox diz quem está
+  // inativo (isActive) e ele sai da lista; sem o login, a API externa (que não traz essa informação) devolve todos.
+  usuariosAtivos:async()=>{
+   if(!sessao)return pickList(await get(ext('users/'+api)))||[];
+   const todos=[];
+   for(let p=1;p<=10;p++){const b=await get('/users/?pageNumber='+p,true);const l=pickList(b)||[];todos.push(...l);if(b?.hasMore!==true||!l.length)break;}
+   return todos.filter(u=>u&&u.isActive!==false);
+  },
   // Templates do WhatsApp oficial (documentado: GET /v1/api/external/template/{apiId}).
   templates:()=>get(ext('template/'+api)),
   tags:()=>get(ext(api+'/tags')),

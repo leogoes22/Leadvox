@@ -92,6 +92,17 @@ test('Credenciais: salvar o usuário testa o login e o funil antes; a senha vai 
  assert.equal(r.status,400);assert.match((await r.json()).error,/não abre o funil/);assert.equal(p.chamadas.some(c=>c.salvar),false);
 });
 
+test('Usuários LeadVox: com o login, vêm da tela e os inativos (isActive=false) saem; sem o login, a API externa traz todos', async t => {
+ const us=[{id:1,name:'Ana',isActive:true},{id:2,name:'Bruno',isActive:false},{id:3,name:'Carla'}];
+ let p=await painel(t,{rotas:u=>u.pathname==='/users/'?ok(u.searchParams.get('pageNumber')==='1'?{users:us.slice(0,2),count:3,hasMore:true}:{users:us.slice(2),count:3,hasMore:false}):ok({},404)});
+ let r=await p.get('chat?organization='+org+'&kind=usuarios');
+ assert.equal(r.status,200);assert.deepEqual((await r.json()).items.map(i=>i.name),['Ana','Carla']);
+ assert.ok(p.chamadas.filter(c=>c.rota==='/users/').every(c=>c.auth==='Bearer jwt-tela'));
+ p=await painel(t,{usuario:false,rotas:u=>u.pathname.endsWith('/api/external/users/5ac8')?ok({users:us,count:3}):ok({},404)});
+ r=await p.get('chat?organization='+org+'&kind=usuarios');
+ assert.deepEqual((await r.json()).items.map(i=>i.name),['Ana','Bruno','Carla']);
+});
+
 test('banco e painel: conexão leadvox_usuario liberada e campo em Credenciais de API', () => {
  const sql=ler('../database/leadvox_usuario.sql');
  assert.match(sql,/check\(provider in\('estoque','asaas','elevenlabs','meta','meta_ads','leadvox_usuario'\)\)/);

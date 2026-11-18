@@ -893,13 +893,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      send(res,200,{connected:true,apiId:parsed.apiId});
     }else if(action==='chat'&&req.method==='GET'){
      const kind=new URL(req.url,'https://localhost').searchParams.get('kind');
-     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'users',departamentos:'departments',origens:'leadOrigins',motivos:'closingReasons',templates:'templates'}[kind];
+     const call={etiquetas:'tags',status:'allPipelineSteps',usuarios:'usuariosAtivos',departamentos:'departments',origens:'leadOrigins',motivos:'closingReasons',templates:'templates'}[kind];
      if(!call)throw {status:400,message:'Lista inválida.'};
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
      let list;
      const c=await clienteChat(org,authToken,rows[0]);
-     try{list=['departments','leadOrigins','closingReasons','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
+     try{list=['departments','leadOrigins','closingReasons','allPipelineSteps','usuariosAtivos'].includes(call)?await c[call]():pickList(await c[call]());}
      catch(e){
       // Super Admin (suporte): junta o que cada rota respondeu, para achar a rota certa dessa LeadVox
       const diag=Array.isArray(e.tentativas)&&e.tentativas.length&&await isPlatformAdmin(authToken)?' Rotas testadas (só a LeadVox vê): '+e.tentativas.join(' · '):'';
