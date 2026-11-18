@@ -14,7 +14,11 @@ const URL_BASE='https://dcucemuewipfnneqpgxk.supabase.co';
 const KEY='sb_publishable_aoGk_UyAvuroF3asqpSDHg_cs5MIu89';
 // Motor do painel: TODAS as contas do painel rodam no n8n novo (VPS). O n8n antigo não atende mais o painel.
 // Webhook de eventos da LeadVox → Sentinela do Motor IA (caminho iag-sentinela-v3).
-export const N8N_NOVO='https://n8n.leadvox.com.br/webhook/',SENTINELA_PATH='iag-sentinela-v3';
+// Ambiente de teste (app "teste" no Coolify): LV_N8N_PREFIXO='hml-' leva o painel às cópias de homologação dos fluxos
+// (hml-iag-simulador, hml-iag-sentinela-v3…), nunca aos fluxos dos clientes. Em produção a variável não existe.
+const PREFIXO_N8N=/^[a-z0-9-]{1,20}$/.test(process.env.LV_N8N_PREFIXO||'')?process.env.LV_N8N_PREFIXO:'';
+export const AMBIENTE=process.env.LV_AMBIENTE==='teste'?'teste':'producao';
+export const N8N_NOVO='https://n8n.leadvox.com.br/webhook/'+PREFIXO_N8N,SENTINELA_PATH='iag-sentinela-v3';
 export const n8nDaConta=()=>N8N_NOVO;
 // Versão dos Termos de Uso e da Política de Privacidade (public/termos.html e privacidade.html). Trocar a data pede o aceite de novo.
 export const TERMOS_VERSAO='2026-11-01';

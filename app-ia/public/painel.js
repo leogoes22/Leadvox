@@ -24,6 +24,14 @@ function toast(msg, erro) {
   clearTimeout(toastT); toastT = setTimeout(() => t.className = 'toast', 3200);
 }
 const mostra = (el, msg) => { el.textContent = msg || ''; el.hidden = !msg; };
+// Ambiente de teste (app "teste" no Coolify): faixa fixa no topo, para nunca confundir com o painel dos clientes.
+fetch('/api/health').then(r => r.json()).then(h => {
+  if (!h || h.ambiente !== 'teste') return;
+  const f = document.createElement('div'); f.id = 'faixaTeste';
+  f.textContent = '🧪 AMBIENTE DE TESTE · o banco é o mesmo dos clientes: mexa só em empresas de teste';
+  f.style.cssText = 'position:sticky;top:0;z-index:9999;background:#f5b400;color:#111;font-weight:700;text-align:center;padding:6px 12px;font-size:13px';
+  document.body.prepend(f); document.title = '[TESTE] ' + document.title;
+}).catch(() => {});
 
 /* ═══════════ ENTRADA ═══════════ */
 let modo = 'login', tipoCodigo = 'signup';
