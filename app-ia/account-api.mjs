@@ -49,6 +49,9 @@ export const SITE_ERROS={avaliacoes:'São até 3 avaliações.',dados:'Dados inv
  modelo:'Escolha um dos modelos.',logo:'Envie a logo de novo (JPG ou PNG de até 5 MB).',cor:'Escolha as cores do site.',fonte:'Escolha uma fonte da lista.',
  whatsapp:'Confira o WhatsApp: DDD e número.',instagram:'Confira o Instagram (só o nome, sem o link).',mapa:'O link do mapa precisa começar com https://.',
  nome:'Coloque o nome da loja.',publicar_sem_zap:'Para publicar, coloque o WhatsApp da loja: é para onde vão os clientes.'};
+export const CLIENTE_ERROS={nome:'Informe o nome da empresa (2 a 100 letras).',email:'Confira o e-mail do dono.',dias:'O teste grátis vai de 1 a 90 dias.',
+ plataforma:'Esse é um login da equipe LeadVox: use o e-mail do cliente.',login:'Não deu para criar o login agora. Tente de novo em instantes.',
+ proibido:'Só a LeadVox cria clientes por aqui.',banco:'O banco não respondeu. Tente de novo em instantes.'};
 export const USUARIOS_ERROS={email:'Confira o e-mail.',papel:'Escolha a função: dono, admin ou membro.',
  so_dono:'Só o dono mexe em quem é dono ou dá a função de dono.',limite:'Hoje já entraram 30 pessoas novas nesta empresa. Tente amanhã ou fale com a LeadVox.',
  ja_membro:'Essa pessoa já entra no painel desta empresa.',principal:'O dono principal da conta não pode ser removido nem mudar de função.',
@@ -415,6 +418,18 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      if(!uuidOk(body.organization)||!['estender','plano','cortesia','suspender','reativar','obs','lembrete'].includes(body.acao))throw {status:400,message:'Ação inválida.'};
      const dados=body.dados&&typeof body.dados==='object'&&!Array.isArray(body.dados)?body.dados:{};
      send(res,200,await rpc('lv_admin_acao',{org:body.organization,acao:body.acao,dados}));
+    }else if(action==='admin-cliente-novo'&&req.method==='POST'){
+     // Novo cliente sem autocadastro: a função "usuarios" cria o login do dono (se faltar) e o banco cria a empresa com ele como dono.
+     const nome=String(body.nome||'').trim().slice(0,100),email=String(body.email||'').trim().toLowerCase().slice(0,254),dias=body.dias===undefined?7:Number(body.dias);
+     if(nome.length<2)throw {status:400,message:CLIENTE_ERROS.nome};
+     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw {status:400,message:CLIENTE_ERROS.email};
+     if(!Number.isInteger(dias)||dias<1||dias>90)throw {status:400,message:CLIENTE_ERROS.dias};
+     let r;try{r=await fetchImpl(URL_BASE+'/functions/v1/usuarios/cliente',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+authToken,'Content-Type':'application/json'},
+      body:JSON.stringify({nome,email,dias}),signal:AbortSignal.timeout(30000),redirect:'error'});}catch{throw {status:502,message:'O cadastro de clientes não respondeu. Tente de novo em instantes.'};}
+     const j=await r.json().catch(()=>null);
+     if(!j||typeof j.ok!=='boolean')throw {status:502,message:'O cadastro de clientes ainda não está ligado (função "usuarios"). Fale com o suporte técnico.'};
+     if(!j.ok)throw {status:r.status===401?401:r.status===403?403:400,message:j.erro==='ja_tem_empresa'?'Esse e-mail já é dono da empresa "'+String(j.empresa||'').slice(0,100)+'". Use outro e-mail ou abra essa empresa na lista.':CLIENTE_ERROS[j.erro]||'Não deu para criar o cliente. Tente de novo em instantes.'};
+     send(res,200,{ok:true,id:String(j.id||''),nome:String(j.nome||nome),email:String(j.email||email),novo:j.novo===true,emailEnviado:j.emailEnviado===true});
     }else if(action==='admin-excluir'&&req.method==='POST'){
      // Excluir o cliente de vez: só o Super Admin, digitando o nome da empresa. O banco confere de novo.
      if(!uuidOk(body.organization)||typeof body.confirma!=='string'||!body.confirma.trim())throw {status:400,message:'Digite o nome da empresa para confirmar.'};

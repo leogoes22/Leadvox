@@ -2558,6 +2558,20 @@ async function acessarCliente(id, bt) {
 }
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-lv-entrar]'); if (b) acessarCliente(b.dataset.lvEntrar, b); });
 $('lvBusca').oninput = desenharLvLista;
+// Novo cliente sem autocadastro: a LeadVox cria a empresa e o login do dono; ele cria a senha pelo código do e-mail.
+$('lvNovoCliente').onclick = () => { $('ncForm').reset(); mostra($('ncErro'), ''); $('dlgCliente').showModal(); $('ncNome').focus(); };
+$('ncCancelar').onclick = () => $('dlgCliente').close();
+$('ncForm').onsubmit = async e => {
+  e.preventDefault(); mostra($('ncErro'), ''); $('ncOk').disabled = true;
+  try {
+    const r = await api('admin-cliente-novo', { nome: $('ncNome').value.trim(), email: $('ncEmail').value.trim(), dias: Number($('ncDias').value) });
+    $('dlgCliente').close();
+    toast(r.novo ? (r.emailEnviado ? `Cliente criado. ${r.email} recebeu o código para criar a senha.` : `Cliente criado, mas o e-mail não saiu. Em Gerenciar → Usuários, mande a redefinição de senha para ${r.email}.`)
+      : `Cliente criado. ${r.email} já tinha login na LeadVox IA e entra com a senha dele.`);
+    await carregarLv(); if (r.id) abrirEmpresa(r.id);
+  } catch (err) { mostra($('ncErro'), err.message); }
+  finally { $('ncOk').disabled = false; }
+};
 $('lvAtualizar').onclick = () => carregarLv().then(() => toast('Atualizado.')).catch(err => toast(err.message, true));
 $('lvPeriodo').onchange = () => carregarConsumo().catch(err => toast(err.message, true));
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-em-abrir]'); if (b) abrirEmpresa(b.dataset.emAbrir); });

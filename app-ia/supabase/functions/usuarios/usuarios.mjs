@@ -1,6 +1,7 @@
 // Usuários das empresas: a única peça que cria login e troca e-mail de login (precisa da chave de serviço, que só existe aqui dentro).
 // POST /usuarios/convidar → { organization, email, papel }: quem já tem login entra direto; quem não tem ganha o login e o código de criar senha.
 // POST /usuarios/email    → { organization, alvo, email, avisar }: só o Super Admin troca o e-mail de login de alguém da empresa.
+// POST /usuarios/cliente  → { nome, email, dias }: só o Super Admin cria um cliente novo (empresa + login do dono), sem autocadastro.
 // Quem pode é decidido pelo banco, sempre com o login de quem pede (rpcComo): esta função não decide nada sozinha.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -35,6 +36,25 @@ export function createUsuarios({ rpcComo, admin, recuperar }) {
     return resposta(200, { ok: true, novo: true, email, emailEnviado: await avisar(email) });
   }
 
+  // Novo cliente pelo Painel LeadVox: só o Super Admin (o banco confere). Cria a empresa com o cliente como dono principal;
+  // quem ainda não tem login ganha o login e o código de criar senha no e-mail.
+  async function cliente(jwt, b) {
+    const nome = String(b?.nome ?? '').trim(), email = emailOk(b?.email), dias = Number(b?.dias ?? 7);
+    if (nome.length < 2 || nome.length > 100) return resposta(400, { ok: false, erro: 'nome' });
+    if (!email) return resposta(400, { ok: false, erro: 'email' });
+    if (!Number.isInteger(dias) || dias < 1 || dias > 90) return resposta(400, { ok: false, erro: 'dias' });
+    const args = { nome, p_email: email, dias };
+    let r = await pedir(jwt, 'lv_admin_cliente_criar', args), novo = false;
+    if (r?.erro === 'sem_login') {
+      const c = await admin('POST', '/admin/users', { email, email_confirm: true });
+      if (c.status >= 400 && c.status !== 422) return resposta(502, { ok: false, erro: 'login' });
+      novo = c.status < 400;
+      r = await pedir(jwt, 'lv_admin_cliente_criar', args);
+    }
+    if (!r?.ok) return resposta(400, { ok: false, erro: r?.erro || 'falhou', empresa: r?.empresa || '' });
+    return resposta(200, { ok: true, id: r.id, nome: r.nome, email, novo, emailEnviado: novo ? await avisar(email) : false });
+  }
+
   async function trocarEmail(jwt, b) {
     const org = String(b?.organization ?? ''), alvo = String(b?.alvo ?? ''), email = emailOk(b?.email);
     if (!UUID.test(org) || !UUID.test(alvo)) return resposta(400, { ok: false, erro: 'nao_encontrado' });
@@ -54,9 +74,9 @@ export function createUsuarios({ rpcComo, admin, recuperar }) {
     const jwt = (req.headers.get('authorization') || '').replace(/^Bearer /, '');
     if (!JWT.test(jwt)) return resposta(401, { ok: false, erro: 'login' });
     const acao = new URL(req.url).pathname.split('/usuarios/')[1];
-    if (!['convidar', 'email'].includes(acao)) return resposta(404, { ok: false, erro: 'acao' });
+    if (!['convidar', 'email', 'cliente'].includes(acao)) return resposta(404, { ok: false, erro: 'acao' });
     let b; try { b = await req.json(); } catch { return resposta(400, { ok: false, erro: 'dados' }); }
-    try { return acao === 'convidar' ? await convidar(jwt, b) : await trocarEmail(jwt, b); }
+    try { return acao === 'convidar' ? await convidar(jwt, b) : acao === 'cliente' ? await cliente(jwt, b) : await trocarEmail(jwt, b); }
     catch (e) { return resposta(e.status || 503, { ok: false, erro: e.status === 401 ? 'login' : e.status === 403 ? 'proibido' : 'banco' }); }
   };
 }

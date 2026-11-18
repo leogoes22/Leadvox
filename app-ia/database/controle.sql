@@ -53,7 +53,8 @@ begin
   ('fichas.sql', to_regproc('public.lv_ficha_salvar') is not null),
   ('fichas_painel.sql', to_regproc('public.lv_admin_fichas') is not null),
   ('relatorio_admin.sql', to_regproc('public.lv_admin_relatorio') is not null),
-  ('autocerto_lead.sql', to_regproc('public.lv_motor_autocerto') is not null)
+  ('autocerto_lead.sql', to_regproc('public.lv_motor_autocerto') is not null),
+  ('cliente_novo.sql', to_regproc('public.lv_admin_cliente_criar') is not null)
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;
