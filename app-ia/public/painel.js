@@ -576,7 +576,7 @@ function configPadrao(tipo, nome) {
     setores: [], transferencia: { mensagem: '' },
     followup: { ativo: false, toques: [{ minutos: 60, texto: '' }, { minutos: 1440, texto: '' }], janelaIni: '09:00', janelaFim: '20:00' },
     crm: { oportunidade: tipo !== 'suporte', etapaId: null, etiquetas: true },
-    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, vendedor: { ativo: false, iaContinua: false }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
+    avisos: { retomada: { ativo: false, texto: '' }, gerente: { ativo: false, whatsapp: '', quando: 'equipe' }, vendedor: { ativo: false, iaContinua: false }, autocerto: { ativo: false, setor: '', codigoMidia: 12, interesse: 2 }, resumo: { ativo: false, whatsapp: '', hora: 19 } }
   };
 }
 function mesclar(pad, c) {
@@ -1097,6 +1097,11 @@ function desenharComportamento() {
   sw('cpRet', av.retomada?.ativo); $('cpRetTxt').value = av.retomada?.texto || '';
   sw('cpGer', av.gerente?.ativo); $('cpGerZap').value = av.gerente?.whatsapp || ''; $('cpGerQuando').value = av.gerente?.quando || 'equipe';
   sw('cpVend', av.vendedor?.ativo); $('cpVendModo').value = av.vendedor?.iaContinua ? 'continua' : 'pausa';
+  // lead no AutoCerto: a lista de setores é a do próprio agente (Ações e regras → Departamentos)
+  { const setAc = String(av.autocerto?.setor || ''), nomes = (Array.isArray(c.setores) ? c.setores : []).map(x => String((x && x.nome) || '').trim()).filter(Boolean);
+    if (setAc && !nomes.includes(setAc)) nomes.push(setAc);
+    $('cpAcSetor').innerHTML = '<option value="">Toda passagem para a equipe</option>' + nomes.map(n => `<option value="${esc(n)}">Só para ${esc(n)}</option>`).join('');
+    $('cpAcSetor').value = setAc; sw('cpAc', av.autocerto?.ativo); }
   sw('cpGrupo', av.grupo?.ativo); $('cpGrupoId').value = av.grupo?.id || (c.regras || {}).grupo || ''; $('cpGrupoQuando').value = av.grupo?.quando || 'equipe';
   sw('cpRes', av.resumo?.ativo); $('cpResZap').value = av.resumo?.whatsapp || ''; $('cpResHora').value = String(av.resumo?.hora || 19);
   $('cpLimH').value = lim.hora || 25; $('cpLimD').value = lim.dia || 50;
@@ -1104,7 +1109,7 @@ function desenharComportamento() {
   sw('cpFf', ff.ativo); ffSalvo = ff;
   mostrarFu(); limparCp(); desenharFf();
 }
-const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); $('cpFfBox').hidden = !ligado('cpFf'); };
+const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); $('cpFfBox').hidden = !ligado('cpFf'); $('cpAcBox').hidden = !ligado('cpAc'); };
 /* follow-up pelo motivo de fechamento: a equipe fecha a conversa com um motivo da LeadVox e a IA retoma o cliente
    5, 7, 15 e 30 dias depois, com o objetivo do motivo. No WhatsApp oficial vai o template escolhido para cada tentativa. */
 const FF_DIAS = [5, 7, 15, 30];
@@ -1191,6 +1196,11 @@ $('agComportamento').onsubmit = async e => {
     if (ligado('cpGrupo') && grupoId.length < 10) throw Error('Cole o número do grupo (começa com 120363).');
     const toques = [0, 1, 2].map(i => ({ minutos: Number($('cpT' + i).value), texto: $('cpTx' + i).value.trim() })).filter(t => t.minutos > 0).sort((a, b) => a.minutos - b.minutos);
     if (ligado('cpFu') && !toques.length) throw Error('Escolha quando sai a 1ª tentativa do follow-up.');
+    // lead no AutoCerto: só com o AutoCerto conectado como estoque (é dele o usuário da API que grava o lead)
+    if (ligado('cpAc')) {
+      if (!conexoes) { try { await carregarConexoes(); } catch { /* sem a lista: o motor avisa na nota se faltar */ } }
+      if (conexoes && !(conexoes.estoque?.connected && conexoes.estoque.source === 'autocerto')) throw Error('Para enviar o lead ao AutoCerto, conecte o AutoCerto em Credenciais de API → Estoque.');
+    }
     const limH = Math.min(200, Math.max(5, Number($('cpLimH').value) || 25)), limD = Math.min(500, Math.max(limH, Number($('cpLimD').value) || 50));
     const c = agDados.config;
     const config = { ...c,
@@ -1200,6 +1210,7 @@ $('agComportamento').onsubmit = async e => {
       avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
         gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
         vendedor: { ativo: ligado('cpVend'), iaContinua: $('cpVendModo').value === 'continua' },
+        autocerto: { codigoMidia: 12, interesse: 2, ...((c.avisos || {}).autocerto || {}), ativo: ligado('cpAc'), setor: $('cpAcSetor').value },
         resumo: { ativo: ligado('cpRes'), whatsapp: zap('cpResZap'), hora: Number($('cpResHora').value) },
         grupo: { ativo: ligado('cpGrupo'), id: grupoId, quando: $('cpGrupoQuando').value } },
       // o mesmo grupo vale para a ação "Avisar no grupo" das regras, se lá ainda estiver vazio
