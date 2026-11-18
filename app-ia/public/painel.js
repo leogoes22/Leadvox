@@ -2003,10 +2003,10 @@ function desenharConexoes() {
   const mostraEst = cfg.niche === 'automotivo', mostraAs = !!cfg.billingEnabled;
   ['estTit', 'estStatus'].forEach(id => $(id).hidden = !mostraEst); if (!mostraEst) $('estForm').hidden = true;
   ['asTit', 'asStatus'].forEach(id => $(id).hidden = !mostraAs); if (!mostraAs) $('asForm').hidden = true;
-  if (!conexoes) { $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = '<p class="muted">Carregando…</p>'; return; }
+  if (!conexoes) { $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = $('luStatus').innerHTML = '<p class="muted">Carregando…</p>'; return; }
   if (conexoes.setupPending) {
-    $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = '<p class="alerta" style="margin:0">Falta liberar no banco (o SQL das conexões) antes de salvar.</p>';
-    $('estForm').hidden = $('asForm').hidden = $('elForm').hidden = true; return;
+    $('estStatus').innerHTML = $('asStatus').innerHTML = $('elStatus').innerHTML = $('luStatus').innerHTML = '<p class="alerta" style="margin:0">Falta liberar no banco (o SQL das conexões) antes de salvar.</p>';
+    $('estForm').hidden = $('asForm').hidden = $('elForm').hidden = $('luForm').hidden = true; return;
   }
   const e = conexoes.estoque;
   if (mostraEst) {
@@ -2023,6 +2023,17 @@ function desenharConexoes() {
       $('estStatus').innerHTML = '<h3>Estoque ainda não configurado</h3><p class="muted">Sem o estoque, a IA não mostra os veículos da loja.</p>';
       $('estForm').hidden = false; if (!estFonte) escolherFonte('autocerto');
     }
+  }
+  // usuário da LeadVox: as rotas da tela (funil, departamentos, origens, motivos, mover o card) só abrem com ele desde 17/11/2026
+  const lu = conexoes.leadvox_usuario;
+  if (lu?.connected) {
+    $('luStatus').innerHTML = `<h3>Usuário da LeadVox conectado</h3><div class="ag-dados"><div><span>E-mail</span>${esc(lu.email || '—')}</div>${lu.usuario ? `<div><span>Nome na LeadVox</span>${esc(lu.usuario)}</div>` : ''}<div><span>Atualizado em</span>${esc(quandoBR(lu.updatedAt))}</div></div>
+      <div class="form-bts"><button type="button" class="sm" id="luTrocar">Trocar usuário ou senha</button></div>`;
+    $('luTrocar').onclick = () => { $('luForm').hidden = false; $('luEmail').value = lu.email || ''; };
+    $('luForm').hidden = true;
+  } else {
+    $('luStatus').innerHTML = '<h3>Usuário da LeadVox ainda não conectado</h3><p class="alerta" style="margin:6px 0 0">Sem ele, o funil e as oportunidades, os departamentos, as origens e os motivos de fechamento não carregam.</p>';
+    $('luForm').hidden = false;
   }
   const el = conexoes.elevenlabs;
   if (el?.connected) {
@@ -2062,6 +2073,10 @@ $('estForm').onsubmit = e => {
 $('asForm').onsubmit = e => {
   e.preventDefault();
   salvarConexao(e.currentTarget, { provider: 'asaas', environment: $('asAmb').value, apiKey: $('asChave').value }, 'Asaas conectado.');
+};
+$('luForm').onsubmit = e => {
+  e.preventDefault();
+  salvarConexao(e.currentTarget, { provider: 'leadvox_usuario', email: $('luEmail').value, senha: $('luSenha').value }, 'Usuário da LeadVox conectado. O funil e as listas voltam a carregar.');
 };
 $('elForm').onsubmit = e => {
   e.preventDefault(); elVozes = null;

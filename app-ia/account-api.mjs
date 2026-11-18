@@ -1,7 +1,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {estoqueParaSite,estoqueDoModelo,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
-import {createChatClient,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeTemplates,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
+import {createChatClient,entrarUsuarioChat,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeTemplates,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite,lerSiteTexto} from './integrations/site-loja.mjs';
@@ -139,6 +139,25 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
  }
  // False until database/platform_admin.sql has been applied.
  async function isPlatformAdmin(token){try{return (await upstream('/rest/v1/rpc/lv_is_platform_admin',{method:'POST',token,body:{}}))===true;}catch{return false;}}
+ // Usuário da LeadVox da empresa (Credenciais de API): as rotas da tela da LeadVox só abrem com ele desde 17/11/2026.
+ // Quem chega aqui já leu o token da conexão (dono, admin ou Super Admin); o login fica 10 min na memória, por empresa.
+ const sessoesChat=new Map();
+ async function sessaoChat(org,authToken,root){
+  let s;try{s=(await upstream('/rest/v1/rpc/lv_integration_secret',{method:'POST',token:authToken,body:{org,prov:'leadvox_usuario'}}))?.[0];}catch{s=null;}
+  const email=String(s?.settings?.email||''),senha=String(s?.secret||'');
+  if(!email||!senha)return null;
+  return async renovar=>{
+   const c=sessoesChat.get(org);
+   if(!renovar&&c&&c.ate>Date.now()&&c.email===email&&c.root===root)return c.jwt;
+   const r=await entrarUsuarioChat({root,email,senha,fetchImpl});
+   if(sessoesChat.size>2000)sessoesChat.clear();
+   sessoesChat.set(org,{jwt:r.jwt,ate:Date.now()+10*60e3,email,root});
+   return r.jwt;
+  };
+ }
+ const clienteChat=async(org,authToken,row)=>createChatClient({root:row.api_root,apiId:row.api_id,token:row.token,fetchImpl,sessao:await sessaoChat(org,authToken,row.api_root)});
+ const LOGIN_RECUSADO='A LeadVox não aceitou o usuário salvo em Credenciais de API. Confira o e-mail e a senha desse usuário.';
+ const SEM_USUARIO='A LeadVox passou a pedir o login de um usuário para funis, oportunidades, departamentos e origens. Conecte um usuário da LeadVox em Credenciais de API.';
  // Tema do site da loja: público (o site chama de outro domínio), só leitura, guardado 60 s por loja.
  const temasCache=new Map();
  async function siteTema(req,res){
@@ -669,8 +688,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
     if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
     let f;
-    try{f=await lerFunil(createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl}),{funil,status});}
-    catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
+    const cli=await clienteChat(org,authToken,rows[0]);
+    try{f=await lerFunil(cli,{funil,status});}
+    catch(e){throw e.code==='CHAT_LOGIN_RECUSADO'?{status:400,message:LOGIN_RECUSADO}:!cli.temSessao&&/funis (401|403)/.test(String(e.http||''))?{status:409,message:SEM_USUARIO}:e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
      :{status:502,message:'Não deu para buscar as oportunidades na LeadVox agora'+(e.http?' (a LeadVox respondeu '+e.http+')':'')+'. Tente de novo em instantes.'};}
     const lista=normalizeOpportunities(f.lista),totais={};
     for(const [k,v] of Object.entries(f.totais))if(/^[0-9]{1,12}$/.test(k))totais[k]={count:v.count,valor:v.valor};
@@ -683,8 +703,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     if(!/^[0-9]{1,12}$/.test(opp)||!/^[0-9]{1,12}$/.test(etapa)||!['open','won','lost'].includes(status))throw {status:400,message:'Oportunidade ou etapa inválida.'};
     let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
     if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
-    try{await createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl}).moveOpportunity(opp,etapa,status);}
-    catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou mover com o token salvo. Conecte de novo em Credenciais de API.'}
+    const cli=await clienteChat(org,authToken,rows[0]);
+    try{await cli.moveOpportunity(opp,etapa,status);}
+    catch(e){throw e.code==='CHAT_LOGIN_RECUSADO'?{status:400,message:LOGIN_RECUSADO}:!cli.temSessao&&e.code==='CHAT_UNAUTHORIZED'?{status:409,message:SEM_USUARIO}:e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não deixou mover com o token salvo. Conecte de novo em Credenciais de API.'}
      :{status:502,message:'A LeadVox não moveu a oportunidade'+(e.leadvox?': '+e.leadvox.replace(/[.\s]+$/,''):e.http?' (respondeu '+e.http+')':'')+'.'};}
     send(res,200,{ok:true});
    }else if(action==='openai'){
@@ -826,6 +847,21 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
       if(!key){const s=await salvo();if(s.secret)key=s.secret;else throw {status:400,message:'Cole a chave de API da ElevenLabs.'};}
       const vozes=await elevenLabsVoices({apiKey:key,fetchImpl});
       conf={vozes:vozes.length,testedAt:new Date().toISOString()};sec=key;
+     }else if(prov==='leadvox_usuario'){
+      // Usuário da LeadVox: só salva se o login entrar e abrir o funil (a rota da tela que o token da API não abre mais).
+      const email=str(body.email,200).toLowerCase();let senha=typeof body.senha==='string'?body.senha.slice(0,200):'';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw {status:400,message:'Informe o e-mail do usuário da LeadVox.'};
+      if(!senha){const s=await salvo();if(s.settings?.email===email&&s.secret)senha=s.secret;else throw {status:400,message:'Informe a senha do usuário da LeadVox.'};}
+      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
+      if(!rows?.[0])throw {status:409,message:'Conecte primeiro a API da LeadVox (logo acima).'};
+      let u;
+      try{u=await entrarUsuarioChat({root:rows[0].api_root,email,senha,fetchImpl});
+       await createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl,sessao:async()=>u.jwt}).pipelines();}
+      catch(e){throw e.code==='CHAT_LOGIN_RECUSADO'?{status:400,message:'A LeadVox não aceitou esse e-mail e senha. Confira com o login da tela da LeadVox.'}
+       :e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'O login entrou, mas esse usuário não abre o funil na LeadVox. Use um usuário administrador.'}
+       :{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+      sessoesChat.delete(org);
+      conf={email,perfil:u.perfil,usuario:u.usuario,testedAt:new Date().toISOString()};sec=senha;
      }else throw {status:400,message:'Conexão inválida.'};
     }catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
     try{await upstream('/rest/v1/rpc/lv_set_integration',{method:'POST',token:authToken,body:{org,prov,conf,sec},prefer:'return=minimal'});}
@@ -862,14 +898,16 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      if(!rows?.[0])throw {status:409,message:'Conecte sua LeadVox em Credenciais de API.'};
      let list;
-     try{const c=createChatClient({root:rows[0].api_root,apiId:rows[0].api_id,token:rows[0].token,fetchImpl});list=['departments','leadOrigins','closingReasons','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
+     const c=await clienteChat(org,authToken,rows[0]);
+     try{list=['departments','leadOrigins','closingReasons','allPipelineSteps'].includes(call)?await c[call]():pickList(await c[call]());}
      catch(e){
       // Super Admin (suporte): junta o que cada rota respondeu, para achar a rota certa dessa LeadVox
       const diag=Array.isArray(e.tentativas)&&e.tentativas.length&&await isPlatformAdmin(authToken)?' Rotas testadas (só a LeadVox vê): '+e.tentativas.join(' · '):'';
-      throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
-      :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'+diag}
-      :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'+diag}
-      :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'+diag}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+      const semUsu=c.temSessao?'':' '+SEM_USUARIO;
+      throw e.code==='CHAT_LOGIN_RECUSADO'?{status:400,message:LOGIN_RECUSADO}:e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.'}
+      :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'+semUsu+diag}
+      :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'+semUsu+diag}
+      :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'+semUsu+diag}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      send(res,200,{items:call==='templates'?normalizeTemplates(list):normalizeItems(list)});
     }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='rastreio'||action==='rastreio-relatorio'||action==='rastreio-teste'){

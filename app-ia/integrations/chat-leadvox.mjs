@@ -24,18 +24,40 @@ export function parseChatUrl(value,separateToken=''){
  if(token.length<10||token.length>4000||/[\r\n]/.test(token))throw new Error('URL inválida');
  return {root:m[1],apiId:m[2],token};
 }
-export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) {
+// Login de um usuário da LeadVox (o mesmo da tela). Desde 17/11/2026 as rotas da tela (fora do /v1: funis, oportunidades,
+// departamentos, origens, motivos, mover o card) recusam o token da API com 403 "Invalid token." e só abrem com este login.
+export async function entrarUsuarioChat({root=HOST+'/v1',email,senha,fetchImpl=fetch}){
+ if(!ROOT.test(root))throw new Error('Endereço inválido');
+ let r;
+ try{r=await fetchImpl(root.replace(/\/v\d{1,2}$/,'')+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+  body:JSON.stringify({email:String(email||'').trim().slice(0,200),password:String(senha||'').slice(0,200)}),redirect:'error',signal:AbortSignal.timeout(15000)});}
+ catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+ const b=await r.json().catch(()=>null);
+ const jwt=typeof b?.token==='string'?b.token:typeof b?.accessToken==='string'?b.accessToken:'';
+ if(!r.ok||!jwt||jwt.length>8000||/[\r\n]/.test(jwt))throw new ChatApiError(r.ok||r.status===400||r.status===401||r.status===403?'CHAT_LOGIN_RECUSADO':'CHAT_REQUEST_FAILED',400,r.status);
+ return {jwt,perfil:String(b.profile||b.user?.profile||'').slice(0,20),usuario:String(b.username||b.name||b.user?.name||'').slice(0,80)};
+}
+// sessao(renovar): devolve o login do usuário da LeadVox para as rotas da tela (renovar=true entra de novo); sem sessão, usa o token da API.
+export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch,sessao=null}) {
  if(!ROOT.test(root))throw new Error('Endereço inválido');
  const api=id(apiId);
  if(typeof token!=='string'||!token.trim()||/[\r\n]/.test(token))throw new Error('Credencial inválida');
+ const host=root.replace(/\/v\d{1,2}$/,'');
+ // rota da tela com o login do usuário: Bearer da sessão; se a LeadVox recusar (sessão vencida), entra de novo uma vez
+ async function comSessao(fazer){
+  let jwt=await sessao(false),response=await fazer(jwt);
+  if(response&&(response.status===401||response.status===403)){jwt=await sessao(true);response=await fazer(jwt);}
+  return response;
+ }
  // Same call shape as the SDR Motor in n8n: token in the query string and as Bearer.
  // raiz=true: rotas que a tela da LeadVox usa, fora do /v1 (ex.: /lead-origin/).
  async function get(path,raiz=false) {
   let response;
-  try{response=await fetchImpl((raiz?root.replace(/\/v\d{1,2}$/,''):root)+path+(path.includes('?')?'&':'?')+'token='+encodeURIComponent(token),{
+  try{response=raiz&&sessao?await comSessao(jwt=>fetchImpl(host+path,{method:'GET',headers:{Authorization:'Bearer '+jwt,Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)}))
+   :await fetchImpl((raiz?host:root)+path+(path.includes('?')?'&':'?')+'token='+encodeURIComponent(token),{
    method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},
    redirect:'error',signal:AbortSignal.timeout(10000)});
-  }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+  }catch(e){if(e instanceof ChatApiError)throw e;throw new ChatApiError('CHAT_UNAVAILABLE');}
   if(!response.ok)throw new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502,response.status);
   let body;try{body=await response.json();}catch{throw new ChatApiError('CHAT_INVALID_RESPONSE');}
   if(body?.success===false||body?.error)throw new ChatApiError('CHAT_REQUEST_FAILED');
@@ -44,10 +66,11 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
  // Escrita numa rota da tela (fora do /v1). Se a LeadVox recusar, devolve a mensagem dela (curta) para o painel mostrar.
  async function put(path,data) {
   let response;
-  try{response=await fetchImpl(root.replace(/\/v\d{1,2}$/,'')+path+'?token='+encodeURIComponent(token),{
-   method:'PUT',headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data),
+  const pedir=(cred,naUrl)=>fetchImpl(host+path+(naUrl?'?token='+encodeURIComponent(cred):''),{
+   method:'PUT',headers:{Authorization:'Bearer '+cred,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data),
    redirect:'error',signal:AbortSignal.timeout(15000)});
-  }catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+  try{response=sessao?await comSessao(jwt=>pedir(jwt,false)):await pedir(token,true);}
+  catch(e){if(e instanceof ChatApiError)throw e;throw new ChatApiError('CHAT_UNAVAILABLE');}
   let body=null;try{body=await response.json();}catch{}
   if(!response.ok||body?.success===false){
    const e=new ChatApiError(response.status===401||response.status===403?'CHAT_UNAUTHORIZED':'CHAT_REQUEST_FAILED',response.status===401||response.status===403?401:502,response.status);
@@ -64,11 +87,12 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch}) 
    const rota=(raiz?'(tela) ':'')+path;
    try{const body=await get(path,raiz);const list=pickList(body);if(list)return list;
     tentativas.push(rota+' → 200 sem lista'+(body&&typeof body==='object'?' ['+Object.keys(body).slice(0,6).join(',')+']':''));}
-   catch(e){if(e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))throw e;tentativas.push(rota+' → '+(e.http||e.code));}
+   catch(e){if((e.code==='CHAT_UNAUTHORIZED'&&path.startsWith('/api'))||e.code==='CHAT_LOGIN_RECUSADO')throw e;tentativas.push(rota+' → '+(e.http||e.code));}
   }
   const erro=new ChatApiError(code);erro.tentativas=tentativas;throw erro;
  }
  return Object.freeze({
+  temSessao:!!sessao,
   users:()=>get(ext('users/'+api)),
   // Templates do WhatsApp oficial (documentado: GET /v1/api/external/template/{apiId}).
   templates:()=>get(ext('template/'+api)),
@@ -181,6 +205,7 @@ export async function lerFunil(c,{funil='',status='open'}={}){
   }));
   return {funis:funis.map(x=>({id:x.id,name:x.name,color:x.color})),funil:String(f.id),etapas,lista:[...todas.values()],totais,incompleto};
  }catch(erroTela){
+  if(erroTela.code==='CHAT_LOGIN_RECUSADO')throw erroTela; // usuário da LeadVox com senha errada: avisa, sem tentar a lista externa
   try{
    const [etapas,opp]=await Promise.all([c.pipelineSteps().then(pickList),c.opportunities(status==='all'?'':status)]);
    return {funis:[],funil:'',etapas,lista:opp.list,totais:{},incompleto:opp.hasMore};
