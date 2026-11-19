@@ -11,7 +11,7 @@ const J=x=>JSON.parse(JSON.stringify(x));
 
 // ── banco ──
 test('banco: rota com o número, porta de entrada por número e compatível com quem tem um número só', () => {
- const sql=ler('../database/conexoes.sql');
+ const sql=ler('../database/conexoes.sql').replace(/\r/g,'');
  assert.match(sql,/^begin;/m);assert.match(sql,/^commit;/m);assert.match(sql,/notify pgrst,'reload schema';/);
  assert.match(sql,/drop function if exists public\.iag_motor_rota\(text,integer\);/);
  assert.match(sql,/function public\.iag_motor_rota\(p_conta text,p_departamento integer default null,p_sessao integer default null\)/);
