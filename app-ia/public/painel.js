@@ -1295,8 +1295,17 @@ const limpaNome = t => String(t || '').replace(/[\[\]\n]/g, ' ').replace(/\s+/g,
 async function carregarListasIA() {
   await Promise.all(['etiquetas', 'status', 'usuarios', 'origens', 'departamentos'].map(async k => {
     if (listas[k]) return;
-    try { listas[k] = (await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k)).items; } catch { listas[k] = null; }
+    try { const r = await api('chat?organization=' + encodeURIComponent(empresa.id) + '&kind=' + k); listas[k] = r.items; if (k === 'usuarios') listas.usuariosSoAtivos = r.soAtivos === true; } catch { listas[k] = null; }
   }));
+}
+// Rodízio: quem ficou salvo mas hoje está inativo na LeadVox (ou saiu dela) sai da distribuição. Só quando a lista
+// veio da tela da LeadVox (usuário da LeadVox conectado), que diz quem está ativo. Devolve os nomes tirados.
+function tirarInativosDoRodizio() {
+  if (!listas.usuariosSoAtivos || !Array.isArray(listas.usuarios)) return [];
+  const ativos = new Set(listas.usuarios.map(u => String(u.id))), tirados = [];
+  setoresEd.forEach(s => { if (!Array.isArray(s.vendedores)) return;
+    s.vendedores = s.vendedores.filter(v => { const fica = ativos.has(String(v.id)); if (!fica) tirados.push(v.nome || String(v.id)); return fica; }); });
+  return tirados;
 }
 // número com ou sem 55: DDD + número vira 55 + DDD + número; vazio continua vazio
 const zap55 = v => { const d = String(v || '').replace(/\D/g, ''); return d.length === 10 || d.length === 11 ? '55' + d : d; };
@@ -1305,6 +1314,8 @@ let setoresEd = [];
 const setoresAtuais = () => setoresEd.filter(x => limpaNome(x.nome));
 function desenharSetores() {
   const us = listas.usuarios || [];
+  const tirados = tirarInativosDoRodizio();
+  if (tirados.length) { marcarRg(); toast('Saíram do rodízio por estarem inativos na LeadVox: ' + tirados.join(', ') + '. Clique em Salvar para confirmar.'); }
   $('rgSetores').innerHTML = setoresEd.map((s, i) => `<div class="linha-lista" data-i="${i}"><button type="button" class="tirar" aria-label="Remover departamento" data-tira-set="${i}">×</button>
     <div class="tres"><div><label for="sN${i}">Departamento</label><input id="sN${i}" data-c="nome" list="rgDeps" maxlength="60" placeholder="Ex.: Comercial" value="${esc(s.nome)}"></div>
       <div><label for="sF${i}">Nº da fila na LeadVox</label><input id="sF${i}" data-c="filaId" maxlength="10" inputmode="numeric" placeholder="Ex.: 66" value="${esc(s.filaId)}"></div>

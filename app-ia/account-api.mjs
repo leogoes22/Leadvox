@@ -963,7 +963,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
       :e.code==='CHAT_DEPARTMENTS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os departamentos por esta conexão.'+semUsu+diag}
       :e.code==='CHAT_ORIGINS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu as origens do lead por esta conexão.'+semUsu+diag}
       :e.code==='CHAT_REASONS_UNAVAILABLE'?{status:502,message:'A LeadVox não devolveu os motivos de fechamento por esta conexão.'+semUsu+diag}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
-     send(res,200,{items:call==='templates'?normalizeTemplates(list):normalizeItems(list)});
+     // soAtivos: a lista de usuários veio da tela da LeadVox, que diz quem está ativo (o painel tira os inativos do rodízio)
+     send(res,200,{items:call==='templates'?normalizeTemplates(list):normalizeItems(list),...(call==='usuariosAtivos'?{soAtivos:c.temSessao}:{})});
     }else throw {status:405,message:'Método não permitido.'};
    }else if(action==='rastreio'||action==='rastreio-relatorio'||action==='rastreio-teste'){
     // Rastreamento de anúncios (módulo extra). O webhook e o envio à Meta ficam na função "rastreio" do Supabase;

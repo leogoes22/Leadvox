@@ -26,7 +26,8 @@ window.addEventListener('message', ev => {
   if (!/(^|\.)leadvox\.com\.br$/.test(host)) return;
   let m = ev.data; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (e) { return; } }
   const t = m && m.type === 'DEFAULT_DATA' && m.data ? lerTicket(m.data.ticket) : null;
-  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; esItens = null; prVeic = null; prMsgEditada = false; lerOrc(); if (!$('abaOrcamento').hidden) desenharOrcamento(); if (!$('abaProposta').hidden) desenharProposta(); $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
+  // outro atendimento: o "Próximo da fila" consultado para o cliente anterior não vale para este (trProx zera)
+  if (t && (!ticket || t.id !== ticket.id || t.vendedor !== ticket.vendedor)) { ticket = t; trProx = {}; esItens = null; prVeic = null; prMsgEditada = false; lerOrc(); if (!$('abaOrcamento').hidden) desenharOrcamento(); if (!$('abaProposta').hidden) desenharProposta(); $('esLista').innerHTML = ''; $('esTotal').textContent = ''; cabecalhoEstoque(); if (!$('abaEstoque').hidden) carregarEstoque(); abrirTicket(); }
 });
 
 async function chamar(acao, extra) {
