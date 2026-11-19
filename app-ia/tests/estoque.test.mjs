@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createApp} from '../server.mjs';
 import {deAutoCerto,deRevendaMais,itemManual,itemProduto,buscarEstoque} from '../integrations/estoque.mjs';
 const ok=(d,status=200)=>({ok:status<400,status,json:async()=>d});
@@ -11,6 +12,16 @@ test('AutoCerto vehicles become catalog items with name, km, photos and price',(
  assert.equal(i.codigo,'4512');assert.equal(i.nome,'Hyundai HB20 1.0 Comfort 2020/2021');assert.equal(i.preco,62900);assert.equal(i.categoria,'Hatch');
  assert.deepEqual(i.fotos,['https://f.autocerto.com/1.jpg','https://f.autocerto.com/2.jpg']);
  assert.match(i.descricao,/Cor prata · 45\.000 km/);assert.equal(i.atributos.km,45000);
+});
+
+test('todas as fotos do veículo entram no catálogo (até 30); o limite de 10 é só no envio do plugin',()=>{
+ const urls=n=>Array.from({length:n},(_,k)=>'https://cdn.revendamais.com.br/'+(k+1)+'.jpg');
+ const rm=deRevendaMais({id:9,make:'Fiat',model:'Argo',year:2021,images:urls(24)});
+ assert.equal(rm.fotos.length,24,'Revenda Mais: as 24 fotos');
+ const ac=deAutoCerto({Codigo:1,Marca:'Fiat',Modelo:'Mobi',Fotos:urls(40).map((u,k)=>({URL:u,Posicao:k+1}))});
+ assert.equal(ac.fotos.length,30,'AutoCerto: até 30');assert.equal(ac.fotos[29],urls(30)[29]);
+ const v=readFileSync(new URL('../public/vendedor.js',import.meta.url),'utf8');
+ assert.match(v,/const MAX_FOTOS = 10;/,'no plugin o vendedor marca até 10 por envio');
 });
 test('Revenda Mais uses the promotion price and marks motorcycles',()=>{
  const i=deRevendaMais({vehicle_id:'x9',make:'Honda',model:'CG 160',year:2022,mileage:'12.000',price:'15.990,00',promotion_price:'14.990,00',category:'MOTO',images:['https://img/1.jpg']});

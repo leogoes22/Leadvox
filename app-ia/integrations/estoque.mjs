@@ -11,6 +11,9 @@ export function opcionaisDe(v){
  return [...new Set(l.map(c=>txt(typeof c==='string'?c:(c?.nome||c?.Nome||c?.descricao||c?.Descricao||c?.name||c?.Name||''),60)).filter(Boolean))].slice(0,40);
 }
 const urlFoto=u=>{const s=String(u??'').trim();return /^https:\/\/[^\s"<>]{3,1500}$/.test(s)?s:null;};
+// Todas as fotos do veículo entram no catálogo (até 30, o que a galeria do plugin mostra). O limite de 10 é só no envio:
+// o vendedor escolhe até 10 no plugin, e a IA manda até 10 por veículo.
+export const FOTOS_POR_ITEM=30;
 
 // Um veículo no formato comum → item do catálogo (nome que a IA fala, descrição curta e atributos para a busca).
 export function itemDeVeiculo(v){
@@ -25,7 +28,7 @@ export function itemDeVeiculo(v){
  const descricao=[atributos.cor&&'Cor '+atributos.cor.toLowerCase(),km>0&&km.toLocaleString('pt-BR')+' km',atributos.cambio&&'câmbio '+atributos.cambio.toLowerCase(),
   atributos.combustivel&&atributos.combustivel.toLowerCase(),atributos.opcionais&&'Opcionais: '+atributos.opcionais.join(', '),txt(v.obs,1500)].filter(Boolean).join(' · ');
  return {codigo:txt(v.codigo,36),nome:[marca,nomeModelo,ano].filter(Boolean).join(' ').slice(0,160),categoria:txt(v.categoria,80)||(v.tipo==='moto'?'Moto':''),
-  descricao:descricao.slice(0,4000),preco:preco>0?preco:null,atributos,fotos:(Array.isArray(v.fotos)?v.fotos:[]).map(urlFoto).filter(Boolean).slice(0,10)};
+  descricao:descricao.slice(0,4000),preco:preco>0?preco:null,atributos,fotos:(Array.isArray(v.fotos)?v.fotos:[]).map(urlFoto).filter(Boolean).slice(0,FOTOS_POR_ITEM)};
 }
 
 // AutoCerto: login OAuth (grant_type=password) e ObterEstoque da unidade.
