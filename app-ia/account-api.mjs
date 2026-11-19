@@ -53,6 +53,10 @@ export const SITE_ERROS={avaliacoes:'São até 3 avaliações.',dados:'Dados inv
  modelo:'Escolha um dos modelos.',logo:'Envie a logo de novo (JPG ou PNG de até 5 MB).',cor:'Escolha as cores do site.',fonte:'Escolha uma fonte da lista.',
  whatsapp:'Confira o WhatsApp: DDD e número.',instagram:'Confira o Instagram (só o nome, sem o link).',mapa:'O link do mapa precisa começar com https://.',
  nome:'Coloque o nome da loja.',publicar_sem_zap:'Para publicar, coloque o WhatsApp da loja: é para onde vão os clientes.'};
+export const CONEXAO_ERROS={dados:()=>'Confira o nome, a URL e o token.',
+ limite:r=>'Sua empresa pode ter até '+(Number(r.limite)||1)+' número(s) da LeadVox (um por IA liberada). Para ter mais, fale com a LeadVox.',
+ repetida:()=>'Esse número já está cadastrado aqui.',principal:()=>'Esse já é o número principal da empresa (Chat da LeadVox, logo acima).',
+ em_uso:()=>'Esse número já é usado por outra empresa na LeadVox IA.'};
 export const CLIENTE_ERROS={nome:'Informe o nome da empresa (2 a 100 letras).',email:'Confira o e-mail do dono.',dias:'O teste grátis vai de 1 a 90 dias.',
  plataforma:'Esse é um login da equipe LeadVox: use o e-mail do cliente.',login:'Não deu para criar o login agora. Tente de novo em instantes.',
  proibido:'Só a LeadVox cria clientes por aqui.',banco:'O banco não respondeu. Tente de novo em instantes.'};
@@ -463,7 +467,17 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     }else if(action==='admin-robos'&&req.method==='GET'){
      // Robôs da empresa: o que está ligado, em teste e o que falta configurar (sem segredos).
      if(!uuidOk(q.get('organization')))throw {status:400,message:'Empresa inválida.'};
-     send(res,200,await rpc('lv_admin_robos',{org:q.get('organization')}));
+     const robosAdm=await rpc('lv_admin_robos',{org:q.get('organization')});
+     // IAs liberadas (limite de agentes e de números da LeadVox); sem o SQL das conexões, segue sem o número
+     let limite=null;try{limite=(await rpc('lv_chat_conexoes',{org:q.get('organization')}))?.limite??null;}catch{}
+     send(res,200,{...robosAdm,limite});
+    }else if(action==='admin-limite-ias'&&req.method==='POST'){
+     // Super Admin: quantas IAs o cliente pode criar; o mesmo número limita quantos números da LeadVox ele conecta.
+     const limite=Number(body.limite);
+     if(!uuidOk(body.organization)||!Number.isInteger(limite)||limite<1||limite>20)throw {status:400,message:'Escolha de 1 a 20 IAs.'};
+     const r=await rpc('lv_admin_limite_ias',{org:body.organization,limite});
+     if(!r?.ok)throw {status:400,message:r?.erro==='abaixo_do_uso'?'O cliente já tem '+r.agentes+' IA(s) criada(s). Arquive alguma antes de baixar o limite.':r?.erro==='sem_motor'?'O cliente ainda não ligou a IA (sem conta no motor).':'Não deu para mudar o limite.'};
+     send(res,200,{ok:true,limite:r.limite});
     }else if(action==='admin-robo-ativo'&&req.method==='POST'){
      if(!uuidOk(body.organization)||!/^[a-z0-9-]{3,120}$/.test(body.agente||''))throw {status:400,message:'Robô inválido.'};
      const r=await rpc('lv_admin_robo_ativo',{org:body.organization,agente:body.agente,ativo:body.ativo===true});
@@ -628,10 +642,13 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     if(!/^[0-9a-f]{24}$/.test(ev?.token||'')){try{await fetchImpl(n8nDaConta(ev?.conta)+'iag-painel-endereco',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(4000)});}catch{}
      throw {status:400,message:'A sua IA ainda está sendo preparada. Tente de novo em 1 minuto.'};}
     const ag=(st?.agentes||[]).find(a=>a.chave===agente);if(!ag)throw {status:400,message:'Agente não encontrado.'};
+    // IA de outro número (Credenciais → Outros números): o simulador escolhe a porta de entrada daquele número
+    let sessaoIA=null;try{const cx=await upstream('/rest/v1/rpc/lv_chat_conexoes',{method:'POST',token:authToken,body:{org}});
+     const id=(cx?.agentes||[]).find(a=>a.chave===agente)?.conexaoId;sessaoIA=id?((cx.conexoes||[]).find(c=>c.id===id)?.sessao??null):null;}catch{}
     // telefone de mentira e fixo por teste: a conversa tem memória própria e nunca cai no WhatsApp de ninguém
     const tel='55000'+String(parseInt(createHash('sha256').update(org+':'+sessao).digest('hex').slice(0,12),16)).slice(0,8).padStart(8,'0');
     let r;try{r=await fetchImpl(n8nDaConta(ev.conta)+'iag-simulador?k='+encodeURIComponent(ev.conta)+'&t='+ev.token,{method:'POST',redirect:'error',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({sessionId:tel,chatInput:mensagem,Departamento:ag.departamentoId||null,ticketId:'',nomeContato:'Teste do painel',simulacao:true})});}
+     body:JSON.stringify({sessionId:tel,chatInput:mensagem,Departamento:ag.departamentoId||null,ticketId:'',nomeContato:'Teste do painel',simulacao:true,...(sessaoIA?{sessaoIA}:{})})});}
     catch{throw {status:502,message:'A IA demorou demais para responder. Tente de novo.'};}
     const d=await r.json().catch(()=>null);
     if(!d||!r.ok)return send(res,200,{ok:false,envios:[],aviso:'A IA não respondeu. Confira se o agente está ligado e em qual departamento ele atende (aba Identidade).'}),true;
@@ -879,6 +896,40 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     if(!s?.secret)throw {status:409,message:'Conecte a ElevenLabs em Credenciais de API.'};
     try{send(res,200,{vozes:await elevenLabsVoices({apiKey:s.secret,fetchImpl})});}
     catch(e){if(e instanceof ConnectionError)throw {status:400,message:e.message};throw e;}
+   }else if(action==='chat-conexoes'){
+    // Números extras da LeadVox (uma conexão por número) e por qual número cada IA atende.
+    // O total (principal + extras) vai até o número de IAs liberadas pelo Super Admin; o banco confere tudo de novo.
+    const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
+    if(!UUID_RE.test(org||''))throw {status:400,message:'Empresa inválida.'};
+    const rpc=async(fn,args)=>{try{return await upstream('/rest/v1/rpc/'+fn,{method:'POST',token:authToken,body:{org,...args}});}
+     catch(e){if(e.status===503||e.status===429)throw e;throw {status:403,message:'Só o dono ou um admin da empresa mexe nos números da LeadVox.'};}};
+    if(req.method==='GET'){send(res,200,await rpc('lv_chat_conexoes',{}));return true;}
+    const acao=String(body.acao||'');
+    if(acao==='salvar'){
+     const problem=chatUrlProblem(body.url,body.token);
+     if(problem)throw {status:400,message:problem==='host'?'A URL precisa ser da API da LeadVox (chatapi ou chat2api.leadvox.com.br).':problem==='path'?'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.':'Faltou o token: cole no campo Token ou deixe na URL.'};
+     const nome=String(body.nome||'').trim().slice(0,60);
+     if(nome.length<2)throw {status:400,message:'Dê um nome para este número (ex.: Investidor).'};
+     let parsed;try{parsed=parseChatUrl(body.url,body.token);}catch{throw {status:400,message:'Não entendi essa URL. Confira se copiou a URL inteira da API da LeadVox.'};}
+     try{await createChatClient({...parsed,fetchImpl}).users();}
+     catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não aceitou esse token. Confira a URL e tente de novo.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
+     const jp=jwtPayload(parsed.token);
+     if(!Number.isInteger(jp?.tenantId)||!Number.isInteger(jp?.sessionId))throw {status:400,message:'Esse token não diz de qual número ele é. Gere a API na LeadVox escolhendo a conexão (o número) dela.'};
+     const r=await rpc('lv_chat_conexao_salvar',{p_nome:nome,root:parsed.root,api:parsed.apiId,tok:parsed.token,tenant:jp.tenantId,sessao:jp.sessionId});
+     if(!r?.ok)throw {status:400,message:CONEXAO_ERROS[r?.erro]?.(r)||'Não deu para salvar o número.'};
+     send(res,200,await rpc('lv_chat_conexoes',{}));
+    }else if(acao==='excluir'){
+     if(!UUID_RE.test(String(body.id||'')))throw {status:400,message:'Número inválido.'};
+     const r=await rpc('lv_chat_conexao_excluir',{p_id:body.id});
+     if(!r?.ok)throw {status:400,message:'Esse número já não está mais aqui. Atualize a página.'};
+     send(res,200,await rpc('lv_chat_conexoes',{}));
+    }else if(acao==='agente'){
+     const agente=String(body.agente||'');const conexao=body.conexao?String(body.conexao):null;
+     if(!/^[a-z0-9-]{3,120}$/.test(agente)||(conexao&&!UUID_RE.test(conexao)))throw {status:400,message:'Agente ou número inválido.'};
+     const r=await rpc('lv_motor_agente_numero',{agente,p_conexao:conexao});
+     if(!r?.ok)throw {status:400,message:r?.erro==='nao_encontrada'?'Esse número não está mais na empresa. Atualize a página.':'Não deu para trocar o número desta IA.'};
+     send(res,200,{ok:true});
+    }else throw {status:400,message:'Ação inválida.'};
    }else if(action==='chat-credentials'||action==='chat'){
     const org=req.method==='GET'?new URL(req.url,'https://localhost').searchParams.get('organization'):body.organization;
     if(!/^[0-9a-f-]{36}$/.test(org||''))throw {status:400,message:'Empresa inválida.'};

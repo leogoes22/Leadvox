@@ -25,7 +25,7 @@ async function fixture(t,{admin=true,ativo={ok:true}}={}){
 
 test('Super Admin lists the robots of a company without a key',async t=>{
  const f=await fixture(t);const r=await f.get(org);
- assert.equal(r.status,200);assert.deepEqual(await r.json(),robos);
+ assert.equal(r.status,200);assert.deepEqual(await r.json(),{...robos,limite:null}); // sem conexoes.sql (ou sem limite) o Gerenciar segue sem o número de IAs
  assert.deepEqual(f.calls.find(c=>c.fn==='lv_admin_robos').body,{org});
  assert.equal((await f.get('nao-e-uuid')).status,400);
 });

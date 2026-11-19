@@ -369,7 +369,7 @@ function abrirApp(pg) {
   motor = null; agSel = null; agDados = null; desenharMenu();
   carregarMotor().then(() => { if (eventos) desenharSaude(); if (abaAtual === 'agentes') desenharMotor(); if (kAberta()) abrirConhecimento(); atualizarGuia(); guiaPrimeiraVez(); })
     .catch(() => { motor = { setupPending: true }; if (abaAtual === 'agentes') desenharMotor(); if (kAberta()) abrirConhecimento(); atualizarGuia(); });
-  fin = null; chat = null; listas = {}; conexoes = null; estoque = null; eventos = null; prontoAberto = null;
+  fin = null; chat = null; listas = {}; conexoes = null; conexoesExtras = null; estoque = null; eventos = null; prontoAberto = null;
   $('saudeAviso').hidden = true;
   carregarEventos().then(() => { desenharSaude(); if (abaAtual === 'agentes') desenharPronto(); if (abaAtual === 'canais') desenharEventos(); atualizarGuia(); });
   carregarConexoes().then(() => { if (abaAtual === 'credenciais') desenharConexoes(); }).catch(() => {});
@@ -529,7 +529,7 @@ function abrir(pg) {
   document.querySelectorAll('[data-pg]').forEach(b => b.dataset.pg === item[0] ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   $('cabTitulo').textContent = item[1]; $('cabSub').textContent = item[3];
   if (LISTA[pg]) desenharLista(pg);
-  if (pg === 'credenciais') { desenharCred(); desenharConexoes(); carregarOpenAI(); }
+  if (pg === 'credenciais') { desenharCred(); desenharConexoes(); carregarOpenAI(); conexoesExtras = null; desenharCx(); }
   if (pg === 'agentes') desenharMotor();
   if (pg === 'estoque') abrirEstoque();
   if (pg === 'dashboard') carregarDashboard();
@@ -818,7 +818,49 @@ function desenharLugar() {
   if (atual && !opcoes.some(([id]) => id === atual)) opcoes.unshift([atual, 'Departamento ' + atual]);
   $('idDep').innerHTML = '<option value="">Nenhum departamento</option>' + opcoes.map(([id, n]) => `<option value="${esc(id)}" ${id === atual ? 'selected' : ''}>${esc(n)}</option>`).join('');
   $('idEntrada').setAttribute('aria-checked', String(!!l.entrada));
+  desenharNumeroAgente();
 }
+// por qual número da LeadVox o agente atende: o principal ou um dos "Outros números" (Credenciais de API)
+let conexoesExtras = null;
+async function carregarConexoesExtras() {
+  try { conexoesExtras = await api('chat-conexoes?organization=' + encodeURIComponent(empresa.id)); } catch { conexoesExtras = { conexoes: [], agentes: [], limite: 1, indisponivel: true }; }
+}
+const numeroDoAgente = chave => ((conexoesExtras?.agentes || []).find(a => a.chave === chave) || {}).conexaoId || '';
+function desenharNumeroAgente() {
+  if (!conexoesExtras) { carregarConexoesExtras().then(() => { if (agSel) desenharNumeroAgente(); }); return; }
+  const lista = conexoesExtras.conexoes || [], atual = numeroDoAgente(agSel);
+  $('idNumeroBox').hidden = !lista.length;
+  $('idNumero').innerHTML = '<option value="">Número principal (Chat da LeadVox)</option>' + lista.map(c => `<option value="${esc(c.id)}" ${c.id === atual ? 'selected' : ''}>${esc(c.nome)}</option>`).join('');
+}
+function desenharCx() {
+  const st = $('cxStatus'), f = $('cxForm');
+  if (!conexoesExtras) { st.innerHTML = '<p class="muted">Carregando…</p>'; carregarConexoesExtras().then(desenharCx); return; }
+  if (conexoesExtras.indisponivel) { st.hidden = true; f.hidden = true; return; }
+  st.hidden = false;
+  const lista = conexoesExtras.conexoes || [], limite = Number(conexoesExtras.limite) || 1, usados = 1 + lista.length, cabe = usados < limite && !!chat?.connected;
+  st.innerHTML = `<h3>Outros números da LeadVox</h3>
+    <p class="muted" style="margin-top:4px">Um número por IA: cada IA pode atender e responder por um número diferente. Sua empresa usa ${usados} de ${limite} número(s) liberado(s), contando o principal.</p>
+    ${lista.map(c => `<div class="item"><div><b>${esc(c.nome)}</b><small>Conta ${esc(c.apiId)} · ${c.agentes?.length ? 'atende: ' + esc(c.agentes.map(a => a.nome).join(', ')) : 'nenhuma IA neste número ainda'}</small></div>
+      <div class="bts"><button type="button" class="sm perigo" data-cx-sai="${esc(c.id)}">Tirar</button></div></div>`).join('')}
+    <div class="form-bts">${cabe ? '<button type="button" class="sm" id="cxNovo">+ Conectar outro número</button>' : !chat?.connected ? '<small class="muted">Conecte primeiro o número principal, logo acima.</small>' : '<small class="muted">Para conectar mais números, peça à LeadVox para liberar mais IAs.</small>'}</div>`;
+  if ($('cxNovo')) $('cxNovo').onclick = () => { f.hidden = false; $('cxNome').focus(); };
+  st.querySelectorAll('[data-cx-sai]').forEach(b => b.onclick = async () => {
+    const c = lista.find(x => x.id === b.dataset.cxSai);
+    if (!confirm('Tirar o número "' + (c?.nome || '') + '"? As IAs dele voltam para o número principal.')) return;
+    b.disabled = true;
+    try { conexoesExtras = await api('chat-conexoes', { organization: empresa.id, acao: 'excluir', id: b.dataset.cxSai }); desenharCx(); toast('Número tirado.'); }
+    catch (err) { toast(err.message, true); b.disabled = false; }
+  });
+}
+$('cxCancelar').onclick = () => { $('cxForm').hidden = true; };
+$('cxForm').onsubmit = async e => {
+  e.preventDefault(); const bt = e.currentTarget.querySelector('button[type=submit]'); bt.disabled = true; bt.textContent = 'Testando…';
+  try {
+    conexoesExtras = await api('chat-conexoes', { organization: empresa.id, acao: 'salvar', nome: $('cxNome').value, url: $('cxUrl').value, token: $('cxToken').value });
+    ['cxNome', 'cxUrl', 'cxToken'].forEach(id => $(id).value = ''); $('cxForm').hidden = true; desenharCx(); toast('Número conectado. Agora escolha, no agente, quem atende por ele.');
+  } catch (err) { toast(err.message, true); }
+  finally { bt.disabled = false; bt.textContent = 'Conectar e testar'; }
+};
 $('agLiga').onclick = () => agSel && ligarAgente(agSel, $('agLiga'));
 $('idEntrada').onclick = () => $('idEntrada').setAttribute('aria-checked', String($('idEntrada').getAttribute('aria-checked') !== 'true'));
 document.querySelectorAll('[data-ag]').forEach(b => b.onclick = () => {
@@ -840,6 +882,9 @@ $('agIdentidade').onsubmit = async e => {
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao, concluir });
     agDados = { ...agDados, config, nome, versao: r.versao ?? agDados.versao, configurado: agDados.configurado || !!r.configurado };
     const l = lugarAtual(), dep = Number($('idDep').value) || null, entrada = $('idEntrada').getAttribute('aria-checked') === 'true';
+    // número primeiro: a porta de entrada vale por número
+    const numero = $('idNumeroBox').hidden ? numeroDoAgente(agSel) : $('idNumero').value;
+    if (numero !== numeroDoAgente(agSel)) { await api('chat-conexoes', { organization: empresa.id, acao: 'agente', agente: agSel, conexao: numero || null }); await carregarConexoesExtras(); }
     if (dep !== (Number(l.departamentoId) || null) || entrada !== !!l.entrada) await acaoMotor({ acao: 'lugar', agente: agSel, departamento: dep, entrada });
     await carregarMotor();
     desenharMotor(); desenharAgente(); toast('Salvo no motor da IA.');
@@ -2717,6 +2762,9 @@ function desenharRobos(e) {
     : '<span class="st rascunho">Sem WhatsApp</span>';
   $('emRobos').innerHTML = `<div class="lista-topo"><div><h3 id="emRobosTitulo">Robôs</h3><p class="muted" style="margin-top:4px">${topo}</p></div>
       ${e.suporte ? '<span class="st">suporte aberto</span>' : ''}</div>
+    ${d.vinculado && d.limite ? `<div class="lin-sw" style="margin:6px 0 10px"><span>IAs liberadas<small>Quantas IAs o cliente pode criar (SDR, vendedor, atendente). É também o limite de números da LeadVox: uma conexão por número. Em uso: ${lista.length}.</small></span>
+      <span class="form-bts" style="margin:0;flex-wrap:nowrap"><input type="number" id="emLimiteIas" min="1" max="20" value="${Number(d.limite)}" style="width:72px" aria-label="IAs liberadas">
+      <button type="button" class="sm" id="emLimiteSalvar">Salvar</button></span></div>` : ''}
     ${lista.map(r => {
       const f = faltasDoRobo(r);
       return `<div class="item"><div><b>${esc(r.nome || 'Robô sem nome')}${r.entrada ? ' <span class="st">porta de entrada</span>' : ''}${r.modoTeste ? ` <span class="st rascunho">modo teste · ${r.numerosTeste} nº</span>` : ''}</b>
@@ -2725,6 +2773,12 @@ function desenharRobos(e) {
         <div class="bts"><span class="liga"><button type="button" class="switch" role="switch" aria-checked="${!!r.ativo}" data-robo-liga="${esc(r.chave)}" aria-label="${esc(r.nome || 'Robô')} ligado"><span></span></button><b class="${r.ativo ? 'on' : ''}">${r.ativo ? 'Ligado' : 'Pausado'}</b></span>
           <button type="button" class="principal sm" data-robo-ir="${esc(r.chave)}" data-aba="identidade">Editar</button><button type="button" class="sm" data-robo-ir="${esc(r.chave)}" data-aba="testar">Testar a IA</button></div></div>`;
     }).join('') || `<p class="muted" style="padding:8px 0">${d.vinculado ? 'Nenhum robô criado ainda.' : 'O cliente ainda não ligou a IA. Entre como suporte para ligar e criar o primeiro robô.'}</p>`}`;
+  if ($('emLimiteSalvar')) $('emLimiteSalvar').onclick = async () => {
+    const bt = $('emLimiteSalvar'); bt.disabled = true;
+    try { const r = await api('admin-limite-ias', { organization: e.id, limite: Number($('emLimiteIas').value) }); robos = { ...robos, limite: r.limite }; toast('Limite salvo: ' + r.limite + ' IA(s) e número(s) da LeadVox.'); }
+    catch (err) { toast(err.message, true); }
+    finally { bt.disabled = false; }
+  };
   document.querySelectorAll('[data-robo-liga]').forEach(b => b.onclick = () => ligarRobo(e, b.dataset.roboLiga, b));
   document.querySelectorAll('[data-robo-ir]').forEach(b => b.onclick = () => irParaRobo(e, b.dataset.roboIr, b.dataset.aba, b));
 }

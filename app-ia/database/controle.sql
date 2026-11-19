@@ -55,7 +55,8 @@ begin
   ('relatorio_admin.sql', to_regproc('public.lv_admin_relatorio') is not null),
   ('autocerto_lead.sql', to_regproc('public.lv_motor_autocerto') is not null),
   ('cliente_novo.sql', to_regproc('public.lv_admin_cliente_criar') is not null),
-  ('leadvox_usuario.sql', to_regproc('public.iag_leadvox_usuario') is not null)
+  ('leadvox_usuario.sql', to_regproc('public.iag_leadvox_usuario') is not null),
+  ('conexoes.sql', to_regproc('public.lv_chat_conexoes') is not null)
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;
