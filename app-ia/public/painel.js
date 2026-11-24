@@ -1147,6 +1147,10 @@ function desenharComportamento() {
     return `<div class="duas" style="grid-template-columns:150px minmax(0,1fr)"><div><label for="cpT${i}">${i + 1}ª tentativa, depois de</label><select id="cpT${i}">${TEMPOS.map(([v, n]) => `<option value="${v}" ${v === m ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
       <div><label for="cpTx${i}">Mensagem</label><input id="cpTx${i}" maxlength="400" value="${esc(t.texto || '')}" placeholder="Em branco: a IA escreve"></div></div>`; }).join('');
   $('cpJIni').value = fu.janelaIni || '09:00'; $('cpJFim').value = fu.janelaFim || '20:00';
+  sw('cpFuFim', fu.transferirNoFim === true); $('cpFuFimEspera').value = String([30, 60, 120, 240, 480, 1440].includes(Number(fu.esperaFimMin)) ? Number(fu.esperaFimMin) : 120);
+  $('cpFuFimEtq').value = fu.etiquetaFim || ''; $('cpFuFimMsg').value = fu.mensagemFim || '';
+  { const nomes = new Set([...((c.crm || {}).listaEtiquetas || []).map(x => typeof x === 'string' ? x : x && x.nome), ...(listas.etiquetas || []).map(x => x && (x.name || x.tag))].map(x => String(x || '').trim()).filter(Boolean));
+    $('cpFuFimEtqs').innerHTML = [...nomes].map(n => `<option value="${esc(n)}">`).join(''); }
   sw('cpRet', av.retomada?.ativo); $('cpRetTxt').value = av.retomada?.texto || '';
   sw('cpGer', av.gerente?.ativo); $('cpGerZap').value = av.gerente?.whatsapp || ''; $('cpGerQuando').value = av.gerente?.quando || 'equipe';
   sw('cpVend', av.vendedor?.ativo); $('cpVendModo').value = av.vendedor?.iaContinua ? 'continua' : 'pausa';
@@ -1162,7 +1166,7 @@ function desenharComportamento() {
   sw('cpFf', ff.ativo); ffSalvo = ff;
   mostrarFu(); limparCp(); desenharFf();
 }
-const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); $('cpFfBox').hidden = !ligado('cpFf'); $('cpAcBox').hidden = !ligado('cpAc'); };
+const mostrarFu = () => { $('cpFuBox').hidden = !ligado('cpFu'); $('cpFuFimBox').hidden = !ligado('cpFuFim'); $('cpFfBox').hidden = !ligado('cpFf'); $('cpAcBox').hidden = !ligado('cpAc'); };
 /* follow-up pelo motivo de fechamento: a equipe fecha a conversa com um motivo da LeadVox e a IA retoma o cliente
    5, 7, 15 e 30 dias depois, com o objetivo do motivo. No WhatsApp oficial vai o template escolhido para cada tentativa. */
 const FF_DIAS = [5, 7, 15, 30];
@@ -1256,9 +1260,14 @@ $('agComportamento').onsubmit = async e => {
     }
     const limH = Math.min(200, Math.max(5, Number($('cpLimH').value) || 25)), limD = Math.min(500, Math.max(limH, Number($('cpLimD').value) || 50));
     const c = agDados.config;
+    // passar para a equipe no fim do follow-up: a etiqueta escolhida entra na lista que o motor aceita
+    const fimOn = ligado('cpFu') && ligado('cpFuFim'), etqFim = $('cpFuFimEtq').value.trim().slice(0, 60);
+    const listaEtq = (Array.isArray((c.crm || {}).listaEtiquetas) ? c.crm.listaEtiquetas : []).map(x => typeof x === 'string' ? { nome: x } : x);
+    if (fimOn && etqFim && !listaEtq.some(x => semAc(x.nome) === semAc(etqFim))) listaEtq.push({ nome: etqFim });
     const config = { ...c,
       comportamento: { ...(c.comportamento || {}), modelo: $('cpModelo').value, criatividade: $('cpCriat').value, espera: Number($('cpEspera').value), assinatura: ligado('cpAssina') },
-      followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00' },
+      followup: { ...(c.followup || {}), ativo: ligado('cpFu'), toques, janelaIni: $('cpJIni').value || '09:00', janelaFim: $('cpJFim').value || '20:00',
+        transferirNoFim: fimOn, esperaFimMin: Number($('cpFuFimEspera').value) || 120, etiquetaFim: etqFim, mensagemFim: $('cpFuFimMsg').value.trim().slice(0, 400) },
       fechamento: lerFf(),
       avisos: { ...(c.avisos || {}), retomada: { ativo: ligado('cpRet'), texto: $('cpRetTxt').value.trim() },
         gerente: { ativo: ligado('cpGer'), whatsapp: zap('cpGerZap'), quando: $('cpGerQuando').value },
@@ -1268,7 +1277,7 @@ $('agComportamento').onsubmit = async e => {
         grupo: { ativo: ligado('cpGrupo'), id: grupoId, quando: $('cpGrupoQuando').value } },
       // o mesmo grupo vale para a ação "Avisar no grupo" das regras, se lá ainda estiver vazio
       regras: { ...(c.regras || {}), grupo: (c.regras || {}).grupo || grupoId },
-      crm: { ...(c.crm || {}), limiteIA: { hora: limH, dia: limD } } };
+      crm: { ...(c.crm || {}), limiteIA: { hora: limH, dia: limD }, ...(listaEtq.length ? { listaEtiquetas: listaEtq } : {}) } };
     const r = await acaoMotor({ acao: 'salvar', agente: agSel, config, versaoBase: agDados.versao });
     agDados = { ...agDados, config, versao: r.versao ?? agDados.versao };
     limparCp(); toast('Comportamento salvo. Vale a partir da próxima mensagem.');
@@ -1320,6 +1329,7 @@ function desenharSetores() {
     <div class="tres"><div><label for="sN${i}">Departamento</label><input id="sN${i}" data-c="nome" list="rgDeps" maxlength="60" placeholder="Ex.: Comercial" value="${esc(s.nome)}"></div>
       <div><label for="sF${i}">Nº da fila na LeadVox</label><input id="sF${i}" data-c="filaId" maxlength="10" inputmode="numeric" placeholder="Ex.: 66" value="${esc(s.filaId)}"></div>
       <div><label for="sQ${i}">Quando a IA manda para cá</label><input id="sQ${i}" data-c="quando" maxlength="200" placeholder="Ex.: cliente quer comprar" value="${esc(s.quando)}"></div></div>
+    <label for="sG${i}">Rodízio entre lojas (opcional)</label><input id="sG${i}" data-c="grupo" list="rgGrupos" maxlength="40" placeholder="Ex.: Lojas — use o mesmo nome em todas as lojas" value="${esc(s.grupo || '')}">
     <label for="sD${i}">Como o cliente chega aos usuários</label>
     <select id="sD${i}" data-c="distribuicao"><option value="fila">Fila do departamento: fica pendente e quem aceitar primeiro pega</option>
       <option value="rodizio" ${s.distribuicao === 'rodizio' ? 'selected' : ''}>Rodízio: um cliente para cada usuário, na ordem</option></select>
@@ -1333,7 +1343,8 @@ function desenharSetores() {
       <select id="sT${i}" data-c="trocaMin">${[[0, 'Não trocar de usuário'], ...[15, 20, 30, 40, 50, 60].map(m => [m, 'Passar para o próximo usuário depois de ' + m + ' min'])]
         .map(([v, t]) => `<option value="${v}" ${Number(s.trocaMin) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <p class="muted" style="font-size:13px;margin-top:6px">Conta só dentro do horário de atendimento, troca uma vez por atendimento e fica registrado em nota interna. Cliente sem responder nunca troca o usuário.</p></div>`}
-  </div>`).join('') + (setoresEd.length < 12 ? '<button type="button" class="leve" id="rgMaisSet">+ Adicionar departamento</button>' : '');
+  </div>`).join('') + (setoresEd.length < 12 ? '<button type="button" class="leve" id="rgMaisSet">+ Adicionar departamento</button>' : '')
+    + `<datalist id="rgGrupos">${gruposLojas().map(g => `<option value="${esc(g.nome)}">`).join('')}</datalist>` + resumoGrupos();
   desenharPadrao();
 }
 $('rgSetores').addEventListener('input', e => {
@@ -1345,6 +1356,7 @@ $('rgSetores').addEventListener('change', e => {
   const row = e.target.closest('[data-i]'); if (!row) return;
   const s = setoresEd[+row.dataset.i];
   if (e.target.dataset.c === 'distribuicao') { s.distribuicao = e.target.value; desenharSetores(); }
+  else if (e.target.dataset.c === 'grupo') { s.grupo = e.target.value; desenharSetores(); atualizarListasAcoes(); }
   else if (e.target.dataset.vend) {
     const id = e.target.dataset.vend, u = (listas.usuarios || []).find(x => String(x.id) === id);
     s.vendedores = e.target.checked ? [...s.vendedores.filter(v => String(v.id) !== id), { id: Number(id) || id, nome: u ? limpaNome(u.name) : id, whatsapp: '' }] : s.vendedores.filter(v => String(v.id) !== id);
@@ -1355,8 +1367,19 @@ $('rgSetores').addEventListener('click', e => {
   if (e.target.id === 'rgMaisSet') { setoresEd.push({ nome: '', filaId: '', quando: '', distribuicao: 'fila', vendedores: [] }); desenharSetores(); marcarRg(); $('rgSetores').querySelector('.linha-lista:last-of-type input')?.focus(); }
   else if (e.target.dataset.tiraSet !== undefined) { setoresEd.splice(+e.target.dataset.tiraSet, 1); desenharSetores(); marcarRg(); }
 });
+// rodízio entre lojas: departamentos com o mesmo "grupo" giram entre si (a loja da vez, depois o rodízio de usuários dela)
+function gruposLojas() {
+  const g = {};
+  setoresAtuais().forEach(s => { const n = limpaNome(s.grupo || ''); if (n) (g[semAc(n)] = g[semAc(n)] || { nome: n, lojas: [] }).lojas.push(limpaNome(s.nome)); });
+  return Object.values(g);
+}
+function resumoGrupos() {
+  return gruposLojas().map(g => `<p class="muted" style="font-size:13px;margin-top:8px">🏬 <b>${esc(g.nome)}</b>: ${g.lojas.length < 2 ? 'coloque o mesmo nome em pelo menos duas lojas.'
+    : 'cada cliente novo vai para uma loja, na ordem ' + g.lojas.map(esc).join(' → ') + ' → e começa de novo; dentro da loja segue o rodízio dos usuários dela. Cliente que volta fica na mesma loja. Nas regras, use @ → Transferir para departamento → ' + esc(g.nome) + '.'}</p>`).join('');
+}
 function itensDe(lista) {
-  if (lista === 'setores') return setoresAtuais().map(s => ({ id: Number(s.filaId) || null, name: limpaNome(s.nome) }));
+  if (lista === 'setores') return setoresAtuais().map(s => ({ id: Number(s.filaId) || null, name: limpaNome(s.nome) }))
+    .concat(gruposLojas().filter(g => g.lojas.length > 1).map(g => ({ id: 'grupo:' + g.nome, name: g.nome })));
   return (listas[lista] || []).map(x => ({ id: x.id, name: limpaNome(x.name), funil: x.funil })).filter(x => x.name);
 }
 
@@ -1369,7 +1392,7 @@ function desenharAcoes() {
   $('rgModoResp').value = r.responsavel === 'fixo' ? 'fixo' : 'atendente'; modoResp();
   setoresEd = (c.setores || []).map(s => ({ nome: s.nome || '', filaId: s.filaId ? String(s.filaId) : '', quando: s.quando || '', padrao: !!s.padrao,
     distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: Array.isArray(s.vendedores) ? s.vendedores.filter(v => v && v.id) : [],
-    trocaMin: Number(s.trocaMin) || 0, pluginEscolha: s.pluginEscolha === 'escolher' ? 'escolher' : 'fila' }));
+    trocaMin: Number(s.trocaMin) || 0, pluginEscolha: s.pluginEscolha === 'escolher' ? 'escolher' : 'fila', grupo: s.grupo || '' }));
   desenharSetores(); atualizarListasAcoes(); limparRg();
   carregarListasIA().then(atualizarListasAcoes);
 }
@@ -1556,7 +1579,11 @@ $('agAcoes').onsubmit = async e => {
     const setores = setoresAtuais().map(s => ({ nome: limpaNome(s.nome), filaId: Number(String(s.filaId).replace(/\D/g, '')) || null, quando: s.quando || '', padrao: semAc(s.nome) === semAc(padrao),
       distribuicao: s.distribuicao === 'rodizio' ? 'rodizio' : 'fila', vendedores: s.distribuicao === 'rodizio' ? s.vendedores.map(v => ({ id: Number(v.id), nome: v.nome, whatsapp: zap55(v.whatsapp) })).filter(v => v.id) : [],
       trocaMin: s.distribuicao === 'rodizio' && [15, 20, 30, 40, 50, 60].includes(Number(s.trocaMin)) ? Number(s.trocaMin) : 0,
-      pluginEscolha: s.distribuicao === 'rodizio' && s.pluginEscolha === 'escolher' ? 'escolher' : 'fila' }));
+      pluginEscolha: s.distribuicao === 'rodizio' && s.pluginEscolha === 'escolher' ? 'escolher' : 'fila', grupo: limpaNome(s.grupo || '').slice(0, 40) }));
+    const grupoRuim = setores.find(s => s.grupo && setores.some(o => semAc(o.nome) === semAc(s.grupo)));
+    if (grupoRuim) throw Error('O nome do rodízio entre lojas ("' + grupoRuim.grupo + '") não pode ser igual ao nome de um departamento.');
+    const grupoSo = gruposLojas().find(g => g.lojas.length < 2);
+    if (grupoSo) throw Error('Rodízio entre lojas "' + grupoSo.nome + '": coloque o mesmo nome em pelo menos duas lojas (ou deixe vazio).');
     const zapRuim = setores.flatMap(s => s.vendedores).find(v => v.whatsapp && !/^55\d{10,11}$/.test(v.whatsapp));
     if (zapRuim) throw Error('WhatsApp de ' + zapRuim.nome + ': use 55 + DDD + número.');
     const semVend = setores.find(s => s.distribuicao === 'rodizio' && !s.vendedores.length);

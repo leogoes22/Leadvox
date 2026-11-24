@@ -209,6 +209,14 @@
                 <div id="cpToques"></div>
                 <div class="duas"><div><label for="cpJIni">Mandar a partir de</label><input type="time" id="cpJIni" value="09:00"></div><div><label for="cpJFim">Até</label><input type="time" id="cpJFim" value="20:00"></div></div>
                 <p class="dica">Deixe a mensagem em branco para a IA escrever com base na conversa (ex.: lembrando <span id="exLembra">o que o cliente pediu</span>).</p>
+                <div class="lin-sw" style="margin-top:12px"><span>Passar para a equipe se o cliente não responder<small>Depois da última tentativa acima, a IA espera o tempo escolhido, manda uma mensagem curta e passa o cliente para o departamento padrão (com o rodízio). Não vale para o follow-up do fechamento.</small></span>
+                  <button type="button" class="switch" role="switch" aria-checked="false" id="cpFuFim" aria-label="Passar para a equipe se o cliente não responder"><span></span></button></div>
+                <div id="cpFuFimBox">
+                  <div class="duas"><div><label for="cpFuFimEspera">Esperar depois da última tentativa</label><select id="cpFuFimEspera"><option value="30">30 min</option><option value="60">1 hora</option><option value="120">2 horas</option><option value="240">4 horas</option><option value="480">8 horas</option><option value="1440">24 horas</option></select></div>
+                    <div><label for="cpFuFimEtq">Etiqueta ao passar (opcional)</label><input id="cpFuFimEtq" list="cpFuFimEtqs" maxlength="60" placeholder="Ex.: 03 - NÃO RESPONDE"><datalist id="cpFuFimEtqs"></datalist></div></div>
+                  <label for="cpFuFimMsg">Mensagem de passagem</label><input id="cpFuFimMsg" maxlength="400" placeholder="Em branco: Oi, {nome}! Vou deixar o seu atendimento com a nossa equipe de vendas: um consultor vai te chamar por aqui 😉">
+                  <p class="dica">Só passa se o cliente não respondeu, a equipe ainda não assumiu e o ticket está aberto; dentro do horário do follow-up. No WhatsApp oficial, só até 24 h depois da última mensagem do cliente.</p>
+                </div>
               </div>
             </div>
             <div class="card">
