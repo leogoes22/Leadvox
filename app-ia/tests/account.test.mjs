@@ -72,6 +72,19 @@ test('LeadVox connection is tested before saving and the token never returns to 
  const r=await get();const txt=await r.text();assert.equal(r.status,200);assert.doesNotMatch(txt,/secret-token/);
  assert.deepEqual(JSON.parse(txt).items,[{id:'3',name:'Quente',color:'#ff0000'}]);
 });
+test('trocar a conexão da LeadVox também atualiza o token que o motor usa',async t=>{
+ const org='22222222-2222-4222-8222-222222222222',b64=o=>Buffer.from(JSON.stringify(o)).toString('base64url');
+ const tok='x.'+b64({tenantId:69,sessionId:310})+'.y',url='https://chatapi.leadvox.com.br/v1/api/external/acc-9/?token='+tok;
+ let motor=null;const base=await fixture(t,async(u,init)=>{
+  if(u.endsWith('/auth/v1/user'))return response({id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-01-01'});
+  if(u.startsWith('https://chatapi.leadvox.com.br/'))return response({data:[]});
+  if(u.includes('lv_motor_conectar')){motor=JSON.parse(init.body);return response({ok:true});}
+  return response(null,204);
+ });
+ const r=await fetch(base+'/api/account/chat-credentials',{method:'POST',headers:{Origin:base,Cookie:'__Host-lv_session=test'},body:JSON.stringify({organization:org,url})});
+ assert.equal(r.status,200);
+ assert.deepEqual(motor,{org,tenant:69,sessao:310,url:'https://chatapi.leadvox.com.br/v1/api/external/acc-9/?token='+encodeURIComponent(tok)});
+});
 test('HTTP requests fail closed in production',async t=>{
  const s=createApp();await new Promise(r=>s.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>s.close(r)));
  assert.equal((await fetch('http://127.0.0.1:'+s.address().port+'/api/account/me')).status,426);

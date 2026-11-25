@@ -1,6 +1,8 @@
 // Server-only adapter. Never import from public/ or expose credentials to the browser.
 const HOST='https://chatapi.leadvox.com.br';
-const ROOT=/^https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\/v\d{1,2}$/;
+// CRM antigo (chatapi / chat2api…) e nova LeadVox (Z-PRO, apicrm.leadvox.com.br). A nova usa só o token Bearer.
+const ROOT=/^https:\/\/(?:chat[0-9]{0,2}api|apicrm)\.leadvox\.com\.br\/v\d{1,2}$/;
+export const ehNovaLeadvox=root=>/^https:\/\/apicrm\.leadvox\.com\.br\//.test(String(root??''));
 const id = value => {const s=String(value??'');if(!/^[a-zA-Z0-9_-]{1,100}$/.test(s))throw new Error('Identificador inválido');return s;};
 export class ChatApiError extends Error {
  constructor(code,status=502,http=null){super(code);this.code=code;this.status=status;this.http=http;}
@@ -10,7 +12,7 @@ export class ChatApiError extends Error {
 // Some LeadVox screens show the URL and the token apart: a separate token is accepted too.
 export function chatUrlProblem(value,separateToken=''){
  const s=String(value??'').trim();
- if(!/^https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\//.test(s))return 'host';
+ if(!/^https:\/\/(?:chat[0-9]{0,2}api|apicrm)\.leadvox\.com\.br\//.test(s))return 'host';
  if(!/\/api\/external\/[A-Za-z0-9_-]{1,100}/.test(s))return 'path';
  if(!/[?&]token=[^&#\s]{10,}/.test(s)&&String(separateToken).trim().length<10)return 'token';
  return null;
@@ -18,7 +20,7 @@ export function chatUrlProblem(value,separateToken=''){
 export function parseChatUrl(value,separateToken=''){
  let s=String(value??'').trim();const t=String(separateToken??'').trim().replace(/^Bearer\s+/i,'');
  if(t&&!/[?&]token=/.test(s))s=s.replace(/[?#].*$/,'').replace(/\/?$/,'/')+'?token='+encodeURIComponent(t);
- const m=s.match(/^(https:\/\/chat[0-9]{0,2}api\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})(?:\/[^?#]*)?\?(?:[^#]*&)?token=([^&#\s]+)/);
+ const m=s.match(/^(https:\/\/(?:chat[0-9]{0,2}api|apicrm)\.leadvox\.com\.br\/v\d{1,2})\/api\/external\/([A-Za-z0-9_-]{1,100})(?:\/[^?#]*)?\?(?:[^#]*&)?token=([^&#\s]+)/);
  if(!m)throw new Error('URL inválida');
  let token=m[3];try{token=decodeURIComponent(token);}catch{}
  if(token.length<10||token.length>4000||/[\r\n]/.test(token))throw new Error('URL inválida');
@@ -40,6 +42,7 @@ export async function entrarUsuarioChat({root=HOST+'/v1',email,senha,fetchImpl=f
 // sessao(renovar): devolve o login do usuário da LeadVox para as rotas da tela (renovar=true entra de novo); sem sessão, usa o token da API.
 export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch,sessao=null}) {
  if(!ROOT.test(root))throw new Error('Endereço inválido');
+ if(ehNovaLeadvox(root))return createNovaLeadvoxClient({root,apiId,token,fetchImpl});
  const api=id(apiId);
  if(typeof token!=='string'||!token.trim()||/[\r\n]/.test(token))throw new Error('Credencial inválida');
  const host=root.replace(/\/v\d{1,2}$/,'');
@@ -153,10 +156,90 @@ export function createChatClient({root=HOST+'/v1',apiId,token,fetchImpl=fetch,se
   // A única escrita liberada é mover a oportunidade (moveOpportunity), igual à tela Pipeline. Nada de mensagens por aqui.
  });
 }
+// ── nova LeadVox (Z-PRO) ─────────────────────────────────────────────────────────────────────────────────────────────
+// API externa v2, só com o token Bearer: não há login de usuário nem rotas de tela. O manual da API não traz o formato das
+// respostas, então as listas aceitam as formas comuns ({data}, {tags}, {queues}, vetor puro…) e a falha diz o que cada rota respondeu.
+// O token da nova LeadVox é opaco (não carrega empresa e número como o do CRM antigo): o número vem de canal().
+const NL_FALHA_AUTH=/ERR_API_CONFIG_NOT_FOUND|ERR_AUTH|ERR_INVALID_TOKEN|ERR_NO_PERMISSION|UNAUTHORIZED/i;
+// Entre as sessões que a API devolve, a do ID desta API (ou a única). Sem tenant e número claros, devolve null.
+export function canalDaLista(lista,apiId=''){
+ const itens=(Array.isArray(lista)?lista:[]).filter(x=>x&&typeof x==='object');
+ const deste=apiId?itens.filter(x=>String(x.apiId??x.api?.id??'')===String(apiId)):[];
+ const cand=deste.length?deste:itens;
+ if(cand.length!==1)return null;
+ const c=cand[0];
+ const sessionId=Number(c.sessionId??c.whatsappId??c.id),tenantId=Number(c.tenantId??c.tenant?.id);
+ return Number.isInteger(sessionId)&&sessionId>0&&Number.isInteger(tenantId)&&tenantId>0?{tenantId,sessionId}:null;
+}
+export function createNovaLeadvoxClient({root,apiId,token,fetchImpl=fetch}){
+ const api=id(apiId);
+ if(typeof token!=='string'||!token.trim()||/[\r\n]/.test(token))throw new Error('Credencial inválida');
+ const tk=token.trim().replace(/^Bearer\s+/i,'');
+ const base=root+'/api/external/'+api;
+ async function req(path,{method='GET',body}={}){
+  let r;
+  try{r=await fetchImpl(base+path,{method,headers:{Authorization:'Bearer '+tk,Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})},
+   body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(12000)});}
+  catch{throw new ChatApiError('CHAT_UNAVAILABLE');}
+  let corpo=null;try{corpo=await r.json();}catch{}
+  const msg=String(corpo?.error??corpo?.message??'');
+  if(r.status===401||r.status===403||NL_FALHA_AUTH.test(msg))throw new ChatApiError('CHAT_UNAUTHORIZED',401,r.status);
+  if(!r.ok||corpo?.success===false)throw new ChatApiError('CHAT_REQUEST_FAILED',502,r.status);
+  return corpo;
+ }
+ async function lista(path,code){
+  const l=pickList(await req(path));
+  if(l)return l;
+  const e=new ChatApiError(code);e.tentativas=[path+' → 200 sem lista'];throw e;
+ }
+ const etapaDe=o=>String(o?.stageId??o?.pipelineStepId??o?.stage?.id??'');
+ // a tela do painel lê a oportunidade no formato do CRM antigo: traduz os campos que mudam de nome
+ const paraLegado=o=>({...o,pipelineStepId:etapaDe(o),contact:o?.contact||o?.Contact||{},responsible:o?.responsible||o?.user||{},expectedCloseDate:o?.expectedCloseDate??o?.closingForecast??''});
+ const oportunidades=async(status='')=>(pickList(await req('/listOpportunities'))||[]).map(paraLegado).filter(o=>!status||String(o.status||'open')===status);
+ const funis=async()=>{
+  const [ps,es]=await Promise.all([lista('/pipeline/list','CHAT_NO_PIPELINES'),lista('/stage/list','CHAT_NO_PIPELINES')]);
+  return ps.filter(p=>p&&p.id!=null).map(p=>({id:p.id,name:p.name,isDefault:!!p.isDefault,
+   steps:es.filter(e=>e&&String(e.pipelineId)===String(p.id)).map(e=>({id:e.id,name:e.name,order:e.order,color:e.color,pipelineId:e.pipelineId}))}));
+ };
+ const colunas=async(pipelineId,status)=>(await oportunidades()).filter(o=>(!pipelineId||String(o.pipelineId)===String(pipelineId))&&status.includes(String(o.status||'open')));
+ return Object.freeze({
+  temSessao:false,provedor:'novaleadvox',
+  users:()=>lista('/listUsers','CHAT_USERS_UNAVAILABLE'),
+  usuariosAtivos:async()=>(await lista('/listUsers','CHAT_USERS_UNAVAILABLE')).filter(u=>u&&u.inactive!==true&&u.isActive!==false),
+  templates:async()=>[],               // a API da nova LeadVox não lista os templates do WhatsApp oficial
+  tags:()=>lista('/listTags','CHAT_TAGS_UNAVAILABLE'),
+  pipelineSteps:()=>lista('/stage/list','CHAT_STEPS_UNAVAILABLE'),
+  departments:()=>lista('/listQueues','CHAT_DEPARTMENTS_UNAVAILABLE'),
+  leadOrigins:async()=>[],             // na nova LeadVox a origem do lead é uma etiqueta (📍 Site, 📍 Anúncio…)
+  closingReasons:()=>lista('/listReasons','CHAT_REASONS_UNAVAILABLE'),
+  pipelines:funis,
+  screenPipelineSteps:()=>lista('/stage/list','CHAT_STEPS_UNAVAILABLE'),
+  pipelineStartup:async(pipelineId,stepIds,status)=>{
+   const todas=await colunas(pipelineId,status),columns={},totals={};
+   for(const e of stepIds){const k=String(e),l=todas.filter(o=>o.pipelineStepId===k);
+    columns[k]={opportunities:l,hasMore:false,count:l.length};totals[k]={count:l.length,totalValue:l.reduce((s,o)=>s+(Number(o.value)||0),0)};}
+   return {columns,totals};
+  },
+  stepOpportunities:async(pipelineId,stepId,status,page)=>({opportunities:Number(page)>1?[]:(await colunas(pipelineId,status)).filter(o=>o.pipelineStepId===String(stepId)),hasMore:false}),
+  moveOpportunity:(oppId,stepId,status)=>req('/updateOpportunity',{method:'POST',body:{opportunityId:Number(id(oppId)),stageId:Number(id(stepId)),status:id(status)}}),
+  allPipelineSteps:async()=>{
+   const fs=await funis(),ordem=l=>[...l].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+   return fs.flatMap(f=>ordem(f.steps).map(s=>({...s,pipelineId:f.id,name:fs.length>1?f.name+' › '+s.name:s.name})));
+  },
+  opportunities:async(status='')=>{const l=await oportunidades(status);return {list:l,count:l.length,hasMore:false};},
+  // de qual empresa e número é esta API (o token não diz): lê a lista de sessões da própria API
+  canal:async()=>{
+   for(const p of ['/listSessions','/getAllSessionApis','/listChannels']){
+    try{const c=canalDaLista(pickList(await req(p)),api);if(c)return c;}catch(e){if(e.code==='CHAT_UNAUTHORIZED')throw e;}
+   }
+   throw new ChatApiError('CHAT_SESSION_UNKNOWN');
+  }
+ });
+}
 export function pickList(body){
  if(Array.isArray(body))return body;
  if(!body||typeof body!=='object')return null;
- for(const k of ['data','tags','users','queues','queue','steps','pipelineSteps','pipeline_steps','departments','leadOrigins','origins','closingReasons','reasons','result','results','items']){
+ for(const k of ['data','tags','users','queues','queue','steps','stages','pipelines','opportunities','sessions','channels','whatsapps','pipelineSteps','pipeline_steps','departments','leadOrigins','origins','closingReasons','reasons','result','results','items']){
   if(Array.isArray(body[k]))return body[k];
   if(body[k]&&typeof body[k]==='object'){const inner=pickList(body[k]);if(inner)return inner;}
  }

@@ -1,7 +1,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {estoqueParaSite,estoqueDoModelo,lojaDemoFiel,mostrarDo} from './site-fiel.mjs';
 import {handleBilling} from './billing.mjs';
-import {createChatClient,entrarUsuarioChat,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeTemplates,normalizeOpportunities,lerFunil} from './integrations/chat-leadvox.mjs';
+import {createChatClient,entrarUsuarioChat,parseChatUrl,chatUrlProblem,pickList,normalizeItems,normalizeTemplates,normalizeOpportunities,lerFunil,ehNovaLeadvox} from './integrations/chat-leadvox.mjs';
 import {testAutoCerto,testRevendaMais,testAsaas,testOpenAI,elevenLabsVoices,ConnectionError} from './integrations/connections.mjs';
 import {buscarEstoque,itemManual,itemProduto} from './integrations/estoque.mjs';
 import {lerSiteLoja,baixarLogoSite,lerSiteTexto} from './integrations/site-loja.mjs';
@@ -70,6 +70,21 @@ export const USUARIOS_ERROS={email:'Confira o e-mail.',papel:'Escolha a função
  empresa:'Empresa inválida.',banco:'O banco não respondeu. Tente de novo em instantes.'};
 export function jwtPayload(token){
  try{const part=String(token).split('.')[1];return JSON.parse(Buffer.from(part.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));}catch{return null;}
+}
+// Nova LeadVox (Z-PRO): o Motor não fala direto com a API dela, e sim com a ponte do n8n, que traduz o envio do Motor
+// (resposta, transferência, nota, grupo) em chamadas da API v2. O tenant e o número da nova LeadVox ganham um deslocamento
+// para nunca colidirem com os do CRM antigo na mesma tabela do motor.
+const PONTE_SAIDA=process.env.PONTE_NL_SAIDA||'https://n8n.leadvox.com.br/webhook/a6f0c0de-0b1e-4d6b-9a55-5d1d0e0a0003/nl-saida/v1';
+export const DESLOCA_NL=100000;
+// O que o banco do motor guarda para ligar a conta ao número: {tenant, sessao, url} ou null se não der para saber o número.
+export async function ligacaoMotor({root,apiId,token,fetchImpl=fetch}){
+ if(ehNovaLeadvox(root)){
+  const c=await createChatClient({root,apiId,token,fetchImpl}).canal();
+  return {tenant:DESLOCA_NL+c.tenantId,sessao:DESLOCA_NL+c.sessionId,url:PONTE_SAIDA+'/api/external/'+apiId+'/?token='+encodeURIComponent(token)};
+ }
+ const p=jwtPayload(token);
+ if(!Number.isInteger(p?.tenantId)||!Number.isInteger(p?.sessionId))return null;
+ return {tenant:p.tenantId,sessao:p.sessionId,url:root+'/api/external/'+apiId+'/?token='+encodeURIComponent(token)};
 }
 export const NICHES=['automotivo','imoveis','saude','advocacia','educacao','varejo','viagens','outro'];
 const AI_ROLES=['SDR','Atendimento','Recepção','Suporte','Pós-venda','Cobrança'];
@@ -163,7 +178,7 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
    return r.jwt;
   };
  }
- const clienteChat=async(org,authToken,row)=>createChatClient({root:row.api_root,apiId:row.api_id,token:row.token,fetchImpl,sessao:await sessaoChat(org,authToken,row.api_root)});
+ const clienteChat=async(org,authToken,row)=>createChatClient({root:row.api_root,apiId:row.api_id,token:row.token,fetchImpl,sessao:ehNovaLeadvox(row.api_root)?null:await sessaoChat(org,authToken,row.api_root)});
  const LOGIN_RECUSADO='A LeadVox não aceitou o usuário salvo em Credenciais de API. Confira o e-mail e a senha desse usuário.';
  const SEM_USUARIO='A LeadVox passou a pedir o login de um usuário para funis, oportunidades, departamentos e origens. Conecte um usuário da LeadVox em Credenciais de API.';
  // Tema do site da loja: público (o site chama de outro domínio), só leitura, guardado 60 s por loja.
@@ -570,9 +585,9 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     const conectar=async()=>{
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      const c=rows?.[0];if(!c)return {ok:false,erro:'sem_credencial'};
-     const p=jwtPayload(c.token);
-     if(!Number.isInteger(p?.tenantId)||!Number.isInteger(p?.sessionId))return {ok:false,erro:'token_sem_sessao'};
-     return rpc('lv_motor_conectar',{tenant:p.tenantId,sessao:p.sessionId,url:c.api_root+'/api/external/'+c.api_id+'/?token='+encodeURIComponent(c.token)});
+     let lig;try{lig=await ligacaoMotor({root:c.api_root,apiId:c.api_id,token:c.token,fetchImpl});}catch{return {ok:false,erro:'token_sem_sessao'};}
+     if(!lig)return {ok:false,erro:'token_sem_sessao'};
+     return rpc('lv_motor_conectar',{tenant:lig.tenant,sessao:lig.sessao,url:lig.url});
     };
     try{
      if(acao==='vincular'){await rpc('lv_motor_vincular',{});const r=await conectar();if(r?.ok===false&&r.erro!=='sem_credencial')falha(r,'Conta criada, mas não deu para ligar a LeadVox.');}
@@ -907,10 +922,11 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     const acao=String(body.acao||'');
     if(acao==='salvar'){
      const problem=chatUrlProblem(body.url,body.token);
-     if(problem)throw {status:400,message:problem==='host'?'A URL precisa ser da API da LeadVox (chatapi ou chat2api.leadvox.com.br).':problem==='path'?'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.':'Faltou o token: cole no campo Token ou deixe na URL.'};
+     if(problem)throw {status:400,message:problem==='host'?'A URL precisa ser da API da LeadVox (chatapi, chat2api ou apicrm.leadvox.com.br).':problem==='path'?'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.':'Faltou o token: cole no campo Token ou deixe na URL.'};
      const nome=String(body.nome||'').trim().slice(0,60);
      if(nome.length<2)throw {status:400,message:'Dê um nome para este número (ex.: Investidor).'};
      let parsed;try{parsed=parseChatUrl(body.url,body.token);}catch{throw {status:400,message:'Não entendi essa URL. Confira se copiou a URL inteira da API da LeadVox.'};}
+     if(ehNovaLeadvox(parsed.root))throw {status:400,message:'Números extras ainda não funcionam com a nova LeadVox. Use a conexão principal em Credenciais de API.'};
      try{await createChatClient({...parsed,fetchImpl}).users();}
      catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não aceitou esse token. Confira a URL e tente de novo.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      const jp=jwtPayload(parsed.token);
@@ -938,13 +954,17 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
      send(res,200,rows===null?{connected:false,setupPending:true}:{connected:!!rows[0],apiId:rows[0]?.api_id||null,updatedAt:rows[0]?.updated_at||null});
     }else if(action==='chat-credentials'&&req.method==='POST'){
      const problem=chatUrlProblem(body.url,body.token);
-     if(problem)throw {status:400,message:{host:'A URL precisa ser da API da LeadVox (chatapi ou chat2api.leadvox.com.br).',path:'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.',token:'Faltou o token: cole no campo Token ou deixe no fim da URL, depois de ?token=.'}[problem]};
+     if(problem)throw {status:400,message:{host:'A URL precisa ser da API da LeadVox (chatapi, chat2api ou apicrm.leadvox.com.br).',path:'Faltou o ID da conta na URL: ela tem /api/external/ seguido de um código.',token:'Faltou o token: cole no campo Token ou deixe no fim da URL, depois de ?token=.'}[problem]};
      let parsed;try{parsed=parseChatUrl(body.url,body.token);}catch{throw {status:400,message:'Não entendi essa URL. Confira se copiou a URL inteira da API da LeadVox.'};}
      // Test before saving: a token the LeadVox rejects is never stored.
      try{await createChatClient({...parsed,fetchImpl}).users();}
      catch(e){throw e.code==='CHAT_UNAUTHORIZED'?{status:400,message:'A LeadVox não aceitou esse token. Confira a URL e tente de novo.'}:{status:502,message:'Não deu para falar com a LeadVox agora. Tente de novo em instantes.'};}
      try{await upstream('/rest/v1/rpc/lv_set_chat_credentials',{method:'POST',token:authToken,body:{org,root:parsed.root,api:parsed.apiId,tok:parsed.token},prefer:'return=minimal'});}
      catch{throw {status:400,message:'Não deu para salvar a conexão. Só o dono da empresa pode conectar.'};}
+     // "Trocar conexão": o motor guarda a própria cópia da URL com o token. Sem isto ele seguia com o token velho
+     // e a LeadVox recusava todo envio (403 Invalid token). Empresa sem motor: o banco recusa e segue igual.
+     let lig=null;try{lig=await ligacaoMotor({...parsed,fetchImpl});}catch{}
+     if(lig){try{await upstream('/rest/v1/rpc/lv_motor_conectar',{method:'POST',token:authToken,body:{org,tenant:lig.tenant,sessao:lig.sessao,url:lig.url}});}catch{}}
      send(res,200,{connected:true,apiId:parsed.apiId});
     }else if(action==='chat'&&req.method==='GET'){
      const kind=new URL(req.url,'https://localhost').searchParams.get('kind');

@@ -57,7 +57,8 @@ begin
   ('cliente_novo.sql', to_regproc('public.lv_admin_cliente_criar') is not null),
   ('leadvox_usuario.sql', to_regproc('public.iag_leadvox_usuario') is not null),
   ('conexoes.sql', to_regproc('public.lv_chat_conexoes') is not null),
-  ('usuarios_ativos.sql', to_regproc('public.iag_usuarios_ativos_gravar') is not null)
+  ('usuarios_ativos.sql', to_regproc('public.iag_usuarios_ativos_gravar') is not null),
+  ('nova_leadvox.sql', coalesce(pg_get_functiondef(to_regprocedure('public.lv_motor_conectar(uuid,integer,integer,text)')) like '%nl-saida%',false))
  ) as t(arquivo, ja_rodou) loop
   if r.ja_rodou then
    insert into leadvox_private.sql_aplicado(arquivo, como) values (r.arquivo, 'conferido') on conflict (arquivo) do nothing;
