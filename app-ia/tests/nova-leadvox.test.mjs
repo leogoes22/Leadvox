@@ -92,3 +92,18 @@ test('ligação com o motor: nova LeadVox usa o endereço da ponte e números de
  assert.deepEqual([antigo.tenant,antigo.sessao],[7,3]);assert.match(antigo.url,/^https:\/\/chatapi\.leadvox\.com\.br\/v1\/api\/external\/12\/\?token=/);
  assert.equal(await ligacaoMotor({root:'https://chatapi.leadvox.com.br/v1',apiId:'12',token:'sem-jwt-aqui'}),null);
 });
+
+test('número da API: acha a sessão pelo registro da API (id = código da API, sessionId = número) e a empresa por outra lista', async () => {
+ // a lista de APIs traz o registro desta API (e de outra), sem a empresa; a empresa vem do departamento
+ const mapa={'/getAllSessionApis':{data:[{id:'outra-api',sessionId:9},{id:API,sessionId:5,name:'SDR IA API'}]},'/listQueues':[{id:13,queue:'Comercial',tenantId:2}]};
+ const c=createChatClient({root:ROOT,apiId:API,token:TOKEN,fetchImpl:falsa(mapa)});
+ assert.deepEqual(await c.canal(),{tenantId:2,sessionId:5});
+ // sem registro desta API e várias sessões: não adivinha, e o erro diz o que a API respondeu
+ const mal=createChatClient({root:ROOT,apiId:API,token:TOKEN,fetchImpl:falsa({'/getAllSessionApis':[{id:'a',sessionId:1},{id:'b',sessionId:2}],'/listSessions':{ola:'x'}})});
+ await assert.rejects(()=>mal.canal(),e=>e.code==='CHAT_SESSION_UNKNOWN'&&e.tentativas.some(t=>/2 itens, nenhum é desta API/.test(t))&&e.tentativas.some(t=>/sem lista/.test(t)));
+ // achou o número mas nenhuma lista traz a empresa
+ const semEmpresa=createChatClient({root:ROOT,apiId:API,token:TOKEN,fetchImpl:falsa({'/getAllSessionApis':[{id:API,sessionId:5}]})});
+ await assert.rejects(()=>semEmpresa.canal(),e=>e.tentativas.some(t=>/achei o número 5/.test(t)));
+ // token recusado em qualquer rota para tudo
+ await assert.rejects(()=>createChatClient({root:ROOT,apiId:API,token:TOKEN,fetchImpl:falsa({'/getAllSessionApis':{__status:401,body:{}}})}).canal(),e=>e.code==='CHAT_UNAUTHORIZED');
+});

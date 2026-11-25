@@ -30,6 +30,8 @@ const MOTOR_ERROS={conflito:'Alguém salvou este agente depois de você abrir. R
 // Why the motor refuses to turn an agent on (iag__pendencias).
 const MOTOR_PENDENCIAS={nao_configurado:'preencha nome e "como ele se apresenta" e salve',sem_departamento:'escolha o departamento deste agente',sem_conexao:'ligue o WhatsApp: conecte sua LeadVox em Credenciais de API',conta_suspensa:'a conta está suspensa',arquivado:'o agente está arquivado'};
 function motorErro(r,msg){
+ if(r.erro==='canal_desconhecido')return 'Não deu para descobrir de qual número é essa API da nova LeadVox. Ela respondeu: '+(String(r.detalhe||'').trim()||'sem detalhes')+'.';
+ if(r.erro==='token_recusado')return 'A nova LeadVox recusou o token salvo. Conecte de novo em Credenciais de API.';
  if(r.erro==='pendencias'&&Array.isArray(r.pendencias))return 'Para ligar o agente: '+r.pendencias.map(p=>MOTOR_PENDENCIAS[p]||p).join('; ')+'.';
  return MOTOR_ERROS[r.erro]||msg;
 }
@@ -585,7 +587,8 @@ export function createAccountApi({fetchImpl=fetch,allowLocal=false,dns,fetchSite
     const conectar=async()=>{
      let rows;try{rows=await upstream('/rest/v1/rpc/lv_chat_secret',{method:'POST',token:authToken,body:{org}});}catch{rows=[];}
      const c=rows?.[0];if(!c)return {ok:false,erro:'sem_credencial'};
-     let lig;try{lig=await ligacaoMotor({root:c.api_root,apiId:c.api_id,token:c.token,fetchImpl});}catch{return {ok:false,erro:'token_sem_sessao'};}
+     let lig;try{lig=await ligacaoMotor({root:c.api_root,apiId:c.api_id,token:c.token,fetchImpl});}
+     catch(e){return e?.code==='CHAT_SESSION_UNKNOWN'?{ok:false,erro:'canal_desconhecido',detalhe:(e.tentativas||[]).join('; ').slice(0,400)}:e?.code==='CHAT_UNAUTHORIZED'?{ok:false,erro:'token_recusado'}:{ok:false,erro:'token_sem_sessao'};}
      if(!lig)return {ok:false,erro:'token_sem_sessao'};
      return rpc('lv_motor_conectar',{tenant:lig.tenant,sessao:lig.sessao,url:lig.url});
     };

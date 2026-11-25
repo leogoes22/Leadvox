@@ -228,11 +228,34 @@ export function createNovaLeadvoxClient({root,apiId,token,fetchImpl=fetch}){
   },
   opportunities:async(status='')=>{const l=await oportunidades(status);return {list:l,count:l.length,hasMore:false};},
   // de qual empresa e número é esta API (o token não diz): lê a lista de sessões da própria API
+  // A sessão (número) vem da lista de APIs/sessões: o registro desta API tem o código dela em id e o número em sessionId.
+  // A empresa (tenantId) nem sempre vem aí: qualquer registro da própria empresa (departamento, usuário, etiqueta) a traz.
   canal:async()=>{
-   for(const p of ['/listSessions','/getAllSessionApis','/listChannels']){
-    try{const c=canalDaLista(pickList(await req(p)),api);if(c)return c;}catch(e){if(e.code==='CHAT_UNAUTHORIZED')throw e;}
+   const tentativas=[];let sessionId=null,tenantId=null;
+   for(const p of ['/getAllSessionApis','/listSessions','/listChannels']){
+    try{
+     const l=pickList(await req(p));
+     if(!l){tentativas.push(p+' → 200 sem lista');continue;}
+     const itens=l.filter(x=>x&&typeof x==='object');
+     const meu=itens.find(x=>String(x.id)===api||String(x.apiId??x.api?.id??'')===api);
+     const c=meu||(itens.length===1?itens[0]:null);
+     if(!c){tentativas.push(p+' → '+itens.length+' itens, nenhum é desta API'+(itens[0]?' ['+Object.keys(itens[0]).slice(0,8).join(',')+']':''));continue;}
+     const s=Number(c.sessionId??c.whatsappId??(meu?null:c.id)),t=Number(c.tenantId??c.tenant?.id);
+     if(!sessionId&&Number.isInteger(s)&&s>0)sessionId=s;
+     if(!tenantId&&Number.isInteger(t)&&t>0)tenantId=t;
+     if(!sessionId)tentativas.push(p+' → achei a API, mas sem número ['+Object.keys(c).slice(0,8).join(',')+']');
+     if(sessionId&&tenantId)break;
+    }catch(e){if(e.code==='CHAT_UNAUTHORIZED')throw e;tentativas.push(p+' → '+(e.http||e.code));}
    }
-   throw new ChatApiError('CHAT_SESSION_UNKNOWN');
+   if(sessionId&&!tenantId){
+    for(const p of ['/listQueues','/listUsers','/listTags']){
+     try{const t=Number(((pickList(await req(p))||[])[0]||{}).tenantId);if(Number.isInteger(t)&&t>0){tenantId=t;break;}}catch(e){if(e.code==='CHAT_UNAUTHORIZED')throw e;}
+    }
+   }
+   if(sessionId&&tenantId)return {tenantId,sessionId};
+   const erro=new ChatApiError('CHAT_SESSION_UNKNOWN');erro.tentativas=tentativas;
+   if(sessionId&&!tenantId)erro.tentativas.push('achei o número '+sessionId+', mas nenhuma lista trouxe a empresa');
+   throw erro;
   }
  });
 }
