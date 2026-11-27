@@ -18,7 +18,7 @@ const JPG='/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAYGBgYHBgcICAcKCwoLCg8ODAwODxYQERARE
 
 test('entrada: texto do cliente vira o ChatFlow que o Motor já lê', () => {
  const r=P.entrada(aviso({text:'Oi, quero um SUV'},{queueId:13,userId:''}));
- assert.deepEqual(r.motor,{chatInput:'Oi, quero um SUV',sessionId:'5521988943529',Departamento:13,ticketId:'613',nomeContato:'Leonardo Vasconcellos',Id_usuario:''});
+ assert.deepEqual(r.motor,{chatInput:'Oi, quero um SUV',sessionId:'5521988943529',Departamento:13,ticketId:'613',nomeContato:'Leonardo Vasconcellos',Id_usuario:'',contactId:1808});
  assert.equal(r.midia,null);
  assert.equal(r.ticket.id,'613');
 });
@@ -57,7 +57,7 @@ test('extensão pelo conteúdo: voz, foto, PDF, e cai no padrão do tipo quando 
 
 test('saída: texto simples é um envio só', () => {
  const r=P.saida({number:'5521988943529',body:'Oi!',externalKey:'iag-sdr-0'},{ticketId:613});
- assert.deepEqual(r.chamadas,[{metodo:'POST',rota:'/',corpo:{number:'5521988943529',body:'Oi!',externalKey:'iag-sdr-0',validateNumber:false}}]);
+ assert.deepEqual(r.chamadas,[{metodo:'POST',rota:'/',corpo:{number:'5521988943529',body:'Oi!',validateNumber:false}}]);
 });
 
 test('saída: mensagem que leva a fila e o vendedor vira envio + mudança do ticket (e desliga o N8N dele)', () => {
@@ -89,18 +89,23 @@ test('saída: nota interna, grupo e mídia', () => {
 // ── o fluxo do n8n montado a partir do mesmo código ─────────────────────────────────────────────
 import {montarFluxoPonte} from '../n8n/ponte-novaleadvox.mjs';
 const AF=Object.getPrototypeOf(async function(){}).constructor;
-const rodar=(fluxo,nome,{input,nos={}})=>{
+const rodar=(fluxo,nome,{input,nos={},mem={},helpers={}})=>{
  const n=fluxo.nodes.find(x=>x.name===nome);
- const wrap=(j)=>({first:()=>({json:j}),all:()=>[].concat(j).map(x=>({json:x}))});
- return new AF('$input','$',n.parameters.jsCode)(wrap(input),(nm)=>wrap(nos[nm]));
+ const wrap=(j)=>({isExecuted:j!==undefined,first:()=>({json:j}),all:()=>[].concat(j).map(x=>({json:x}))});
+ return new AF('$input','$','$getWorkflowStaticData',n.parameters.jsCode).call({helpers},wrap(input),(nm)=>wrap(nos[nm]),()=>mem);
 };
 
 test('fluxo da ponte: nomes únicos, ligações para nós que existem, três portas e código que compila', () => {
  const f=montarFluxoPonte();const nomes=f.nodes.map(n=>n.name);
  assert.equal(new Set(nomes).size,nomes.length);
  for(const [de,v] of Object.entries(f.connections)){assert.ok(nomes.includes(de),'origem '+de);for(const saida of v.main)for(const l of saida)assert.ok(nomes.includes(l.node),'destino '+l.node);}
- assert.deepEqual(f.nodes.filter(n=>n.type.endsWith('.webhook')).map(n=>n.parameters.path),['nl-entrada','nl-midia/:arquivo','nl-saida/v1/api/external/:apiId']);
- for(const n of f.nodes.filter(x=>x.type.endsWith('.code')))assert.doesNotThrow(()=>new AF('$input','$',n.parameters.jsCode),n.name);
+ const ganchos=f.nodes.filter(n=>n.type.endsWith('.webhook'));
+ assert.deepEqual(ganchos.slice(0,3).map(n=>n.parameters.path),['nl-entrada','nl-midia/:arquivo','nl-saida/v1/api/external/:apiId']);
+ // rotas do CRM: todas sob o id da saída, respondendo pelo nó de resposta e sem repetir método+caminho
+ const crm=ganchos.slice(3);assert.equal(crm.length,11);
+ assert.ok(crm.every(n=>n.webhookId==='a6f0c0de-0b1e-4d6b-9a55-5d1d0e0a0003'&&n.parameters.responseMode==='responseNode'));
+ assert.equal(new Set(ganchos.map(n=>n.parameters.httpMethod+' '+n.parameters.path)).size,ganchos.length);
+ for(const n of f.nodes.filter(x=>x.type.endsWith('.code')))assert.doesNotThrow(()=>new AF('$input','$','$getWorkflowStaticData',n.parameters.jsCode),n.name);
  assert.equal(f.active,false);
 });
 
@@ -159,4 +164,90 @@ test('fluxo: o resumo responde 200 só se todas as chamadas deram certo; senão 
  assert.equal(erroNet[0].json.status,502);
  const sem=await rodar(f,'Resumo da Saída',{input:[{statusCode:200}],nos:{'Traduzir Saída':{erroFinal:'sem_ticket'}}});
  assert.equal(sem[0].json.status,409);
+});
+
+test('saída: foto sem legenda vai com espaço invisível (a nova LeadVox recusa body vazio)', () => {
+ const m=P.saida({number:'5521988943529',body:'',mediaUrl:'https://x/2.jpg'},{ticketId:1}).chamadas[0];
+ assert.equal(m.rota,'/url');assert.equal(m.corpo.body,'\u200b');assert.equal(m.corpo.mediaUrl,'https://x/2.jpg');
+ assert.equal(m.corpo.externalKey,undefined);
+ const t=P.saida({number:'5521988943529',body:'Oi',externalKey:'iag-sdr-0'},{ticketId:1}).chamadas[0];
+ assert.equal(t.corpo.body,'Oi');assert.equal(t.corpo.externalKey,undefined);
+});
+
+// ── funil e etiquetas: rotas do CRM antigo respondidas com a API v2 (26/11/2026) ─────────────────
+const TOK='tok-loja-teste-123456';
+const falsaApi=(estado)=>{const log=[];const chamar=async(metodo,rota,corpo,apiId)=>{log.push([metodo,rota,corpo,apiId]);
+ if(rota==='/stage/list')return{status:200,body:{stages:[{id:19,name:'Qualificando pela IA',pipelineId:4},{id:20,name:'24hrs',pipelineId:4}]}};
+ if(rota.startsWith('/listOpportunities'))return{status:200,body:{opportunities:estado.opps}};
+ if(rota==='/createOpportunity'){estado.opps.push({id:99,contactId:1808,stageId:corpo.stageId,status:'open'});return{status:200,body:{id:99}};}
+ if(rota==='/updateOpportunity')return{status:200,body:{ok:true}};
+ if(rota==='/showcontact')return{status:200,body:{contact:{id:1808,name:'Leonardo',number:'5521988943529',tags:estado.tagsContato}}};
+ if(rota==='/listTags')return{status:200,body:{tags:estado.tags}};
+ if(rota==='/listUsers')return{status:200,body:{users:[{id:5,name:'Amanda',profile:'user'},{id:4,name:'Gerente',profile:'admin'}]}};
+ return{status:200,body:{}};};return{chamar,log};};
+const base='/v1/api/external/03db0c27';
+
+test('crm: rotas do CRM antigo que o Motor chama viram rotas conhecidas (e o resto não)', () => {
+ assert.deepEqual(P.rotaCrm('GET',base+'/opportunities'),{r:'opps',apiId:'03db0c27'});
+ assert.deepEqual(P.rotaCrm('PUT',base+'/opportunities/12'),{r:'oppMudar',apiId:'03db0c27',id:12});
+ assert.deepEqual(P.rotaCrm('PUT','/opportunity/12/status'),{r:'oppStatus',id:12});
+ assert.deepEqual(P.rotaCrm('GET','/v1/contacts/number/5521988943529'),{r:'contato',numero:'5521988943529'});
+ assert.deepEqual(P.rotaCrm('PATCH','/v1/contacts/1808'),{r:'contatoTags',id:1808});
+ assert.deepEqual(P.rotaCrm('GET','/v1/api/external/users/03db0c27'),{r:'usuarios',apiId:'03db0c27'});
+ assert.equal(P.rotaCrm('DELETE',base+'/opportunities/1').r,'');
+});
+
+test('crm: lista só a oportunidade aberta do contato, no formato antigo (etapa = stageId)', async () => {
+ const {chamar}=falsaApi({opps:[{id:7,contactId:1808,stageId:19,pipelineId:4,responsibleId:5,status:'open',name:'Leo'},{id:8,contactId:1808,stageId:20,status:'win'},{id:9,contactId:77,stageId:19,status:'open'}]});
+ const r=await P.crm({metodo:'GET',caminho:base+'/opportunities',query:{contactId:'1808',status:'open'},token:'Bearer '+TOK},chamar,{});
+ assert.equal(r.status,200);assert.deepEqual(r.body.data.map(o=>[o.id,o.pipelineStepId,o.responsibleId,o.status]),[[7,19,5,'open']]);
+});
+
+test('crm: cria a oportunidade pelo número guardado na entrada, com o funil da etapa', async () => {
+ const est={opps:[]};const {chamar,log}=falsaApi(est);const mem={contatos:{1808:{tel:'5521988943529',nome:'Leonardo'}}};
+ const r=await P.crm({metodo:'POST',caminho:base+'/opportunities',corpo:{name:'Leonardo — WhatsApp',contactId:1808,pipelineStepId:19,responsibleId:'5',value:0,expectedCloseDate:'2026-12-03'},token:TOK},chamar,mem);
+ assert.equal(r.status,200);
+ const c=log.find(x=>x[1]==='/createOpportunity');
+ assert.deepEqual([c[2].number,c[2].stageId,c[2].pipelineId,c[2].responsibleId,c[2].status,c[3]],['5521988943529',19,4,5,'open','03db0c27']);
+ // contato que a ponte não viu: recusa em vez de criar card errado
+ assert.equal((await P.crm({metodo:'POST',caminho:base+'/opportunities',corpo:{contactId:55,pipelineStepId:19},token:TOK},chamar,{})).status,409);
+});
+
+test('crm: move de etapa, troca o responsável e fecha como ganho', async () => {
+ const {chamar,log}=falsaApi({opps:[]});
+ await P.crm({metodo:'PUT',caminho:base+'/opportunities/7',corpo:{name:'Leo',pipelineStepId:20,responsibleId:6,value:0,description:'x'},token:TOK},chamar,{});
+ const u=log.filter(x=>x[1]==='/updateOpportunity').pop()[2];
+ assert.deepEqual([u.opportunityId,u.stageId,u.pipelineId,u.responsibleId],[7,20,4,6]);
+ // rota sem apiId: acha a conta pelo token que já passou
+ const mem={};await P.crm({metodo:'GET',caminho:base+'/tags',token:TOK},chamar,mem);
+ const g=await P.crm({metodo:'PUT',caminho:'/opportunity/7/status',corpo:{id:7,status:'won',pipelineStepId:20},token:TOK},chamar,mem);
+ assert.equal(g.status,200);assert.equal(log.filter(x=>x[1]==='/updateOpportunity').pop()[2].status,'win');
+ assert.equal((await P.crm({metodo:'PUT',caminho:'/opportunity/7/status',corpo:{status:'won'},token:'outro-token-123456'},chamar,{})).status,409);
+});
+
+test('crm: contato com etiquetas e o PATCH só coloca e tira a diferença', async () => {
+ const est={tags:[{id:93,tag:'📅 Visita agendada'},{id:74,tag:'💳 Financiamento'},{id:68,tag:'💵 À vista'}],tagsContato:[{id:74,tag:'💳 Financiamento'}]};
+ const {chamar,log}=falsaApi(est);const mem={};
+ const c=await P.crm({metodo:'GET',caminho:'/v1/contacts/number/5521988943529',token:TOK},chamar,mem);
+ assert.equal(c.status,409);   // ainda sem conta conhecida para esse token
+ await P.crm({metodo:'GET',caminho:base+'/tags',token:TOK},chamar,mem);
+ const c2=await P.crm({metodo:'GET',caminho:'/v1/contacts/number/5521988943529',token:TOK},chamar,mem);
+ assert.deepEqual([c2.body.id,c2.body.tags.map(t=>t.tag)],[1808,['💳 Financiamento']]);
+ const r=await P.crm({metodo:'PATCH',caminho:'/v1/contacts/1808',corpo:{tags:['💵 À vista','📅 Visita agendada'],customFields:{}},token:TOK},chamar,mem);
+ assert.equal(r.status,200);
+ assert.deepEqual(log.filter(x=>x[1]==='/addTagContact').map(x=>x[2].tagId),[68,93]);
+ assert.deepEqual(log.find(x=>x[1]==='/removeTagContact')[2],{number:'5521988943529',tagIds:[74],validateNumber:false});
+ const u=await P.crm({metodo:'GET',caminho:'/v1/api/external/users/03db0c27',token:TOK},chamar,mem);
+ assert.deepEqual(u.body.users.map(x=>x.id),[5,4]);
+});
+
+test('fluxo: o tradutor do CRM descobre a rota pelo nó que disparou e responde no formato antigo', async () => {
+ const f=montarFluxoPonte();const {chamar}=falsaApi({opps:[{id:7,contactId:1808,stageId:19,status:'open'}]});
+ const helpers={httpRequest:async(o)=>{const m=o.url.match(/external\/([^/]+)(\/.*)$/);const r=await chamar(o.method,m[2],o.body,m[1]);return{statusCode:r.status,body:r.body};}};
+ const nos={'CRM · Oportunidades':{params:{apiId:'03db0c27'},query:{token:TOK,contactId:'1808',status:'open'},headers:{authorization:'Bearer '+TOK}}};
+ const [r]=await rodar(f,'CRM · Traduzir',{input:{},nos,mem:{},helpers});
+ assert.equal(r.json.status,200);assert.equal(r.json.body.data[0].pipelineStepId,19);
+ // a entrada guarda o número do contato para o funil
+ const mem={};await rodar(f,'Traduzir Entrada',{input:{query:{k:'loja-teste-1a2b3c4d',t:'tok123'},body:aviso({text:'Oi'})},mem});
+ assert.deepEqual(mem.contatos['1808'],{tel:'5521988943529',nome:'Leonardo Vasconcellos'});
 });
